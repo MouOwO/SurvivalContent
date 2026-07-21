@@ -6,6 +6,8 @@
     var tableKey = "player_" + playerId;
     var lastRequestedUnit = -1;
     var selectedUnitSnapshot = null;
+    var officialAttackText = "";
+    var officialAttackUnit = -1;
     var heroPanelState = {
         unit: -1,
         unitName: "",
@@ -16,6 +18,22 @@
         healthWidth: "",
         manaWidth: ""
     };
+    var portraitCache = {};
+    var portraitCacheSerial = 0;
+    var portraitPrewarmQueue = [
+        "building_main_city",
+        "building_wall",
+        "building_arrow_tower",
+        "building_farm",
+        "building_gold_mine",
+        "building_research_lab",
+        "building_advanced_research_lab",
+        "building_hero_altar",
+    ];
+    var portraitPrewarmIndex = 0;
+    var portraitPrewarmRunning = false;
+    var portraitPrewarmComplete = false;
+    var lastHotkeyCastTime = {};
 
     function panel(id) { return $("#" + id); }
     function setText(id, value) {
@@ -27,6 +45,148 @@
 
     function setWidth(target, value) {
         if (target && target.style.width !== value) target.style.width = value;
+    }
+
+    function isNativeHero(unitName) {
+        return /^npc_dota_hero_/.test(String(unitName || ""));
+    }
+
+    function isHeroUnit(unit, unitName) {
+        try {
+            if (Entities.IsHero) return !!Entities.IsHero(unit);
+        } catch (error) {}
+        return isNativeHero(unitName);
+    }
+
+    function officialHudRoot() {
+        var root = $.GetContextPanel();
+        while (root && root.GetParent && root.GetParent()) root = root.GetParent();
+        return root;
+    }
+
+    function setOfficialPanelVisible(root, id, visible) {
+        if (!root || !root.FindChildTraverse) return false;
+        var target = root.FindChildTraverse(id);
+        if (!target) return false;
+        target.style.visibility = visible ? "visible" : "collapse";
+        return true;
+    }
+
+    function writeOfficialAttackText() {
+        if (!officialAttackText || Number(selectedUnit()) !== officialAttackUnit) return;
+        var root = officialHudRoot();
+        var stats = root && root.FindChildTraverse
+            ? root.FindChildTraverse("stats") : null;
+        var damage = stats && stats.FindChildTraverse
+            ? stats.FindChildTraverse("Damage") : null;
+        var label = damage && damage.FindChildTraverse
+            ? damage.FindChildTraverse("DamageLabel") : null;
+        if (!label) return;
+        if (label.text !== officialAttackText) label.text = officialAttackText;
+    }
+
+    function updateOfficialStatsVisibility(unit, unitName) {
+        var root = officialHudRoot();
+        if (!root) return;
+
+        // 官方 StatsRegion 只保留三项通用战斗属性。
+        setOfficialPanelVisible(root, "Damage", true);
+        setOfficialPanelVisible(root, "AttackSpeed", true);
+        setOfficialPanelVisible(root, "Armor", true);
+        setOfficialPanelVisible(root, "MagicResist", false);
+        setOfficialPanelVisible(root, "MoveSpeed", false);
+        setOfficialPanelVisible(root, "Bounty", false);
+
+        // 官方三围组只对真正的英雄实体显示，建筑、召唤物和怪物整组折叠。
+        setOfficialPanelVisible(root, "stragiint", isHeroUnit(unit, unitName));
+    }
+
+    function portraitCacheParent(unitName) {
+        return isNativeHero(unitName)
+            ? panel("SurvivalHeroPortraitCache")
+            : panel("SurvivalBuildingPortraitCache");
+    }
+
+    function ensurePortraitScene(unitName) {
+        if (!unitName) return null;
+        if (isNativeHero(unitName)) {
+            var heroImage = panel("SurvivalHeroPortrait");
+            if (!heroImage) return null;
+            try { heroImage.SetUnit(unitName, "", false); } catch (error) {}
+            return heroImage;
+        }
+        var cached = portraitCache[unitName];
+        if (cached) return cached;
+        var cache = portraitCacheParent(unitName);
+        if (!cache) return null;
+        var id = "SurvivalBuildingPortraitCache" + String(portraitCacheSerial++);
+        var scene = $.CreatePanel("DOTAScenePanel", cache, id);
+        if (!scene) return null;
+        scene.AddClass("SurvivalBuildingPortrait");
+        scene.hittest = false;
+        scene.SetHasClass("PortraitCacheVisible", false);
+        scene.SetHasClass("PortraitPrewarm", false);
+        scene.SetUnit(unitName, "", false);
+        portraitCache[unitName] = scene;
+        $.Msg("[SURVIVAL_PORTRAIT] CACHE_CREATE name=", unitName, " id=", id);
+        return scene;
+    }
+
+    function prewarmNextPortrait() {
+        if (portraitPrewarmRunning || portraitPrewarmIndex >= portraitPrewarmQueue.length) return;
+        var unitName = portraitPrewarmQueue[portraitPrewarmIndex++];
+        if (portraitCache[unitName]) {
+            $.Schedule(0.05, prewarmNextPortrait);
+            return;
+        }
+        portraitPrewarmRunning = true;
+        var scene = ensurePortraitScene(unitName);
+        if (scene) {
+            scene.SetHasClass("PortraitPrewarm", true);
+            $.Msg("[SURVIVAL_PORTRAIT] PREWARM_BEGIN name=", unitName);
+            $.Schedule(0.12, function () {
+                if (scene && scene.IsValid && scene.IsValid()) {
+                    scene.SetHasClass("PortraitPrewarm", false);
+                    scene.SetHasClass(
+                        "PortraitCacheVisible",
+                        heroPanelState.unitName === unitName
+                    );
+                }
+                portraitPrewarmRunning = false;
+                $.Msg("[SURVIVAL_PORTRAIT] PREWARM_DONE name=", unitName);
+                if (portraitPrewarmIndex >= portraitPrewarmQueue.length) {
+                    portraitPrewarmComplete = true;
+                    $.Msg("[SURVIVAL_PORTRAIT] PREWARM_ALL_DONE count=", String(portraitPrewarmQueue.length));
+                }
+                $.Schedule(0.04, prewarmNextPortrait);
+            });
+        } else {
+            portraitPrewarmRunning = false;
+            $.Schedule(0.04, prewarmNextPortrait);
+        }
+    }
+
+    function startPortraitPrewarm() {
+        prewarmNextPortrait();
+    }
+
+    function showPortrait(unitName) {
+        var scene = ensurePortraitScene(unitName);
+        if (!scene) return null;
+        var heroImage = panel("SurvivalHeroPortrait");
+        var nativeHero = isNativeHero(unitName);
+        if (heroImage) heroImage.SetHasClass("PortraitCacheVisible", nativeHero);
+        if (!nativeHero) scene.SetHasClass("PortraitPrewarm", false);
+        for (var name in portraitCache) {
+            if (portraitCache.hasOwnProperty(name)) {
+                portraitCache[name].SetHasClass("PortraitCacheVisible", !nativeHero && name === unitName);
+            }
+        }
+        if (heroPanelState.unitName !== unitName) {
+            heroPanelState.unitName = unitName;
+            $.Msg("[SURVIVAL_PORTRAIT] SHOW name=", unitName);
+        }
+        return scene;
     }
 
     function formatNumber(value) {
@@ -58,6 +218,9 @@
         }
         selectedUnitSnapshot = snapshot;
         var attack = attackText(snapshot);
+        officialAttackText = attack;
+        officialAttackUnit = Number(snapshot.entindex);
+        writeOfficialAttackText();
         var armor = formatNumber(snapshot.armor);
         // 攻速字段表示每秒攻击次数；缺失时固定显示默认值 0.5，
         // 不允许保留上一选中单位的显示值。
@@ -131,9 +294,10 @@
             return;
         }
         var scene = panel("SurvivalHeroPortrait");
-        var unitName = "npc_dota_hero_axe";
+        var unitName = "npc_dota_hero_undying";
         try {
             unitName = Entities.GetUnitName(unit) || unitName;
+            updateOfficialStatsVisibility(unit, unitName);
             var unitChanged = heroPanelState.unit !== Number(unit);
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
@@ -144,9 +308,8 @@
                 heroPanelState.healthWidth = "";
                 heroPanelState.manaWidth = "";
             }
-            if (scene && heroPanelState.unitName !== unitName) {
-                heroPanelState.unitName = unitName;
-                scene.SetUnit(unitName, "", false);
+            if (scene || panel("SurvivalHeroPortraitCache")) {
+                showPortrait(unitName);
             }
             var snapshotMatches = selectedUnitSnapshot
                 && Number(selectedUnitSnapshot.entindex) === Number(unit);
@@ -162,13 +325,28 @@
                 "npc_dota_hero_undying": "农民"
             };
             var localizedName = $.Localize("#" + unitName);
-            var displayName = snapshotName
-                || configuredNames[unitName]
+            var snapshotIsInternal = /^npc_dota_|^building_/.test(String(snapshotName || ""));
+            var displayName = configuredNames[unitName]
+                || (!snapshotIsInternal ? snapshotName : "")
                 || (localizedName && localizedName !== ("#" + unitName)
                     ? localizedName : unitName);
+            // 官方名称控件可能仍返回内部 token；自定义名称优先兜底，禁止裸 token 出现在 HUD。
+            if (/^#?(BUILDING_|building_)/.test(String(displayName))) {
+                displayName = configuredNames[unitName] || displayName.replace(/^#/, "");
+            }
             if (heroPanelState.displayName !== displayName) {
                 heroPanelState.displayName = displayName;
                 setText("SurvivalHeroName", displayName);
+            }
+            // 官方 Reborn 名称控件不会可靠读取自定义 addon token；直接覆盖其内部 Label。
+            // 仅对自定义/建筑单位覆盖，原生英雄名称仍交给官方控件。
+            if (!isNativeHero(unitName)) {
+                var hudRoot = officialHudRoot();
+                var officialName = hudRoot && hudRoot.FindChildTraverse
+                    ? hudRoot.FindChildTraverse("unitname") : null;
+                var officialLabel = officialName && officialName.FindChildTraverse
+                    ? officialName.FindChildTraverse("UnitNameLabel") : null;
+                if (officialLabel) officialLabel.text = displayName;
             }
             var level = snapshotMatches && selectedUnitSnapshot.level !== undefined
                 ? selectedUnitSnapshot.level : Entities.GetLevel(unit);
@@ -202,8 +380,9 @@
                 setWidth(panel("SurvivalHeroManaFill"), manaWidth);
             }
         } catch (error) {}
+        writeOfficialAttackText();
         requestSelectedUnitStats(unit);
-        $.Schedule(0.25, refreshHeroPanel);
+        $.Schedule(0.10, refreshHeroPanel);
     }
 
     function abilityRuntime(abilityIndex) {
@@ -252,7 +431,7 @@
     }
 
     function refreshAbilities() {
-        var parent = panel("SurvivalHeroAbilityBar");
+        var parent = panel("SurvivalHeroAbilitySlots") || panel("SurvivalHeroAbilityBar");
         var unit = selectedUnit();
         if (!parent || unit === undefined || unit < 0) {
             $.Schedule(0.5, refreshAbilities);
@@ -464,6 +643,26 @@
         return true;
     }
 
+    function castDisplaySlot(slot, source) {
+        var now = Game.GetGameTime ? Number(Game.GetGameTime()) : 0;
+        var previous = Number(lastHotkeyCastTime[slot] || -100);
+        if (now - previous < 0.08) return false;
+        lastHotkeyCastTime[slot] = now;
+        var abilityIndex = abilityByDisplayIndex(slot);
+        $.Msg("[SURVIVAL_CAST][CLIENT] HOTKEY source=", source,
+            " display_slot=", String(slot), " ability=", String(abilityIndex));
+        if (abilityIndex < 0) return false;
+        return executeAbility(abilityIndex);
+    }
+
+    function applyAbilityKeyBinds(keys) {
+        if (!Game.CreateCustomKeyBind) return;
+        keys.forEach(function (key, slot) {
+            Game.CreateCustomKeyBind(key, "survival_cast_ability_" + String(slot));
+        });
+        $.Msg("[SURVIVAL_CAST][CLIENT] KEYBINDS_APPLIED keys=QWERTYU");
+    }
+
     function bindHotkeys() {
         if (bindHotkeys.bound) return;
         bindHotkeys.bound = true;
@@ -473,23 +672,25 @@
             keys.forEach(function (key, slot) {
                 var command = "survival_cast_ability_" + String(slot);
                 Game.AddCommand(command, function () {
-                    var abilityIndex = abilityByDisplayIndex(slot);
-                    $.Msg("[SURVIVAL_CAST][CLIENT] HOTKEY_DOWN key=", key, " display_slot=", String(slot), " ability=", String(abilityIndex));
-                    if (abilityIndex >= 0) executeAbility(abilityIndex);
+                    castDisplaySlot(slot, "command");
                 }, "施放自定义技能 " + key, 0);
-                // 当前 Panorama 的 CreateCustomKeyBind 绑定普通命令；
-                // 绑定 +command 会导致 Q 不再进入回调。
-                Game.CreateCustomKeyBind(key, command);
+                Game.AddCommand("+" + command, function () {
+                    castDisplaySlot(slot, "+command");
+                }, "按下自定义技能 " + key, 0);
+                Game.AddCommand("-" + command, function () {}, "松开自定义技能 " + key, 0);
             });
+            applyAbilityKeyBinds(keys);
+            $.Schedule(0.5, function () { applyAbilityKeyBinds(keys); });
+            $.Schedule(2.5, function () { applyAbilityKeyBinds(keys); });
         }
         customConfig.SurvivalKeyHandlers = customConfig.SurvivalKeyHandlers || [];
         customConfig.SurvivalKeyHandlers.push(function (key, down) {
+            var normalized = String(key).toUpperCase();
+            $.Msg("[SURVIVAL_CAST][CLIENT] KEY_DISPATCH key=", normalized, " down=", String(down));
             if (!down) return false;
-            var slot = keys.indexOf(String(key).toUpperCase());
+            var slot = keys.indexOf(normalized);
             if (slot < 0) return false;
-            var abilityIndex = abilityByDisplayIndex(slot);
-            if (abilityIndex < 0) return false;
-            return executeAbility(abilityIndex);
+            return castDisplaySlot(slot, "key_dispatch");
         });
         if (GameUI.SetKeyPressedCallback && !customConfig.SurvivalKeyDispatcherBound) {
             customConfig.SurvivalKeyDispatcherBound = true;
@@ -504,46 +705,15 @@
     }
 
     function bindHeroPortrait() {
+        // 不接管官方头像的悬停事件；只清理上一版曾挂载的自定义 Tooltip 事件。
         var root = $.GetContextPanel();
         var candidates = ["HeroImage", "HeroPortrait", "Portrait", "SelectedHeroImage"];
-        var portrait = null;
-        candidates.some(function (id) {
-            portrait = root.FindChildTraverse(id);
-            return !!portrait;
+        candidates.forEach(function (id) {
+            var portrait = root.FindChildTraverse(id);
+            if (!portrait) return;
+            portrait.SetPanelEvent("onmouseover", function () {});
+            portrait.SetPanelEvent("onmouseout", function () {});
         });
-        var scenePortrait = panel("SurvivalHeroPortrait");
-        if (scenePortrait && !scenePortrait.__survivalCameraBound) {
-            scenePortrait.__survivalCameraBound = true;
-            scenePortrait.hittest = true;
-            scenePortrait.SetPanelEvent("onactivate", function () {
-                var unit = selectedUnit();
-                if (unit === undefined || unit < 0) return;
-                try { if (GameUI.SelectUnit) GameUI.SelectUnit(unit, false); } catch (error) {}
-            });
-            scenePortrait.SetPanelEvent("onmousedown", function () {
-                var unit = selectedUnit();
-                if (unit === undefined || unit < 0) return;
-                try { if (GameUI.SetCameraTarget) GameUI.SetCameraTarget(unit); } catch (error) {}
-            });
-            scenePortrait.SetPanelEvent("onmouseup", function () {
-                try { if (GameUI.SetCameraTarget) GameUI.SetCameraTarget(-1); } catch (error) {}
-            });
-            scenePortrait.SetPanelEvent("oncancelfocus", function () {
-                try { if (GameUI.SetCameraTarget) GameUI.SetCameraTarget(-1); } catch (error) {}
-            });
-        }
-        if (portrait && !portrait.__survivalStatsBound) {
-            portrait.__survivalStatsBound = true;
-            portrait.SetPanelEvent("onmouseover", function () {
-                var tip = panel("HeroStatsTooltip");
-                if (tip) tip.RemoveClass("Hidden");
-            });
-            portrait.SetPanelEvent("onmouseout", function () {
-                var tip = panel("HeroStatsTooltip");
-                if (tip) tip.AddClass("Hidden");
-            });
-        }
-        $.Schedule(0.5, bindHeroPortrait);
     }
 
     // HUD 只消费当前选中单位的数据。英雄战斗服务的实时事件仍保留，
@@ -583,9 +753,10 @@
     });
     bindHeroPortrait();
     bindHotkeys();
-    refreshHeroPanel();
+    startPortraitPrewarm();
+    $.Schedule(1.65, refreshHeroPanel);
     refreshAbilities();
     refreshInventory();
     $.Schedule(2.0, revealBottomHud);
-    $.Msg("[CombatStats] logical combat panel ready; bottom HUD reveals after 2 seconds.");
+    $.Msg("[CombatStats] logical combat panel ready; authoritative attack text projection enabled.");
 })();

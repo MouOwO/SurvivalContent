@@ -83,7 +83,7 @@
     margin-top: -32px;
     margin-left: 2px;
     background-color: transparent;
-    background-image: url("file://{images}/custom_game/st2_localmount/hero/st2_level_badge_34x32.png");
+    background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_level_badge.png");
     background-size: 100% 100%;
     background-repeat: no-repeat;
     border: 0px solid transparent;
@@ -169,7 +169,7 @@
     margin-top: 6px;
     padding: 10px 12px 8px 12px;
     background-color: #070a0dba;
-    background-image: url("file://{images}/custom_game/st2_localmount/hero/st2_stats_frame_238x96.png");
+    background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_stat_box.png");
     background-size: 100% 100%;
     background-repeat: no-repeat;
 }
@@ -232,3 +232,223 @@
 .Theme_ST2 #inventory_slot_5 { position: 116px 60px 0px; }
 
 /* Minimap deliberately not repositioned in V1.2. Bind only after identifying its real native panel. */
+
+/* Layout V2 import: survival_ui_layout (1).json, canvas 1920x1080, 2026-07-21. */
+.Theme_ST2 #TopBar
+{
+    width: 392px;
+    height: 48px;
+    horizontal-align: left;
+    vertical-align: top;
+    position: 1504px 0px 0px;
+    margin: 0px;
+    padding: 0px 18px;
+}
+
+.Theme_ST2 #WaveBar
+{
+    width: 616px;
+    height: 56px;
+    horizontal-align: left;
+    vertical-align: top;
+    position: 576px 0px 0px;
+    margin: 0px;
+    padding: 0px 24px;
+}
+
+.Theme_ST2 #SurvivalHeroBottomHUD
+{
+    width: 976px;
+    height: 168px;
+    horizontal-align: left;
+    vertical-align: top;
+    position: 424px 912px 0px;
+    padding: 0px;
+    flow-children: none;
+    background-color: transparent;
+    border: 0px solid transparent;
+    overflow: noclip;
+}
+
+.Theme_ST2 #SurvivalHeroBottomHUD.HudHidden
+{
+    transform: translateY(168px);
+}
+
+.Theme_ST2 #SurvivalHeroPortraitBlock
+{
+    width: 168px;
+    height: 168px;
+    position: 0px 0px 0px;
+    margin: 0px;
+    padding: 0px;
+    horizontal-align: left;
+    vertical-align: top;
+    background-color: #070a0dc9;
+}
+
+.Theme_ST2 #SurvivalHeroPortraitCache,
+.Theme_ST2 #SurvivalHeroPortrait,
+.Theme_ST2 #SurvivalBuildingPortraitCache,
+.Theme_ST2 #SurvivalBuildingPortraitCache > DOTAScenePanel
+{
+    width: 124px;
+    height: 120px;
+    position: 45px 18px 0px;
+}
+
+.Theme_ST2 #st2_PortraitOverlay
+{
+    width: 124px;
+    height: 120px;
+    position: 45px 18px 0px;
+}
+
+.Theme_ST2 #SurvivalHeroLevelBadge
+{
+    position: 35px 112px 0px;
+    margin: 0px;
+}
+
+.Theme_ST2 #SurvivalHeroInfo
+{
+    width: 176px;
+    height: 168px;
+    position: 168px 0px 0px;
+    margin: 0px;
+    padding: 8px 6px;
+    horizontal-align: left;
+    vertical-align: top;
+    background-color: #070a0dc9;
+}
+
+.Theme_ST2 #SurvivalHeroNameRow,
+.Theme_ST2 #SurvivalHeroName
+{
+    width: 164px;
+}
+
+.Theme_ST2 .SurvivalHeroStats
+{
+    width: 164px;
+    height: 130px;
+    margin-top: 2px;
+    padding: 3px 8px;
+    background-image: none;
+}
+
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatRow
+{
+    width: 148px;
+    height: 23px;
+    background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_stat_box.png");
+    background-size: 100% 100%;
+}
+
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatRow Label
+{
+    font-size: 13px;
+    vertical-align: center;
+}
+
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon
+{
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    color: transparent;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon.Attack { background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_icon_attack.png"); }
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon.Armor { background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_icon_armor.png"); }
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon.Speed { background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_icon_speed.png"); }
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon.Strength { background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_icon_strength.png"); }
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon.Agility { background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_icon_agility.png"); }
+.Theme_ST2 .SurvivalHeroStats .SurvivalStatIcon.Intellect { background-image: url("file://{images}/custom_game/st2_darkfantasy/hero/st2_icon_intelligence.png"); }
+
+.Theme_ST2 .SurvivalHeroAbilityBar
+{
+    width: 408px;
+    height: 168px;
+    position: 344px 0px 0px;
+    margin: 0px;
+    padding: 0px;
+    flow-children: none;
+    horizontal-align: left;
+    vertical-align: top;
+}
+
+.Theme_ST2 .SurvivalHeroBars
+{
+    width: 380px;
+    height: 52px;
+    position: 14px 14px 0px;
+    margin: 0px;
+}
+
+.Theme_ST2 .SurvivalHeroHealthBar,
+.Theme_ST2 .SurvivalHeroManaBar,
+.Theme_ST2 .SurvivalBarText
+{
+    width: 380px;
+    height: 22px;
+}
+
+.Theme_ST2 .SurvivalHeroHealthBar,
+.Theme_ST2 #SurvivalHeroHealthText
+{
+    position: 0px 0px 0px;
+}
+
+.Theme_ST2 .SurvivalHeroManaBar,
+.Theme_ST2 #SurvivalHeroManaText
+{
+    position: 0px 28px 0px;
+}
+
+.Theme_ST2 #SurvivalHeroHealthFill,
+.Theme_ST2 #SurvivalHeroManaFill
+{
+    height: 14px;
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-top: 4px;
+}
+
+.Theme_ST2 .SurvivalHeroAbilitySlots
+{
+    width: 380px;
+    height: 72px;
+    position: 14px 82px 0px;
+    flow-children: right;
+    overflow: noclip;
+}
+
+.Theme_ST2 .SurvivalAbilitySlot
+{
+    width: 58px;
+    height: 58px;
+    margin: 0px 8px 0px 0px;
+    padding: 3px;
+}
+
+.Theme_ST2 .SurvivalHeroInventory
+{
+    width: 224px;
+    height: 168px;
+    position: 752px 0px 0px;
+    margin: 0px;
+    padding: 0px;
+    horizontal-align: left;
+    vertical-align: top;
+}
+
+.Theme_ST2 #inventory_slot_0 { position: 26px 36px 0px; }
+.Theme_ST2 #inventory_slot_1 { position: 84px 36px 0px; }
+.Theme_ST2 #inventory_slot_2 { position: 142px 36px 0px; }
+.Theme_ST2 #inventory_slot_3 { position: 26px 94px 0px; }
+.Theme_ST2 #inventory_slot_4 { position: 84px 94px 0px; }
+.Theme_ST2 #inventory_slot_5 { position: 142px 94px 0px; }

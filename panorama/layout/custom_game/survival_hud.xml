@@ -1,7 +1,7 @@
 <root>
     <styles>
         <include src="file://{resources}/styles/custom_game/survival_hud.css" />
-        <include src="file://{resources}/styles/custom_game/survival_hud_st2_local.css" />
+        <include src="file://{resources}/styles/custom_game/survival_hud_native.css" />
         <include src="file://{resources}/styles/custom_game/ability_tooltip.css" />
         <include src="file://{resources}/styles/custom_game/shop.css" />
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
@@ -17,7 +17,7 @@
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
     </scripts>
-    <Panel class="SurvivalHUDRoot Theme_ST2" hittest="false">
+    <Panel class="SurvivalHUDRoot Theme_Native" hittest="false">
         <Panel id="TopBar">
             <Label id="WoodValue" text="木材 0" />
             <Label id="GoldValue" text="金币 0" />
@@ -94,7 +94,7 @@
             <Label id="ShopTooltipStatus" text="" />
         </Panel>
 
-        <Panel id="CustomAbilityTooltip" class="Hidden" hittest="false">
+        <Panel id="CustomAbilityTooltip" class="Hidden" hittest="false" hittestchildren="false">
             <Panel id="AbilityTooltipHeader">
                 <Panel id="AbilityTooltipTitleBlock">
                     <Panel id="CustomAbilityTitleRow">
@@ -117,32 +117,46 @@
             <Panel id="CustomAbilityFields" />
         </Panel>
 
-        <!-- 自定义英雄底栏：开局延迟后从屏幕下方滑入，底边贴合屏幕底部。 -->
+        <!-- Reborn lower_hud -> center_with_stats -> center_block 等价结构。 -->
         <Panel id="SurvivalHeroBottomHUD" class="SurvivalHeroBottomHUD HudHidden" hittest="false">
-            <Panel id="SurvivalHeroPortraitBlock" class="SurvivalHeroPortraitBlock">
-                <DOTAScenePanel id="SurvivalHeroPortrait" class="SurvivalHeroPortrait" unit="npc_dota_hero_axe" environment="default" particleonly="false" hittest="true" />
-                <Image id="st2_PortraitOverlay" src="file://{images}/custom_game/st2_localmount/hero/st2_portrait_overlay_124x120.png" hittest="false" />
+            <Panel id="SurvivalLowerHUD" class="SurvivalLowerHUD" hittest="false">
+                <Panel id="SurvivalCenterWithStats" class="SurvivalCenterWithStats" hittest="false">
+                    <Panel id="SurvivalCenterBlock" class="SurvivalCenterBlock" hittest="false">
+            <Panel id="SurvivalNativeCenterBackground" hittest="false" />
+            <Panel id="SurvivalHeroPortraitBlock" class="SurvivalHeroPortraitBlock" hittest="true">
+                <Panel id="SurvivalHeroPortraitCache" class="SurvivalHeroPortraitCache" hittest="false">
+                    <DOTAScenePanel id="SurvivalHeroPortrait" class="SurvivalHeroPortrait NativeHeroPortrait" unit="npc_dota_hero_undying" environment="default" particleonly="false" hittest="false" />
+                    <Panel id="SurvivalBuildingPortraitCache" class="SurvivalBuildingPortraitCache" hittest="false" />
+                </Panel>
+                <Panel id="SurvivalNativePortraitFrame" hittest="false" />
                 <Panel id="SurvivalHeroLevelBadge"><Label id="SurvivalHeroLevel" text="1" /></Panel>
             </Panel>
             <Panel id="SurvivalHeroInfo" class="SurvivalHeroInfo">
                 <Panel id="SurvivalHeroNameRow"><Label id="SurvivalHeroName" text="农民" /><Label id="SurvivalHeroLevelText" class="Hidden" text="" /></Panel>
+                <Panel id="SurvivalHeroStats" class="SurvivalHeroStats">
+                    <Panel class="SurvivalStatRow Attack"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_damage.png" hittest="false" /><Label id="CombatAttackValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Armor"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_armor.png" hittest="false" /><Label id="CombatArmorValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow AttackSpeed"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_attack_speed.png" hittest="false" /><Label id="CombatAttackSpeedValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Strength"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_strength.png" hittest="false" /><Label id="CombatStrengthValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Agility"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_agility.png" hittest="false" /><Label id="CombatAgilityValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Intellect"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_intelligence.png" hittest="false" /><Label id="CombatIntellectValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                </Panel>
+            </Panel>
+            <Panel id="SurvivalHeroAbilityBar" class="SurvivalHeroAbilityBar" hittest="true">
                 <Panel id="SurvivalHeroBars" class="SurvivalHeroBars">
                     <Panel id="SurvivalHeroHealthBar" class="SurvivalHeroHealthBar"><Panel id="SurvivalHeroHealthFill" /></Panel>
                     <Label id="SurvivalHeroHealthText" class="SurvivalBarText" text="0 / 0" />
                     <Panel id="SurvivalHeroManaBar" class="SurvivalHeroManaBar"><Panel id="SurvivalHeroManaFill" /></Panel>
                     <Label id="SurvivalHeroManaText" class="SurvivalBarText" text="0 / 0" />
                 </Panel>
-                <Panel id="SurvivalHeroStats" class="SurvivalHeroStats">
-                    <Panel class="SurvivalStatRow"><Label class="SurvivalStatIcon Attack" text="⚔" /><Label text="攻击" /><Label id="CombatAttackValue" class="SurvivalStatValue" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow"><Label class="SurvivalStatIcon Armor" text="◆" /><Label text="护甲" /><Label id="CombatArmorValue" class="SurvivalStatValue" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow"><Label class="SurvivalStatIcon Speed" text="⚡" /><Label text="攻速" /><Label id="CombatAttackSpeedValue" class="SurvivalStatValue" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow"><Label class="SurvivalStatIcon Strength" text="●" /><Label text="力量" /><Label id="CombatStrengthValue" class="SurvivalStatValue" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow"><Label class="SurvivalStatIcon Agility" text="●" /><Label text="敏捷" /><Label id="CombatAgilityValue" class="SurvivalStatValue" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow"><Label class="SurvivalStatIcon Intellect" text="●" /><Label text="智力" /><Label id="CombatIntellectValue" class="SurvivalStatValue" text="0" /></Panel>
+                <Panel id="SurvivalHeroAbilitySlots" class="SurvivalHeroAbilitySlots" hittest="true" />
+            </Panel>
+            <Panel id="SurvivalNativeAbilityInsetLeft" hittest="false" />
+            <Panel id="SurvivalNativeAbilityInsetRight" hittest="false" />
+            <Panel id="SurvivalHeroInventory" class="SurvivalHeroInventory" hittest="true" />
+                    </Panel>
                 </Panel>
             </Panel>
-            <Panel id="SurvivalHeroAbilityBar" class="SurvivalHeroAbilityBar" hittest="true" />
-            <Panel id="SurvivalHeroInventory" class="SurvivalHeroInventory" hittest="true" />
         </Panel>
 
         <Button id="BuildingMoveButton" class="BuildingMoveButton" hittest="true">

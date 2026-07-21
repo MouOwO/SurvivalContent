@@ -72,8 +72,8 @@
         function applyPosition() {
             if (!tooltip || !tooltip.IsValid || !tooltip.IsValid()) return;
             var h = numberOr(tooltip.actuallayoutheight, tooltipHeight);
-            // 技能气泡需要在图标上方额外留出 90px，避免覆盖按钮。
-            var measuredY = sourcePosition.y - h - gap - 90;
+            // 以此前下移 120px 的位置为基准，再向上微调 20px。
+            var measuredY = sourcePosition.y - h - gap - 90 + 100;
             measuredY = Math.max(12, Math.min(
                 measuredY, rootHeight - h - 12
             ));

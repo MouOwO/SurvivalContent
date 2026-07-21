@@ -1,0 +1,251 @@
+/* Official hud_reborn owns the complete bottom HUD. The legacy custom clone is kept only for rollback. */
+.Theme_Native #SurvivalHeroBottomHUD
+{
+    visibility: collapse;
+}
+
+/* Legacy transplant rules below are intentionally inert while the official action panel is enabled. */
+/* Survival native-style HUD: official Reborn geometry, custom data and interaction. */
+/* Official Reborn center_block geometry: centered, bottom-aligned, no legacy 424/912 screen coordinates. */
+.Theme_Native #SurvivalHeroBottomHUD
+{
+    width: 920px;
+    height: 145px;
+    horizontal-align: center;
+    vertical-align: bottom;
+    position: 0px 0px 0px;
+    padding: 0px;
+    flow-children: none;
+    background-color: transparent;
+    border: 0px solid transparent;
+    z-index: 50;
+}
+.Theme_Native #SurvivalHeroBottomHUD.HudHidden { transform: translateY(145px); opacity: 0; }
+
+/* Mirrors hud_reborn.xml: lower_hud -> center_with_stats -> center_block. */
+.Theme_Native #SurvivalLowerHUD
+{
+    width: 100%;
+    height: 145px;
+    horizontal-align: center;
+    vertical-align: bottom;
+    flow-children: none;
+}
+.Theme_Native #SurvivalCenterWithStats
+{
+    width: 920px;
+    height: 145px;
+    horizontal-align: center;
+    vertical-align: bottom;
+    flow-children: none;
+}
+.Theme_Native #SurvivalCenterBlock
+{
+    width: 920px;
+    height: 145px;
+    horizontal-align: center;
+    vertical-align: bottom;
+    flow-children: none;
+    overflow: noclip;
+}
+
+/* PortraitGroup / stats_container: 159 x 145, aligned to the bottom edge. */
+.Theme_Native #SurvivalHeroPortraitBlock
+{
+    width: 159px;
+    height: 145px;
+    position: 0px 0px 0px;
+    background-color: #10151acc;
+    border: 1px solid #3d454d;
+}
+.Theme_Native #SurvivalHeroPortraitCache,
+.Theme_Native #SurvivalHeroPortrait,
+.Theme_Native #SurvivalBuildingPortraitCache,
+.Theme_Native #SurvivalBuildingPortraitCache > DOTAScenePanel
+{
+    width: 159px;
+    height: 145px;
+    position: 0px 0px 0px;
+}
+.Theme_Native #SurvivalNativePortraitFrame
+{
+    width: 159px;
+    height: 145px;
+    position: 0px 0px 0px;
+    border: 1px solid #626b73;
+    background-color: transparent;
+}
+.Theme_Native #SurvivalHeroLevelBadge { position: 4px 116px 0px; }
+
+/* Official unitname + stats_container relationship. */
+.Theme_Native #SurvivalHeroInfo
+{
+    width: 159px;
+    height: 145px;
+    position: 0px 0px 0px;
+    padding: 8px 5px;
+    background-color: transparent;
+    z-index: 6;
+    border: 0px solid transparent;
+}
+.Theme_Native #SurvivalHeroNameRow,
+.Theme_Native #SurvivalHeroName { width: 149px; height: 22px; }
+.Theme_Native #SurvivalHeroName
+{
+    color: #d7dadd;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: left;
+    horizontal-align: left;
+    text-transform: none;
+    letter-spacing: 0px;
+}
+.Theme_Native .SurvivalHeroStats
+{
+    width: 149px;
+    height: 115px;
+    flow-children: none;
+    margin-top: 0px;
+    padding: 2px 0px;
+    background-color: transparent;
+}
+.Theme_Native .SurvivalHeroStats .SurvivalStatRow
+{
+    width: 149px;
+    height: 18px;
+    flow-children: right;
+    background-image: none;
+}
+.Theme_Native .SurvivalStatIconImage { width: 14px; height: 14px; margin-left: 3px; margin-right: 4px; }
+.Theme_Native .SurvivalStatRow Label { color: #c5c8ca; font-size: 13px; vertical-align: center; }
+.Theme_Native .SurvivalStatValue
+{
+    horizontal-align: right;
+    width: 86px;
+    text-align: right;
+    color: #e0e2e4;
+    font-family: monospaceNumbersFont;
+    font-size: 14px;
+}
+.Theme_Native .SurvivalStatRow.Attack { position: 0px 22px 0px; }
+.Theme_Native .SurvivalStatRow.Armor { position: 0px 40px 0px; }
+.Theme_Native .SurvivalStatRow.AttackSpeed { position: 0px 58px 0px; }
+.Theme_Native .SurvivalStatRow.Strength { position: 0px 96px 0px; width: 46px; }
+.Theme_Native .SurvivalStatRow.Agility { position: 50px 96px 0px; width: 46px; }
+.Theme_Native .SurvivalStatRow.Intellect { position: 100px 96px 0px; width: 46px; }
+.Theme_Native .SurvivalStatRow.Strength .SurvivalStatValue,
+.Theme_Native .SurvivalStatRow.Agility .SurvivalStatValue,
+.Theme_Native .SurvivalStatRow.Intellect .SurvivalStatValue { width: 28px; font-size: 12px; }
+
+/* Official health_mana + AbilitiesAndStatBranch area. */
+.Theme_Native #SurvivalNativeCenterBackground
+{
+    width: 718px;
+    height: 145px;
+    position: 0px 0px 0px;
+    background-color: #1620346c;
+    background-image: url("file://{images}/custom_game/survival_native/ability_bg.png");
+    background-size: 100% 100%;
+    z-index: -1;
+}
+.Theme_Native #SurvivalNativeAbilityInsetLeft,
+.Theme_Native #SurvivalNativeAbilityInsetRight
+{
+    width: 10px;
+    height: 145px;
+    position: 0px 0px 0px;
+    background-image: url("file://{images}/custom_game/survival_native/ability_inset_shadow.png");
+    background-size: 100% 100%;
+    z-index: 20;
+}
+.Theme_Native #SurvivalNativeAbilityInsetRight
+{
+    position: 708px 0px 0px;
+    transform: scaleX(-1);
+}
+
+/* Official inventory: 202 x 145, bottom-right of center_block. */
+.Theme_Native .SurvivalHeroAbilityBar
+{
+    width: 508px;
+    height: 145px;
+    position: 210px 0px 0px;
+    background-color: transparent;
+    border: 0px solid transparent;
+}
+.Theme_Native .SurvivalHeroBars
+{
+    width: 508px;
+    height: 48px;
+    position: 0px 0px 0px;
+}
+.Theme_Native .SurvivalHeroHealthBar,
+.Theme_Native .SurvivalHeroManaBar
+{
+    width: 508px;
+    height: 24px;
+    border: 0px;
+    border-radius: 0px;
+}
+.Theme_Native .SurvivalHeroHealthBar { position: 0px 0px 0px; background-color: #17200d; }
+.Theme_Native .SurvivalHeroManaBar { position: 0px 24px 0px; background-color: #17263b; }
+.Theme_Native #SurvivalHeroHealthFill { height: 100%; margin: 0px; background-color: gradient(linear,0% 0%,0% 100%,from(#425d25),color-stop(.2,#5ba539),color-stop(.5,#4d9030),to(#425d25)); }
+.Theme_Native #SurvivalHeroManaFill { height: 100%; margin: 0px; background-color: gradient(linear,0% 0%,0% 100%,from(#6a90ba),color-stop(.4,#144b91),to(#2e5187)); }
+.Theme_Native .SurvivalBarText
+{
+    width: 508px;
+    height: 24px;
+    color: white;
+    font-size: 14px;
+    font-family: monospaceNumbersFont;
+    text-align: center;
+    text-shadow: 0px 1px 4px 3 #000000;
+    z-index: 2;
+}
+.Theme_Native #SurvivalHeroHealthText { position: 0px 0px 0px; }
+.Theme_Native #SurvivalHeroManaText { position: 0px 24px 0px; }
+.Theme_Native .SurvivalHeroAbilitySlots
+{
+    width: 508px;
+    height: 72px;
+    position: 0px 65px 0px;
+    flow-children: right;
+    horizontal-align: center;
+    overflow: noclip;
+    padding-left: 30px;
+}
+.Theme_Native .SurvivalAbilitySlot
+{
+    width: 65px;
+    height: 65px;
+    margin-right: 0px;
+    padding: 2px;
+    background-image: url("file://{images}/custom_game/survival_native/ability_bg.png");
+    background-size: 100% 100%;
+    border: 1px solid #4c555d;
+}
+.Theme_Native .SurvivalAbilityIcon { width: 100%; height: 100%; }
+
+.Theme_Native .SurvivalHeroInventory
+{
+    width: 202px;
+    height: 145px;
+    position: 718px 0px 0px;
+    padding: 0px;
+    background-image: url("file://{images}/custom_game/survival_native/inventory_panel.png");
+    background-size: 100% 100%;
+    border: 0px solid transparent;
+}
+.Theme_Native #inventory_slot_0 { position: 3px 7px 0px; }
+.Theme_Native #inventory_slot_1 { position: 52px 7px 0px; }
+.Theme_Native #inventory_slot_2 { position: 101px 7px 0px; }
+.Theme_Native #inventory_slot_3 { position: 3px 56px 0px; }
+.Theme_Native #inventory_slot_4 { position: 52px 56px 0px; }
+.Theme_Native #inventory_slot_5 { position: 101px 56px 0px; }
+.Theme_Native .SurvivalInventorySlot
+{
+    width: 48px;
+    height: 48px;
+    background-image: url("file://{images}/custom_game/survival_native/inventory_item_well.png");
+    background-size: 100% 100%;
+}

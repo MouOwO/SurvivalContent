@@ -132,18 +132,16 @@
     font-size: 16px;
 }
 
-/* 自定义底栏：初始隐藏在屏幕下方，2 秒后由脚本移除 HudHidden。 */
+/* 自定义底栏采用 Reborn center_block 的 145px 底部骨架。 */
 #SurvivalHeroBottomHUD {
     horizontal-align: center;
     vertical-align: bottom;
     width: 920px;
-    height: 224px;
-    padding: 8px 12px 0px 12px;
-    flow-children: right;
-    background-color: #101820ee;
-    border-top: 1px solid #7894a8;
-    border-left: 1px solid #7894a8;
-    border-right: 1px solid #7894a8;
+    height: 145px;
+    padding: 0px;
+    flow-children: none;
+    background-color: transparent;
+    border: 0px solid transparent;
     transition-property: transform, opacity;
     transition-duration: 0.45s;
     transition-timing-function: ease-out;
@@ -151,24 +149,55 @@
 }
 
 #SurvivalHeroBottomHUD.HudHidden {
-    transform: translateY(224px);
+    transform: translateY(145px);
     opacity: 0;
 }
 
 .SurvivalHeroPortraitBlock {
     width: 116px;
     height: 208px;
-    flow-children: down;
-    margin-right: 12px;
-    vertical-align: center;
+    flow-children: none;
+    margin-right: 0px;
+    vertical-align: bottom;
     position: 0px 0px 0px;
 }
 
-.SurvivalHeroPortrait {
+.SurvivalHeroPortraitCache {
     width: 116px;
     height: 112px;
+    position: 0px 0px 0px;
+    overflow: noclip;
+}
+
+.SurvivalHeroPortrait,
+.SurvivalBuildingPortraitCache,
+.SurvivalBuildingPortraitCache > DOTAScenePanel {
+    width: 116px;
+    height: 112px;
+    position: 0px 0px 0px;
     background-color: #273747;
     border: 1px solid #8fa6b7;
+}
+
+.NativeHeroPortrait {
+    visibility: collapse;
+}
+
+.NativeHeroPortrait.PortraitCacheVisible {
+    visibility: visible;
+}
+
+.SurvivalBuildingPortraitCache > DOTAScenePanel {
+    visibility: collapse;
+}
+
+.SurvivalBuildingPortraitCache > DOTAScenePanel.PortraitCacheVisible {
+    visibility: visible;
+}
+
+.SurvivalBuildingPortraitCache > DOTAScenePanel.PortraitPrewarm {
+    visibility: visible;
+    opacity: 0;
 }
 
 #SurvivalHeroLevelBadge {
@@ -184,8 +213,8 @@
 .SurvivalHeroInfo {
     width: 238px;
     height: 208px;
-    flow-children: down;
-    margin-right: 12px;
+    flow-children: none;
+    margin-right: 0px;
 }
 #SurvivalHeroNameRow { width: 100%; height: 23px; flow-children: right; }
 #SurvivalHeroName, #SurvivalHeroLevelText { color: #e8edf2; font-size: 16px; font-weight: bold; margin-right: 10px; }
@@ -213,10 +242,10 @@
 .SurvivalHeroAbilityBar {
     width: 320px;
     height: 138px;
-    flow-children: right;
+    flow-children: none;
     horizontal-align: center;
-    vertical-align: center;
-    margin-right: 12px;
+    vertical-align: bottom;
+    margin-right: 0px;
     padding: 6px;
     background-color: #080b0ecc;
     border: 1px solid #526879;

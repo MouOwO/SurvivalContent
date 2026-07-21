@@ -28,6 +28,13 @@
         try { $.DispatchEvent("DOTAHideTitleTextTooltip"); } catch (error) {}
     }
 
+    function hideNativeTooltipBurst() {
+        hideNativeTooltip();
+        $.Schedule(0.0, hideNativeTooltip);
+        $.Schedule(0.03, hideNativeTooltip);
+        $.Schedule(0.08, hideNativeTooltip);
+    }
+
     function hideCustomTooltip() {
         activeAbilityIndex = -1;
         activeAbilityName = "";
@@ -109,7 +116,7 @@
         $.Schedule(0.0, function () {
             if (activeAbilityIndex !== abilityIndex) return;
             var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-            if (positioner) positioner.PlaceAbove(tooltip, sourcePanel, 430, 220);
+            if (positioner) positioner.PlaceAbove(tooltip, sourcePanel, 337, 220);
         });
         return true;
     }
@@ -239,7 +246,7 @@
             if (activeItemSlot !== slot || activeItemPanel !== panel) return;
             hideNativeTooltip();
             var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-            if (positioner) positioner.PlaceAbove(tooltip, panel, 430, 220);
+            if (positioner) positioner.PlaceAbove(tooltip, panel, 337, 220);
         });
     }
 
@@ -251,6 +258,7 @@
         panel.AddClass("SurvivalTooltipBound");
         panel.hittest = true;
         panel.SetPanelEvent("onmouseover", function () {
+            hideNativeTooltipBurst();
             if (itemSlot >= 0) showItemSlot(itemSlot, panel);
             else showSlot(slot, panel);
         });
