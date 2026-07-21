@@ -1,0 +1,23 @@
+/*
+ * SurvivalTwo Dota built-in theme V0.1
+ * These resources are referenced directly from Dota 2 local VPK (pak01_dir.vpk).
+ * No Valve texture is copied into the addon.
+ * Keep all built-in asset paths in this file so a Dota update only requires one edit.
+ */
+
+.ResourcePanel,
+.WavePanel,
+.DebugPanel,
+.NotificationToast {
+    background-image: url("s2r://panorama/images/hud/reborn/bg_scoreboard_psd.vtex");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+.DebugToggle,
+.DebugRefresh,
+.DebugClose {
+    background-image: url("s2r://panorama/images/hud/reborn/ability_bg_psd.vtex");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}

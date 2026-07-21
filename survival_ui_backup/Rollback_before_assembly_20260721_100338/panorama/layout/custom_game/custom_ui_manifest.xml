@@ -1,0 +1,8 @@
+<root>
+    <Panel>
+        <CustomUIElement
+            type="Hud"
+            layoutfile="file://{resources}/layout/custom_game/survival_hud.xml"
+        />
+    </Panel>
+</root>

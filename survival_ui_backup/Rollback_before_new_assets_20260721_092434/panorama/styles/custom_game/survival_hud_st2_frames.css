@@ -1,0 +1,104 @@
+/* ST2 FramePack: decorative-only layer. Business panels retain their original IDs and flow. */
+.Theme_ST2 #TopBar,
+.Theme_ST2 #WaveBar {
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    border: 0px solid transparent;
+}
+.Theme_ST2 #TopBar {
+    background-image: url("file://{images}/custom_game/st2_framepack/bars/st2_top_resource_bar_full.png");
+}
+.Theme_ST2 #WaveBar {
+    background-image: url("file://{images}/custom_game/st2_framepack/bars/st2_top_wave_bar_full.png");
+}
+.Theme_ST2 #TopBar {
+    width: 750px;
+    min-height: 33px;
+    padding: 5px 22px;
+    z-index: 50;
+}
+.Theme_ST2 #WaveBar {
+    width: 790px;
+    min-height: 33px;
+    padding: 5px 22px;
+    z-index: 50;
+}
+.Theme_ST2 #TopBar Label,
+.Theme_ST2 #WaveBar Label {
+    z-index: 2;
+    margin: 0px 10px;
+    font-size: 16px;
+}
+.Theme_ST2 #CustomShopButton {
+    background-color: transparent;
+    background-image: url("file://{images}/custom_game/st2_framepack/common/st2_shop_button_frame.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    border: 0px solid transparent;
+    padding: 8px 14px;
+    z-index: 60;
+}
+.Theme_ST2 .SurvivalHeroPortraitBlock,
+.Theme_ST2 .SurvivalHeroInfo,
+.Theme_ST2 .SurvivalHeroAbilityBar,
+.Theme_ST2 .SurvivalHeroInventory { z-index: 1; }
+.Theme_ST2 .SurvivalHeroPortrait {
+    background-image: url("file://{images}/custom_game/st2_framepack/hero/st2_portrait_frame.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+}
+.Theme_ST2 #SurvivalHeroLevelBadge {
+    background-color: transparent;
+    background-image: url("file://{images}/custom_game/st2_framepack/hero/st2_level_badge.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    border: 0px solid transparent;
+}
+.Theme_ST2 .SurvivalHeroInfo {
+    background-image: url("file://{images}/custom_game/st2_framepack/hero/st2_stat_panel_frame.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+}
+.Theme_ST2 #SurvivalHeroHealthBar,
+.Theme_ST2 #SurvivalHeroManaBar {
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    z-index: 1;
+}
+.Theme_ST2 #SurvivalHeroHealthBar {
+    background-image: url("file://{images}/custom_game/st2_framepack/skills/st2_hp_bar_frame.png");
+}
+.Theme_ST2 #SurvivalHeroManaBar {
+    background-image: url("file://{images}/custom_game/st2_framepack/skills/st2_mp_bar_frame.png");
+}
+.Theme_ST2 #SurvivalHeroHealthFill,
+.Theme_ST2 #SurvivalHeroManaFill { z-index: 1; }
+.Theme_ST2 .SurvivalBarText { z-index: 3; font-weight: bold; vertical-align: center; }
+
+.Theme_ST2 .SurvivalHeroAbilityBar {
+    background-color: transparent;
+    background-image: url("file://{images}/custom_game/st2_framepack/skills/st2_skill_panel_frame.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    border: 0px solid transparent;
+}
+.Theme_ST2 .SurvivalHeroInventory {
+    background-color: transparent;
+    background-image: url("file://{images}/custom_game/st2_framepack/inventory/st2_inventory_panel_frame.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    border: 0px solid transparent;
+}
+.Theme_ST2 .SurvivalAbilitySlot,
+.Theme_ST2 .SurvivalInventorySlot { z-index: 2; }
+.Theme_ST2 .SurvivalAbilitySlot { border: 0px solid transparent; }
+.Theme_ST2 .SurvivalInventorySlot { border: 0px solid transparent; }

@@ -1,0 +1,234 @@
+/* SurvivalTwo ST2 Local Mount V1.2
+   Panorama-safe: no CSS left/top/right/bottom properties and no CSS hittest. */
+
+.Theme_ST2
+{
+    width: 100%;
+    height: 100%;
+}
+
+/* Keep the current simple layout; only replace visual surfaces. */
+.Theme_ST2 #TopBar
+{
+    width: 360px;
+    height: 42px;
+    horizontal-align: center;
+    margin-top: 12px;
+    padding: 0px 26px;
+    flow-children: right;
+    background-color: #070b0edc;
+    background-image: url("file://{images}/custom_game/st2_localmount/bars/st2_top_resource_360x42.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+.Theme_ST2 #TopBar Label
+{
+    vertical-align: center;
+    margin: 0px 9px;
+    font-size: 16px;
+    z-index: 2;
+}
+
+.Theme_ST2 #WaveBar
+{
+    width: 520px;
+    height: 40px;
+    horizontal-align: center;
+    margin-top: 62px;
+    padding: 0px 30px;
+    flow-children: right;
+    background-color: #090b0dda;
+    background-image: url("file://{images}/custom_game/st2_localmount/bars/st2_top_wave_520x40.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+.Theme_ST2 #WaveBar Label
+{
+    vertical-align: center;
+    margin: 0px 8px;
+    font-size: 16px;
+    z-index: 2;
+}
+
+.Theme_ST2 #CustomShopButton
+{
+    width: 128px;
+    height: 42px;
+    padding: 5px 10px;
+    background-color: #080b0edb;
+    background-image: url("file://{images}/custom_game/st2_localmount/common/st2_shop_button_128x42.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+/* Portrait overlay is inserted locally in XML. */
+.Theme_ST2 #st2_PortraitOverlay
+{
+    width: 124px;
+    height: 120px;
+    position: -4px -4px 0px;
+    ignore-parent-flow: true;
+    z-index: 8;
+}
+
+.Theme_ST2 #SurvivalHeroLevelBadge
+{
+    width: 34px;
+    height: 32px;
+    margin-top: -32px;
+    margin-left: 2px;
+    background-color: transparent;
+    background-image: url("file://{images}/custom_game/st2_localmount/hero/st2_level_badge_34x32.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+    z-index: 12;
+}
+
+.Theme_ST2 #SurvivalHeroLevel
+{
+    width: 100%;
+    height: 100%;
+    horizontal-align: center;
+    vertical-align: center;
+    text-align: center;
+    font-size: 15px;
+    z-index: 13;
+}
+
+.Theme_ST2 .SurvivalHeroBars
+{
+    width: 238px;
+    height: 46px;
+    margin-top: 2px;
+}
+
+.Theme_ST2 .SurvivalHeroHealthBar,
+.Theme_ST2 .SurvivalHeroManaBar
+{
+    width: 238px;
+    height: 18px;
+    background-color: #080b0ecc;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+    overflow: clip;
+}
+
+.Theme_ST2 .SurvivalHeroHealthBar
+{
+    position: 0px 0px 0px;
+    background-image: url("file://{images}/custom_game/st2_localmount/skills/st2_hp_frame_238x18.png");
+}
+
+.Theme_ST2 .SurvivalHeroManaBar
+{
+    position: 0px 24px 0px;
+    background-image: url("file://{images}/custom_game/st2_localmount/skills/st2_mp_frame_238x18.png");
+}
+
+.Theme_ST2 #SurvivalHeroHealthFill,
+.Theme_ST2 #SurvivalHeroManaFill
+{
+    height: 10px;
+    margin-left: 24px;
+    margin-right: 24px;
+    margin-top: 4px;
+}
+
+.Theme_ST2 .SurvivalBarText
+{
+    width: 238px;
+    height: 18px;
+    horizontal-align: center;
+    vertical-align: center;
+    text-align: center;
+    font-size: 12px;
+    z-index: 5;
+}
+
+.Theme_ST2 #SurvivalHeroHealthText
+{
+    position: 0px 0px 0px;
+}
+
+.Theme_ST2 #SurvivalHeroManaText
+{
+    position: 0px 24px 0px;
+}
+
+.Theme_ST2 .SurvivalHeroStats
+{
+    width: 238px;
+    height: 96px;
+    margin-top: 6px;
+    padding: 10px 12px 8px 12px;
+    background-color: #070a0dba;
+    background-image: url("file://{images}/custom_game/st2_localmount/hero/st2_stats_frame_238x96.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+.Theme_ST2 .SurvivalHeroAbilityBar
+{
+    width: 320px;
+    height: 138px;
+    padding: 12px;
+    background-color: #070a0dc9;
+    background-image: url("file://{images}/custom_game/st2_localmount/skills/st2_skill_panel_320x138.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+.Theme_ST2 .SurvivalAbilitySlot
+{
+    width: 54px;
+    height: 54px;
+    margin: 4px;
+    padding: 3px;
+    background-color: #05080bcc;
+    background-image: url("file://{images}/custom_game/st2_localmount/skills/st2_skill_slot_54x54.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+.Theme_ST2 .SurvivalHeroInventory
+{
+    width: 180px;
+    height: 120px;
+    padding: 6px;
+    background-color: #070a0dc9;
+    background-image: url("file://{images}/custom_game/st2_localmount/inventory/st2_inventory_panel_180x120.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+.Theme_ST2 .SurvivalInventorySlot
+{
+    width: 54px;
+    height: 54px;
+    padding: 3px;
+    background-color: #05080bcc;
+    background-image: url("file://{images}/custom_game/st2_localmount/inventory/st2_inventory_slot_54x54.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    border: 0px solid transparent;
+}
+
+/* Updated positions for the existing 3x2 inventory grid after slot size becomes 54px. */
+.Theme_ST2 #inventory_slot_0 { position: 4px 4px 0px; }
+.Theme_ST2 #inventory_slot_1 { position: 60px 4px 0px; }
+.Theme_ST2 #inventory_slot_2 { position: 116px 4px 0px; }
+.Theme_ST2 #inventory_slot_3 { position: 4px 60px 0px; }
+.Theme_ST2 #inventory_slot_4 { position: 60px 60px 0px; }
+.Theme_ST2 #inventory_slot_5 { position: 116px 60px 0px; }
+
+/* Minimap deliberately not repositioned in V1.2. Bind only after identifying its real native panel. */

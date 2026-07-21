@@ -1,0 +1,76 @@
+(function () {
+    "use strict";
+
+    var LOG_PREFIX = "[SurvivalUIBootstrap]";
+    var hiddenElements = [
+        "DOTA_DEFAULT_UI_TOP_BAR",
+        "DOTA_DEFAULT_UI_TOP_BAR_BACKGROUND",
+        "DOTA_DEFAULT_UI_TOP_HEROES",
+        "DOTA_DEFAULT_UI_TOP_TIMEOFDAY",
+        "DOTA_DEFAULT_UI_FLYOUT_SCOREBOARD",
+        "DOTA_DEFAULT_UI_ACTION_PANEL",
+        "DOTA_DEFAULT_UI_INVENTORY_PANEL",
+        "DOTA_DEFAULT_UI_INVENTORY_SHOP",
+        "DOTA_DEFAULT_UI_INVENTORY_ITEMS",
+        "DOTA_DEFAULT_UI_INVENTORY_QUICKBUY",
+        "DOTA_DEFAULT_UI_INVENTORY_COURIER",
+        "DOTA_DEFAULT_UI_INVENTORY_PROTECT",
+        "DOTA_DEFAULT_UI_INVENTORY_GOLD",
+        "DOTA_DEFAULT_UI_SHOP_SUGGESTEDITEMS",
+        "DOTA_DEFAULT_UI_SHOP_COMMONITEMS"
+    ];
+
+    // 通过 DotaDefaultUIElement_t 隐藏原生底栏；不再猜测原生 HUD 内部节点名，避免误伤头像/三围。
+    function setDefaultUIEnabledSafe(elementName, enabled) {
+        if (typeof DotaDefaultUIElement_t === "undefined") return false;
+        var element = DotaDefaultUIElement_t[elementName];
+        if (element === undefined) {
+            $.Warning(LOG_PREFIX + " missing default UI enum: " + elementName);
+            return false;
+        }
+        GameUI.SetDefaultUIEnabled(element, enabled);
+        return true;
+    }
+
+    function applyDefaultUIProfile() {
+        if (!GameUI || !GameUI.SetDefaultUIEnabled) {
+            $.Warning(LOG_PREFIX + " GameUI.SetDefaultUIEnabled is unavailable.");
+            return;
+        }
+        hiddenElements.forEach(function (name) {
+            setDefaultUIEnabledSafe(name, false);
+        });
+        $.Msg(LOG_PREFIX + " default HUD profile applied.");
+    }
+
+
+    function trimmedNumber(value) {
+        return value.toFixed(1).replace(/\.0$/, "");
+    }
+
+    function formatLogicalNumber(value) {
+        var number = Number(value || 0);
+        var sign = number < 0 ? "-" : "";
+        var absolute = Math.abs(number);
+        if (absolute >= 100000000) {
+            return sign + trimmedNumber(absolute / 100000000) + "亿";
+        }
+        if (absolute >= 10000) {
+            return sign + trimmedNumber(absolute / 10000) + "万";
+        }
+        if (Math.abs(absolute - Math.round(absolute)) < 0.001) {
+            return sign + String(Math.round(absolute));
+        }
+        return sign + trimmedNumber(absolute);
+    }
+
+    GameUI.CustomUIConfig().SurvivalNumberFormatter = {
+        Format: formatLogicalNumber
+    };
+
+    $.Msg(LOG_PREFIX + " loaded.");
+    applyDefaultUIProfile();
+    $.Schedule(0.10, applyDefaultUIProfile);
+    $.Schedule(1.00, applyDefaultUIProfile);
+    $.Schedule(3.00, applyDefaultUIProfile);
+})();

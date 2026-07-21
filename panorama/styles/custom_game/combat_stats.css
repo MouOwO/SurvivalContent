@@ -1,0 +1,59 @@
+#CombatStatsPanel {
+    width: 370px;
+    min-height: 190px;
+    horizontal-align: right;
+    vertical-align: bottom;
+    margin-right: 24px;
+    margin-bottom: 205px;
+    padding: 12px 14px;
+    flow-children: down;
+    background-color: #101820ee;
+    border: 1px solid #7891a7bb;
+    box-shadow: #00000099 0px 0px 8px 0px;
+}
+
+#CombatStatsTitle {
+    width: 100%;
+    color: #f1d48a;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.CombatStatsRow {
+    width: 100%;
+    flow-children: right;
+    margin-bottom: 3px;
+}
+
+.CombatStatsKey {
+    color: #aab9c5;
+    font-size: 17px;
+    margin-right: 5px;
+}
+
+.CombatStatsKey.SmallGap {
+    margin-left: 12px;
+}
+
+.CombatStatsValue {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#CombatWeaponValue,
+#CombatGrowthValue,
+#CombatProgressValue {
+    width: 100%;
+    color: #dfe8ef;
+    font-size: 16px;
+    margin-top: 2px;
+}
+
+#CombatScaleValue {
+    width: 100%;
+    color: #7f99aa;
+    font-size: 14px;
+    margin-top: 4px;
+}
