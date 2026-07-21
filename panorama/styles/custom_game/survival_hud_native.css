@@ -1,4 +1,4 @@
-/* Official hud_reborn owns the complete bottom HUD. The legacy custom clone is kept only for rollback. */
+/* Official Reborn HUD owns the complete bottom bar; keep the legacy custom clone collapsed. */
 .Theme_Native #SurvivalHeroBottomHUD
 {
     visibility: collapse;

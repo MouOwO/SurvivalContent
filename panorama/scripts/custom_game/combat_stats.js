@@ -8,6 +8,7 @@
     var selectedUnitSnapshot = null;
     var officialAttackText = "";
     var officialAttackUnit = -1;
+    var authoritativeAttackLabel = null;
     var heroPanelState = {
         unit: -1,
         unitName: "",
@@ -72,25 +73,104 @@
         return true;
     }
 
+    function setNativeAttackLabelsVisible(damage, visible) {
+        if (!damage || !damage.FindChildTraverse) return;
+        ["DamageLabel", "DamageLabelBase", "DamageLabelModifier"].forEach(function (id) {
+            var nativeLabel = damage.FindChildTraverse(id);
+            if (nativeLabel) nativeLabel.style.visibility = visible ? "visible" : "collapse";
+        });
+    }
+
+    function ensureRelativeAttackOverlay(root, statsContainer) {
+        if (!root || !statsContainer) return null;
+        if (authoritativeAttackLabel
+            && authoritativeAttackLabel.IsValid
+            && authoritativeAttackLabel.IsValid()
+            && authoritativeAttackLabel.GetParent
+            && authoritativeAttackLabel.GetParent() === statsContainer) {
+            return authoritativeAttackLabel;
+        }
+        var existing = statsContainer.FindChildTraverse
+            ? statsContainer.FindChildTraverse("SurvivalAuthoritativeDamageLabel")
+            : null;
+        authoritativeAttackLabel = existing || $.CreatePanel(
+            "Label",
+            statsContainer,
+            "SurvivalAuthoritativeDamageLabel"
+        );
+        authoritativeAttackLabel.AddClass("MonoNumbersFont");
+        authoritativeAttackLabel.AddClass("StatRegionLabel");
+        authoritativeAttackLabel.style.visibility = "collapse";
+        authoritativeAttackLabel.style.opacity = "1";
+        authoritativeAttackLabel.style.position = "0px 0px 0px";
+        authoritativeAttackLabel.style.width = "220px";
+        authoritativeAttackLabel.style.height = "fit-children";
+        authoritativeAttackLabel.style.fontSize = "14px";
+        authoritativeAttackLabel.style.color = "#cccccc";
+        authoritativeAttackLabel.style.textAlign = "right";
+        authoritativeAttackLabel.style.zIndex = "1000";
+        authoritativeAttackLabel.hittest = false;
+        return authoritativeAttackLabel;
+    }
+
+    function positionRelativeToStatsContainer(damage, statsContainer, overlay) {
+        if (!damage || !statsContainer || !overlay
+            || !damage.GetPositionWithinWindow
+            || !statsContainer.GetPositionWithinWindow) return false;
+        var anchor = damage.FindChildTraverse("DamageLabel")
+            || damage.FindChildTraverse("DamageLabelContainer");
+        if (!anchor || !anchor.GetPositionWithinWindow) return false;
+
+        var anchorPosition = anchor.GetPositionWithinWindow();
+        var parentPosition = statsContainer.GetPositionWithinWindow();
+        var parentScaleX = Number(statsContainer.actualuiscale_x || 1);
+        var parentScaleY = Number(statsContainer.actualuiscale_y || 1);
+        var anchorWidth = Number(anchor.actuallayoutwidth || 46);
+        var anchorHeight = Number(anchor.actuallayoutheight || 20);
+        var left = (Number(anchorPosition.x) - Number(parentPosition.x)) / parentScaleX;
+        var top = (Number(anchorPosition.y) - Number(parentPosition.y)) / parentScaleY;
+
+        // 右边缘与官方数字右边缘一致；宽度固定，支持十亿级文本。
+        var overlayWidth = 220;
+        overlay.style.position = String(left + anchorWidth - overlayWidth)
+            + "px " + String(top) + "px 0px";
+        overlay.style.width = String(overlayWidth) + "px";
+        overlay.style.height = String(Math.max(18, anchorHeight)) + "px";
+        return true;
+    }
+
     function writeOfficialAttackText() {
-        if (!officialAttackText || Number(selectedUnit()) !== officialAttackUnit) return;
         var root = officialHudRoot();
-        var stats = root && root.FindChildTraverse
-            ? root.FindChildTraverse("stats") : null;
-        var damage = stats && stats.FindChildTraverse
-            ? stats.FindChildTraverse("Damage") : null;
-        var label = damage && damage.FindChildTraverse
-            ? damage.FindChildTraverse("DamageLabel") : null;
-        if (!label) return;
-        if (label.text !== officialAttackText) label.text = officialAttackText;
+        if (!root || !root.FindChildTraverse) return;
+        var damage = root.FindChildTraverse("Damage");
+        var statsContainer = root.FindChildTraverse("stats_container")
+            || root.FindChildTraverse("StatContainer");
+        if (!damage || !statsContainer) return;
+        var overlay = ensureRelativeAttackOverlay(root, statsContainer);
+        if (!overlay) return;
+
+        var hasAuthoritativeText = officialAttackText !== ""
+            && Number(selectedUnit()) === Number(officialAttackUnit);
+        if (!hasAuthoritativeText) {
+            overlay.style.visibility = "collapse";
+            setNativeAttackLabelsVisible(damage, true);
+            return;
+        }
+
+        // Label 属于官方统计区域的父节点，位置相对 stats_container，而不是相对屏幕。
+        if (!positionRelativeToStatsContainer(damage, statsContainer, overlay)) return;
+        overlay.text = officialAttackText;
+        overlay.style.visibility = "visible";
+        setNativeAttackLabelsVisible(damage, false);
     }
 
     function updateOfficialStatsVisibility(unit, unitName) {
         var root = officialHudRoot();
         if (!root) return;
 
-        // 官方 StatsRegion 只保留三项通用战斗属性。
+        // 没有权威快照时保留原生数字；快照到达后由覆盖层接管。
         setOfficialPanelVisible(root, "Damage", true);
+        writeOfficialAttackText();
         setOfficialPanelVisible(root, "AttackSpeed", true);
         setOfficialPanelVisible(root, "Armor", true);
         setOfficialPanelVisible(root, "MagicResist", false);
@@ -266,8 +346,9 @@
     }
 
     function revealBottomHud() {
+        // 官方 Reborn HUD 负责完整底栏；旧自定义克隆仅保留回滚，不再显示。
         var bottomHud = panel("SurvivalHeroBottomHUD");
-        if (bottomHud) bottomHud.RemoveClass("HudHidden");
+        if (bottomHud) bottomHud.AddClass("HudHidden");
     }
 
     function selectedUnit() {
@@ -758,5 +839,5 @@
     refreshAbilities();
     refreshInventory();
     $.Schedule(2.0, revealBottomHud);
-    $.Msg("[CombatStats] logical combat panel ready; authoritative attack text projection enabled.");
+    $.Msg("[CombatStats] authoritative attack overlay ready; server snapshot owns Damage text.");
 })();
