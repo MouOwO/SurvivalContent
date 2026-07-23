@@ -60,6 +60,17 @@
         setText("GoldValue", compactNumber(resources.gold));
         setText("PopulationValue", compactNumber(resources.population) + "/" + compactNumber(resources.max_population));
         setText("CityLevelValue", "Lv." + numberValue(snapshot.city_level));
+        var unlocks = {
+            shop: Number(snapshot.shop_unlocked || 0) === 1,
+            research: Number(snapshot.research_unlocked || 0) === 1
+        };
+        GameUI.CustomUIConfig().SurvivalShopUnlocks = unlocks;
+        var shopButton = panel("CustomShopButton");
+        var researchButton = panel("CustomResearchButton");
+        if (shopButton) shopButton.SetHasClass("Locked", !unlocks.shop);
+        if (researchButton) researchButton.SetHasClass("Locked", !unlocks.research);
+        var shopApi = GameUI.CustomUIConfig().SurvivalShop;
+        if (shopApi && shopApi.SetUnlocks) shopApi.SetUnlocks(unlocks);
         var resourceTooltip = "木材 " + numberValue(resources.wood) + "\n金币 " + numberValue(resources.gold)
             + "\n人口 " + numberValue(resources.population) + "/" + numberValue(resources.max_population);
         ["WoodField", "GoldField", "PopulationField"].forEach(function (fieldId) {

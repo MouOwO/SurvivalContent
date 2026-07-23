@@ -286,16 +286,6 @@
 
     function update(snapshot) {
         if (!snapshot) return;
-        var incomingName = snapshot.display_name || snapshot.unit_name || "";
-        var oldName = selectedUnitSnapshot
-            && Number(selectedUnitSnapshot.entindex) === Number(snapshot.entindex)
-            ? (selectedUnitSnapshot.display_name || selectedUnitSnapshot.unit_name || "")
-            : "";
-        if (/^npc_dota_hero_/.test(incomingName)
-            && oldName && !/^npc_dota_hero_/.test(oldName)) {
-            snapshot.display_name = oldName;
-            snapshot.unit_name = oldName;
-        }
         selectedUnitSnapshot = snapshot;
         var attack = attackText(snapshot);
         officialAttackText = attack;
@@ -359,10 +349,13 @@
         return Players.GetPlayerHeroEntityIndex(playerId);
     }
 
-    function requestSelectedUnitStats(unit) {
-        if (unit === undefined || unit < 0 || Number(unit) === lastRequestedUnit) return;
+    function requestSelectedUnitStats(unit, force) {
+        if (unit === undefined || unit < 0) return;
+        if (!force && Number(unit) === lastRequestedUnit) return;
         lastRequestedUnit = Number(unit);
-        $.Msg("[SURVIVAL_STATS][CLIENT] SELECTED_UNIT_CHANGE entindex=", String(unit));
+        $.Msg(force
+            ? "[SURVIVAL_STATS][CLIENT] FORCE_REFRESH entindex="
+            : "[SURVIVAL_STATS][CLIENT] SELECTED_UNIT_CHANGE entindex=", String(unit));
         GameEvents.SendCustomGameEventToServer("ui_selected_unit_stats_request", {
             entindex: unit,
         });
@@ -382,6 +375,8 @@
             var unitChanged = heroPanelState.unit !== Number(unit);
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
+                selectedUnitSnapshot = null;
+                lastRequestedUnit = -1;
                 heroPanelState.displayName = "";
                 heroPanelState.level = null;
                 heroPanelState.healthText = "";
@@ -403,12 +398,12 @@
                 "building_arrow_tower": "箭塔",
                 "building_gold_mine": "金矿",
                 "building_hero_altar": "英雄祭坛",
-                "npc_dota_hero_undying": "农民"
+                "npc_dota_hero_undying": "建造者"
             };
             var localizedName = $.Localize("#" + unitName);
             var snapshotIsInternal = /^npc_dota_|^building_/.test(String(snapshotName || ""));
-            var displayName = configuredNames[unitName]
-                || (!snapshotIsInternal ? snapshotName : "")
+            var displayName = (!snapshotIsInternal ? snapshotName : "")
+                || configuredNames[unitName]
                 || (localizedName && localizedName !== ("#" + unitName)
                     ? localizedName : unitName);
             // 官方名称控件可能仍返回内部 token；自定义名称优先兜底，禁止裸 token 出现在 HUD。
@@ -420,8 +415,8 @@
                 setText("SurvivalHeroName", displayName);
             }
             // 官方 Reborn 名称控件不会可靠读取自定义 addon token；直接覆盖其内部 Label。
-            // 仅对自定义/建筑单位覆盖，原生英雄名称仍交给官方控件。
-            if (!isNativeHero(unitName)) {
+            // 服务端配置名称同样覆盖建造者这类原生英雄载体。
+            if (!isNativeHero(unitName) || (!snapshotIsInternal && snapshotName)) {
                 var hudRoot = officialHudRoot();
                 var officialName = hudRoot && hudRoot.FindChildTraverse
                     ? hudRoot.FindChildTraverse("unitname") : null;
@@ -499,7 +494,7 @@
                 " ability=", String(current), " available=", String(runtime.available),
                 " can_afford=", String(runtime.can_afford),
                 " status=", String(runtime.status_text || ""));
-            if (current >= 0 && runtime.available !== 0 && runtime.can_afford !== 0) {
+            if (current >= 0) {
                 executeAbility(current);
             }
         });
@@ -523,7 +518,9 @@
             var abilityIndex = Entities.GetAbility(unit, i);
             if (abilityIndex !== undefined && abilityIndex >= 0) {
                 var abilityName = Abilities.GetAbilityName(abilityIndex);
-                if (abilityName) seen.push({ name: abilityName, slot: i });
+                var hidden = false;
+                try { hidden = Abilities.IsHidden(abilityIndex); } catch (error) {}
+                if (abilityName && !hidden) seen.push({ name: abilityName, slot: i });
             }
         }
         var signature = seen.map(function (entry) {
@@ -548,8 +545,7 @@
                         " available=", String(runtime.available),
                         " can_afford=", String(runtime.can_afford),
                         " status=", String(runtime.status_text || ""));
-                    if (index === undefined || index < 0
-                        || runtime.available === 0 || runtime.can_afford === 0) return;
+                    if (index === undefined || index < 0) return;
                     executeAbility(index);
                 });
                 var ability = $.CreatePanel("DOTAAbilityImage", button, "AbilityImage" + entry.slot);
@@ -614,7 +610,9 @@
             var index = Entities.GetAbility(unit, i);
             if (index === undefined || index < 0) continue;
             var name = Abilities.GetAbilityName(index) || "";
-            if (name) visible.push(index);
+            var hidden = false;
+            try { hidden = Abilities.IsHidden(index); } catch (error) {}
+            if (name && !hidden) visible.push(index);
         }
         return visible[slot] === undefined ? -1 : visible[slot];
     }
@@ -699,8 +697,8 @@
             return false;
         }
         var runtime = abilityRuntime(abilityIndex);
-        if (runtime.removed === 1 || runtime.available === 0 || runtime.can_afford === 0) {
-            $.Msg("[SURVIVAL_CAST][CLIENT] reject unavailable ability=", String(abilityIndex),
+        if (runtime.removed === 1) {
+            $.Msg("[SURVIVAL_CAST][CLIENT] reject removed ability=", String(abilityIndex),
                 " available=", String(runtime.available),
                 " can_afford=", String(runtime.can_afford),
                 " status=", String(runtime.status_text || ""));
@@ -807,6 +805,12 @@
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
         if (!snapshot || snapshot.success !== 1) return;
         if (Number(snapshot.entindex) !== Number(selectedUnit())) return;
+        $.Msg("[SURVIVAL_STATS][CLIENT] SNAPSHOT unit=", String(snapshot.entindex),
+            " phase=", String(snapshot.push_phase || snapshot.source || "request"),
+            " sequence=", String(snapshot.refresh_sequence || 0),
+            " level=", String(snapshot.level),
+            " attack=", String(snapshot.attack_min), "-", String(snapshot.attack_max),
+            " armor=", String(snapshot.armor));
         update(snapshot);
     });
     CustomNetTables.SubscribeNetTableListener(
@@ -831,6 +835,18 @@
             " name=", String(result && result.ability_name),
             " behavior=", String(result && result.behavior),
             " error=", String(result && result.error));
+        if (!result || result.success !== 1) return;
+        var abilityName = String(result.ability_name || "");
+        var refreshesBuilding = /^ability_upgrade_(tower|wall|city)/.test(abilityName)
+            || /^ability_tower_class_/.test(abilityName);
+        if (!refreshesBuilding) return;
+        var unit = Number(result.entindex);
+        $.Schedule(0.10, function () {
+            if (Number(selectedUnit()) === unit) requestSelectedUnitStats(unit, true);
+        });
+        $.Schedule(0.35, function () {
+            if (Number(selectedUnit()) === unit) requestSelectedUnitStats(unit, true);
+        });
     });
     bindHeroPortrait();
     bindHotkeys();

@@ -42,14 +42,26 @@
 - `modifier_tower_attack_effects.lua` 监听 `ON_ATTACK_LANDED`，因此闪电发生在弹道命中后。
 - 目标是攻击触发时即时闪电、无箭矢、主目标只结算一次伤害；连锁目标单独结算，避免重复伤害。
 
+## 2026-07-22 01:59 研究所效果接入续做
+- 修复并复核 `shop_system.lua` 的科技状态查询、玩家 ID 校验和快照上下文，移除此前残留的重复函数片段。
+- `shop_grant_service.lua` 现在按 `technology_group` 严格逐级发放科技，并发送 `TECHNOLOGY_CHANGED`；新增一次性 `technology_service` 解锁处理。
+- 伐木工科技已接入现有 worker/modifier/tree 链路：效率、攻速、暴击率会作用于现有及新训练单位；暴击本次采集木材翻倍，并携带玩家 ID。
+- 防御塔攻击和城墙生命已接入建筑升级系统的科技刷新；路线/转职塔保存路线基础攻击，避免等级 6+ 被基础箭塔表覆盖。
+- 静态检查通过：Lua 词法级括号检查、`git diff --check`、`shop_ui.js node --check`、`shop.css` 结构检查。
+- resourcecompiler 使用 `-game D:\steam\steamapps\common\dota 2 beta\game\dota -f -nop4` 成功编译 `shop_ui.js` 与 `shop.css`：`OK: 2 compiled, 0 failed, 0 skipped`。
+- 未完成：完全重启 Workshop Tools 后实测研究所解锁/逐级购买、玩家隔离与持久化、伐木工效果、塔攻击、城墙生命和失败退款语义；未执行全量配置重建。
+
+## 2026-07-22 02:39 普通科技两段式续升级
+- 将五种普通科技拆为两层：第一层 Lv.1–10，第二层使用独立 `technology_id` 生成 Lv.11–20，但共享原 `technology_group`，因此服务端等级和运行效果连续。
+- 第一层标记 `technology_phase=1`；第二层标记 `technology_phase=2`，在当前普通科技低于 Lv.10 时不进入快照，达到 Lv.10 后才显示 Lv.11。
+- 高级科技标记为阶段 `0`，不参与普通科技切层过滤，仍在对应普通科技达到 Lv.10 后解锁，并可与普通科技 Lv.11–20 并行升级。
+- Lua 文本结构检查与 `git diff --check` 通过；本轮只有 Lua 配置/快照逻辑变化，无需 Panorama 编译。需完全重启 Workshop Tools/地图会话验证切层。
+
+## 2026-07-22 02:24 修复普通科技 Lv.10 后 UI 消失
+- 根因：`shop_catalog.build_snapshot()` 原先先用 `purchasable == 1` 过滤，再按“当前等级 + 1”筛科技；普通科技达到 Lv.10 后，其对应高级科技仍因锁定而被提前过滤，导致整组科技 UI 消失。
+- 修复：科技条目只要是当前下一等级就保留在快照中；`purchasable` 和 `disabled_reason` 继续由条件评估器控制。这样伐木效率可继续显示 Lv.11–Lv.20，其他普通科技达到 Lv.10 后仍显示对应高级科技锁定卡片。
+- 已确认等级规则：伐木工速度/防御塔强化/墙强化/伐木工暴击普通科技最高 Lv.10；伐木效率普通科技最高 Lv.20；高级科技从对应普通科技 Lv.10 解锁。
+- Lua 词法级结构检查与 `git diff --check` 通过。需完全重启 Workshop Tools/地图会话加载运行端 Lua 后实测。
+
 ## 验证清单
-- [x] XML 结构检查
-- [x] JS 静态语法检查
-- [x] Panorama resourcecompiler 编译成功
-- [x] game 端 `.vxml_c/.vcss_c/.vjs_c` 时间戳更新
-- [ ] 完全重启 Workshop Tools
-- [ ] 原版底栏开局消失
-- [ ] 新底栏 2 秒后向上滑入
-- [ ] 新底栏最终紧贴屏幕底边
-- [ ] 六项属性均竖排且数值更新
 

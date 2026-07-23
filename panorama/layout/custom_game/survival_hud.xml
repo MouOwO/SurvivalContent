@@ -33,9 +33,13 @@
         </Panel>
 
         <!-- 左上角商店入口；主界面从左侧滑入。 -->
-        <Button id="CustomShopButton" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.Toggle()">
+        <Button id="CustomShopButton" class="Locked" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.ToggleShop()">
             <DOTAItemImage id="CustomShopButtonIcon" itemname="item_ironwood_tree" />
             <Label id="CustomShopButtonLabel" text="商店" />
+        </Button>
+        <Button id="CustomResearchButton" class="Locked" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.ToggleResearch()">
+            <DOTAAbilityImage id="CustomResearchButtonIcon" abilityname="ability_build_research_lab" />
+            <Label id="CustomResearchButtonLabel" text="科技" />
         </Button>
         <Panel id="ShopBackdrop" hittest="true">
             <Button id="ShopBackdropClick" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.Close()" />
@@ -43,6 +47,10 @@
 
         <Panel id="CustomShopWindow" class="ShopDrawer Closed" hittest="true">
             <Panel id="ShopHeader">
+                <Panel id="ShopModeToggles">
+                    <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.Open()"><Label text="商店" /></Button>
+                    <Button id="ShopModeResearch" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenResearch()"><Label text="科技" /></Button>
+                </Panel>
                 <Panel id="ShopTitleBlock">
                     <Label id="ShopTitle" text="生存商店" />
                     <Label id="ShopSubtitle" text="右键购买 · 每次打开均从服务器同步" />
