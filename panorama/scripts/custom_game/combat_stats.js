@@ -17,6 +17,8 @@
     var logicalAttributeOverlay = null;
     var officialHudCache = {};
     var officialUnitNameOverlay = null;
+    var cosmeticPortraitOverlay = null;
+    var cosmeticPortraitSignature = "";
     var unitNameTransitionSerial = 0;
     var unitNameRetryDelays = [0.0, 0.016, 0.05, 0.10, 0.20];
     var observedSelectedUnit = -1;
@@ -171,6 +173,85 @@
         cached = root && root.FindChildTraverse ? root.FindChildTraverse(id) : null;
         if (cached) officialHudCache[id] = cached;
         return cached;
+    }
+
+    function officialPortraitPanel() {
+        var ids = ["HeroImage", "HeroPortrait", "Portrait", "SelectedHeroImage"];
+        for (var index = 0; index < ids.length; index++) {
+            var candidate = officialPanel(ids[index]);
+            if (candidate) return candidate;
+        }
+        return null;
+    }
+
+    function hideCosmeticPortrait() {
+        if (cosmeticPortraitOverlay) {
+            cosmeticPortraitOverlay.style.visibility = "collapse";
+        }
+    }
+
+    function updateCosmeticPortrait(snapshot) {
+        var previewUnit = String(snapshot && snapshot.portrait_unit_name || "");
+        var itemDef = String(snapshot && snapshot.portrait_item_def || "");
+        if (!previewUnit || !itemDef) {
+            hideCosmeticPortrait();
+            return;
+        }
+        var nativePortrait = officialPortraitPanel();
+        var parent = nativePortrait && nativePortrait.GetParent
+            ? nativePortrait.GetParent() : null;
+        if (!parent) {
+            hideCosmeticPortrait();
+            return;
+        }
+        if (!cosmeticPortraitOverlay
+            || !cosmeticPortraitOverlay.IsValid
+            || !cosmeticPortraitOverlay.IsValid()
+            || cosmeticPortraitOverlay.GetParent() !== parent) {
+            if (cosmeticPortraitOverlay && cosmeticPortraitOverlay.DeleteAsync) {
+                cosmeticPortraitOverlay.DeleteAsync(0);
+            }
+            cosmeticPortraitOverlay = $.CreatePanel(
+                "DOTAScenePanel", parent, "SurvivalCosmeticPortraitOverlay"
+            );
+            cosmeticPortraitOverlay.hittest = false;
+            cosmeticPortraitOverlay.hittestchildren = false;
+            cosmeticPortraitOverlay.style.ignoreParentFlow = true;
+            cosmeticPortraitOverlay.style.zIndex = "1000";
+            cosmeticPortraitSignature = "";
+        }
+        if (nativePortrait.GetPositionWithinWindow
+            && parent.GetPositionWithinWindow) {
+            var portraitPosition = nativePortrait.GetPositionWithinWindow();
+            var parentPosition = parent.GetPositionWithinWindow();
+            var scaleX = Number(parent.actualuiscale_x || 1);
+            var scaleY = Number(parent.actualuiscale_y || 1);
+            cosmeticPortraitOverlay.style.position = String(
+                (Number(portraitPosition.x) - Number(parentPosition.x)) / scaleX
+            ) + "px " + String(
+                (Number(portraitPosition.y) - Number(parentPosition.y)) / scaleY
+            ) + "px 0px";
+            cosmeticPortraitOverlay.style.width = String(
+                Number(nativePortrait.actuallayoutwidth || 159) / scaleX
+            ) + "px";
+            cosmeticPortraitOverlay.style.height = String(
+                Number(nativePortrait.actuallayoutheight || 145) / scaleY
+            ) + "px";
+        }
+        var signature = previewUnit + ":" + itemDef;
+        if (cosmeticPortraitSignature !== signature) {
+            try {
+                // The second SetUnit argument is the official econ item/bundle
+                // definition. Bundle 22722 contains all four Shen components.
+                cosmeticPortraitOverlay.SetUnit(previewUnit, itemDef, false);
+                cosmeticPortraitSignature = signature;
+            } catch (error) {
+                $.Warning("[SURVIVAL_PORTRAIT] cosmetic preview failed: " + error);
+                hideCosmeticPortrait();
+                return;
+            }
+        }
+        cosmeticPortraitOverlay.style.visibility = "visible";
     }
 
     function setOfficialPanelVisible(root, id, visible) {
@@ -795,6 +876,7 @@
     function update(snapshot) {
         if (!snapshot) return;
         selectedUnitSnapshot = snapshot;
+        updateCosmeticPortrait(snapshot);
         var attack = attackText(snapshot);
         officialAttackText = attack;
         officialAttackUnit = Number(snapshot.entindex);
@@ -926,6 +1008,7 @@
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
                 selectedUnitSnapshot = null;
+                hideCosmeticPortrait();
                 var tooltipBindings = GameUI.CustomUIConfig().SurvivalTooltipBindings;
                 if (tooltipBindings && tooltipBindings.Recover) {
                     tooltipBindings.Recover();
