@@ -57,3 +57,131 @@
     font-size: 14px;
     margin-top: 4px;
 }
+
+#HeroCombatDebugPanel {
+    width: 430px;
+    max-height: 560px;
+    horizontal-align: left;
+    vertical-align: top;
+    margin-left: 24px;
+    margin-top: 196px;
+    padding: 11px 13px 13px 13px;
+    flow-children: down;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#15222eee), to(#0b1118ee));
+    border: 1px solid #71899bbb;
+    box-shadow: #000000aa 0px 0px 10px 0px;
+}
+
+#HeroCombatDebugTitle {
+    width: 100%;
+    color: #f1d48a;
+    font-size: 19px;
+    font-weight: bold;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #53667588;
+    text-shadow: 1px 1px 2px 2 #000000;
+}
+
+#HeroCombatDamageSummary {
+    width: 100%;
+    height: 31px;
+    flow-children: right;
+    margin-top: 7px;
+}
+
+.HeroCombatDamageKey {
+    color: #aebdca;
+    font-size: 17px;
+    vertical-align: center;
+}
+
+.HeroCombatDamageValue {
+    width: fill-parent-flow(1.0);
+    color: #ffdf76;
+    font-size: 23px;
+    font-weight: bold;
+    text-align: right;
+    vertical-align: center;
+    text-shadow: 1px 1px 2px 2 #000000;
+}
+
+#HeroCombatLastDamage {
+    width: 100%;
+    color: #91a5b5;
+    font-size: 14px;
+    text-align: right;
+    margin-bottom: 7px;
+}
+
+#HeroCombatTechnologySummary {
+    width: 100%;
+    min-height: 18px;
+    color: #8fe0a3;
+    font-size: 14px;
+    text-align: right;
+    margin-bottom: 5px;
+}
+
+#HeroTechnologyHeader {
+    width: 100%;
+    height: 25px;
+    padding-left: 7px;
+    background-color: #263746bb;
+    border-left: 3px solid #d0aa58;
+}
+
+#HeroTechnologyHeader Label {
+    color: #e7edf2;
+    font-size: 15px;
+    font-weight: bold;
+    vertical-align: center;
+}
+
+#HeroTechnologyList {
+    width: 100%;
+    max-height: 410px;
+    flow-children: down;
+    overflow: squish scroll;
+    padding-top: 4px;
+}
+
+#HeroTechnologyEmpty {
+    width: 100%;
+    color: #7f919f;
+    font-size: 15px;
+    text-align: center;
+    padding: 10px 0px;
+}
+
+.HeroTechnologyRow {
+    width: 100%;
+    min-height: 27px;
+    flow-children: right;
+    padding: 4px 6px;
+    margin-bottom: 2px;
+    background-color: #ffffff08;
+    border-bottom: 1px solid #60758733;
+}
+
+.HeroTechnologyName {
+    width: 145px;
+    color: #d9e5ed;
+    font-size: 15px;
+    vertical-align: center;
+}
+
+.HeroTechnologyLevel {
+    width: 48px;
+    color: #f0c96f;
+    font-size: 15px;
+    font-weight: bold;
+    vertical-align: center;
+}
+
+.HeroTechnologyEffect {
+    width: fill-parent-flow(1.0);
+    color: #8fe0a3;
+    font-size: 15px;
+    text-align: right;
+    vertical-align: center;
+}

@@ -6,6 +6,7 @@
     var tableKey = "player_" + playerId;
     var lastSequence = -1;
     var lastSnapshotAt = 0;
+    var cameraFollowSerial = 0;
 
     var waveStatusText = {
         dev_mode: "准备阶段",
@@ -50,7 +51,9 @@
     function update(snapshot) {
         if (!snapshot) return;
         var sequence = sequenceOf(snapshot);
-        if (sequence >= 0 && sequence < lastSequence) return;
+        // NetTable 轮询会反复读到同一快照；没有新 sequence 时不重写整套
+        // HUD，也不重新安装 hover 回调，避免形成固定间隔的客户端卡顿。
+        if (sequence >= 0 && sequence <= lastSequence) return;
         if (sequence >= 0) lastSequence = sequence;
         lastSnapshotAt = Game.GetGameTime();
 
@@ -75,9 +78,20 @@
             + "\n人口 " + numberValue(resources.population) + "/" + numberValue(resources.max_population);
         ["WoodField", "GoldField", "PopulationField"].forEach(function (fieldId) {
             var field = panel(fieldId);
-            if (field) field.SetPanelEvent("onmouseover", function () {
-                $.DispatchEvent("DOTAShowTextTooltip", field, resourceTooltip);
-            });
+            if (field) field.__survivalResourceTooltipText = resourceTooltip;
+            if (field && !field.__survivalResourceTooltipBound) {
+                field.__survivalResourceTooltipBound = true;
+                field.SetPanelEvent("onmouseover", function () {
+                    $.DispatchEvent(
+                        "DOTAShowTextTooltip",
+                        field,
+                        field.__survivalResourceTooltipText || ""
+                    );
+                });
+                field.SetPanelEvent("onmouseout", function () {
+                    $.DispatchEvent("DOTAHideTextTooltip");
+                });
+            }
         });
         setText(
             "WaveNumber",
@@ -120,11 +134,52 @@
         });
     }
 
+    function followHeroUntilArrival(payload) {
+        if (!payload || !GameUI.SetCameraTarget) return;
+        var entindex = Number(payload.entindex || payload.focus_hero_entindex || -1);
+        if (entindex <= 0) return;
+        var x = Number(payload.target_x !== undefined
+            ? payload.target_x : payload.focus_target_x);
+        var y = Number(payload.target_y !== undefined
+            ? payload.target_y : payload.focus_target_y);
+        var z = Number(payload.target_z !== undefined
+            ? payload.target_z : payload.focus_target_z);
+        var hasTarget = isFinite(x) && isFinite(y) && isFinite(z);
+        var startedAt = Game.GetGameTime();
+        var serial = ++cameraFollowSerial;
+        GameUI.SetCameraTarget(entindex);
+
+        function checkArrival() {
+            if (serial !== cameraFollowSerial) return;
+            var elapsed = Game.GetGameTime() - startedAt;
+            var arrived = false;
+            if (hasTarget && Entities.IsValidEntity(entindex)) {
+                var origin = Entities.GetAbsOrigin(entindex);
+                if (origin) {
+                    var dx = Number(origin[0]) - x;
+                    var dy = Number(origin[1]) - y;
+                    arrived = dx * dx + dy * dy <= 180 * 180;
+                }
+            }
+            // Keep official hero-follow active until the teleport reaches the
+            // client. Timeout prevents a deleted entity from locking camera.
+            if ((elapsed >= 0.20 && arrived) || elapsed >= 5.0) {
+                GameUI.SetCameraTarget(-1);
+                return;
+            }
+            $.Schedule(0, checkArrival);
+        }
+        $.Schedule(0, checkArrival);
+    }
     CustomNetTables.SubscribeNetTableListener(tableName, function (name, key, value) {
         if (key === tableKey) update(value);
     });
     GameEvents.Subscribe("ui_state_snapshot", update);
     GameEvents.Subscribe("ui_notification", showNotification);
+    GameEvents.Subscribe("ui_camera_follow_hero", followHeroUntilArrival);
+    GameUI.CustomUIConfig().SurvivalCamera = {
+        FollowHeroUntilArrival: followHeroUntilArrival
+    };
 
     $.Msg("[SurvivalUI] realtime HUD listener ready.");
     $.Schedule(0.10, function () {

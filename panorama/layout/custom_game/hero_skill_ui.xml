@@ -1,0 +1,35 @@
+<root>
+    <styles><include src="file://{resources}/styles/custom_game/hero_skill_ui.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/hero_skill_ui.js" /></scripts>
+    <Panel class="HeroSkillUIRoot" hittest="false">
+        <Button id="HeroSkillManageButton" hittest="true"><Label text="被动技能" /></Button>
+        <Panel id="HeroSkillManagementPanel" class="HeroSkillWindow Hidden" hittest="true">
+            <Panel class="HeroSkillWindowHeader">
+                <Label class="HeroSkillWindowTitle" text="被动技能管理" />
+                <Button id="HeroSkillManagementClose" class="HeroSkillClose"><Label text="×" /></Button>
+            </Panel>
+            <Label id="HeroSkillPoints" class="HeroSkillPoints" text="未分配技能点：0" />
+            <Label class="HeroSkillRuleHint" text="全部为隐藏被动技能；主攻击命中后由服务端进行概率判定。" />
+            <Panel id="HeroSkillOwnedList" class="HeroSkillOwnedList" />
+        </Panel>
+        <Panel id="HeroSkillChoiceBackdrop" class="Hidden" hittest="true">
+            <Panel id="HeroSkillChoicePanel" hittest="true">
+                <Label class="HeroSkillChoiceTitle" text="选择一项被动技能" />
+                <Label class="HeroSkillRuleHint" text="重复选择自动提升1级且不消耗技能点；LV3不会进入候选池。" />
+                <Panel id="HeroSkillChoiceList" class="HeroSkillChoiceList" />
+                <Label id="HeroSkillChoiceResult" class="HeroSkillResult" text="" />
+            </Panel>
+        </Panel>
+        <Panel id="HeroSkillTooltip" class="Hidden" hittest="false" hittestchildren="false">
+            <Panel class="HeroSkillTooltipHeader">
+                <DOTAAbilityImage id="HeroSkillTooltipIcon" />
+                <Panel class="HeroSkillTooltipTitleBlock">
+                    <Label id="HeroSkillTooltipTitle" text="被动技能" />
+                    <Label id="HeroSkillTooltipLevel" text="LV1 / LV3" />
+                </Panel>
+            </Panel>
+            <Label id="HeroSkillTooltipDescription" text="" />
+            <Panel id="HeroSkillTooltipLevels" />
+        </Panel>
+    </Panel>
+</root>

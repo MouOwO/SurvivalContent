@@ -70,14 +70,17 @@
         iconHost.RemoveAndDeleteChildren();
         fields.RemoveAndDeleteChildren();
         createIcon(iconHost, entry);
-        setText("ShopTooltipTitle", tooltipDefinition.name
-            || entry.name || entry.content_id);
+        var isTechnology = entry.content_type === "technology";
+        setText("ShopTooltipTitle", isTechnology
+            ? (entry.name || entry.content_id)
+            : (tooltipDefinition.name || entry.name || entry.content_id));
         setText(
             "ShopTooltipType",
-            entry.content_type === "technology" ? "科技" : "物品"
+            entry.content_type === "technology" ? "科技商品" : "商品"
         );
-        setText("ShopTooltipDescription", tooltipDefinition.desc
-            || entry.description || "");
+        setText("ShopTooltipDescription", isTechnology
+            ? (entry.description || "")
+            : (tooltipDefinition.desc || entry.description || ""));
         setText("ShopTooltipWoodCost", formatNumber(
             entry.wood_cost !== undefined
                 ? entry.wood_cost : tooltipDefinition.needwood

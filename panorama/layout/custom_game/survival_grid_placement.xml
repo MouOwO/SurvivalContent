@@ -1,0 +1,17 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/survival_grid_placement.css" />
+    </styles>
+    <scripts>
+        <include src="file://{resources}/scripts/custom_game/survival_grid_placement.js" />
+    </scripts>
+    <Panel class="GridPlacementLayoutRoot" hittest="false">
+        <Panel id="GridPlacementRoot" class="GridPlacementRoot Hidden" hittest="false">
+            <Panel id="GridPlacementCells" hittest="false" />
+            <Panel id="GridPlacementHint" class="GridPlacementHint" hittest="false">
+                <Label id="GridPlacementTitle" text="预建造" />
+                <Label id="GridPlacementStatus" text="建筑占地高亮 · 左键确认建造 · 右键或 Esc 取消" />
+            </Panel>
+        </Panel>
+    </Panel>
+</root>

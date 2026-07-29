@@ -1,0 +1,68 @@
+#WeaponGrowthHUD {
+    width: 300px;
+    min-height: 74px;
+    horizontal-align: center;
+    vertical-align: bottom;
+    margin-bottom: 151px;
+    transform: translateX(310px);
+    padding: 8px 10px;
+    flow-children: down;
+    background-color: #0c1218f2;
+    border: 1px solid #667b8d;
+    box-shadow: #000000aa 0px 0px 8px 1px;
+    z-index: 80;
+}
+
+#WeaponGrowthHUD.Hidden { visibility: collapse; }
+
+#WeaponGrowthHeader {
+    width: 100%;
+    height: 22px;
+    flow-children: right;
+}
+
+#WeaponGrowthName {
+    width: fill-parent-flow(1);
+    color: #f0e1b0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#WeaponGrowthStage {
+    color: #9fb4c5;
+    font-size: 14px;
+    vertical-align: center;
+}
+
+#WeaponGrowthProgressTrack {
+    width: 100%;
+    height: 20px;
+    margin-top: 3px;
+    background-color: #171d22;
+    border: 1px solid #526474;
+}
+
+#WeaponGrowthProgressFill {
+    height: 100%;
+    width: 0%;
+    background-color: gradient(linear, 0% 0%, 100% 0%, from(#426b39), to(#8ebd58));
+}
+
+#WeaponGrowthProgressText {
+    width: 100%;
+    height: 100%;
+    color: white;
+    font-size: 13px;
+    text-align: center;
+    vertical-align: center;
+    text-shadow: 1px 1px 2px 2 #000000;
+}
+
+#WeaponGrowthDetails {
+    width: 100%;
+    min-height: 17px;
+    margin-top: 3px;
+    color: #b9c8d2;
+    font-size: 13px;
+    white-space: normal;
+}

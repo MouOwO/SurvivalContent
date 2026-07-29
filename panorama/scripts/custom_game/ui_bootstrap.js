@@ -2,6 +2,18 @@
     "use strict";
 
     var LOG_PREFIX = "[SurvivalUIBootstrap]";
+    // Phase 0 rollback boundary. Keep inventory native until the separate item
+    // interaction controller (use/drag/swap/drop/sell) is complete.
+    GameUI.CustomUIConfig().SurvivalHudTakeover = {
+        abilities: true,
+        // Keep the completed survey available through SurvivalAbilityTakeover,
+        // but run the evidence-based adaptive proxy implementation by default.
+        abilitySurvey: false,
+        // Character numbers remain authoritative, but detailed stat hover
+        // tooltips are intentionally disabled.
+        stats: false,
+        inventory: false
+    };
     var hiddenElements = [
         "DOTA_DEFAULT_UI_TOP_BAR",
         "DOTA_DEFAULT_UI_TOP_BAR_BACKGROUND",

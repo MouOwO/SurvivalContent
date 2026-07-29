@@ -1,8 +1,7 @@
 <root>
-    <Panel>
-        <CustomUIElement
-            type="Hud"
-            layoutfile="file://{resources}/layout/custom_game/survival_hud.xml"
-        />
+    <Panel hittest="false">
+        <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_hud.xml" />
+        <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_grid_placement.xml" />
+        <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/hero_skill_ui.xml" />
     </Panel>
 </root>

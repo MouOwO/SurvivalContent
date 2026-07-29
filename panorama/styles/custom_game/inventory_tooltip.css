@@ -1,0 +1,105 @@
+#CustomInventoryItemTooltip {
+    width: 350px;
+    min-height: 0px;
+    max-height: 390px;
+    padding: 14px;
+    flow-children: down;
+    background-color: #101820f8;
+    border: 1px solid #8799a8;
+    box-shadow: #000000cc 0px 0px 12px 0px;
+    z-index: 2103;
+}
+
+#CustomInventoryItemTooltip.Hidden { visibility: collapse; }
+
+#CustomInventoryItemCategory {
+    width: 100%;
+    color: #f0d58f;
+    background-color: #47391ecc;
+    border-left: 3px solid #d6b75f;
+    padding: 3px 7px 3px 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+#CustomInventoryItemHeader {
+    width: 100%;
+    min-height: 58px;
+    flow-children: right;
+}
+
+#CustomInventoryItemIcon {
+    width: 54px;
+    height: 42px;
+    margin-right: 10px;
+    border: 1px solid #7e8e99;
+    vertical-align: center;
+}
+
+#CustomInventoryItemTitleBlock {
+    width: fill-parent-flow(1.0);
+    flow-children: down;
+    vertical-align: center;
+}
+
+#CustomInventoryItemTitle {
+    width: 100%;
+    color: white;
+    font-size: 22px;
+    white-space: normal;
+}
+
+#CustomInventoryItemMetaRow {
+    width: 100%;
+    flow-children: right;
+    margin-top: 2px;
+}
+
+#CustomInventoryItemType,
+#CustomInventoryItemLevel {
+    color: #9db0bf;
+    font-size: 14px;
+    margin-right: 12px;
+}
+
+#CustomInventoryItemDescription {
+    width: 100%;
+    color: #d8e0e8;
+    font-size: 17px;
+    margin-top: 8px;
+    white-space: normal;
+}
+
+#CustomInventoryItemFields {
+    width: 100%;
+    flow-children: down;
+    margin-top: 7px;
+}
+
+.InventoryItemFieldRow {
+    width: 100%;
+    flow-children: right;
+    margin-top: 3px;
+}
+
+.InventoryItemFieldLabel {
+    width: 155px;
+    color: #9db0bf;
+    font-size: 16px;
+}
+
+.InventoryItemFieldValue {
+    width: fill-parent-flow(1.0);
+    color: #f0d48a;
+    font-size: 16px;
+    text-align: right;
+}
+
+#CustomInventoryItemStatus {
+    width: 100%;
+    color: #8fd28f;
+    font-size: 15px;
+    margin-top: 8px;
+}

@@ -3,8 +3,11 @@
         <include src="file://{resources}/styles/custom_game/survival_hud.css" />
         <include src="file://{resources}/styles/custom_game/survival_hud_native.css" />
         <include src="file://{resources}/styles/custom_game/ability_tooltip.css" />
+        <include src="file://{resources}/styles/custom_game/inventory_tooltip.css" />
         <include src="file://{resources}/styles/custom_game/shop.css" />
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
+        <include src="file://{resources}/styles/custom_game/hero_world_health_bar.css" />
+        <include src="file://{resources}/styles/custom_game/weapon_growth_hud.css" />
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
@@ -12,12 +15,17 @@
         <include src="file://{resources}/scripts/custom_game/building_move.js" />
         <include src="file://{resources}/scripts/custom_game/tooltip_position.js" />
         <include src="file://{resources}/scripts/custom_game/ability_tooltip.js" />
+        <include src="file://{resources}/scripts/custom_game/inventory_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/shop_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/shop_ui.js" />
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
+        <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
+        <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
+        <include src="file://{resources}/scripts/custom_game/weapon_growth_hud.js" />
     </scripts>
     <Panel class="SurvivalHUDRoot Theme_Native" hittest="false">
+        <Panel id="SurvivalHeroWorldHealthBars" hittest="false" />
         <Panel id="TopBar">
             <Label id="WoodValue" text="木材 0" />
             <Label id="GoldValue" text="金币 0" />
@@ -41,6 +49,21 @@
             <DOTAAbilityImage id="CustomResearchButtonIcon" abilityname="ability_build_research_lab" />
             <Label id="CustomResearchButtonLabel" text="科技" />
         </Button>
+        <Panel id="HeroCombatDebugPanel" hittest="false">
+            <Label id="HeroCombatDebugTitle" text="英雄伤害 / 科技状态" />
+            <Panel id="HeroCombatDamageSummary">
+                <Label class="HeroCombatDamageKey" text="累计伤害" />
+                <Label id="HeroCombatTotalDamage" class="HeroCombatDamageValue MonoNumbersFont" text="0" />
+            </Panel>
+            <Label id="HeroCombatLastDamage" text="最近伤害 0 · 命中 0 次" />
+            <Label id="HeroCombatTechnologySummary" text="" />
+            <Panel id="HeroTechnologyHeader">
+                <Label text="当前已激活科技" />
+            </Panel>
+            <Panel id="HeroTechnologyList">
+                <Label id="HeroTechnologyEmpty" text="暂无已激活科技" />
+            </Panel>
+        </Panel>
         <Panel id="ShopBackdrop" hittest="true">
             <Button id="ShopBackdropClick" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.Close()" />
         </Panel>
@@ -103,11 +126,13 @@
         </Panel>
 
         <Panel id="CustomAbilityTooltip" class="Hidden" hittest="false" hittestchildren="false">
+            <Label id="CustomAbilityExtensionLabel" text="生存防守 · 自定义技能详情" />
             <Panel id="AbilityTooltipHeader">
                 <Panel id="AbilityTooltipTitleBlock">
                     <Panel id="CustomAbilityTitleRow">
                         <Label id="CustomAbilityTitle" text="技能" />
                         <Label id="CustomAbilityLevel" text="" />
+                        <Label id="CustomAbilityType" text="技能" />
                     </Panel>
                 </Panel>
             </Panel>
@@ -123,6 +148,102 @@
                 </Panel>
             </Panel>
             <Panel id="CustomAbilityFields" />
+            <Label id="CustomAbilityStatus" text="" />
+        </Panel>
+
+        <Panel id="CustomInventoryItemTooltip" class="Hidden" hittest="false" hittestchildren="false">
+            <Label id="CustomInventoryItemCategory" text="生存防守 · 物品详情" />
+            <Panel id="CustomInventoryItemHeader">
+                <DOTAItemImage id="CustomInventoryItemIcon" itemname="item_ironwood_tree" hittest="false" />
+                <Panel id="CustomInventoryItemTitleBlock">
+                    <Label id="CustomInventoryItemTitle" text="物品" />
+                    <Panel id="CustomInventoryItemMetaRow">
+                        <Label id="CustomInventoryItemType" text="物品" />
+                        <Label id="CustomInventoryItemLevel" text="" />
+                    </Panel>
+                </Panel>
+            </Panel>
+            <Label id="CustomInventoryItemDescription" text="" />
+            <Panel id="CustomInventoryItemFields" />
+            <Label id="CustomInventoryItemStatus" text="" />
+        </Panel>
+
+        <!-- The independent skill proxy is positioned over Valve AbilityN but is
+             not its descendant, so native ability tooltip ancestry is avoided. -->
+        <Panel id="SurvivalAbilityTakeoverLayer" hittest="false" hittestchildren="true">
+            <Panel id="AbilityCalibrationContainerBounds" class="AbilityCalibrationBounds ContainerBounds" hittest="false" hittestchildren="false" />
+            <Panel id="AbilityCalibrationVisualBounds" class="AbilityCalibrationBounds VisualBounds" hittest="false" hittestchildren="false" />
+            <Panel id="AbilityCalibrationRowBounds" class="AbilityCalibrationBounds RowBounds" hittest="false" hittestchildren="false" />
+            <Panel id="AbilityCalibrationAnchor" class="AbilityCalibrationAnchor" hittest="false" hittestchildren="false">
+                <Panel class="AbilityCalibrationAnchorHorizontal" />
+                <Panel class="AbilityCalibrationAnchorVertical" />
+            </Panel>
+            <Panel id="SurvivalAbilityTakeoverRow" hittest="false" hittestchildren="true" />
+        </Panel>
+
+        <Panel id="SurvivalAbilityCalibrationPanel" class="Hidden" hittest="true" hittestchildren="true">
+            <Panel class="AbilityCalibrationHeader">
+                <Label class="AbilityCalibrationTitle" text="技能行锚点校准器" />
+                <Button class="AbilityCalibrationClose" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationVisible(false)">
+                    <Label text="×" />
+                </Button>
+            </Panel>
+            <Label id="AbilityCalibrationStatus" text="锚点：左上 (top_left)    偏移：X=0  Y=0" />
+            <Label id="AbilityCalibrationDetails" text="等待完整技能映射。" />
+            <Label class="AbilityCalibrationLegend" text="蓝：Valve 容器　黄：原生可见技能　绿：项目技能行　红：当前锚点" />
+            <Panel class="AbilityCalibrationContent">
+                <Panel class="AbilityCalibrationAnchorGrid">
+                    <Panel class="AbilityCalibrationButtonRow">
+                        <Button id="AbilityCalibration_top_left" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('top_left')"><Label text="左上" /></Button>
+                        <Button id="AbilityCalibration_top_center" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('top_center')"><Label text="中上" /></Button>
+                        <Button id="AbilityCalibration_top_right" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('top_right')"><Label text="右上" /></Button>
+                    </Panel>
+                    <Panel class="AbilityCalibrationButtonRow">
+                        <Button id="AbilityCalibration_middle_left" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('middle_left')"><Label text="左中" /></Button>
+                        <Button id="AbilityCalibration_center" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('center')"><Label text="中心" /></Button>
+                        <Button id="AbilityCalibration_middle_right" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('middle_right')"><Label text="右中" /></Button>
+                    </Panel>
+                    <Panel class="AbilityCalibrationButtonRow">
+                        <Button id="AbilityCalibration_bottom_left" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('bottom_left')"><Label text="左下" /></Button>
+                        <Button id="AbilityCalibration_bottom_center" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('bottom_center')"><Label text="中下" /></Button>
+                        <Button id="AbilityCalibration_bottom_right" class="AbilityCalibrationChoice" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.SetCalibrationAlignment('bottom_right')"><Label text="右下" /></Button>
+                    </Panel>
+                </Panel>
+                <Panel class="AbilityCalibrationNudges">
+                    <Panel class="AbilityCalibrationNudgeRow">
+                        <Label text="X" />
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(-5, 0)"><Label text="-5" /></Button>
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(-1, 0)"><Label text="-1" /></Button>
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(1, 0)"><Label text="+1" /></Button>
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(5, 0)"><Label text="+5" /></Button>
+                    </Panel>
+                    <Panel class="AbilityCalibrationNudgeRow">
+                        <Label text="Y" />
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(0, -5)"><Label text="-5" /></Button>
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(0, -1)"><Label text="-1" /></Button>
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(0, 1)"><Label text="+1" /></Button>
+                        <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.NudgeCalibration(0, 5)"><Label text="+5" /></Button>
+                    </Panel>
+                </Panel>
+            </Panel>
+            <Panel class="AbilityCalibrationActions">
+                <Button onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.ResetCalibration()"><Label text="重置为左上 / 0,0" /></Button>
+                <Button class="Primary" onactivate="GameUI.CustomUIConfig().SurvivalAbilityTakeover.DumpCalibration()"><Label text="输出当前参数" /></Button>
+            </Panel>
+        </Panel>
+
+        <!-- Read-only growth status. It never overlaps or receives input from
+             Valve inventory slots, so drag/use/swap behavior stays native. -->
+        <Panel id="WeaponGrowthHUD" class="Hidden" hittest="false" hittestchildren="false">
+            <Panel id="WeaponGrowthHeader">
+                <Label id="WeaponGrowthName" text="成长装备" />
+                <Label id="WeaponGrowthStage" text="" />
+            </Panel>
+            <Panel id="WeaponGrowthProgressTrack">
+                <Panel id="WeaponGrowthProgressFill" />
+                <Label id="WeaponGrowthProgressText" class="MonoNumbersFont" text="0 / 0" />
+            </Panel>
+            <Label id="WeaponGrowthDetails" text="" />
         </Panel>
 
         <!-- Reborn lower_hud -> center_with_stats -> center_block 等价结构。 -->

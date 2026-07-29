@@ -8,9 +8,6 @@
     var currentMode = "shop";
     var researchSourceEntindex = -1;
     var unlocks = { shop: false, research: false };
-    var entryCardsById = {};
-    var renderedStructureSignature = "";
-    var renderedCategorySignature = "";
 
     function byId(id) { return $("#" + id); }
 
@@ -76,9 +73,7 @@
     }
 
     function requestSnapshot() {
-        // Keep existing cards alive during an in-place refresh. Hiding the list
-        // dismisses Panorama hover state even when the server changes only gold.
-        setLoading(!snapshot || snapshot.ui_mode !== currentMode);
+        setLoading(true);
         setStatus(
             currentMode === "research"
                 ? "正在同步研究所科技……"
@@ -250,102 +245,36 @@
         if (card.__shopGoldCost) card.__shopGoldCost.text = formatNumber(entry.gold_cost);
         if (card.__shopStatus) {
             card.__shopStatus.text = entry.purchasable === 1
-                ? (entry.challenge_active === 1
-                    ? "右键重新进入（免费）"
-                    : "右键购买")
+                ? "右键购买"
                 : (entry.disabled_reason || "不可购买");
         }
     }
 
     function updateVisibleEntryCards(changedIds) {
-        Object.keys(changedIds || {}).forEach(function (entryId) {
-            var card = entryCardsById[entryId];
-            if (card && card.IsValid && card.IsValid()) {
-                updateEntryCard(card, entryById(entryId));
-            }
-        });
-    }
-
-    function entriesFor(data, shopId) {
-        var entries = asArray(data && data.entries).filter(function (entry) {
-            return entry && entry.visible === 1 && entry.shop_id === shopId;
-        });
-        entries.sort(function (a, b) {
-            return (a.sort_order || 0) - (b.sort_order || 0);
-        });
-        return entries;
-    }
-
-    function visibleEntries() {
-        var entries = asArray(snapshot && snapshot.entries).filter(function (entry) {
-            return entry && entry.visible === 1 && entry.shop_id === selectedShopId;
-        });
-        entries.sort(function (a, b) {
-            return (a.sort_order || 0) - (b.sort_order || 0);
-        });
-        return entries;
-    }
-
-    function structureSignature(entries) {
-        return selectedShopId + "|" + entries.map(function (entry) {
-            return [
-                entry.entry_id,
-                entry.shop_id,
-                entry.sort_order,
-                entry.content_type,
-                entry.technology_track,
-                entry.content_id,
-                entry.icon_type,
-                entry.icon
-            ].join(":");
-        }).join("|");
-    }
-
-    function categorySignature(categoriesValue) {
-        var categories = asArray(categoriesValue);
-        categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-        return categories.map(function (category) {
-            return category.shopid + ":" + category.shopname + ":" + category.order;
-        }).join("|");
-    }
-
-    function compareFullSnapshot(previous, current) {
-        var previousById = {};
-        var changedIds = {};
-        asArray(previous.entries).forEach(function (entry) {
-            if (entry && entry.entry_id) previousById[entry.entry_id] = entry;
-        });
-        asArray(current.entries).forEach(function (entry) {
-            if (!entry || !entry.entry_id) return;
-            if (!previousById[entry.entry_id]
-                || JSON.stringify(previousById[entry.entry_id]) !== JSON.stringify(entry)) {
-                changedIds[entry.entry_id] = true;
-            }
-            delete previousById[entry.entry_id];
-        });
-        Object.keys(previousById).forEach(function (entryId) {
-            changedIds[entryId] = true;
-        });
-        return {
-            categories: categorySignature(previous.categories)
-                !== categorySignature(current.categories),
-            structural: structureSignature(entriesFor(previous, selectedShopId))
-                !== structureSignature(entriesFor(current, selectedShopId)),
-            changedIds: changedIds
-        };
+        var list = byId("ShopItemList");
+        if (!list) return;
+        for (var index = 0; index < list.GetChildCount(); index++) {
+            var card = list.GetChild(index);
+            var entryId = card.GetAttributeString
+                ? card.GetAttributeString("entry_id", "") : "";
+            if (!entryId || !changedIds[entryId]) continue;
+            updateEntryCard(card, entryById(entryId));
+        }
     }
 
     function renderItems() {
         var list = byId("ShopItemList");
         if (!list || !snapshot) return;
-        var entries = visibleEntries();
-        var nextSignature = structureSignature(entries);
-        if (nextSignature === renderedStructureSignature) return;
-        renderedStructureSignature = nextSignature;
-        entryCardsById = {};
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (tooltip) tooltip.Hide();
         list.RemoveAndDeleteChildren();
+
+        var entries = asArray(snapshot.entries).filter(function (entry) {
+            return entry && entry.visible === 1 && entry.shop_id === selectedShopId;
+        });
+        entries.sort(function (a, b) {
+            return (a.sort_order || 0) - (b.sort_order || 0);
+        });
 
         var lastTechnologyTrack = "";
         entries.forEach(function (entry) {
@@ -365,7 +294,6 @@
             card.SetHasClass("Unavailable", entry.purchasable !== 1);
             card.SetHasClass("Technology", entry.content_type === "technology");
             card.SetAttributeString("entry_id", entry.entry_id || "");
-            entryCardsById[entry.entry_id] = card;
 
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
@@ -396,9 +324,7 @@
             var status = $.CreatePanel("Label", card, "");
             status.AddClass("ShopItemAvailability");
             status.text = entry.purchasable === 1
-                ? (entry.challenge_active === 1
-                    ? "右键重新进入（免费）"
-                    : "右键购买")
+                ? "右键购买"
                 : (entry.disabled_reason || "不可购买");
             card.__shopStatus = status;
 
@@ -422,9 +348,7 @@
     }
 
     function selectShop(shopId) {
-        var changed = selectedShopId !== shopId;
         selectedShopId = shopId;
-        if (changed) renderedStructureSignature = "";
         var list = byId("ShopCategoryList");
         if (list) {
             for (var index = 0; index < list.GetChildCount(); index++) {
@@ -441,22 +365,9 @@
     function renderCategories() {
         var list = byId("ShopCategoryList");
         if (!list || !snapshot) return;
+        list.RemoveAndDeleteChildren();
         var categories = asArray(snapshot.categories);
         categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-        var nextSignature = categorySignature(categories);
-
-        if (nextSignature === renderedCategorySignature) {
-            var stillExists = categories.some(function (category) {
-                return category.shopid === selectedShopId;
-            });
-            if (!stillExists) {
-                selectedShopId = categories.length > 0 ? categories[0].shopid : "";
-            }
-            selectShop(selectedShopId);
-            return;
-        }
-        renderedCategorySignature = nextSignature;
-        list.RemoveAndDeleteChildren();
 
         categories.forEach(function (category) {
             var button = $.CreatePanel("Button", list, "");
@@ -539,14 +450,7 @@
             patchResult = mergePatch(payload);
             if (!patchResult) return;
         } else {
-            if (snapshot && snapshot.ui_mode === payload.ui_mode) {
-                patchResult = compareFullSnapshot(snapshot, payload);
-            }
             snapshot = payload;
-            if (!patchResult) {
-                renderedCategorySignature = "";
-                renderedStructureSignature = "";
-            }
         }
         latestSequence = Math.max(latestSequence, sequence);
         currentMode = payload.ui_mode === "research" ? "research" : "shop";
@@ -584,18 +488,6 @@
         onSnapshot(payload.snapshot || {});
     }
 
-    function focusHero(payload) {
-        var camera = GameUI.CustomUIConfig().SurvivalCamera;
-        if (camera && camera.FollowHeroUntilArrival) {
-            camera.FollowHeroUntilArrival(payload || {});
-            return;
-        }
-        var target = Number(payload && payload.focus_hero_entindex || -1);
-        if (target <= 0 || !GameUI.SetCameraTarget) return;
-        GameUI.SetCameraTarget(target);
-        $.Schedule(5.0, function () { GameUI.SetCameraTarget(-1); });
-    }
-
     function onResult(payload) {
         if (!payload) return;
         if (payload.operation === "shop_open" && payload.success !== 1) {
@@ -604,12 +496,6 @@
             return;
         }
         if (payload.operation !== "shop_purchase") return;
-        if (payload.success === 1
-            && Number(payload.close_shop_and_focus_hero || 0) === 1) {
-            close();
-            focusHero(payload);
-            return;
-        }
         setStatus(
             payload.success === 1
                 ? "购买成功，正在刷新商店状态……"

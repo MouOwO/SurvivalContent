@@ -1,17 +1,28 @@
 #CustomAbilityTooltip {
     width: 337px;
     min-height: 0px;
-    max-height: 220px;
+    max-height: 360px;
     padding: 14px;
     flow-children: down;
     background-color: #101820f8;
     border: 1px solid #8799a8;
     box-shadow: #000000cc 0px 0px 12px 0px;
-    z-index: 101;
+    z-index: 2101;
 }
 
 #CustomAbilityTooltip.Hidden { visibility: collapse; }
 #CustomAbilityTooltip.Unavailable { wash-color: #8b8b8b; }
+#CustomAbilityExtensionLabel {
+    width: 100%;
+    color: #9bdcff;
+    background-color: #17384dcc;
+    border-left: 3px solid #55bdefff;
+    padding: 3px 7px 3px 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 7px;
+}
 #AbilityTooltipHeader { width: 100%; height: 32px; flow-children: right; }
 #AbilityTooltipTitleBlock { width: 100%; vertical-align: center; }
 #CustomAbilityTitleRow { width: 100%; flow-children: right; vertical-align: center; }
@@ -22,7 +33,17 @@
     margin-left: 10px;
     vertical-align: center;
 }
-#CustomAbilityStatus { visibility: collapse; }
+#CustomAbilityType {
+    color: #7fa4bd;
+    font-size: 14px;
+    margin-left: 10px;
+    vertical-align: center;
+}
+#CustomAbilityStatus {
+    color: #8fd28f;
+    font-size: 16px;
+    margin-top: 6px;
+}
 .Unavailable #CustomAbilityStatus { color: #d28f8f; }
 #CustomAbilityDescription {
     color: #d8e0e8;
@@ -58,3 +79,295 @@
 .AbilityFieldRow { width: 100%; flow-children: right; margin-top: 3px; }
 .AbilityFieldLabel { width: 150px; color: #9db0bf; font-size: 16px; }
 .AbilityFieldValue { color: #f0d48a; font-size: 16px; }
+
+#SurvivalAbilityTakeoverLayer {
+    width: 100%;
+    height: 100%;
+    position: 0px 0px 0px;
+    overflow: noclip;
+}
+
+#SurvivalAbilityTakeoverLayer { z-index: 2050; }
+
+.AbilityCalibrationBounds,
+.AbilityCalibrationAnchor {
+    visibility: collapse;
+    z-index: 2056;
+}
+
+.AbilityCalibrationBounds {
+    background-color: #00000000;
+    border: 2px solid white;
+}
+
+.AbilityCalibrationBounds.ContainerBounds { border-color: #46a8ffff; }
+.AbilityCalibrationBounds.VisualBounds { border-color: #ffd64aff; }
+.AbilityCalibrationBounds.RowBounds { border-color: #53e276ff; }
+
+.AbilityCalibrationAnchor {
+    overflow: noclip;
+}
+
+.AbilityCalibrationAnchorHorizontal {
+    width: 14px;
+    height: 2px;
+    horizontal-align: center;
+    vertical-align: center;
+    background-color: #ff4f4fff;
+    box-shadow: #000000ff 0px 0px 2px 0px;
+}
+
+.AbilityCalibrationAnchorVertical {
+    width: 2px;
+    height: 14px;
+    horizontal-align: center;
+    vertical-align: center;
+    background-color: #ff4f4fff;
+    box-shadow: #000000ff 0px 0px 2px 0px;
+}
+
+#SurvivalAbilityCalibrationPanel {
+    width: 560px;
+    padding: 14px;
+    horizontal-align: right;
+    vertical-align: center;
+    margin-right: 34px;
+    flow-children: down;
+    background-color: #101820f5;
+    border: 2px solid #6f8799;
+    box-shadow: #000000dd 0px 0px 14px 0px;
+    z-index: 2200;
+}
+
+#SurvivalAbilityCalibrationPanel.Hidden { visibility: collapse; }
+
+.AbilityCalibrationHeader {
+    width: 100%;
+    height: 36px;
+}
+
+.AbilityCalibrationTitle {
+    color: #ffffff;
+    font-size: 23px;
+    font-weight: bold;
+    vertical-align: center;
+}
+
+.AbilityCalibrationClose {
+    width: 34px;
+    height: 32px;
+    horizontal-align: right;
+    background-color: #542f36;
+    border: 1px solid #a86a73;
+}
+
+.AbilityCalibrationClose Label {
+    horizontal-align: center;
+    vertical-align: center;
+    color: #ffffff;
+    font-size: 24px;
+}
+
+#AbilityCalibrationStatus {
+    width: 100%;
+    margin-top: 7px;
+    color: #e8f3ff;
+    font-size: 18px;
+}
+
+#AbilityCalibrationDetails {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 5px;
+    color: #a9c8dd;
+    font-size: 15px;
+    white-space: normal;
+}
+
+.AbilityCalibrationLegend {
+    width: 100%;
+    margin-top: 4px;
+    color: #bdc7cf;
+    font-size: 14px;
+}
+
+.AbilityCalibrationContent {
+    width: 100%;
+    margin-top: 10px;
+    flow-children: right;
+}
+
+.AbilityCalibrationAnchorGrid {
+    width: 270px;
+    flow-children: down;
+}
+
+.AbilityCalibrationButtonRow {
+    width: 100%;
+    height: 42px;
+    flow-children: right;
+}
+
+.AbilityCalibrationChoice {
+    width: 84px;
+    height: 36px;
+    margin-right: 6px;
+    background-color: #283744;
+    border: 1px solid #60788a;
+}
+
+.AbilityCalibrationChoice:hover {
+    brightness: 1.35;
+    border-color: #e2c878;
+}
+
+.AbilityCalibrationChoice.Selected {
+    background-color: #355f47;
+    border: 2px solid #62e087;
+}
+
+.AbilityCalibrationChoice Label,
+.AbilityCalibrationNudgeRow Button Label,
+.AbilityCalibrationActions Button Label {
+    horizontal-align: center;
+    vertical-align: center;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.AbilityCalibrationNudges {
+    width: 258px;
+    margin-left: 8px;
+    flow-children: down;
+}
+
+.AbilityCalibrationNudgeRow {
+    width: 100%;
+    height: 54px;
+    flow-children: right;
+}
+
+.AbilityCalibrationNudgeRow > Label {
+    width: 26px;
+    vertical-align: center;
+    color: #f0d48a;
+    font-size: 19px;
+    font-weight: bold;
+}
+
+.AbilityCalibrationNudgeRow Button {
+    width: 52px;
+    height: 38px;
+    margin-right: 5px;
+    vertical-align: center;
+    background-color: #283744;
+    border: 1px solid #60788a;
+}
+
+.AbilityCalibrationNudgeRow Button:hover,
+.AbilityCalibrationActions Button:hover { brightness: 1.35; }
+
+.AbilityCalibrationActions {
+    width: 100%;
+    height: 46px;
+    margin-top: 8px;
+    flow-children: right;
+    horizontal-align: right;
+}
+
+.AbilityCalibrationActions Button {
+    width: 210px;
+    height: 40px;
+    margin-left: 12px;
+    background-color: #344856;
+    border: 1px solid #718a9c;
+}
+
+.AbilityCalibrationActions Button.Primary {
+    background-color: #315a40;
+    border-color: #62c980;
+}
+
+#SurvivalAbilityTakeoverRow {
+    height: 52px;
+    flow-children: right;
+    overflow: noclip;
+}
+
+.SurvivalTakeoverAbilitySlot {
+    width: 52px;
+    height: 52px;
+    margin-right: 4px;
+    background-color: #080b0eee;
+    border: 2px solid #aebac4;
+    box-shadow: #000000dd 0px 0px 5px 0px;
+    overflow: noclip;
+    transition-property: brightness, transform;
+    transition-duration: 0.08s;
+}
+
+.SurvivalTakeoverAbilitySlot.LastInRow { margin-right: 0px; }
+
+.SurvivalTakeoverAbilitySlot:hover {
+    brightness: 1.18;
+    transform: scale3d(1.04, 1.04, 1.0);
+    border-color: #e2c878;
+    box-shadow: #d6b75f88 0px 0px 7px 0px;
+    z-index: 4;
+}
+
+.SurvivalTakeoverAbilitySlot:active { brightness: 0.78; }
+.SurvivalTakeoverAbilitySlot.Passive { border-color: #8298a8; }
+.SurvivalTakeoverAbilitySlot.Unavailable { saturation: 0.2; brightness: 0.55; }
+.SurvivalTakeoverAbilitySlot.ResourceLow { border-color: #d08a57; }
+
+.SurvivalTakeoverAbilityImage {
+    width: 100%;
+    height: 100%;
+}
+
+.SurvivalTakeoverAbilityShade {
+    width: 100%;
+    vertical-align: bottom;
+    background-color: #000000cc;
+}
+
+.SurvivalTakeoverAbilityCooldown {
+    horizontal-align: center;
+    vertical-align: center;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px 3 #000000;
+}
+
+.SurvivalTakeoverAbilityHotkey {
+    horizontal-align: left;
+    vertical-align: top;
+    min-width: 18px;
+    height: 17px;
+    padding: 0px 3px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    background-color: #05080bdd;
+    border: 1px solid #a4b4bf;
+}
+
+.SurvivalTakeoverAbilityLevel,
+.SurvivalTakeoverAbilityMana {
+    vertical-align: bottom;
+    padding: 0px 3px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px 2 #000000;
+}
+
+.SurvivalTakeoverAbilityLevel { horizontal-align: right; }
+.SurvivalTakeoverAbilityMana {
+    horizontal-align: left;
+    color: #82c8ff;
+    background-color: #071526bb;
+}

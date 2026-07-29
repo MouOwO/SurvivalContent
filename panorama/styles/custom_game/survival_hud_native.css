@@ -20,7 +20,12 @@
     border: 0px solid transparent;
     z-index: 50;
 }
-.Theme_Native #SurvivalHeroBottomHUD.HudHidden { transform: translateY(145px); opacity: 0; }
+.Theme_Native #SurvivalHeroBottomHUD.HudHidden
+{
+    transform: translateY(145px);
+    opacity: 0;
+    visibility: collapse;
+}
 
 /* Mirrors hud_reborn.xml: lower_hud -> center_with_stats -> center_block. */
 .Theme_Native #SurvivalLowerHUD
