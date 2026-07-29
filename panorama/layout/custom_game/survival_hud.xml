@@ -8,6 +8,7 @@
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
         <include src="file://{resources}/styles/custom_game/hero_world_health_bar.css" />
         <include src="file://{resources}/styles/custom_game/weapon_growth_hud.css" />
+        <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
@@ -23,6 +24,7 @@
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
         <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
         <include src="file://{resources}/scripts/custom_game/weapon_growth_hud.js" />
+        <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
     </scripts>
     <Panel class="SurvivalHUDRoot Theme_Native" hittest="false">
         <Panel id="SurvivalHeroWorldHealthBars" hittest="false" />
@@ -244,6 +246,19 @@
                 <Label id="WeaponGrowthProgressText" class="MonoNumbersFont" text="0 / 0" />
             </Panel>
             <Label id="WeaponGrowthDetails" text="" />
+        </Panel>
+
+        <Panel id="GameInfoPanel" class="GameInfoClosed" hittest="false" hittestchildren="false">
+            <Panel id="GameInfoHeader">
+                <Label id="GameInfoTitle" text="游戏信息" />
+                <Button id="GameInfoCloseButton" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalGameInfo.Close()">
+                    <Label text="×" />
+                </Button>
+            </Panel>
+            <Panel id="GameInfoColumns">
+                <Panel id="GameInfoBuildingColumn" class="GameInfoColumn" />
+                <Panel id="GameInfoHeroColumn" class="GameInfoColumn" />
+            </Panel>
         </Panel>
 
         <!-- Reborn lower_hud -> center_with_stats -> center_block 等价结构。 -->

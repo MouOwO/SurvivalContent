@@ -217,7 +217,7 @@
         $.Schedule(0.0, function () {
             if (activeAbilityIndex !== abilityIndex) return;
             var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-            if (positioner) positioner.PlaceRight(tooltip, sourcePanel, 337, 220);
+            if (positioner) positioner.PlaceAbove(tooltip, sourcePanel, 337, 220);
         });
         return true;
     }
