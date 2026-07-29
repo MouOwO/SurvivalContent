@@ -260,7 +260,6 @@
         if (!overlay) return null;
         overlay.AddClass("MonoNumbersFont");
         overlay.AddClass("StatRegionLabel");
-        overlay.style.visibility = "collapse";
         overlay.style.opacity = "1";
         overlay.style.position = "0px 0px 0px";
         overlay.style.width = "180px";
@@ -281,7 +280,10 @@
         }
         var overlay = statsContainer.FindChildTraverse
             ? statsContainer.FindChildTraverse(id) : null;
-        overlay = overlay || $.CreatePanel("Label", statsContainer, id);
+        if (!overlay) {
+            overlay = $.CreatePanel("Label", statsContainer, id);
+            overlay.style.visibility = "collapse";
+        }
         return applyAuthoritativeNumberStyle(overlay);
     }
 
@@ -302,6 +304,7 @@
             statsContainer,
             "SurvivalAuthoritativeDamageLabel"
         );
+        if (!existing) authoritativeAttackLabel.style.visibility = "collapse";
         return applyAuthoritativeNumberStyle(authoritativeAttackLabel);
     }
 
@@ -345,6 +348,25 @@
         overlay.style.position = "0px " + String(top) + "px 0px";
         overlay.style.width = String(overlayWidth) + "px";
         overlay.style.height = String(Math.max(18, anchorHeight)) + "px";
+        return true;
+    }
+
+    function positionRelativeToStatRow(statPanel, statsContainer, overlay) {
+        if (!statPanel || !statsContainer || !overlay
+            || !statPanel.GetPositionWithinWindow
+            || !statsContainer.GetPositionWithinWindow) return false;
+        var rowPosition = statPanel.GetPositionWithinWindow();
+        var parentPosition = statsContainer.GetPositionWithinWindow();
+        var parentScaleY = Number(statsContainer.actualuiscale_y || 1);
+        var rowHeight = Number(statPanel.actuallayoutheight || 20);
+        var top = (Number(rowPosition.y) - Number(parentPosition.y)) / parentScaleY;
+
+        // 官方 Text 已被隐藏；只借用属性行的纵向几何，显示的是项目自己的 Label。
+        overlay.style.horizontalAlign = "right";
+        overlay.style.marginRight = "22px";
+        overlay.style.position = "0px " + String(top) + "px 0px";
+        overlay.style.width = "180px";
+        overlay.style.height = String(Math.max(18, rowHeight)) + "px";
         return true;
     }
 
@@ -401,17 +423,11 @@
             setNativeStatLabelsVisible(armorPanel, false);
             return;
         }
-        if (!positionRelativeToNativeNumber(
-            attackSpeedPanel,
-            statsContainer,
-            authoritativeAttackSpeedLabel,
-            ["AttackSpeedLabel", "AttackSpeedValue", "AttackSpeedLabelContainer"]
+        if (!positionRelativeToStatRow(
+            attackSpeedPanel, statsContainer, authoritativeAttackSpeedLabel
         )) return;
-        if (!positionRelativeToNativeNumber(
-            armorPanel,
-            statsContainer,
-            authoritativeArmorLabel,
-            ["ArmorLabel", "ArmorValue", "ArmorLabelContainer"]
+        if (!positionRelativeToStatRow(
+            armorPanel, statsContainer, authoritativeArmorLabel
         )) return;
         authoritativeAttackSpeedLabel.text = officialAttackSpeedText;
         authoritativeArmorLabel.text = officialArmorText;
