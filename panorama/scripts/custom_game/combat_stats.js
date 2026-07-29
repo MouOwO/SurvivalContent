@@ -16,6 +16,19 @@
     var officialArmorText = "";
     var logicalAttributeOverlay = null;
     var officialHudCache = {};
+    var officialUnitNameOverlay = null;
+    var unitNameTransitionSerial = 0;
+    var unitNameRetryDelays = [0.0, 0.016, 0.05, 0.10, 0.20];
+    var observedSelectedUnit = -1;
+    var configuredUnitNames = {
+        "building_main_city": "主城",
+        "building_wall": "城墙",
+        "building_arrow_tower": "箭塔",
+        "building_gold_mine": "金矿",
+        "building_hero_altar": "英雄祭坛",
+        "enemy_tree": "树",
+        "npc_dota_hero_undying": "建造者"
+    };
     var heroPanelState = {
         unit: -1,
         unitName: "",
@@ -59,6 +72,79 @@
 
     function isNativeHero(unitName) {
         return /^npc_dota_hero_/.test(String(unitName || ""));
+    }
+
+    function localizedText(token) {
+        var localized = $.Localize(token);
+        return localized && localized !== token ? localized : "";
+    }
+
+    function isInternalUnitName(value, unitName) {
+        var name = String(value || "").replace(/^#/, "");
+        return !name
+            || name === String(unitName || "")
+            || /^(npc_|building_|enemy_|zombie_)/.test(name);
+    }
+
+    function resolveUnitDisplayName(unitName, snapshotName) {
+        var configured = configuredUnitNames[unitName];
+        if (snapshotName && !isInternalUnitName(snapshotName, unitName)) {
+            return String(snapshotName).replace(/^#/, "");
+        }
+        return configured
+            || localizedText("#npc_dota_unit_" + unitName)
+            || localizedText("#" + unitName)
+            || String(unitName || "单位")
+                .replace(/^(npc_dota_unit_|npc_dota_|npc_survival_|building_|enemy_)/, "")
+                .replace(/_/g, " ");
+    }
+
+    function copyPanelClasses(source, target) {
+        if (!source || !target || !source.GetClasses) return;
+        var classes = source.GetClasses();
+        if (typeof classes === "string") classes = classes.split(/\s+/);
+        (classes || []).forEach(function (className) {
+            if (className) target.AddClass(className);
+        });
+    }
+
+    function ensureOfficialUnitNameOverlay() {
+        var root = officialHudRoot();
+        var container = root && root.FindChildTraverse
+            ? root.FindChildTraverse("unitname") : null;
+        if (!container || !container.FindChildTraverse) return null;
+        var nativeLabel = container.FindChildTraverse("UnitNameLabel");
+        if (nativeLabel) {
+            nativeLabel.style.opacity = "0";
+            nativeLabel.hittest = false;
+            nativeLabel.hittestchildren = false;
+        }
+        var overlay = container.FindChildTraverse("SurvivalUnitNameLabel");
+        if (!overlay) {
+            overlay = $.CreatePanel("Label", container, "SurvivalUnitNameLabel");
+            copyPanelClasses(nativeLabel, overlay);
+            overlay.hittest = false;
+            overlay.hittestchildren = false;
+            overlay.style.ignoreParentFlow = true;
+            overlay.style.width = "100%";
+            overlay.style.height = "100%";
+            overlay.style.position = "0px 0px 0px";
+            overlay.style.horizontalAlign = "center";
+            overlay.style.verticalAlign = "center";
+            overlay.style.textAlign = "center";
+            overlay.style.opacity = "1";
+            overlay.style.zIndex = "1000";
+        }
+        officialUnitNameOverlay = overlay;
+        return overlay;
+    }
+
+    function setOfficialUnitName(text, visible) {
+        var overlay = ensureOfficialUnitNameOverlay();
+        if (!overlay) return false;
+        if (text !== undefined && overlay.text !== String(text)) overlay.text = String(text);
+        overlay.style.visibility = visible ? "visible" : "collapse";
+        return true;
     }
 
     function isHeroUnit(unit, unitName) {
@@ -170,13 +256,8 @@
         visit(statPanel);
     }
 
-    function ensureAuthoritativeStatOverlay(statsContainer, id, current) {
-        if (!statsContainer) return null;
-        if (current && current.IsValid && current.IsValid()
-            && current.GetParent && current.GetParent() === statsContainer) return current;
-        var overlay = statsContainer.FindChildTraverse
-            ? statsContainer.FindChildTraverse(id) : null;
-        overlay = overlay || $.CreatePanel("Label", statsContainer, id);
+    function applyAuthoritativeNumberStyle(overlay) {
+        if (!overlay) return null;
         overlay.AddClass("MonoNumbersFont");
         overlay.AddClass("StatRegionLabel");
         overlay.style.visibility = "collapse";
@@ -192,6 +273,18 @@
         return overlay;
     }
 
+    function ensureAuthoritativeStatOverlay(statsContainer, id, current) {
+        if (!statsContainer) return null;
+        if (current && current.IsValid && current.IsValid()
+            && current.GetParent && current.GetParent() === statsContainer) {
+            return applyAuthoritativeNumberStyle(current);
+        }
+        var overlay = statsContainer.FindChildTraverse
+            ? statsContainer.FindChildTraverse(id) : null;
+        overlay = overlay || $.CreatePanel("Label", statsContainer, id);
+        return applyAuthoritativeNumberStyle(overlay);
+    }
+
     function ensureRelativeAttackOverlay(root, statsContainer) {
         if (!root || !statsContainer) return null;
         if (authoritativeAttackLabel
@@ -199,7 +292,7 @@
             && authoritativeAttackLabel.IsValid()
             && authoritativeAttackLabel.GetParent
             && authoritativeAttackLabel.GetParent() === statsContainer) {
-            return authoritativeAttackLabel;
+            return applyAuthoritativeNumberStyle(authoritativeAttackLabel);
         }
         var existing = statsContainer.FindChildTraverse
             ? statsContainer.FindChildTraverse("SurvivalAuthoritativeDamageLabel")
@@ -209,27 +302,34 @@
             statsContainer,
             "SurvivalAuthoritativeDamageLabel"
         );
-        authoritativeAttackLabel.AddClass("MonoNumbersFont");
-        authoritativeAttackLabel.AddClass("StatRegionLabel");
-        authoritativeAttackLabel.style.visibility = "collapse";
-        authoritativeAttackLabel.style.opacity = "1";
-        authoritativeAttackLabel.style.position = "0px 0px 0px";
-        authoritativeAttackLabel.style.width = "180px";
-        authoritativeAttackLabel.style.height = "fit-children";
-        authoritativeAttackLabel.style.fontSize = "14px";
-        authoritativeAttackLabel.style.color = "#cccccc";
-        authoritativeAttackLabel.style.textAlign = "right";
-        authoritativeAttackLabel.style.zIndex = "1000";
-        authoritativeAttackLabel.hittest = false;
-        return authoritativeAttackLabel;
+        return applyAuthoritativeNumberStyle(authoritativeAttackLabel);
     }
 
-    function positionRelativeToStatsContainer(damage, statsContainer, overlay) {
-        if (!damage || !statsContainer || !overlay
-            || !damage.GetPositionWithinWindow
+    function nativeNumberAnchor(statPanel, preferredIds) {
+        if (!statPanel || !statPanel.FindChildTraverse) return null;
+        for (var index = 0; index < preferredIds.length; index++) {
+            var preferred = statPanel.FindChildTraverse(preferredIds[index]);
+            if (preferred && preferred.GetPositionWithinWindow) return preferred;
+        }
+        var labels = [];
+        function collectLabels(parent) {
+            var children = parent && parent.Children ? parent.Children() : [];
+            children.forEach(function (child) {
+                if (child.paneltype === "Label" && child.GetPositionWithinWindow) {
+                    labels.push(child);
+                }
+                collectLabels(child);
+            });
+        }
+        collectLabels(statPanel);
+        return labels.length > 0 ? labels[0] : null;
+    }
+
+    function positionRelativeToNativeNumber(statPanel, statsContainer, overlay, preferredIds) {
+        if (!statPanel || !statsContainer || !overlay
+            || !statPanel.GetPositionWithinWindow
             || !statsContainer.GetPositionWithinWindow) return false;
-        var anchor = damage.FindChildTraverse("DamageLabel")
-            || damage.FindChildTraverse("DamageLabelContainer");
+        var anchor = nativeNumberAnchor(statPanel, preferredIds);
         if (!anchor || !anchor.GetPositionWithinWindow) return false;
 
         var anchorPosition = anchor.GetPositionWithinWindow();
@@ -238,33 +338,13 @@
         var anchorHeight = Number(anchor.actuallayoutheight || 20);
         var top = (Number(anchorPosition.y) - Number(parentPosition.y)) / parentScaleY;
 
-        // 固定宽度并右对齐到攻速、护甲数值列；位数增加时只向左延伸。
+        // 三项权威数字完全复用攻击力文本的右对齐、宽度和原生数字行定位规则。
         var overlayWidth = 180;
         overlay.style.horizontalAlign = "right";
         overlay.style.marginRight = "22px";
         overlay.style.position = "0px " + String(top) + "px 0px";
         overlay.style.width = String(overlayWidth) + "px";
         overlay.style.height = String(Math.max(18, anchorHeight)) + "px";
-        return true;
-    }
-
-    function positionRelativeToOfficialPanel(statPanel, statsContainer, overlay) {
-        if (!statPanel || !statsContainer || !overlay
-            || !statPanel.GetPositionWithinWindow
-            || !statsContainer.GetPositionWithinWindow) return false;
-        var anchor = statPanel.GetPositionWithinWindow();
-        var parent = statsContainer.GetPositionWithinWindow();
-        var scaleY = Number(statsContainer.actualuiscale_y || 1);
-        // Align the authoritative attack-speed and armor values with the
-        // official stat rows, shifted 6px upward from the previous position.
-        var top = (Number(anchor.y) - Number(parent.y)) / scaleY - 3;
-        overlay.style.horizontalAlign = "right";
-        overlay.style.marginRight = "22px";
-        overlay.style.position = "0px " + String(top) + "px 0px";
-        overlay.style.width = "180px";
-        overlay.style.height = String(Math.max(
-            18, Number(statPanel.actuallayoutheight || 20)
-        )) + "px";
         return true;
     }
 
@@ -287,7 +367,12 @@
         }
 
         // Label 属于官方统计区域的父节点，位置相对 stats_container，而不是相对屏幕。
-        if (!positionRelativeToStatsContainer(damage, statsContainer, overlay)) return;
+        if (!positionRelativeToNativeNumber(
+            damage,
+            statsContainer,
+            overlay,
+            ["DamageLabel", "DamageLabelContainer"]
+        )) return;
         overlay.text = officialAttackText;
         overlay.style.visibility = "visible";
         setNativeAttackLabelsVisible(damage, false);
@@ -312,16 +397,22 @@
         if (!matches || officialAttackSpeedText === "") {
             authoritativeAttackSpeedLabel.style.visibility = "collapse";
             authoritativeArmorLabel.style.visibility = "collapse";
-            setNativeStatLabelsVisible(attackSpeedPanel, true);
-            setNativeStatLabelsVisible(armorPanel, true);
+            setNativeStatLabelsVisible(attackSpeedPanel, false);
+            setNativeStatLabelsVisible(armorPanel, false);
             return;
         }
-        positionRelativeToOfficialPanel(
-            attackSpeedPanel, statsContainer, authoritativeAttackSpeedLabel
-        );
-        positionRelativeToOfficialPanel(
-            armorPanel, statsContainer, authoritativeArmorLabel
-        );
+        if (!positionRelativeToNativeNumber(
+            attackSpeedPanel,
+            statsContainer,
+            authoritativeAttackSpeedLabel,
+            ["AttackSpeedLabel", "AttackSpeedValue", "AttackSpeedLabelContainer"]
+        )) return;
+        if (!positionRelativeToNativeNumber(
+            armorPanel,
+            statsContainer,
+            authoritativeArmorLabel,
+            ["ArmorLabel", "ArmorValue", "ArmorLabelContainer"]
+        )) return;
         authoritativeAttackSpeedLabel.text = officialAttackSpeedText;
         authoritativeArmorLabel.text = officialArmorText;
         authoritativeAttackSpeedLabel.style.visibility = "visible";
@@ -395,19 +486,34 @@
                 ? damage.FindChildTraverse(preferredIds[index]) : null;
             if (preferred && preferred.GetPositionWithinWindow) return preferred;
         }
-        function findIcon(parent) {
+        var candidates = [];
+        function collectIcons(parent) {
             var children = parent && parent.Children ? parent.Children() : [];
-            for (var childIndex = 0; childIndex < children.length; childIndex++) {
-                var child = children[childIndex];
+            children.forEach(function (child) {
                 var id = String(child.id || "").toLowerCase();
                 if ((child.paneltype === "Image" || id.indexOf("icon") >= 0)
-                    && child.GetPositionWithinWindow) return child;
-                var nested = findIcon(child);
-                if (nested) return nested;
-            }
-            return null;
+                    && child.GetPositionWithinWindow) {
+                    var width = Number(child.actuallayoutwidth || 0);
+                    var height = Number(child.actuallayoutheight || 0);
+                    var position = child.GetPositionWithinWindow();
+                    if (child.visible !== false && width >= 6 && height >= 6
+                        && width <= 40 && height <= 40) {
+                        candidates.push({
+                            panel: child,
+                            x: Number(position.x || 0),
+                            area: width * height
+                        });
+                    }
+                }
+                collectIcons(child);
+            });
         }
-        return findIcon(damage);
+        collectIcons(damage);
+        candidates.sort(function (left, right) {
+            if (left.x !== right.x) return right.x - left.x;
+            return left.area - right.area;
+        });
+        return candidates.length > 0 ? candidates[0].panel : null;
     }
 
     function positionLogicalAttributeOverlay(statsContainer, overlay) {
@@ -474,6 +580,10 @@
         });
         var statsContainer = officialPanel("stats_container")
             || officialPanel("StatContainer");
+        if (statsContainer) {
+            statsContainer.hittest = false;
+            statsContainer.hittestchildren = false;
+        }
         var attackSpeedPanel = officialPanel("AttackSpeed");
         var armorPanel = officialPanel("Armor");
         var statParent = attackSpeedPanel && attackSpeedPanel.GetParent
@@ -674,7 +784,7 @@
         officialAttackUnit = Number(snapshot.entindex);
         writeOfficialAttackText();
         var armor = formatNumber(snapshot.armor);
-        // 攻速字段表示每秒攻击次数；缺失时固定显示默认值 0.5，
+        // 攻速字段表示每秒攻击次数；缺失时固定显示默认值 0.5。
         // 不允许保留上一选中单位的显示值。
         var attackSpeedValue = snapshot.attack_speed === undefined
             || snapshot.attack_speed === null
@@ -754,12 +864,44 @@
         });
     }
 
+    function refreshHeroVitals(unit) {
+        if (unit === undefined || unit < 0) return;
+        try {
+            var maxHealth = Entities.GetMaxHealth(unit);
+            var health = Entities.GetHealth(unit);
+            var maxMana = Entities.GetMaxMana(unit);
+            var mana = Entities.GetMana(unit);
+            var healthText = formatNumber(health) + " / " + formatNumber(maxHealth);
+            var manaText = formatNumber(mana) + " / " + formatNumber(maxMana);
+            var healthWidth = (maxHealth > 0 ? (100 * health / maxHealth) : 0) + "%";
+            var manaWidth = (maxMana > 0 ? (100 * mana / maxMana) : 0) + "%";
+            if (heroPanelState.healthText !== healthText) {
+                heroPanelState.healthText = healthText;
+                setText("SurvivalHeroHealthText", healthText);
+            }
+            if (heroPanelState.manaText !== manaText) {
+                heroPanelState.manaText = manaText;
+                setText("SurvivalHeroManaText", manaText);
+            }
+            if (heroPanelState.healthWidth !== healthWidth) {
+                heroPanelState.healthWidth = healthWidth;
+                setWidth(panel("SurvivalHeroHealthFill"), healthWidth);
+            }
+            if (heroPanelState.manaWidth !== manaWidth) {
+                heroPanelState.manaWidth = manaWidth;
+                setWidth(panel("SurvivalHeroManaFill"), manaWidth);
+            }
+        } catch (error) {}
+    }
+
+    function refreshHeroVitalsTick() {
+        refreshHeroVitals(selectedUnit());
+        $.Schedule(0.25, refreshHeroVitalsTick);
+    }
+
     function refreshHeroPanel() {
         var unit = selectedUnit();
-        if (unit === undefined || unit < 0) {
-            $.Schedule(0.5, refreshHeroPanel);
-            return;
-        }
+        if (unit === undefined || unit < 0) return;
         var scene = panel("SurvivalHeroPortrait");
         var unitName = "npc_dota_hero_undying";
         try {
@@ -793,38 +935,14 @@
             var snapshotName = snapshotMatches
                 ? (selectedUnitSnapshot.display_name || selectedUnitSnapshot.unit_name || "")
                 : "";
-            var configuredNames = {
-                "building_main_city": "主城",
-                "building_wall": "城墙",
-                "building_arrow_tower": "箭塔",
-                "building_gold_mine": "金矿",
-                "building_hero_altar": "英雄祭坛",
-                "npc_dota_hero_undying": "建造者"
-            };
-            var localizedName = $.Localize("#" + unitName);
-            var snapshotIsInternal = /^npc_dota_|^building_/.test(String(snapshotName || ""));
-            var displayName = (!snapshotIsInternal ? snapshotName : "")
-                || configuredNames[unitName]
-                || (localizedName && localizedName !== ("#" + unitName)
-                    ? localizedName : unitName);
-            // 官方名称控件可能仍返回内部 token；自定义名称优先兜底，禁止裸 token 出现在 HUD。
-            if (/^#?(BUILDING_|building_)/.test(String(displayName))) {
-                displayName = configuredNames[unitName] || displayName.replace(/^#/, "");
-            }
+            var displayName = resolveUnitDisplayName(unitName, snapshotName);
             if (heroPanelState.displayName !== displayName) {
                 heroPanelState.displayName = displayName;
                 setText("SurvivalHeroName", displayName);
             }
-            // 官方 Reborn 名称控件不会可靠读取自定义 addon token；直接覆盖其内部 Label。
-            // 服务端配置名称同样覆盖建造者这类原生英雄载体。
-            if (!isNativeHero(unitName) || (!snapshotIsInternal && snapshotName)) {
-                var hudRoot = officialHudRoot();
-                var officialName = hudRoot && hudRoot.FindChildTraverse
-                    ? hudRoot.FindChildTraverse("unitname") : null;
-                var officialLabel = officialName && officialName.FindChildTraverse
-                    ? officialName.FindChildTraverse("UnitNameLabel") : null;
-                if (officialLabel) officialLabel.text = displayName;
-            }
+            // Valve can rewrite or recreate UnitNameLabel during selection changes.
+            // Keep it suppressed and atomically reveal the project-owned label.
+            setOfficialUnitName(displayName, true);
             var level = snapshotMatches && selectedUnitSnapshot.level !== undefined
                 ? selectedUnitSnapshot.level : Entities.GetLevel(unit);
             if (heroPanelState.level !== level) {
@@ -832,33 +950,53 @@
                 setText("SurvivalHeroLevel", level);
             }
             setText("SurvivalHeroLevelText", "");
-            var maxHealth = Entities.GetMaxHealth(unit);
-            var health = Entities.GetHealth(unit);
-            var maxMana = Entities.GetMaxMana(unit);
-            var mana = Entities.GetMana(unit);
-            var healthText = formatNumber(health) + " / " + formatNumber(maxHealth);
-            var manaText = formatNumber(mana) + " / " + formatNumber(maxMana);
-            var healthWidth = (maxHealth > 0 ? (100 * health / maxHealth) : 0) + "%";
-            var manaWidth = (maxMana > 0 ? (100 * mana / maxMana) : 0) + "%";
-            if (heroPanelState.healthText !== healthText) {
-                heroPanelState.healthText = healthText;
-                setText("SurvivalHeroHealthText", healthText);
-            }
-            if (heroPanelState.manaText !== manaText) {
-                heroPanelState.manaText = manaText;
-                setText("SurvivalHeroManaText", manaText);
-            }
-            if (heroPanelState.healthWidth !== healthWidth) {
-                heroPanelState.healthWidth = healthWidth;
-                setWidth(panel("SurvivalHeroHealthFill"), healthWidth);
-            }
-            if (heroPanelState.manaWidth !== manaWidth) {
-                heroPanelState.manaWidth = manaWidth;
-                setWidth(panel("SurvivalHeroManaFill"), manaWidth);
-            }
+            refreshHeroVitals(unit);
         } catch (error) {}
         requestSelectedUnitStats(unit);
-        $.Schedule(0.25, refreshHeroPanel);
+    }
+
+    function localSelectionEvent(payload) {
+        if (!payload) return true;
+        var eventPlayer = payload.PlayerID;
+        if (eventPlayer === undefined) eventPlayer = payload.player_id;
+        if (eventPlayer === undefined) eventPlayer = payload.playerid;
+        return eventPlayer === undefined || Number(eventPlayer) === Number(playerId);
+    }
+
+    function beginUnitNameTransition(reason) {
+        unitNameTransitionSerial += 1;
+        var serial = unitNameTransitionSerial;
+        unitNameRetryDelays.forEach(function (delay, retryIndex) {
+            $.Schedule(delay, function () {
+                if (serial !== unitNameTransitionSerial) return;
+                var currentUnit = Number(selectedUnit());
+                if (currentUnit < 0) return;
+                if (currentUnit !== observedSelectedUnit) {
+                    observedSelectedUnit = currentUnit;
+                    refreshHeroPanel();
+                    $.Msg("[SURVIVAL_UNIT_NAME] selected_unit_changed reason=",
+                        String(reason || "unknown"), " unit=", String(currentUnit),
+                        " retry=", String(retryIndex), " serial=", String(serial));
+                    return;
+                }
+                writeOfficialAttackText();
+                writeOfficialSecondaryStats();
+            });
+        });
+    }
+
+    function onUnitSelectionEvent(reason, payload) {
+        if (!localSelectionEvent(payload)) return;
+        beginUnitNameTransition(reason);
+    }
+
+    function subscribeUnitNameSelectionEvents() {
+        GameEvents.Subscribe("dota_player_update_selected_unit", function (payload) {
+            onUnitSelectionEvent("selected_unit_event", payload);
+        });
+        GameEvents.Subscribe("dota_player_update_query_unit", function (payload) {
+            onUnitSelectionEvent("query_unit_event", payload);
+        });
     }
 
     function abilityRuntime(abilityIndex) {
@@ -1365,6 +1503,7 @@
             if (key !== tableKey) return;
             if (snapshot && Number(snapshot.entindex) === Number(selectedUnit())) {
                 update(snapshot);
+                refreshHeroPanel(false);
             }
         }
     );
@@ -1380,6 +1519,12 @@
         }
     );
     renderCombatDebug(CustomNetTables.GetTableValue(debugTableName, tableKey));
+    GameEvents.Subscribe("ui_weapon_synthesis_snapshot", function (snapshot) {
+        if (snapshot && snapshot.player_id !== undefined
+            && Number(snapshot.player_id) !== Number(playerId)) return;
+        var unit = Number(selectedUnit());
+        if (unit >= 0) requestSelectedUnitStats(unit, true);
+    });
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
         if (!snapshot || snapshot.success !== 1) return;
         if (Number(snapshot.entindex) !== Number(selectedUnit())) return;
@@ -1390,6 +1535,7 @@
             " attack=", String(snapshot.attack_min), "-", String(snapshot.attack_max),
             " armor=", String(snapshot.armor));
         update(snapshot);
+        refreshHeroPanel(false);
     });
     CustomNetTables.SubscribeNetTableListener(
         "survival_ability_runtime",
@@ -1454,7 +1600,12 @@
     bindHeroPortrait();
     bindHotkeys();
     startPortraitPrewarm();
-    $.Schedule(1.65, refreshHeroPanel);
+    subscribeUnitNameSelectionEvents();
+    beginUnitNameTransition("initial_load");
+    $.Schedule(1.65, function () {
+        if (observedSelectedUnit < 0) beginUnitNameTransition("initial_fallback");
+    });
+    refreshHeroVitalsTick();
     refreshAbilities();
     refreshInventory();
     $.Schedule(2.0, revealBottomHud);

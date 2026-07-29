@@ -113,8 +113,8 @@
                 return;
             }
             bar.style.transform = "translate3d("
-                + (screenX / scaleX - 62).toFixed(2) + "px, "
-                + (screenY / scaleY - 6).toFixed(2) + "px, 0px)";
+                + (screenX / scaleX - 31).toFixed(2) + "px, "
+                + (screenY / scaleY - 26).toFixed(2) + "px, 0px)";
             bar.style.visibility = "visible";
         });
         // Run once per Panorama frame. The previous fixed 30 Hz layout update

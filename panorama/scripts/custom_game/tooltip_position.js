@@ -66,18 +66,20 @@
             tooltip.actuallayoutheight,
             numberOr(height, 220)
         );
-        var gap = 14;
-        var x = sourcePosition.x + (sourceWidth - tooltipWidth) * 0.5 - 78;
-        x = Math.max(12, Math.min(x, rootWidth - tooltipWidth - 12));
+        var gap = 10;
         function applyPosition() {
             if (!tooltip || !tooltip.IsValid || !tooltip.IsValid()) return;
+            var w = numberOr(tooltip.actuallayoutwidth, tooltipWidth);
             var h = numberOr(tooltip.actuallayoutheight, tooltipHeight);
-            // 旧位置为 sourceY - height - gap + 10；整体再向上88px。
-            var measuredY = sourcePosition.y - h - gap - 78;
+            var measuredX = sourcePosition.x + (sourceWidth - w) * 0.5;
+            measuredX = Math.max(12, Math.min(
+                measuredX, rootWidth - w - 12
+            ));
+            var measuredY = sourcePosition.y - h - gap;
             measuredY = Math.max(12, Math.min(
                 measuredY, rootHeight - h - 12
             ));
-            tooltip.style.position = Math.round(x) + "px "
+            tooltip.style.position = Math.round(measuredX) + "px "
                 + Math.round(measuredY) + "px 0px";
         }
         applyPosition();
