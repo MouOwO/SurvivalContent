@@ -42,6 +42,17 @@
             <Label id="PendingValue" text="待生成 0" />
         </Panel>
 
+        <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden" hittest="true">
+            <Panel id="DifficultySelectionDialog" hittest="true">
+                <Label id="DifficultySelectionTitle" text="选择游戏难度" />
+                <Label id="DifficultySelectionHint" text="难度选定后，本局将无法更改" />
+                <Panel id="DifficultySelectionButtons" hittest="true">
+                    <Label id="DifficultySelectionLoading" text="正在读取难度配置……" />
+                </Panel>
+                <Label id="DifficultySelectionError" text="" />
+            </Panel>
+        </Panel>
+
         <!-- 左上角商店入口；主界面从左侧滑入。 -->
         <Button id="CustomShopButton" class="Locked" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.ToggleShop()">
             <DOTAItemImage id="CustomShopButtonIcon" itemname="item_ironwood_tree" />

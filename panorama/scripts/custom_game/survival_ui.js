@@ -7,10 +7,13 @@
     var lastSequence = -1;
     var lastSnapshotAt = 0;
     var cameraFollowSerial = 0;
+    var difficultyRequestPending = false;
+    var difficultyOptionsSignature = "";
 
     var waveStatusText = {
         dev_mode: "准备阶段",
         waiting: "准备阶段",
+        selecting_difficulty: "选择难度",
         countdown: "准备阶段",
         spawning: "生成阶段",
         fighting: "战斗阶段",
@@ -48,6 +51,80 @@
         return isNaN(sequence) ? -1 : sequence;
     }
 
+    function isDifficultySelected(wave) {
+        return wave && (wave.difficulty_selected === true
+            || Number(wave.difficulty_selected || 0) === 1);
+    }
+
+    function optionArray(options) {
+        if (!options) return [];
+        if (Array.isArray(options)) return options;
+        return Object.keys(options).sort(function (left, right) {
+            return Number(left) - Number(right);
+        }).map(function (key) { return options[key]; });
+    }
+
+    function selectDifficulty(difficultyId) {
+        if (difficultyRequestPending || !difficultyId) return;
+        difficultyRequestPending = true;
+        var overlay = panel("DifficultySelectionOverlay");
+        if (overlay) overlay.SetHasClass("DifficultyPending", true);
+        setText("DifficultySelectionError", "正在确认难度……");
+        GameEvents.SendCustomGameEventToServer("ui_difficulty_select_request", {
+            difficulty_id: difficultyId
+        });
+    }
+
+    function renderDifficultySelection(wave) {
+        var overlay = panel("DifficultySelectionOverlay");
+        var container = panel("DifficultySelectionButtons");
+        if (!overlay || !container) return;
+        var selected = isDifficultySelected(wave);
+        var shouldShow = !selected && wave.status === "selecting_difficulty";
+        overlay.SetHasClass("DifficultySelectionHidden", !shouldShow);
+        if (!shouldShow) {
+            difficultyRequestPending = false;
+            overlay.SetHasClass("DifficultyPending", false);
+            return;
+        }
+
+        var options = optionArray(wave.difficulty_options);
+        var signature = options.map(function (option) {
+            return [
+                option.difficulty_id,
+                option.display_name,
+                option.subtitle,
+                option.description,
+                option.total_waves
+            ].join("|");
+        }).join(";");
+        if (signature === difficultyOptionsSignature) return;
+        difficultyOptionsSignature = signature;
+        container.RemoveAndDeleteChildren();
+        options.forEach(function (option) {
+            var button = $.CreatePanel("Button", container, "");
+            button.AddClass("DifficultyOptionButton");
+            var header = $.CreatePanel("Panel", button, "");
+            header.AddClass("DifficultyOptionHeader");
+            var name = $.CreatePanel("Label", header, "");
+            name.AddClass("DifficultyOptionName");
+            name.text = option.display_name || option.difficulty_id || "";
+            var subtitle = $.CreatePanel("Label", header, "");
+            subtitle.AddClass("DifficultyOptionSubtitle");
+            subtitle.text = option.subtitle || (String(option.total_waves || 0) + " 波");
+            var description = $.CreatePanel("Label", button, "");
+            description.AddClass("DifficultyOptionDescription");
+            description.text = option.description || "";
+            button.SetPanelEvent("onactivate", function () {
+                selectDifficulty(String(option.difficulty_id || ""));
+            });
+        });
+        if (options.length === 0) {
+            var loading = $.CreatePanel("Label", container, "");
+            loading.text = "正在读取难度配置……";
+        }
+    }
+
     function update(snapshot) {
         if (!snapshot) return;
         var sequence = sequenceOf(snapshot);
@@ -59,6 +136,7 @@
 
         var resources = snapshot.resources || {};
         var wave = snapshot.wave || {};
+        renderDifficultySelection(wave);
         setText("WoodValue", compactNumber(resources.wood));
         setText("GoldValue", compactNumber(resources.gold));
         setText("PopulationValue", compactNumber(resources.population) + "/" + compactNumber(resources.max_population));
@@ -95,7 +173,9 @@
         });
         setText(
             "WaveNumber",
-            "波次 " + numberValue(wave.current_wave)
+            (isDifficultySelected(wave)
+                ? String(wave.difficulty_id || "N1") + " · " : "")
+                + "波次 " + numberValue(wave.current_wave)
                 + "/" + numberValue(wave.total_waves || 30)
         );
         var phase = waveStatusText[wave.status] || "准备阶段";
@@ -103,6 +183,21 @@
         setText("WaveTimer", "倒计时 " + Math.max(0, Math.ceil(Number(wave.timer || 0))) + "秒");
         setText("AliveValue", "存活 " + numberValue(wave.alive));
         setText("PendingValue", "待生成 " + numberValue(wave.pending));
+    }
+
+    function handleDifficultyResult(payload) {
+        if (payload && Number(payload.success || 0) === 1) {
+            setText("DifficultySelectionError", "难度已确认，正在开始……");
+            requestSnapshot();
+            return;
+        }
+        difficultyRequestPending = false;
+        var overlay = panel("DifficultySelectionOverlay");
+        if (overlay) overlay.SetHasClass("DifficultyPending", false);
+        var errorText = payload && payload.error === "difficulty_locked"
+            ? "本局难度已经锁定"
+            : "难度选择失败，请重试";
+        setText("DifficultySelectionError", errorText);
     }
 
     function readSnapshot() {
@@ -176,6 +271,7 @@
     });
     GameEvents.Subscribe("ui_state_snapshot", update);
     GameEvents.Subscribe("ui_notification", showNotification);
+    GameEvents.Subscribe("ui_difficulty_select_result", handleDifficultyResult);
     GameEvents.Subscribe("ui_camera_follow_hero", followHeroUntilArrival);
     GameUI.CustomUIConfig().SurvivalCamera = {
         FollowHeroUntilArrival: followHeroUntilArrival

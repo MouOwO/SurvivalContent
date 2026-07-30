@@ -423,3 +423,118 @@
     color: white;
     font-size: 17px;
 }
+
+
+#DifficultySelectionOverlay {
+    width: 100%;
+    height: 100%;
+    background-color: #030609dd;
+    z-index: 5000;
+}
+
+#DifficultySelectionOverlay.DifficultySelectionHidden {
+    visibility: collapse;
+}
+
+#DifficultySelectionDialog {
+    width: 760px;
+    min-height: 430px;
+    horizontal-align: center;
+    vertical-align: center;
+    flow-children: down;
+    padding: 30px 38px 34px 38px;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#19242ff7), to(#0b1118fa));
+    border: 2px solid #9a8156;
+    box-shadow: #000000cc 0px 0px 28px 4px;
+}
+
+#DifficultySelectionTitle {
+    horizontal-align: center;
+    color: #f4dda4;
+    font-size: 36px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 3px 3 #000000;
+}
+
+#DifficultySelectionHint {
+    horizontal-align: center;
+    margin-top: 4px;
+    margin-bottom: 22px;
+    color: #aebbc5;
+    font-size: 17px;
+}
+
+#DifficultySelectionButtons {
+    width: 100%;
+    flow-children: down;
+}
+
+.DifficultyOptionButton {
+    width: 100%;
+    min-height: 112px;
+    flow-children: down;
+    margin-bottom: 14px;
+    padding: 15px 20px;
+    background-color: gradient(linear, 0% 0%, 100% 0%, from(#172532), to(#243848));
+    border: 1px solid #72889a;
+    transition-property: brightness, transform, border;
+    transition-duration: 0.12s;
+}
+
+.DifficultyOptionButton:hover {
+    brightness: 1.35;
+    transform: translateX(4px);
+    border: 1px solid #e0bb6c;
+}
+
+.DifficultyOptionButton:active {
+    brightness: 0.75;
+    transform: translateX(7px);
+}
+
+.DifficultyPending .DifficultyOptionButton {
+    wash-color: #66717a;
+    saturation: 0.2;
+}
+
+.DifficultyOptionHeader {
+    width: 100%;
+    flow-children: right;
+}
+
+.DifficultyOptionName {
+    color: #ffffff;
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.DifficultyOptionSubtitle {
+    horizontal-align: right;
+    color: #efcf83;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.DifficultyOptionDescription {
+    width: 100%;
+    margin-top: 8px;
+    color: #c9d3da;
+    font-size: 17px;
+    white-space: normal;
+}
+
+#DifficultySelectionLoading {
+    horizontal-align: center;
+    margin-top: 45px;
+    color: #c9d3da;
+    font-size: 20px;
+}
+
+#DifficultySelectionError {
+    min-height: 25px;
+    horizontal-align: center;
+    margin-top: 8px;
+    color: #e7a26e;
+    font-size: 17px;
+}
