@@ -200,18 +200,8 @@
             panel.itemname = entry.icon || "item_branches";
         }
         panel.AddClass(className);
-    }
-
-    function createCost(parent, iconItem, value) {
-        var block = $.CreatePanel("Panel", parent, "");
-        block.AddClass("ShopCardCostBlock");
-        var icon = $.CreatePanel("DOTAItemImage", block, "");
-        icon.AddClass("ShopCardCostIcon");
-        icon.itemname = iconItem;
-        var label = $.CreatePanel("Label", block, "");
-        label.AddClass("ShopCardCostValue");
-        label.text = formatNumber(value);
-        return label;
+        panel.hittest = false;
+        panel.hittestchildren = false;
     }
 
     function purchase(entry) {
@@ -241,20 +231,6 @@
         if (!card || !entry) return;
         card.SetHasClass("Unavailable", entry.purchasable !== 1);
         card.SetHasClass("Technology", entry.content_type === "technology");
-        if (card.__shopName) card.__shopName.text = entry.name || entry.content_id;
-        if (card.__shopTechnologyLevel) {
-            card.__shopTechnologyLevel.text = "当前 Lv." + (entry.technology_level || 0)
-                + " · 下一等级 Lv." + (entry.next_technology_level || 0);
-        }
-        if (card.__shopWoodCost) card.__shopWoodCost.text = formatNumber(entry.wood_cost);
-        if (card.__shopGoldCost) card.__shopGoldCost.text = formatNumber(entry.gold_cost);
-        if (card.__shopStatus) {
-            card.__shopStatus.text = entry.purchasable === 1
-                ? (entry.challenge_active === 1
-                    ? "右键重新进入（免费）"
-                    : "右键购买")
-                : (entry.disabled_reason || "不可购买");
-        }
     }
 
     function updateVisibleEntryCards(changedIds) {
@@ -370,37 +346,6 @@
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
             createEntryIcon(frame, entry, "ShopItemIcon");
-
-            var name = $.CreatePanel("Label", card, "");
-            name.AddClass("ShopItemName");
-            name.text = entry.name || entry.content_id;
-            card.__shopName = name;
-
-            if (entry.content_type === "technology") {
-                var level = $.CreatePanel("Label", card, "");
-                level.AddClass("ShopTechnologyLevel");
-                level.text = "当前 Lv." + (entry.technology_level || 0)
-                    + " · 下一等级 Lv." + (entry.next_technology_level || 0);
-                card.__shopTechnologyLevel = level;
-            }
-
-            var costs = $.CreatePanel("Panel", card, "");
-            costs.AddClass("ShopCardCostRow");
-            card.__shopWoodCost = createCost(
-                costs, "item_ironwood_tree", entry.wood_cost
-            );
-            card.__shopGoldCost = createCost(
-                costs, "item_hand_of_midas", entry.gold_cost
-            );
-
-            var status = $.CreatePanel("Label", card, "");
-            status.AddClass("ShopItemAvailability");
-            status.text = entry.purchasable === 1
-                ? (entry.challenge_active === 1
-                    ? "右键重新进入（免费）"
-                    : "右键购买")
-                : (entry.disabled_reason || "不可购买");
-            card.__shopStatus = status;
 
             card.SetPanelEvent("onmouseover", function () {
                 var current = entryById(card.GetAttributeString("entry_id", ""));

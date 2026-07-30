@@ -32,6 +32,44 @@
         return value;
     }
 
+    function numberOr(value, fallback) {
+        return typeof value === "number" && isFinite(value) ? value : fallback;
+    }
+
+    function placeBesideSource(tooltip, sourcePanel) {
+        if (!tooltip || !sourcePanel || !sourcePanel.GetPositionWithinWindow) return;
+        var parent = tooltip.GetParent ? tooltip.GetParent() : null;
+        if (!parent || !parent.GetPositionWithinWindow) return;
+        var edge = 12;
+        var gap = 10;
+
+        function applyPosition() {
+            if (!tooltip || !tooltip.IsValid || !tooltip.IsValid()
+                || !sourcePanel || !sourcePanel.IsValid || !sourcePanel.IsValid()) return;
+            var parentPosition = parent.GetPositionWithinWindow();
+            var sourcePosition = sourcePanel.GetPositionWithinWindow();
+            var scaleX = Math.max(0.001, numberOr(parent.actualuiscale_x, 1));
+            var scaleY = Math.max(0.001, numberOr(parent.actualuiscale_y, 1));
+            var sourceX = (numberOr(sourcePosition.x, 0)
+                - numberOr(parentPosition.x, 0)) / scaleX;
+            var sourceY = (numberOr(sourcePosition.y, 0)
+                - numberOr(parentPosition.y, 0)) / scaleY;
+            var sourceWidth = numberOr(sourcePanel.actuallayoutwidth, 80);
+            var sourceHeight = numberOr(sourcePanel.actuallayoutheight, 64);
+            var tooltipHeight = numberOr(tooltip.actuallayoutheight, 310);
+            var parentHeight = numberOr(parent.actuallayoutheight, 1080);
+            var x = sourceX + sourceWidth + gap;
+            var y = sourceY + (sourceHeight - tooltipHeight) * 0.5;
+            y = Math.max(edge, Math.min(y, parentHeight - tooltipHeight - edge));
+            tooltip.style.position = Math.round(x) + "px "
+                + Math.round(y) + "px 0px";
+        }
+
+        applyPosition();
+        $.Schedule(0.0, applyPosition);
+        $.Schedule(0.03, applyPosition);
+    }
+
     function createIcon(parent, entry) {
         var panel;
         if (entry.icon_type === "ability") {
@@ -113,8 +151,7 @@
         tooltip.RemoveClass("Hidden");
         $.Schedule(0.0, function () {
             if (activeEntry !== entry) return;
-            var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-            if (positioner) positioner.PlaceRight(tooltip, sourcePanel, 430, 310);
+            placeBesideSource(tooltip, sourcePanel);
         });
     }
 

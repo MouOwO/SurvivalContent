@@ -102,7 +102,7 @@
             </Panel>
         </Panel>
 
-        <Panel id="ShopEntryTooltip" class="Hidden" hittest="false">
+        <Panel id="ShopEntryTooltip" class="Hidden" hittest="false" hittestchildren="false">
             <Panel id="ShopTooltipHeader">
                 <Panel id="ShopTooltipIconHost" />
                 <Panel id="ShopTooltipTitleBlock">
