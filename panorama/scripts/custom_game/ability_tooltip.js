@@ -2,6 +2,14 @@
     "use strict";
 
     var takeover = GameUI.CustomUIConfig().SurvivalHudTakeover || {};
+    if (takeover.abilityTooltips === false) {
+        GameUI.CustomUIConfig().SurvivalTooltipBindings = {
+            Recover: function () {},
+            RefreshVisible: function () {}
+        };
+        $.Msg("[SURVIVAL_TOOLTIP] DISABLED crash_isolation_v3_alt_ability_takeover_disabled valve_ability_bindings=false click_proxies=false");
+        return;
+    }
     if (takeover.abilities) {
         // hud_takeover.js owns every visible ability hover source. Do not bind
         // events inside Valve's AbilityN tree, otherwise its ancestor can still

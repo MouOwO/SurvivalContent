@@ -5,7 +5,11 @@
     // Phase 0 rollback boundary. Keep inventory native until the separate item
     // interaction controller (use/drag/swap/drop/sell) is complete.
     GameUI.CustomUIConfig().SurvivalHudTakeover = {
-        abilities: true,
+        // Crash isolation v3: pressing Alt still crashes after every configurable
+        // native Alt overlay was disabled. Keep Valve's ability tree completely
+        // native so Alt detail refresh cannot observe suppressed AbilityN children.
+        abilities: false,
+        abilityTooltips: false,
         // Keep the completed survey available through SurvivalAbilityTakeover,
         // but run the evidence-based adaptive proxy implementation by default.
         abilitySurvey: false,
@@ -102,6 +106,7 @@
         Format: formatLogicalNumber
     };
 
+    $.Msg("[SURVIVAL_CRASH_ISOLATION] crash_isolation_v3_alt_ability_takeover_disabled abilities=false ability_tooltips=false native_ability_tree=true");
     $.Msg(LOG_PREFIX + " loaded.");
     applyDefaultUIProfile();
     $.Schedule(0.10, applyDefaultUIProfile);

@@ -7,6 +7,8 @@
     var debugTableName = "survival_combat_debug";
     var lastRequestedUnit = -1;
     var selectedUnitSnapshot = null;
+    var acceptedSnapshotUnit = -1;
+    var acceptedSnapshotVersion = 0;
     var officialAttackText = "";
     var officialAttackUnit = -1;
     var authoritativeAttackLabel = null;
@@ -17,8 +19,6 @@
     var logicalAttributeOverlay = null;
     var officialHudCache = {};
     var officialUnitNameOverlay = null;
-    var cosmeticPortraitOverlay = null;
-    var cosmeticPortraitSignature = "";
     var unitNameTransitionSerial = 0;
     var unitNameRetryDelays = [0.0, 0.016, 0.05, 0.10, 0.20];
     var observedSelectedUnit = -1;
@@ -33,7 +33,6 @@
     };
     var heroPanelState = {
         unit: -1,
-        unitName: "",
         displayName: "",
         level: null,
         healthText: "",
@@ -41,21 +40,6 @@
         healthWidth: "",
         manaWidth: ""
     };
-    var portraitCache = {};
-    var portraitCacheSerial = 0;
-    var portraitPrewarmQueue = [
-        "building_main_city",
-        "building_wall",
-        "building_arrow_tower",
-        "building_farm",
-        "building_gold_mine",
-        "building_research_lab",
-        "building_advanced_research_lab",
-        "building_hero_altar",
-    ];
-    var portraitPrewarmIndex = 0;
-    var portraitPrewarmRunning = false;
-    var portraitPrewarmComplete = false;
     var lastHotkeyCastTime = {};
     var lastReturnHomeTime = -100;
     var towerRuntimeTrace = {};
@@ -184,74 +168,10 @@
         return null;
     }
 
-    function hideCosmeticPortrait() {
-        if (cosmeticPortraitOverlay) {
-            cosmeticPortraitOverlay.style.visibility = "collapse";
-        }
-    }
-
     function updateCosmeticPortrait(snapshot) {
-        var previewUnit = String(snapshot && snapshot.portrait_unit_name || "");
-        var itemDef = String(snapshot && snapshot.portrait_item_def || "");
-        if (!previewUnit || !itemDef) {
-            hideCosmeticPortrait();
-            return;
-        }
-        var nativePortrait = officialPortraitPanel();
-        var parent = nativePortrait && nativePortrait.GetParent
-            ? nativePortrait.GetParent() : null;
-        if (!parent) {
-            hideCosmeticPortrait();
-            return;
-        }
-        if (!cosmeticPortraitOverlay
-            || !cosmeticPortraitOverlay.IsValid
-            || !cosmeticPortraitOverlay.IsValid()
-            || cosmeticPortraitOverlay.GetParent() !== parent) {
-            if (cosmeticPortraitOverlay && cosmeticPortraitOverlay.DeleteAsync) {
-                cosmeticPortraitOverlay.DeleteAsync(0);
-            }
-            cosmeticPortraitOverlay = $.CreatePanel(
-                "DOTAScenePanel", parent, "SurvivalCosmeticPortraitOverlay"
-            );
-            cosmeticPortraitOverlay.hittest = false;
-            cosmeticPortraitOverlay.hittestchildren = false;
-            cosmeticPortraitOverlay.style.ignoreParentFlow = true;
-            cosmeticPortraitOverlay.style.zIndex = "1000";
-            cosmeticPortraitSignature = "";
-        }
-        if (nativePortrait.GetPositionWithinWindow
-            && parent.GetPositionWithinWindow) {
-            var portraitPosition = nativePortrait.GetPositionWithinWindow();
-            var parentPosition = parent.GetPositionWithinWindow();
-            var scaleX = Number(parent.actualuiscale_x || 1);
-            var scaleY = Number(parent.actualuiscale_y || 1);
-            cosmeticPortraitOverlay.style.position = String(
-                (Number(portraitPosition.x) - Number(parentPosition.x)) / scaleX
-            ) + "px " + String(
-                (Number(portraitPosition.y) - Number(parentPosition.y)) / scaleY
-            ) + "px 0px";
-            cosmeticPortraitOverlay.style.width = String(
-                Number(nativePortrait.actuallayoutwidth || 159) / scaleX
-            ) + "px";
-            cosmeticPortraitOverlay.style.height = String(
-                Number(nativePortrait.actuallayoutheight || 145) / scaleY
-            ) + "px";
-        }
-        var signature = previewUnit + ":" + itemDef;
-        if (cosmeticPortraitSignature !== signature) {
-            try {
-                // The second SetUnit argument is the official econ item/bundle
-                // definition. Bundle 22722 contains all four Shen components.
-                cosmeticPortraitOverlay.SetUnit(previewUnit, itemDef, false);
-                cosmeticPortraitSignature = signature;
-            } catch (error) {
-                $.Warning("[SURVIVAL_PORTRAIT] cosmetic preview failed: " + error);
-                hideCosmeticPortrait();
-                return;
-            }
-        }
-        cosmeticPortraitOverlay.style.visibility = "visible";
+        // crash_isolation_v4_scene_panels_disabled: keep the authoritative
+        // snapshot update chain intact, but never create an econ/model preview.
+        return;
     }
 
     function setOfficialPanelVisible(root, id, visible) {
@@ -705,94 +625,6 @@
         }
     }
 
-    function portraitCacheParent(unitName) {
-        return isNativeHero(unitName)
-            ? panel("SurvivalHeroPortraitCache")
-            : panel("SurvivalBuildingPortraitCache");
-    }
-
-    function ensurePortraitScene(unitName) {
-        if (!unitName) return null;
-        if (isNativeHero(unitName)) {
-            var heroImage = panel("SurvivalHeroPortrait");
-            if (!heroImage) return null;
-            try { heroImage.SetUnit(unitName, "", false); } catch (error) {}
-            return heroImage;
-        }
-        var cached = portraitCache[unitName];
-        if (cached) return cached;
-        var cache = portraitCacheParent(unitName);
-        if (!cache) return null;
-        var id = "SurvivalBuildingPortraitCache" + String(portraitCacheSerial++);
-        var scene = $.CreatePanel("DOTAScenePanel", cache, id);
-        if (!scene) return null;
-        scene.AddClass("SurvivalBuildingPortrait");
-        scene.hittest = false;
-        scene.SetHasClass("PortraitCacheVisible", false);
-        scene.SetHasClass("PortraitPrewarm", false);
-        scene.SetUnit(unitName, "", false);
-        portraitCache[unitName] = scene;
-        $.Msg("[SURVIVAL_PORTRAIT] CACHE_CREATE name=", unitName, " id=", id);
-        return scene;
-    }
-
-    function prewarmNextPortrait() {
-        if (portraitPrewarmRunning || portraitPrewarmIndex >= portraitPrewarmQueue.length) return;
-        var unitName = portraitPrewarmQueue[portraitPrewarmIndex++];
-        if (portraitCache[unitName]) {
-            $.Schedule(0.05, prewarmNextPortrait);
-            return;
-        }
-        portraitPrewarmRunning = true;
-        var scene = ensurePortraitScene(unitName);
-        if (scene) {
-            scene.SetHasClass("PortraitPrewarm", true);
-            $.Msg("[SURVIVAL_PORTRAIT] PREWARM_BEGIN name=", unitName);
-            $.Schedule(0.12, function () {
-                if (scene && scene.IsValid && scene.IsValid()) {
-                    scene.SetHasClass("PortraitPrewarm", false);
-                    scene.SetHasClass(
-                        "PortraitCacheVisible",
-                        heroPanelState.unitName === unitName
-                    );
-                }
-                portraitPrewarmRunning = false;
-                $.Msg("[SURVIVAL_PORTRAIT] PREWARM_DONE name=", unitName);
-                if (portraitPrewarmIndex >= portraitPrewarmQueue.length) {
-                    portraitPrewarmComplete = true;
-                    $.Msg("[SURVIVAL_PORTRAIT] PREWARM_ALL_DONE count=", String(portraitPrewarmQueue.length));
-                }
-                $.Schedule(0.04, prewarmNextPortrait);
-            });
-        } else {
-            portraitPrewarmRunning = false;
-            $.Schedule(0.04, prewarmNextPortrait);
-        }
-    }
-
-    function startPortraitPrewarm() {
-        prewarmNextPortrait();
-    }
-
-    function showPortrait(unitName) {
-        var scene = ensurePortraitScene(unitName);
-        if (!scene) return null;
-        var heroImage = panel("SurvivalHeroPortrait");
-        var nativeHero = isNativeHero(unitName);
-        if (heroImage) heroImage.SetHasClass("PortraitCacheVisible", nativeHero);
-        if (!nativeHero) scene.SetHasClass("PortraitPrewarm", false);
-        for (var name in portraitCache) {
-            if (portraitCache.hasOwnProperty(name)) {
-                portraitCache[name].SetHasClass("PortraitCacheVisible", !nativeHero && name === unitName);
-            }
-        }
-        if (heroPanelState.unitName !== unitName) {
-            heroPanelState.unitName = unitName;
-            $.Msg("[SURVIVAL_PORTRAIT] SHOW name=", unitName);
-        }
-        return scene;
-    }
-
     function formatNumber(value) {
         var formatter = GameUI.CustomUIConfig().SurvivalNumberFormatter;
         if (formatter && formatter.Format) return formatter.Format(value);
@@ -814,6 +646,15 @@
             "HeroCombatLastDamage",
             "最近伤害 " + formatNumber(snapshot.last_damage)
                 + " · 命中 " + formatNumber(snapshot.hit_count) + " 次"
+        );
+        setText(
+            "HeroCombatSkillTotalDamage",
+            formatNumber(snapshot.skill_total_damage)
+        );
+        setText(
+            "HeroCombatSkillLastDamage",
+            "最近技能伤害 " + formatNumber(snapshot.skill_last_damage)
+                + " · 命中 " + formatNumber(snapshot.skill_hit_count) + " 次"
         );
         var heroStats = snapshot.technology_stats
             && snapshot.technology_stats.final
@@ -875,6 +716,22 @@
 
     function update(snapshot) {
         if (!snapshot) return;
+        var snapshotUnit = Number(snapshot.entindex);
+        var snapshotVersion = Number(snapshot.refresh_version || 0);
+        if (snapshotUnit !== acceptedSnapshotUnit) {
+            acceptedSnapshotUnit = snapshotUnit;
+            acceptedSnapshotVersion = 0;
+        }
+        if (acceptedSnapshotVersion > 0
+            && (snapshotVersion <= 0 || snapshotVersion < acceptedSnapshotVersion)) {
+            $.Msg("[SURVIVAL_STATS][CLIENT] STALE_SNAPSHOT_IGNORED unit=",
+                String(snapshotUnit), " version=", String(snapshotVersion),
+                " accepted=", String(acceptedSnapshotVersion));
+            return;
+        }
+        if (snapshotVersion > acceptedSnapshotVersion) {
+            acceptedSnapshotVersion = snapshotVersion;
+        }
         selectedUnitSnapshot = snapshot;
         updateCosmeticPortrait(snapshot);
         var attack = attackText(snapshot);
@@ -1000,7 +857,6 @@
     function refreshHeroPanel() {
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) return;
-        var scene = panel("SurvivalHeroPortrait");
         var unitName = "npc_dota_hero_undying";
         try {
             unitName = Entities.GetUnitName(unit) || unitName;
@@ -1008,7 +864,8 @@
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
                 selectedUnitSnapshot = null;
-                hideCosmeticPortrait();
+                acceptedSnapshotUnit = Number(unit);
+                acceptedSnapshotVersion = 0;
                 var tooltipBindings = GameUI.CustomUIConfig().SurvivalTooltipBindings;
                 if (tooltipBindings && tooltipBindings.Recover) {
                     tooltipBindings.Recover();
@@ -1025,9 +882,6 @@
                 heroPanelState.healthWidth = "";
                 heroPanelState.manaWidth = "";
                 updateOfficialStatsVisibility(unit, unitName);
-                if (scene || panel("SurvivalHeroPortraitCache")) {
-                    showPortrait(unitName);
-                }
             }
             var snapshotMatches = selectedUnitSnapshot
                 && Number(selectedUnitSnapshot.entindex) === Number(unit);
@@ -1621,8 +1475,9 @@
     GameEvents.Subscribe("ui_weapon_synthesis_snapshot", function (snapshot) {
         if (snapshot && snapshot.player_id !== undefined
             && Number(snapshot.player_id) !== Number(playerId)) return;
-        var unit = Number(selectedUnit());
-        if (unit >= 0) requestSelectedUnitStats(unit, true);
+        var hero = Number(snapshot && snapshot.hero_entindex || -1);
+        if (hero < 0 || Number(selectedUnit()) !== hero) return;
+        requestSelectedUnitStats(hero, true);
     });
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
         if (!snapshot || snapshot.success !== 1) return;
@@ -1698,7 +1553,7 @@
     });
     bindHeroPortrait();
     bindHotkeys();
-    startPortraitPrewarm();
+    $.Msg("[SURVIVAL_SCENE_PANEL] DISABLED crash_isolation_v4_scene_panels_disabled static_hero=false building=false cosmetic=false dynamic_create=false");
     subscribeUnitNameSelectionEvents();
     beginUnitNameTransition("initial_load");
     $.Schedule(1.65, function () {

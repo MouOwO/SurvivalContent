@@ -18,6 +18,7 @@
     var surveyPending = false;
     var surveySerial = 0;
     var groundItemLocalizationDiagnostic = "";
+    var disabledIsolationLogged = false;
     var fixedCellSize = 52;
     var fixedCellGap = 4;
     var takeoverBuild = "grid52_preset_v6";
@@ -1116,6 +1117,10 @@
             hideCalibrationGeometry();
             restoreOfficial();
             restoreOfficialContainerAfterTransition();
+            if (!disabledIsolationLogged) {
+                disabledIsolationLogged = true;
+                $.Msg("[SURVIVAL_TAKEOVER] DISABLED crash_isolation_v3_alt_ability_takeover_disabled native_ability_tree_restored=true custom_slots_hidden=true");
+            }
             return true;
         }
         var entries = visibleAbilities();

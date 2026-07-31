@@ -6,7 +6,6 @@
         <include src="file://{resources}/styles/custom_game/inventory_tooltip.css" />
         <include src="file://{resources}/styles/custom_game/shop.css" />
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
-        <include src="file://{resources}/styles/custom_game/hero_world_health_bar.css" />
         <include src="file://{resources}/styles/custom_game/weapon_growth_hud.css" />
         <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
     </styles>
@@ -22,12 +21,10 @@
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
-        <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
         <include src="file://{resources}/scripts/custom_game/weapon_growth_hud.js" />
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
     </scripts>
     <Panel class="SurvivalHUDRoot Theme_Native" hittest="false">
-        <Panel id="SurvivalHeroWorldHealthBars" hittest="false" />
         <Panel id="TopBar">
             <Label id="WoodValue" text="木材 0" />
             <Label id="GoldValue" text="金币 0" />
@@ -69,6 +66,11 @@
                 <Label id="HeroCombatTotalDamage" class="HeroCombatDamageValue MonoNumbersFont" text="0" />
             </Panel>
             <Label id="HeroCombatLastDamage" text="最近伤害 0 · 命中 0 次" />
+            <Panel id="HeroCombatSkillDamageSummary">
+                <Label class="HeroCombatDamageKey" text="累计技能伤害" />
+                <Label id="HeroCombatSkillTotalDamage" class="HeroCombatDamageValue HeroCombatSkillDamageValue MonoNumbersFont" text="0" />
+            </Panel>
+            <Label id="HeroCombatSkillLastDamage" text="最近技能伤害 0 · 命中 0 次" />
             <Label id="HeroCombatTechnologySummary" text="" />
             <Panel id="HeroTechnologyHeader">
                 <Label text="当前已激活科技" />
@@ -280,7 +282,6 @@
             <Panel id="SurvivalNativeCenterBackground" hittest="false" />
             <Panel id="SurvivalHeroPortraitBlock" class="SurvivalHeroPortraitBlock" hittest="true">
                 <Panel id="SurvivalHeroPortraitCache" class="SurvivalHeroPortraitCache" hittest="false">
-                    <DOTAScenePanel id="SurvivalHeroPortrait" class="SurvivalHeroPortrait NativeHeroPortrait" unit="npc_dota_hero_undying" environment="default" particleonly="false" hittest="false" />
                     <Panel id="SurvivalBuildingPortraitCache" class="SurvivalBuildingPortraitCache" hittest="false" />
                 </Panel>
                 <Panel id="SurvivalNativePortraitFrame" hittest="false" />
