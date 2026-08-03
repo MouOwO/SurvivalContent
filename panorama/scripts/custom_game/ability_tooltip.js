@@ -324,7 +324,7 @@
         $.Msg("[SURVIVAL_CAST][TOOLTIP] SEND_NO_TARGET unit=", String(unit), " ability=", String(abilityIndex), " name=", name, " behavior=", String(behavior));
         GameEvents.SendCustomGameEventToServer("ui_ability_cast_request", {
             entindex: unit,
-            ability_entindex: abilityIndex,
+            ability_entindex: abilityIndex
         });
         return true;
     }
