@@ -139,16 +139,78 @@
         hideNativeTooltip(panel);
     }
 
+    function propertyIcon(label) {
+        var icons = {
+            "生命": { type: "item", name: "item_vitality_booster" },
+            "护甲": { type: "item", name: "item_chainmail" },
+            "攻击提升": { type: "image", name: "file://{images}/custom_game/survival_native/icon_damage.png" },
+            "攻击速度": { type: "image", name: "file://{images}/custom_game/survival_native/icon_attack_speed.png" },
+            "人口上限": { type: "ability", name: "ability_train_population" },
+            "每秒金币": { type: "item", name: "item_hand_of_midas" },
+            "效率": { type: "ability", name: "ability_upgrade_gold_mine_efficiency" },
+            "暴击率": { type: "ability", name: "ability_upgrade_gold_mine_crit" },
+            "暴击倍率": { type: "ability", name: "ability_upgrade_gold_mine_crit" }
+        };
+        return icons[String(label || "")] || null;
+    }
+
+    function localizedFieldLabel(label) {
+        var tokens = {
+            "等级": "Survival_UpgradeField_Level",
+            "目标等级": "Survival_UpgradeField_TargetLevel",
+            "升级目标": "Survival_UpgradeField_Target",
+            "生命": "Survival_UpgradeField_Health",
+            "护甲": "Survival_UpgradeField_Armor",
+            "攻击提升": "Survival_UpgradeField_Attack",
+            "攻击速度": "Survival_UpgradeField_AttackSpeed",
+            "人口上限": "Survival_UpgradeField_Population",
+            "每秒金币": "Survival_UpgradeField_GoldPerSecond",
+            "科技等级": "Survival_UpgradeField_TechnologyLevel",
+            "效率": "Survival_UpgradeField_Efficiency",
+            "暴击率": "Survival_UpgradeField_CritChance",
+            "暴击倍率": "Survival_UpgradeField_CritMultiplier",
+            "模型状态": "Survival_UpgradeField_ModelStatus"
+        };
+        var token = tokens[String(label || "")];
+        return token ? localize(token, label) : label;
+    }
+
+    function localizedFieldValue(label, value) {
+        if (label !== "模型状态") return value;
+        var normalized = String(value || "unchanged").toLowerCase();
+        if (normalized === "ready") {
+            return localize("Survival_UpgradeModel_Ready", "Ready");
+        }
+        if (normalized === "failed" || normalized === "retired") {
+            return localize("Survival_UpgradeModel_Failed", "Failed · keeping current model");
+        }
+        if (normalized === "unchanged") {
+            return localize("Survival_UpgradeModel_Unchanged", "Current model retained");
+        }
+        return localize("Survival_UpgradeModel_Loading", "Loading");
+    }
+
     function addField(container, label, value) {
         if (value === undefined || value === null || value === "") return;
         var row = $.CreatePanel("Panel", container, "");
         row.AddClass("AbilityFieldRow");
+        var iconDefinition = propertyIcon(label);
+        if (iconDefinition) {
+            var panelType = iconDefinition.type === "item" ? "DOTAItemImage"
+                : (iconDefinition.type === "ability" ? "DOTAAbilityImage" : "Image");
+            var icon = $.CreatePanel(panelType, row, "");
+            icon.AddClass("AbilityFieldIcon");
+            icon.hittest = false;
+            if (iconDefinition.type === "item") icon.itemname = iconDefinition.name;
+            else if (iconDefinition.type === "ability") icon.abilityname = iconDefinition.name;
+            else icon.SetImage(iconDefinition.name);
+        }
         var left = $.CreatePanel("Label", row, "");
         left.AddClass("AbilityFieldLabel");
-        left.text = label;
+        left.text = localizedFieldLabel(label);
         var right = $.CreatePanel("Label", row, "");
         right.AddClass("AbilityFieldValue");
-        right.text = String(value);
+        right.text = String(localizedFieldValue(label, value));
     }
 
     function render(abilityIndex, abilityName, sourcePanel) {
@@ -173,17 +235,23 @@
         if (!tooltip || !fields) return false;
         tooltip.RemoveClass("ItemOnly");
         tooltip.RemoveClass("ExtensionOnly");
-        setText("CustomAbilityExtensionLabel", "生存防守 · 自定义技能详情");
+        setText("CustomAbilityExtensionLabel", localize(
+            "Survival_UpgradeTooltip_Category",
+            "SURVIVAL · UPGRADE"
+        ));
 
-        setText("CustomAbilityTitle", runtime.display_name || tooltipDefinition.name
-            || definition.abilityname || localizedAbilityName(abilityName));
+        var localizedTitle = localize("DOTA_Tooltip_ability_" + abilityName, "");
+        setText("CustomAbilityTitle", runtime.display_name || localizedTitle
+            || tooltipDefinition.name || definition.abilityname || abilityName);
         setText("CustomAbilityLevel", runtime.current_level !== undefined
-            ? "【等级】 " + runtime.current_level : "");
+            ? localize("Survival_UpgradeField_Level", "Level")
+                + " " + runtime.current_level : "");
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(abilityIndex) || 0); } catch (error) {}
-        var description = runtime.upgrade_description || tooltipDefinition.desc
+        var description = localizedAbilityDescription(abilityName)
+            || runtime.upgrade_description || tooltipDefinition.desc
             || definition.abilitydesc
-            || localizedAbilityDescription(abilityName);
+            || "";
         if (!description) {
             description = "该技能由项目服务器管理，具体效果和消耗以当前实时数据为准。";
         }
@@ -207,12 +275,18 @@
         });
         var unavailable = runtime.available === 0;
         var lacksResources = !unavailable && runtime.can_afford === 0;
-        setText(
-            "CustomAbilityType",
-            unavailable ? "不可施法技能"
-                : (lacksResources ? "可点击技能（资源不足）" : "可施法技能")
-        );
-        setText("CustomAbilityStatus", runtime.status_text
+        setText("CustomAbilityType", runtime.upgrade_in_progress === 1
+            ? localize("Survival_UpgradeTooltip_InProgress", "UPGRADING")
+            : (unavailable ? localize("Survival_UpgradeTooltip_Unavailable", "UNAVAILABLE")
+                : (lacksResources
+                    ? localize("Survival_UpgradeTooltip_ResourceLow", "RESOURCE LOW")
+                    : localize("Survival_UpgradeTooltip_Available", "AVAILABLE"))));
+        var statusText = runtime.upgrade_in_progress === 1
+            ? localize("Survival_UpgradeTooltip_InProgressDetail", "Upgrade completes in 1 second")
+            : (lacksResources
+                ? localize("Survival_UpgradeTooltip_ResourceLowDetail", "Not enough resources · server validates the final cost")
+                : runtime.status_text);
+        setText("CustomAbilityStatus", statusText
             || (unavailable ? "不可施法 · 前置条件未满足"
                 : (lacksResources ? "当前资源不足 · 由服务器最终校验" : "可施法")));
 
@@ -220,6 +294,7 @@
             "Unavailable",
             unavailable
         );
+        tooltip.SetHasClass("ResourceLow", lacksResources);
         tooltip.RemoveClass("Hidden");
 
         $.Schedule(0.0, function () {
@@ -274,17 +349,19 @@
     }
 
     function isManagedBuildingAction(abilityName) {
-        return /^ability_build_/.test(abilityName)
-            || /^ability_upgrade_tower/.test(abilityName)
+        return /^ability_upgrade_tower/.test(abilityName)
             || /^ability_tower_class_[1-7]$/.test(abilityName)
             || abilityName === "ability_upgrade_wall"
             || abilityName === "ability_upgrade_city"
             || abilityName === "ability_upgrade_farm"
             || abilityName === "ability_upgrade_gold_mine"
             || abilityName === "ability_upgrade_gold_mine_efficiency"
-            || abilityName === "ability_upgrade_gold_mine_crit"
-            || abilityName === "ability_gold_mine_auto_upgrade"
-            || abilityName === "ability_gold_mine_stop_auto_upgrade";
+            || abilityName === "ability_upgrade_gold_mine_crit";
+    }
+
+    function managedUpgrade(abilityIndex, abilityName) {
+        return isManagedBuildingAction(abilityName)
+            && managedRuntime(abilityIndex);
     }
 
     function executeAbility(abilityIndex) {
@@ -343,8 +420,7 @@
         var abilityName = Abilities.GetAbilityName(abilityIndex);
         if (!abilityName) return;
 
-        if (!managedRuntime(abilityIndex)
-            && !isManagedBuildingAction(abilityName)) {
+        if (!managedUpgrade(abilityIndex, abilityName)) {
             hideCustomTooltip();
             showNativeAbilityTooltip(sourcePanel, abilityName);
             return;
@@ -384,8 +460,7 @@
             var abilityIndex = abilityFromSlot(slot);
             var abilityName = abilityIndex >= 0
                 ? (Abilities.GetAbilityName(abilityIndex) || "") : "";
-            if (managedRuntime(abilityIndex)
-                || isManagedBuildingAction(abilityName)) {
+            if (managedUpgrade(abilityIndex, abilityName)) {
                 showSlot(slot, panel);
             } else {
                 showNativeAbilityTooltip(panel, abilityName);
@@ -468,8 +543,7 @@
                 try {
                     abilityName = Abilities.GetAbilityName(abilityIndex) || "";
                 } catch (error) {}
-                if (!managedRuntime(abilityIndex)
-                    && !isManagedBuildingAction(abilityName)) return;
+                if (!managedUpgrade(abilityIndex, abilityName)) return;
                 var runtime = CustomNetTables.GetTableValue(
                     "survival_ability_runtime",
                     String(abilityIndex)
@@ -492,8 +566,7 @@
             currentName = currentAbility >= 0
                 ? (Abilities.GetAbilityName(currentAbility) || "") : "";
         } catch (error) {}
-        var managed = managedRuntime(currentAbility)
-            || isManagedBuildingAction(currentName);
+        var managed = managedUpgrade(currentAbility, currentName);
         clickProxy.hittest = managed;
         clickProxy.hittestchildren = managed;
         clickProxy.style.visibility = managed ? "visible" : "collapse";

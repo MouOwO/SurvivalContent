@@ -12,6 +12,7 @@
 
 #CustomAbilityTooltip.Hidden { visibility: collapse; }
 #CustomAbilityTooltip.Unavailable { wash-color: #8b8b8b; }
+#CustomAbilityTooltip.ResourceLow { border-color: #d49b58; }
 #CustomAbilityExtensionLabel {
     width: 100%;
     color: #9bdcff;
@@ -45,6 +46,7 @@
     margin-top: 6px;
 }
 .Unavailable #CustomAbilityStatus { color: #d28f8f; }
+.ResourceLow #CustomAbilityStatus { color: #e4ad69; }
 #CustomAbilityDescription {
     color: #d8e0e8;
     font-size: 17px;
@@ -77,7 +79,13 @@
 }
 #CustomAbilityFields { width: 100%; flow-children: down; margin-top: 3px; }
 .AbilityFieldRow { width: 100%; flow-children: right; margin-top: 3px; }
-.AbilityFieldLabel { width: 150px; color: #9db0bf; font-size: 16px; }
+.AbilityFieldIcon {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    vertical-align: center;
+}
+.AbilityFieldLabel { width: 124px; color: #9db0bf; font-size: 16px; }
 .AbilityFieldValue { color: #f0d48a; font-size: 16px; }
 
 #SurvivalAbilityTakeoverLayer {

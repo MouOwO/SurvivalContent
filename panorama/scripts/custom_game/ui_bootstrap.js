@@ -9,7 +9,9 @@
         // native Alt overlay was disabled. Keep Valve's ability tree completely
         // native so Alt detail refresh cannot observe suppressed AbilityN children.
         abilities: false,
-        abilityTooltips: false,
+        // Keep Valve's ability bar, but selectively proxy upgrade tooltips so
+        // dynamic resources and property deltas can use real Panorama images.
+        abilityTooltips: true,
         // Keep the completed survey available through SurvivalAbilityTakeover,
         // but run the evidence-based adaptive proxy implementation by default.
         abilitySurvey: false,
