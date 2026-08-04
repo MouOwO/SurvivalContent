@@ -101,7 +101,7 @@
         setText(
             "ShopSubtitle",
             research
-                ? "19组非金矿科技 · 全局购买冷却2秒"
+                ? "19组非金矿科技 · 研究耗时2秒"
                 : (challenge ? "11个普通挑战 · 10个转职挑战"
                     : "武器装备 · 道具材料 · 提前通关")
         );
@@ -237,7 +237,7 @@
         }
         if (entry.content_type === "technology"
             && technologyCooldownRemaining() > 0) {
-            setStatus("科技购买冷却中，请稍候", true);
+            setStatus("已有科技正在研究中，请稍候", true);
             return;
         }
         if (entry.content_type === "technology"
@@ -247,7 +247,9 @@
         if (entry.content_type === "technology") {
             pendingTechnologyPurchases[entry.entry_id] = true;
         }
-        setStatus("正在购买 " + entry.name + "……", false);
+        setStatus(entry.content_type === "technology"
+            ? ("正在开始研究 " + entry.name + "……")
+            : ("正在购买 " + entry.name + "……"), false);
         GameEvents.SendCustomGameEventToServer("ui_shop_purchase_request", {
             request_id: requestId("shop_buy"),
             entry_id: entry.purchase_entry_id || entry.entry_id
@@ -291,18 +293,15 @@
     function updateCooldownOverlay(card, entry, remaining, total, source) {
         if (!card || !card.__survivalCooldownMask) return;
         var mask = card.__survivalCooldownMask;
-        var label = card.__survivalCooldownLabel;
         var isSource = !!source && (String(entry.entry_id) === source
             || String(entry.technology_group || "") === source);
         var active = isSource && remaining > 0;
         card.SetHasClass("CooldownSource", active);
         mask.visible = active;
-        label.visible = active;
         if (!active) return;
         var progress = Math.max(0, Math.min(1, remaining / Math.max(0.01, total)));
         var endAngle = Math.max(0, Math.min(360, progress * 360));
         mask.style.clip = "radial(50% 50%, 0deg, " + endAngle.toFixed(2) + "deg)";
-        label.text = remaining >= 1 ? String(Math.ceil(remaining)) : "0";
     }
 
     function updateAllCooldownOverlays() {
@@ -490,11 +489,6 @@
                 cooldownMask.hittest = false;
                 cooldownMask.visible = false;
                 card.__survivalCooldownMask = cooldownMask;
-                var cooldownLabel = $.CreatePanel("Label", frame, "");
-                cooldownLabel.AddClass("ShopTechnologyCooldownLabel");
-                cooldownLabel.hittest = false;
-                cooldownLabel.visible = false;
-                card.__survivalCooldownLabel = cooldownLabel;
                 var lockBadge = $.CreatePanel("Label", frame, "");
                 lockBadge.AddClass("ShopTechnologyLockBadge");
                 lockBadge.hittest = false;
@@ -681,7 +675,9 @@
         }
         setStatus(
             payload.success === 1
-                ? "购买成功，正在刷新商店状态……"
+                ? (currentMode === "research"
+                    ? "已开始研究，请等待进度完成……"
+                    : "购买成功，正在刷新商店状态……")
                 : ("购买失败：" + (payload.error || "未知错误")),
             payload.success !== 1
         );

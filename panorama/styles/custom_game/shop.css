@@ -135,13 +135,6 @@
     background-color: #02070bd9;
     clip: radial(50% 50%, 0deg, 360deg);
 }
-.ShopTechnologyCooldownLabel {
-    align: center center;
-    color: #ffffff;
-    font-size: 25px;
-    font-weight: bold;
-    text-shadow: 1px 1px 3px 3.0 #000000;
-}
 .ShopTechnologyLockBadge {
     horizontal-align: left;
     vertical-align: top;
