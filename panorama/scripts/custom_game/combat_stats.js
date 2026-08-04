@@ -43,6 +43,15 @@
     var lastHotkeyCastTime = {};
     var lastReturnHomeTime = -100;
     var towerRuntimeTrace = {};
+    var utilityHotkeys = {
+        ability_survival_builder_blink: "D",
+        ability_survival_pickup_materials: "F",
+        ability_survival_return_home: "F2"
+    };
+    var utilityAbilityForKey = {
+        D: "ability_survival_builder_blink",
+        F: "ability_survival_pickup_materials"
+    };
 
     function panel(id) { return $("#" + id); }
     function setText(id, value) {
@@ -1040,7 +1049,7 @@
         // after a selection change. Reapply the authoritative runtime state for
         // the currently selected unit instead of relying only on NetTable events.
         refreshOfficialAbilityRuntime(seen);
-        refreshOfficialReturnHomeHotkey(seen);
+        refreshOfficialUtilityHotkeys(seen);
         $.Schedule(1.0, refreshAbilities);
     }
 
@@ -1053,7 +1062,7 @@
         return false;
     }
 
-    function refreshOfficialReturnHomeHotkey(visibleAbilities) {
+    function refreshOfficialUtilityHotkeys(visibleAbilities) {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return;
         var abilities = officialPanel("abilities")
@@ -1063,11 +1072,11 @@
         // Valve reuses Ability0/Ability1/... panels when selection changes. A
         // label left on one of those panels therefore appears on the next
         // unit's ability in that position. Hide every old marker before finding
-        // the current hero's actual return-home ability.
+        // the current builder's utility abilities.
         for (var slot = 0; slot < 24; slot++) {
             var oldPanel = abilities.FindChildTraverse("Ability" + String(slot));
             var oldLabel = oldPanel && oldPanel.FindChildTraverse
-                ? oldPanel.FindChildTraverse("SurvivalReturnHomeHotkey") : null;
+                ? oldPanel.FindChildTraverse("SurvivalUtilityHotkey") : null;
             if (oldLabel) oldLabel.style.visibility = "collapse";
         }
 
@@ -1076,46 +1085,41 @@
             ? "" : Entities.GetUnitName(unit);
         if (unit === undefined || unit < 0 || !isHeroUnit(unit, unitName)) return;
 
-        var displayIndex = -1;
         for (var index = 0; index < visibleAbilities.length; index++) {
-            if (visibleAbilities[index].name === "ability_survival_return_home") {
-                displayIndex = index;
-                break;
+            var key = utilityHotkeys[visibleAbilities[index].name];
+            if (!key) continue;
+            var abilityPanel = abilities.FindChildTraverse("Ability" + String(index));
+            if (!abilityPanel || belongsToLegacyHud(abilityPanel)) continue;
+            var buttonPanel = abilityPanel.FindChildTraverse
+                ? (abilityPanel.FindChildTraverse("AbilityButton")
+                    || abilityPanel.FindChildTraverse("ButtonWell")
+                    || abilityPanel.FindChildTraverse("AbilityImage"))
+                : null;
+            if (!buttonPanel) continue;
+            var label = abilityPanel.FindChildTraverse
+                ? abilityPanel.FindChildTraverse("SurvivalUtilityHotkey") : null;
+            if (!label) {
+                label = $.CreatePanel("Label", buttonPanel, "SurvivalUtilityHotkey");
+                label.hittest = false;
+                label.style.horizontalAlign = "left";
+                label.style.verticalAlign = "top";
+                label.style.minWidth = "20px";
+                label.style.height = "17px";
+                label.style.padding = "0px 3px";
+                label.style.color = "white";
+                label.style.fontSize = "12px";
+                label.style.fontWeight = "bold";
+                label.style.textAlign = "center";
+                label.style.backgroundColor = "#05080bdd";
+                label.style.border = "1px solid #a4b4bf";
+                label.style.zIndex = "20";
+            } else if (label.GetParent && label.GetParent() !== buttonPanel
+                && label.SetParent) {
+                label.SetParent(buttonPanel);
             }
+            label.text = key;
+            label.style.visibility = "visible";
         }
-        if (displayIndex < 0) return;
-
-        var abilityPanel = abilities.FindChildTraverse("Ability" + String(displayIndex));
-        if (!abilityPanel || belongsToLegacyHud(abilityPanel)) return;
-        var buttonPanel = abilityPanel.FindChildTraverse
-            ? (abilityPanel.FindChildTraverse("AbilityButton")
-                || abilityPanel.FindChildTraverse("ButtonWell")
-                || abilityPanel.FindChildTraverse("AbilityImage"))
-            : null;
-        if (!buttonPanel) return;
-        var label = abilityPanel.FindChildTraverse
-            ? abilityPanel.FindChildTraverse("SurvivalReturnHomeHotkey") : null;
-        if (!label) {
-            label = $.CreatePanel("Label", buttonPanel, "SurvivalReturnHomeHotkey");
-            label.hittest = false;
-            label.text = "F2";
-            label.style.horizontalAlign = "left";
-            label.style.verticalAlign = "top";
-            label.style.minWidth = "20px";
-            label.style.height = "17px";
-            label.style.padding = "0px 3px";
-            label.style.color = "white";
-            label.style.fontSize = "12px";
-            label.style.fontWeight = "bold";
-            label.style.textAlign = "center";
-            label.style.backgroundColor = "#05080bdd";
-            label.style.border = "1px solid #a4b4bf";
-            label.style.zIndex = "20";
-        } else if (label.GetParent && label.GetParent() !== buttonPanel
-            && label.SetParent) {
-            label.SetParent(buttonPanel);
-        }
-        label.style.visibility = "visible";
     }
 
     function abilityIndexForSlot(unit, slot) {
@@ -1136,7 +1140,7 @@
             var name = Abilities.GetAbilityName(index) || "";
             var hidden = false;
             try { hidden = Abilities.IsHidden(index); } catch (error) {}
-            if (name && !hidden && name !== "ability_survival_return_home") {
+            if (name && !hidden) {
                 visible.push(index);
             }
         }
@@ -1153,7 +1157,7 @@
             var name = Abilities.GetAbilityName(current) || "";
             var hidden = false;
             try { hidden = Abilities.IsHidden(current); } catch (error) {}
-            if (!name || hidden || name === "ability_survival_return_home") continue;
+            if (!name || hidden) continue;
             if (Number(current) === Number(abilityIndex)) return visibleSlot;
             visibleSlot++;
         }
@@ -1280,9 +1284,6 @@
             name = Abilities.GetAbilityName(abilityIndex) || "";
             behavior = Number(Abilities.GetBehavior(abilityIndex) || 0);
         } catch (error) {}
-        if (name === "ability_survival_return_home") {
-            return requestReturnHome("takeover_ability");
-        }
         var managed = managedAbility(abilityIndex, name, runtime);
         if ((behavior & 2) !== 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject passive ability=", String(abilityIndex),
@@ -1334,7 +1335,31 @@
         $.Msg("[SURVIVAL_CAST][CLIENT] HOTKEY source=", source,
             " display_slot=", String(slot), " ability=", String(abilityIndex));
         if (abilityIndex < 0) return false;
+        var abilityName = Abilities.GetAbilityName(abilityIndex) || "";
+        if (utilityHotkeys[abilityName]) return false;
         return executeAbility(abilityIndex);
+    }
+
+    function castAbilityByName(key, source) {
+        var unit = selectedUnit();
+        var abilityName = utilityAbilityForKey[key];
+        if (unit === undefined || unit < 0 || !abilityName) return false;
+        for (var slot = 0; slot < 24; slot++) {
+            var abilityIndex = Entities.GetAbility(unit, slot);
+            if (abilityIndex === undefined || abilityIndex < 0) continue;
+            if (Abilities.GetAbilityName(abilityIndex) === abilityName) {
+                $.Msg("[SURVIVAL_CAST][CLIENT] UTILITY source=", source,
+                    " key=", key, " ability=", String(abilityIndex),
+                    " name=", abilityName);
+                if (abilityName === "ability_survival_builder_blink") {
+                    if (!Abilities.ExecuteAbility) return false;
+                    Abilities.ExecuteAbility(abilityIndex, unit, false);
+                    return true;
+                }
+                return executeAbility(abilityIndex);
+            }
+        }
+        return false;
     }
 
     function applyAbilityKeyBinds(keys, commandPrefix) {
@@ -1344,6 +1369,13 @@
         });
         $.Msg("[SURVIVAL_INPUT] KEYBINDS_APPLIED prefix=", commandPrefix,
             " keys=QWERTYU");
+    }
+
+    function applyUtilityKeyBinds(commandPrefix) {
+        if (!Game.CreateCustomKeyBind) return;
+        ["D", "F"].forEach(function (key) {
+            Game.CreateCustomKeyBind(key, commandPrefix + "utility_" + key);
+        });
     }
 
     function requestReturnHome(source) {
@@ -1382,7 +1414,18 @@
                 }, "按下自定义技能 " + key, 0);
                 Game.AddCommand("-" + command, function () {}, "松开自定义技能 " + key, 0);
             });
-            applyAbilityKeyBinds(keys, commandPrefix);
+            var utilityKeys = ["D", "F"];
+            utilityKeys.forEach(function (key) {
+                var command = commandPrefix + "utility_" + key;
+                Game.AddCommand(command, function () {
+                    castAbilityByName(key, "command");
+                }, "施放工具技能 " + key, 0);
+                Game.AddCommand("+" + command, function () {
+                    castAbilityByName(key, "+command");
+                }, "按下工具技能 " + key, 0);
+                Game.AddCommand("-" + command, function () {},
+                    "松开工具技能 " + key, 0);
+            });
             Game.AddCommand(returnHomeCommand, function () {
                 requestReturnHome("command");
             }, "英雄回城", 0);
@@ -1391,14 +1434,16 @@
             }, "按下英雄回城", 0);
             Game.AddCommand("-" + returnHomeCommand, function () {}, "松开英雄回城", 0);
             Game.CreateCustomKeyBind("F2", returnHomeCommand);
+            applyAbilityKeyBinds(keys, commandPrefix);
+            applyUtilityKeyBinds(commandPrefix);
             $.Schedule(0.5, function () {
                 applyAbilityKeyBinds(keys, commandPrefix);
-            });
-            $.Schedule(0.5, function () {
+                applyUtilityKeyBinds(commandPrefix);
                 Game.CreateCustomKeyBind("F2", returnHomeCommand);
             });
             $.Schedule(2.5, function () {
                 applyAbilityKeyBinds(keys, commandPrefix);
+                applyUtilityKeyBinds(commandPrefix);
                 Game.CreateCustomKeyBind("F2", returnHomeCommand);
             });
         }
@@ -1409,6 +1454,9 @@
             if (!down) return false;
             if (normalized === "F2") {
                 return requestReturnHome("key_dispatch");
+            }
+            if (utilityAbilityForKey[normalized]) {
+                return castAbilityByName(normalized, "key_dispatch");
             }
             var slot = keys.indexOf(normalized);
             if (slot < 0) return false;
@@ -1429,7 +1477,7 @@
             }, this);
             $.Msg("[SURVIVAL_INPUT] BOUND generation=", inputGeneration,
                 " handlers=", String(customConfig.SurvivalKeyHandlers.length),
-                " command_prefix=", commandPrefix, " keys=QWERTYU,F2");
+                " command_prefix=", commandPrefix, " keys=QWERTYU,F,F2");
         } else {
             $.Warning("[SURVIVAL_INPUT] BIND_FAILED generation="
                 + inputGeneration + " reason=SetKeyPressedCallback_unavailable");

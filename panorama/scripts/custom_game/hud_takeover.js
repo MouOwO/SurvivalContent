@@ -5,6 +5,11 @@
     var takeover = config.SurvivalHudTakeover || {};
     var playerId = Game.GetLocalPlayerID();
     var hotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
+    var utilityHotkeys = {
+        ability_survival_builder_blink: "D",
+        ability_survival_pickup_materials: "F",
+        ability_survival_return_home: "F2"
+    };
     var slots = [];
     var officialStates = {};
     var signature = "";
@@ -1061,8 +1066,8 @@
         slot.panel.__survivalAbilityIndex = entry.ability;
         slot.panel.__survivalAbilityName = entry.name;
         slot.image.abilityname = entry.name;
-        slot.hotkey.text = entry.name === "ability_survival_return_home"
-            ? "F2" : (hotkeys[displayIndex] || "");
+        slot.hotkey.text = utilityHotkeys[entry.name]
+            || (hotkeys[displayIndex] || "");
         var level = abilityLevel(entry.ability);
         slot.level.text = level > 0 ? "Lv." + String(level) : "";
         var mana = manaCost(entry.ability);
