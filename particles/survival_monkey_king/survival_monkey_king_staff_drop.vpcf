@@ -1,0 +1,94 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf61:version{39d3ce1d-9442-4407-9b78-8317145b1732} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 1
+	m_flConstantRadius = 4.0
+	m_bShouldSort = false
+	m_BoundingBoxMin = [ -800.0, -800.0, -900.0 ]
+	m_BoundingBoxMax = [ 800.0, 800.0, 100.0 ]
+	m_Emitters =
+	[
+		{
+			_class = "C_OP_InstantaneousEmitter"
+			m_nParticlesToEmit = 1
+		},
+	]
+	m_Initializers =
+	[
+		{
+			_class = "C_INIT_CreateWithinSphereTransform"
+		},
+		{
+			_class = "C_INIT_RandomLifeTime"
+			m_fLifetimeMin = 0.14
+			m_fLifetimeMax = 0.14
+		},
+		{
+			_class = "C_INIT_VelocityFromCP"
+			m_velocityInput =
+			{
+				m_nType = "PVEC_TYPE_CP_VALUE"
+				m_nControlPoint = 2
+			}
+			m_transformInput =
+			{
+				m_nType = "PT_TYPE_INVALID"
+			}
+		},
+		{
+			_class = "C_INIT_PositionOffset"
+			m_OffsetMin = [ 111.0, 0.0, 22.0 ]
+			m_OffsetMax = [ 111.0, 0.0, 22.0 ]
+			m_bLocalCoords = true
+		},
+		{
+			_class = "C_INIT_NormalAlignToCP"
+			m_nControlPointNumber = 1
+		},
+		{
+			_class = "C_INIT_RandomRotation"
+			m_flDegreesMin = -90.0
+			m_flDegreesMax = -90.0
+			m_bRandomlyFlipDirection = false
+		},
+		{
+			_class = "C_INIT_RandomModelSequence"
+			m_ActivityName = "ACT_DOTA_IDLE"
+			m_hModel = resource:"models/props_items/monkey_king_bar01.vmdl"
+		},
+	]
+	m_Operators =
+	[
+		{
+			_class = "C_OP_BasicMovement"
+		},
+		{
+			_class = "C_OP_Orient2DRelToCP"
+			m_nCP = 1
+			m_nFieldOutput = 20
+		},
+		{
+			_class = "C_OP_Decay"
+		},
+	]
+	m_Renderers =
+	[
+		{
+			_class = "C_OP_RenderModels"
+			m_bOrientZ = true
+			m_EconSlotName = "weapon"
+			m_ModelList =
+			[
+				{
+					m_model = resource:"models/props_items/monkey_king_bar01.vmdl"
+				},
+			]
+			m_hOverrideMaterial = resource:"materials/models/heroes/monkey_king/monkey_king_weapon_fx.vmat"
+			m_nAnimationScaleField = 9
+			m_flAnimationRate = 22.0
+			m_bAnimated = true
+		},
+	]
+	m_nBehaviorVersion = 5
+}

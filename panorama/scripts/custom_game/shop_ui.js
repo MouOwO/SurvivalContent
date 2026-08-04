@@ -2,7 +2,6 @@
     "use strict";
 
     var snapshot = null;
-    var selectedShopId = "";
     var latestSequence = 0;
     var closeBound = false;
     var currentMode = "shop";
@@ -11,6 +10,8 @@
     var entryCardsById = {};
     var renderedStructureSignature = "";
     var renderedCategorySignature = "";
+    var cooldownAnimationSerial = 0;
+    var pendingTechnologyPurchases = {};
 
     function byId(id) { return $("#" + id); }
 
@@ -80,9 +81,9 @@
         // dismisses Panorama hover state even when the server changes only gold.
         setLoading(!snapshot || snapshot.ui_mode !== currentMode);
         setStatus(
-            currentMode === "research"
-                ? "正在同步研究所科技……"
-                : "正在同步服务器商店……",
+            currentMode === "research" ? "正在同步科技……"
+                : (currentMode === "challenge" ? "正在同步挑战……"
+                    : "正在同步服务器商店……"),
             false
         );
         GameEvents.SendCustomGameEventToServer("ui_shop_open_request", {
@@ -95,21 +96,25 @@
 
     function updateModeText() {
         var research = currentMode === "research";
-        setText("ShopTitle", research ? "研究所" : "生存商店");
+        var challenge = currentMode === "challenge";
+        setText("ShopTitle", research ? "科技" : (challenge ? "挑战" : "生存商店"));
         setText(
             "ShopSubtitle",
             research
-                ? "建筑与工人科技 · 升级由服务器校验"
-                : "英雄物品与英雄科技 · 每次打开均从服务器同步"
+                ? "19组非金矿科技 · 全局购买冷却2秒"
+                : (challenge ? "11个普通挑战 · 10个转职挑战"
+                    : "武器装备 · 道具材料 · 提前通关")
         );
         var shopToggle = byId("ShopModeShop");
         var researchToggle = byId("ShopModeResearch");
-        if (shopToggle) shopToggle.SetHasClass("Selected", !research);
+        var challengeToggle = byId("ShopModeChallenge");
+        if (shopToggle) shopToggle.SetHasClass("Selected", !research && !challenge);
         if (researchToggle) {
             researchToggle.SetHasClass("Selected", research);
-            researchToggle.SetHasClass("Disabled", !unlocks.research);
-            researchToggle.enabled = unlocks.research;
+            researchToggle.SetHasClass("Disabled", false);
+            researchToggle.enabled = true;
         }
+        if (challengeToggle) challengeToggle.SetHasClass("Selected", challenge);
     }
 
     function setOpenState(opened) {
@@ -140,9 +145,20 @@
     }
 
     function openResearch(sourceEntindex) {
-        if (!unlocks.research) return;
+        if (!unlocks.shop && !unlocks.research) return;
         currentMode = "research";
         researchSourceEntindex = Number(sourceEntindex || -1);
+        hideValveShopWindow();
+        if (!byId("CustomShopWindow")) return;
+        updateModeText();
+        setOpenState(true);
+        requestSnapshot();
+    }
+
+    function openChallenge() {
+        if (!unlocks.shop) return;
+        currentMode = "challenge";
+        researchSourceEntindex = -1;
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         updateModeText();
@@ -180,6 +196,13 @@
         else openResearch(-1);
     }
 
+    function toggleChallenge() {
+        var windowPanel = byId("CustomShopWindow");
+        if (windowPanel && windowPanel.BHasClass("ShopOpen")
+            && currentMode === "challenge") close();
+        else openChallenge();
+    }
+
     function setUnlocks(value) {
         unlocks = value || unlocks;
         updateModeText();
@@ -212,10 +235,22 @@
             );
             return;
         }
+        if (entry.content_type === "technology"
+            && technologyCooldownRemaining() > 0) {
+            setStatus("科技购买冷却中，请稍候", true);
+            return;
+        }
+        if (entry.content_type === "technology"
+            && Object.keys(pendingTechnologyPurchases).length > 0) {
+            return;
+        }
+        if (entry.content_type === "technology") {
+            pendingTechnologyPurchases[entry.entry_id] = true;
+        }
         setStatus("正在购买 " + entry.name + "……", false);
         GameEvents.SendCustomGameEventToServer("ui_shop_purchase_request", {
             request_id: requestId("shop_buy"),
-            entry_id: entry.entry_id
+            entry_id: entry.purchase_entry_id || entry.entry_id
         });
     }
 
@@ -227,10 +262,87 @@
         return null;
     }
 
+    function technologyCooldownRemaining() {
+        var remaining = Number(snapshot && snapshot.technology_cooldown_remaining || 0);
+        var until = Number(snapshot && snapshot.technology_cooldown_until || 0);
+        var now = Number(Game.GetGameTime ? Game.GetGameTime() : 0);
+        if (until > 0 && now > 0) remaining = until - now;
+        return Math.max(0, remaining);
+    }
+
+    function technologyCooldownSource() {
+        return String(snapshot && (snapshot.technology_cooldown_source_group
+            || snapshot.technology_cooldown_source_entry) || "");
+    }
+
+    function lockBadgeText(entry) {
+        var code = String(entry && entry.disabled_reason_code || "");
+        if (code === "prerequisite_not_met") {
+            return "前置 Lv." + Number(entry.prerequisite_required_level || 0);
+        }
+        if (code === "rebirth_level_not_met") {
+            return "需要 " + Number(entry.prerequisite_rebirth_level || 0) + " 转";
+        }
+        if (code === "research_access_not_met") return "研究所未解锁";
+        if (code === "max_level_reached") return "已满级";
+        return "";
+    }
+
+    function updateCooldownOverlay(card, entry, remaining, total, source) {
+        if (!card || !card.__survivalCooldownMask) return;
+        var mask = card.__survivalCooldownMask;
+        var label = card.__survivalCooldownLabel;
+        var isSource = !!source && (String(entry.entry_id) === source
+            || String(entry.technology_group || "") === source);
+        var active = isSource && remaining > 0;
+        card.SetHasClass("CooldownSource", active);
+        mask.visible = active;
+        label.visible = active;
+        if (!active) return;
+        var progress = Math.max(0, Math.min(1, remaining / Math.max(0.01, total)));
+        var endAngle = Math.max(0, Math.min(360, progress * 360));
+        mask.style.clip = "radial(50% 50%, 0deg, " + endAngle.toFixed(2) + "deg)";
+        label.text = remaining >= 1 ? String(Math.ceil(remaining)) : "0";
+    }
+
+    function updateAllCooldownOverlays() {
+        var remaining = technologyCooldownRemaining();
+        var source = technologyCooldownSource();
+        var total = Number(snapshot && snapshot.technology_cooldown_total || 2);
+        Object.keys(entryCardsById).forEach(function (entryId) {
+            var card = entryCardsById[entryId];
+            var entry = entryById(entryId);
+            if (card && entry) updateCooldownOverlay(card, entry, remaining, total, source);
+        });
+        if (remaining <= 0) return;
+        var serial = ++cooldownAnimationSerial;
+        $.Schedule(0.05, function tick() {
+            if (serial !== cooldownAnimationSerial) return;
+            updateAllCooldownOverlays();
+        });
+    }
+
     function updateEntryCard(card, entry) {
         if (!card || !entry) return;
         card.SetHasClass("Unavailable", entry.purchasable !== 1);
         card.SetHasClass("Technology", entry.content_type === "technology");
+        var code = String(entry.disabled_reason_code || "");
+        card.SetHasClass("PrerequisiteLocked", code === "prerequisite_not_met"
+            || code === "rebirth_level_not_met"
+            || code === "research_access_not_met");
+        card.SetHasClass("ResourceLocked", code === "insufficient_gold"
+            || code === "insufficient_wood");
+        card.SetHasClass("MaxLevel", code === "max_level_reached");
+        card.SetHasClass("PurchaseCooldownLocked", technologyCooldownRemaining() > 0
+            && entry.content_type === "technology");
+        card.hittest = true;
+        if (card.__survivalLockBadge) {
+            card.__survivalLockBadge.text = lockBadgeText(entry);
+            card.__survivalLockBadge.visible = card.__survivalLockBadge.text !== "";
+        }
+        updateCooldownOverlay(card, entry, technologyCooldownRemaining(),
+            Number(snapshot && snapshot.technology_cooldown_total || 2),
+            technologyCooldownSource());
     }
 
     function updateVisibleEntryCards(changedIds) {
@@ -240,11 +352,12 @@
                 updateEntryCard(card, entryById(entryId));
             }
         });
+        updateAllCooldownOverlays();
     }
 
     function entriesFor(data, shopId) {
         var entries = asArray(data && data.entries).filter(function (entry) {
-            return entry && entry.visible === 1 && entry.shop_id === shopId;
+            return entry && entry.visible === 1;
         });
         entries.sort(function (a, b) {
             return (a.sort_order || 0) - (b.sort_order || 0);
@@ -254,16 +367,27 @@
 
     function visibleEntries() {
         var entries = asArray(snapshot && snapshot.entries).filter(function (entry) {
-            return entry && entry.visible === 1 && entry.shop_id === selectedShopId;
+            return entry && entry.visible === 1;
         });
         entries.sort(function (a, b) {
-            return (a.sort_order || 0) - (b.sort_order || 0);
+            var sectionOrder = function (entry) {
+                if (currentMode === "challenge") {
+                    return entry.content_type === "rebirth" ? 20 : 10;
+                }
+                if (currentMode === "research") {
+                    return entry.technology_track === "advanced_researcher" ? 20 : 10;
+                }
+                if (entry.content_id === "service_early_final_boss") return 30;
+                return entry.content_type === "weapon" ? 10 : 20;
+            };
+            return sectionOrder(a) - sectionOrder(b)
+                || (a.sort_order || 0) - (b.sort_order || 0);
         });
         return entries;
     }
 
     function structureSignature(entries) {
-        return selectedShopId + "|" + entries.map(function (entry) {
+        return currentMode + "|" + entries.map(function (entry) {
             return [
                 entry.entry_id,
                 entry.shop_id,
@@ -272,7 +396,9 @@
                 entry.technology_track,
                 entry.content_id,
                 entry.icon_type,
-                entry.icon
+                entry.icon,
+                entry.level_text,
+                entry.name
             ].join(":");
         }).join("|");
     }
@@ -305,8 +431,8 @@
         return {
             categories: categorySignature(previous.categories)
                 !== categorySignature(current.categories),
-            structural: structureSignature(entriesFor(previous, selectedShopId))
-                !== structureSignature(entriesFor(current, selectedShopId)),
+            structural: structureSignature(entriesFor(previous, ""))
+                !== structureSignature(entriesFor(current, "")),
             changedIds: changedIds
         };
     }
@@ -323,18 +449,30 @@
         if (tooltip) tooltip.Hide();
         list.RemoveAndDeleteChildren();
 
-        var lastTechnologyTrack = "";
+        var lastSection = "";
         entries.forEach(function (entry) {
-            if (entry.content_type === "technology"
-                && entry.technology_track !== lastTechnologyTrack) {
-                lastTechnologyTrack = entry.technology_track;
+            var sectionKey;
+            var sectionText;
+            if (currentMode === "research") {
+                sectionKey = entry.technology_track === "advanced_researcher"
+                    ? "advanced_researcher" : "research";
+                sectionText = sectionKey === "advanced_researcher"
+                    ? "高级研究所科技" : "研究所科技";
+            } else if (currentMode === "challenge") {
+                sectionKey = entry.content_type === "rebirth" ? "rebirth" : "challenge";
+                sectionText = sectionKey === "rebirth" ? "转职挑战" : "普通挑战";
+            } else if (entry.content_id === "service_early_final_boss") {
+                sectionKey = "early_final";
+                sectionText = "提前通关";
+            } else {
+                sectionKey = entry.content_type === "weapon" ? "weapon" : "item";
+                sectionText = sectionKey === "weapon" ? "武器装备" : "道具材料";
+            }
+            if (sectionKey !== lastSection) {
+                lastSection = sectionKey;
                 var section = $.CreatePanel("Label", list, "");
-                section.AddClass("ShopTechnologySectionTitle");
-                section.text = entry.technology_track === "advanced_researcher"
-                    ? "高级研究员科技"
-                    : (entry.technology_track === "advanced"
-                        ? "高级科技"
-                        : "普通科技");
+                section.AddClass("ShopSectionTitle");
+                section.text = sectionText;
             }
             var card = $.CreatePanel("Panel", list, "");
             card.AddClass("ShopShelfSlot");
@@ -346,6 +484,30 @@
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
             createEntryIcon(frame, entry, "ShopItemIcon");
+            if (entry.content_type === "technology") {
+                var cooldownMask = $.CreatePanel("Panel", frame, "");
+                cooldownMask.AddClass("ShopTechnologyCooldownMask");
+                cooldownMask.hittest = false;
+                cooldownMask.visible = false;
+                card.__survivalCooldownMask = cooldownMask;
+                var cooldownLabel = $.CreatePanel("Label", frame, "");
+                cooldownLabel.AddClass("ShopTechnologyCooldownLabel");
+                cooldownLabel.hittest = false;
+                cooldownLabel.visible = false;
+                card.__survivalCooldownLabel = cooldownLabel;
+                var lockBadge = $.CreatePanel("Label", frame, "");
+                lockBadge.AddClass("ShopTechnologyLockBadge");
+                lockBadge.hittest = false;
+                card.__survivalLockBadge = lockBadge;
+                var level = $.CreatePanel("Label", frame, "");
+                level.AddClass("ShopTechnologyLevel");
+                level.text = entry.level_text || ("Lv." + Number(entry.technology_level || 0));
+            } else if (currentMode === "challenge"
+                || entry.content_id === "service_early_final_boss") {
+                var name = $.CreatePanel("Label", frame, "");
+                name.AddClass("ShopCardName");
+                name.text = entry.name || "";
+            }
 
             card.SetPanelEvent("onmouseover", function () {
                 var current = entryById(card.GetAttributeString("entry_id", ""));
@@ -357,6 +519,7 @@
             card.SetPanelEvent("oncontextmenu", function () {
                 purchase(entryById(card.GetAttributeString("entry_id", "")));
             });
+            updateEntryCard(card, entry);
         });
 
         if (entries.length === 0) {
@@ -364,61 +527,12 @@
             empty.AddClass("ShopEmptyLabel");
             empty.text = "该分类当前没有可显示内容";
         }
-    }
-
-    function selectShop(shopId) {
-        var changed = selectedShopId !== shopId;
-        selectedShopId = shopId;
-        if (changed) renderedStructureSignature = "";
-        var list = byId("ShopCategoryList");
-        if (list) {
-            for (var index = 0; index < list.GetChildCount(); index++) {
-                var child = list.GetChild(index);
-                child.SetHasClass(
-                    "Selected",
-                    child.GetAttributeString("shop_id", "") === shopId
-                );
-            }
-        }
-        renderItems();
+        updateAllCooldownOverlays();
     }
 
     function renderCategories() {
-        var list = byId("ShopCategoryList");
-        if (!list || !snapshot) return;
-        var categories = asArray(snapshot.categories);
-        categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-        var nextSignature = categorySignature(categories);
-
-        if (nextSignature === renderedCategorySignature) {
-            var stillExists = categories.some(function (category) {
-                return category.shopid === selectedShopId;
-            });
-            if (!stillExists) {
-                selectedShopId = categories.length > 0 ? categories[0].shopid : "";
-            }
-            selectShop(selectedShopId);
-            return;
-        }
-        renderedCategorySignature = nextSignature;
-        list.RemoveAndDeleteChildren();
-
-        categories.forEach(function (category) {
-            var button = $.CreatePanel("Button", list, "");
-            button.AddClass("ShopCategoryButton");
-            button.SetAttributeString("shop_id", category.shopid);
-            var label = $.CreatePanel("Label", button, "");
-            label.text = category.shopname || category.shopid;
-            button.SetPanelEvent("onactivate", function () {
-                selectShop(category.shopid);
-            });
-        });
-
-        var exists = categories.some(function (category) {
-            return category.shopid === selectedShopId;
-        });
-        if (!exists) selectedShopId = categories.length > 0 ? categories[0].shopid : "";
-        selectShop(selectedShopId);
+        renderedCategorySignature = categorySignature(snapshot && snapshot.categories);
+        renderItems();
     }
 
     function renderResources() {
@@ -443,7 +557,7 @@
         var changedIds = {};
         asArray(payload.removed_entry_ids).forEach(function (entryId) {
             var previous = previousById[entryId];
-            if (previous && previous.shop_id === selectedShopId) structural = true;
+            if (previous) structural = true;
             delete previousById[entryId];
         });
         asArray(payload.changed_entries).forEach(function (entry) {
@@ -453,9 +567,11 @@
                 || previous.shop_id !== entry.shop_id
                 || previous.sort_order !== entry.sort_order
                 || previous.content_type !== entry.content_type
-                || previous.technology_track !== entry.technology_track) {
-                if ((!previous || previous.shop_id === selectedShopId)
-                    || entry.shop_id === selectedShopId) structural = true;
+                || previous.technology_track !== entry.technology_track
+                || previous.level_text !== entry.level_text
+                || previous.name !== entry.name
+                || previous.icon !== entry.icon) {
+                structural = true;
             }
             previousById[entry.entry_id] = entry;
             changedIds[entry.entry_id] = true;
@@ -465,6 +581,12 @@
         });
         if (payload.resources) snapshot.resources = payload.resources;
         if (payload.categories) snapshot.categories = payload.categories;
+        snapshot.technology_cooldown_remaining = payload.technology_cooldown_remaining;
+        snapshot.technology_cooldown_total = payload.technology_cooldown_total;
+        snapshot.technology_cooldown_until = payload.technology_cooldown_until;
+        snapshot.technology_cooldown_source_group = payload.technology_cooldown_source_group;
+        snapshot.technology_cooldown_source_entry = payload.technology_cooldown_source_entry;
+        snapshot.technology_cooldown_sequence = payload.technology_cooldown_sequence;
         snapshot.sequence = payload.sequence;
         snapshot.reason = payload.reason;
         snapshot.ui_mode = payload.ui_mode || snapshot.ui_mode;
@@ -494,7 +616,8 @@
             }
         }
         latestSequence = Math.max(latestSequence, sequence);
-        currentMode = payload.ui_mode === "research" ? "research" : "shop";
+        currentMode = payload.ui_mode === "research" ? "research"
+            : (payload.ui_mode === "challenge" ? "challenge" : "shop");
         updateModeText();
         setLoading(false);
         if (!patchResult || payload.resources) renderResources();
@@ -507,8 +630,8 @@
         }
         setStatus(
             currentMode === "research"
-                ? "研究所科技已同步"
-                : "商店数据已同步",
+                ? "科技已同步"
+                : (currentMode === "challenge" ? "挑战已同步" : "商店数据已同步"),
             false
         );
     }
@@ -549,6 +672,7 @@
             return;
         }
         if (payload.operation !== "shop_purchase") return;
+        pendingTechnologyPurchases = {};
         if (payload.success === 1
             && Number(payload.close_shop_and_focus_hero || 0) === 1) {
             close();
@@ -598,6 +722,8 @@
         Toggle: toggle,
         ToggleShop: toggleShop,
         ToggleResearch: toggleResearch,
+        OpenChallenge: openChallenge,
+        ToggleChallenge: toggleChallenge,
         SetUnlocks: setUnlocks,
         Refresh: refresh
     };

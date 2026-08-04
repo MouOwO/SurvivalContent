@@ -109,12 +109,17 @@
         fields.RemoveAndDeleteChildren();
         createIcon(iconHost, entry);
         var isTechnology = entry.content_type === "technology";
+        var typeText = "商品";
+        if (isTechnology) typeText = "科技";
+        else if (entry.content_type === "challenge") typeText = "普通挑战";
+        else if (entry.content_type === "rebirth") typeText = "转职挑战";
+        else if (entry.content_id === "service_early_final_boss") typeText = "提前通关服务";
         setText("ShopTooltipTitle", isTechnology
             ? (entry.name || entry.content_id)
             : (tooltipDefinition.name || entry.name || entry.content_id));
         setText(
             "ShopTooltipType",
-            entry.content_type === "technology" ? "科技商品" : "商品"
+            typeText
         );
         setText("ShopTooltipDescription", isTechnology
             ? (entry.description || "")
@@ -136,6 +141,11 @@
             ? (entry.owned_count + " / " + entry.purchase_limit)
             : (entry.owned_count + " / 不限");
         setText("ShopTooltipOwned", "已购买：" + limitText);
+        if (isTechnology) {
+            setText("ShopTooltipOwned", "科技等级：Lv."
+                + Number(entry.technology_level || 0) + " / Lv."
+                + Number(entry.technology_max_level || 0));
+        }
         setText(
             "ShopTooltipStatus",
             entry.purchasable === 1

@@ -88,6 +88,7 @@
                 <Panel id="ShopModeToggles">
                     <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.Open()"><Label text="商店" /></Button>
                     <Button id="ShopModeResearch" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenResearch()"><Label text="科技" /></Button>
+                    <Button id="ShopModeChallenge" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenChallenge()"><Label text="挑战" /></Button>
                 </Panel>
                 <Panel id="ShopTitleBlock">
                     <Label id="ShopTitle" text="生存商店" />
@@ -101,7 +102,6 @@
                 </Button>
             </Panel>
             <Panel id="ShopBody">
-                <Panel id="ShopCategoryList" />
                 <Panel id="ShopShelfArea">
                     <Panel id="ShopLoading">
                         <Label text="正在向服务器请求商店数据……" />
