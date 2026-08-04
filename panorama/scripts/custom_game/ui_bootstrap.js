@@ -108,7 +108,7 @@
         Format: formatLogicalNumber
     };
 
-    $.Msg("[SURVIVAL_CRASH_ISOLATION] crash_isolation_v3_alt_ability_takeover_disabled abilities=false ability_tooltips=false native_ability_tree=true");
+    $.Msg("[SURVIVAL_CRASH_ISOLATION] crash_isolation_v3_alt_ability_takeover_disabled abilities=false ability_tooltips=true native_ability_tree=true builder_tooltip_proxy=true");
     $.Msg(LOG_PREFIX + " loaded.");
     applyDefaultUIProfile();
     $.Schedule(0.10, applyDefaultUIProfile);

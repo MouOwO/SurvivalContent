@@ -153,12 +153,12 @@
             </Panel>
             <Label id="CustomAbilityDescription" text="" />
             <Panel id="CustomAbilityCostRow">
-                <Panel class="AbilityCostBlock">
-                    <DOTAItemImage class="AbilityCostIcon" itemname="item_hand_of_midas" />
+                <Panel id="CustomAbilityGoldCostBlock" class="AbilityCostBlock">
+                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/st2_darkfantasy/icons/st2_icon_gold.png" hittest="false" />
                     <Label id="CustomAbilityGoldCost" class="AbilityCostValue" text="0" />
                 </Panel>
-                <Panel class="AbilityCostBlock">
-                    <DOTAItemImage class="AbilityCostIcon" itemname="item_ironwood_tree" />
+                <Panel id="CustomAbilityWoodCostBlock" class="AbilityCostBlock">
+                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/st2_darkfantasy/icons/st2_icon_wood.png" hittest="false" />
                     <Label id="CustomAbilityWoodCost" class="AbilityCostValue" text="0" />
                 </Panel>
             </Panel>
@@ -182,6 +182,10 @@
             <Panel id="CustomInventoryItemFields" />
             <Label id="CustomInventoryItemStatus" text="" />
         </Panel>
+
+        <!-- Selective managed actions keep Valve visuals but receive mouse input
+             from outside the AbilityN ancestry, preventing native hover creation. -->
+        <Panel id="SurvivalManagedAbilityProxyLayer" hittest="false" hittestchildren="true" />
 
         <!-- The independent skill proxy is positioned over Valve AbilityN but is
              not its descendant, so native ability tooltip ancestry is avoided. -->

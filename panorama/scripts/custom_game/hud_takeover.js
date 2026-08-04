@@ -24,6 +24,7 @@
     var surveySerial = 0;
     var groundItemLocalizationDiagnostic = "";
     var disabledIsolationLogged = false;
+    var takeoverTooltipOwner = "full_takeover";
     var fixedCellSize = 52;
     var fixedCellGap = 4;
     var takeoverBuild = "grid52_preset_v6";
@@ -915,7 +916,19 @@
         activeAbility = -1;
         activePanel = null;
         var tooltip = byId("CustomAbilityTooltip");
-        if (tooltip) tooltip.AddClass("Hidden");
+        if (!tooltip) return;
+        var owner = String(tooltip.__survivalTooltipOwner || "");
+        if (owner && owner !== takeoverTooltipOwner) {
+            if (tooltip.__survivalTakeoverForeignOwnerDiagnostic !== owner) {
+                tooltip.__survivalTakeoverForeignOwnerDiagnostic = owner;
+                $.Msg("[SURVIVAL_TOOLTIP_OWNER] action=skip_foreign_hide requester=",
+                    takeoverTooltipOwner, " owner=", owner);
+            }
+            return;
+        }
+        tooltip.__survivalTakeoverForeignOwnerDiagnostic = "";
+        tooltip.__survivalTooltipOwner = "";
+        tooltip.AddClass("Hidden");
     }
 
     function showTooltip(entry, panel) {
@@ -932,6 +945,13 @@
         var tooltip = byId("CustomAbilityTooltip");
         var fields = byId("CustomAbilityFields");
         if (!tooltip || !fields) return;
+        var previousOwner = String(tooltip.__survivalTooltipOwner || "none");
+        tooltip.__survivalTooltipOwner = takeoverTooltipOwner;
+        tooltip.__survivalTakeoverForeignOwnerDiagnostic = "";
+        if (previousOwner !== takeoverTooltipOwner) {
+            $.Msg("[SURVIVAL_TOOLTIP_OWNER] action=acquire owner=",
+                takeoverTooltipOwner, " previous=", previousOwner);
+        }
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
         setText("CustomAbilityExtensionLabel", "生存防守 · 自定义技能详情");
@@ -1288,7 +1308,9 @@
     }
 
     function geometryTick() {
-        refresh("geometry_tick");
+        if (takeover.abilities || takeover.abilitySurvey) {
+            refresh("geometry_tick");
+        }
         $.Schedule(0.50, geometryTick);
     }
 
