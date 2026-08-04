@@ -2,6 +2,7 @@
     "use strict";
 
     var LOG_PREFIX = "[SurvivalUIBootstrap]";
+    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260804_nettable_rebind_v2");
     // Phase 0 rollback boundary. Keep inventory native until the separate item
     // interaction controller (use/drag/swap/drop/sell) is complete.
     GameUI.CustomUIConfig().SurvivalHudTakeover = {
@@ -20,6 +21,169 @@
         stats: false,
         inventory: false
     };
+    var inputConfig = GameUI.CustomUIConfig();
+    var inputGeneration = Number(inputConfig.SurvivalInputLifecycleGeneration || 0) + 1;
+    var inputContextId = String(Date.now()) + "_" + String(inputGeneration);
+    var keyHandlers = {};
+    var keyHandlerOrder = [];
+    var mouseHandlers = {};
+    var mouseHandlerOrder = [];
+    inputConfig.SurvivalInputLifecycleGeneration = inputGeneration;
+
+    function registerHandler(handlers, order, id, handler, priority) {
+        id = String(id || "");
+        if (!id || typeof handler !== "function") return false;
+        handlers[id] = {
+            callback: handler,
+            priority: Number(priority || 0)
+        };
+        if (order.indexOf(id) < 0) order.push(id);
+        order.sort(function (left, right) {
+            return handlers[right].priority - handlers[left].priority;
+        });
+        return true;
+    }
+
+    function dispatch(handlers, order, args) {
+        for (var index = 0; index < order.length; index++) {
+            var entry = handlers[order[index]];
+            if (entry && entry.callback.apply(null, args)) return true;
+        }
+        return false;
+    }
+
+    inputConfig.SurvivalInputDispatcher = {
+        generation: inputGeneration,
+        context_id: inputContextId,
+        RegisterKeyHandler: function (id, handler, priority) {
+            return registerHandler(keyHandlers, keyHandlerOrder, id, handler, priority);
+        },
+        RegisterMouseHandler: function (id, handler, priority) {
+            return registerHandler(mouseHandlers, mouseHandlerOrder, id, handler, priority);
+        },
+        DispatchKey: function (key, down) {
+            return dispatch(keyHandlers, keyHandlerOrder, [key, down]);
+        }
+    };
+
+    function validUnit(unit) {
+        return isFinite(Number(unit)) && Number(unit) >= 0
+            && Entities.IsValidEntity(Number(unit));
+    }
+
+    function selectedEntities(playerId) {
+        var selected = [];
+        try { selected = Players.GetSelectedEntities(playerId) || []; } catch (error) {}
+        if (Array.isArray(selected)) return selected.map(Number);
+        return Object.keys(selected).sort(function (left, right) {
+            return Number(left) - Number(right);
+        }).map(function (key) { return Number(selected[key]); });
+    }
+
+    function builderEntity(playerId) {
+        var identity = CustomNetTables.GetTableValue(
+            "survival_builder_identity", "player_" + String(playerId)
+        ) || {};
+        var builder = Number(identity.entindex);
+        return validUnit(builder) ? builder : -1;
+    }
+
+    function resolveSelectedUnit() {
+        var playerId = Game.GetLocalPlayerID();
+        var portrait = -1;
+        try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
+        var selected = selectedEntities(playerId).filter(validUnit);
+        var builder = builderEntity(playerId);
+        var portraitName = validUnit(portrait) ? (Entities.GetUnitName(portrait) || "") : "";
+        if (validUnit(portrait) && portraitName !== "npc_dota_hero_undying"
+            && selected.indexOf(portrait) >= 0) return portrait;
+        if (builder >= 0 && selected.indexOf(builder) >= 0) return builder;
+        if (selected.length > 0) return selected[0];
+        if (validUnit(portrait) && portraitName !== "npc_dota_hero_undying") return portrait;
+        if (builder >= 0) return builder;
+        var hero = Number(Players.GetPlayerHeroEntityIndex(playerId));
+        return validUnit(hero) ? hero : -1;
+    }
+
+    inputConfig.SurvivalSelectionResolver = {
+        BuilderEntity: function () { return builderEntity(Game.GetLocalPlayerID()); },
+        Resolve: resolveSelectedUnit,
+        Snapshot: function () {
+            var playerId = Game.GetLocalPlayerID();
+            var portrait = -1;
+            try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
+            var resolved = resolveSelectedUnit();
+            return {
+                selected: selectedEntities(playerId).join(","),
+                portrait: portrait,
+                resolved: resolved,
+                resolved_name: validUnit(resolved) ? (Entities.GetUnitName(resolved) || "") : "",
+                builder: builderEntity(playerId)
+            };
+        }
+    };
+    // CustomUIConfig survives Workshop Tools Run, callbacks do not. Always
+    // replace both dispatchers for this fresh HUD context.
+    if (GameUI.SetKeyPressedCallback) {
+        GameUI.SetKeyPressedCallback(function (key, down) {
+            return dispatch(keyHandlers, keyHandlerOrder, [key, down]);
+        }, this);
+    }
+    GameUI.SetMouseCallback(function (eventName, button, gameTime) {
+        return dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
+    });
+    if (Game.AddCommand && Game.CreateCustomKeyBind) {
+        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "D", "F", "F2", "TAB"];
+        var fallbackCommands = {};
+        fallbackKeys.forEach(function (key) {
+            var command = "survival_input_" + inputContextId + "_"
+                + String(key).toLowerCase();
+            fallbackCommands[key] = command;
+            try {
+                Game.AddCommand(command, function () {
+                    var currentConfig = GameUI.CustomUIConfig();
+                    var dispatcher = currentConfig.SurvivalInputDispatcher;
+                    $.Msg("[SURVIVAL_INPUT] FALLBACK_TRIGGER callback_generation=",
+                        String(inputGeneration), " dispatcher_generation=",
+                        String(dispatcher && dispatcher.generation), " key=", key,
+                        " command=", command);
+                    if (!dispatcher || !dispatcher.DispatchKey) return false;
+                    return dispatcher.DispatchKey(key, true);
+                }, "Survival input " + key, 0);
+                $.Msg("[SURVIVAL_INPUT] FALLBACK_COMMAND generation=",
+                    String(inputGeneration), " key=", key, " command=", command);
+            } catch (error) {
+                $.Warning("[SURVIVAL_INPUT] FALLBACK_COMMAND_FAILED generation="
+                    + String(inputGeneration) + " key=" + key + " command="
+                    + command + " error=" + String(error));
+            }
+        });
+        var applyFallbackBinds = function () {
+            var activeDispatcher = GameUI.CustomUIConfig().SurvivalInputDispatcher;
+            if (!activeDispatcher || activeDispatcher.context_id !== inputContextId) {
+                $.Msg("[SURVIVAL_INPUT] FALLBACK_BINDS_SKIPPED stale_context=",
+                    inputContextId, " active_context=",
+                    String(activeDispatcher && activeDispatcher.context_id));
+                return;
+            }
+            fallbackKeys.forEach(function (key) {
+                try {
+                    Game.CreateCustomKeyBind(key, fallbackCommands[key]);
+                } catch (error) {
+                    $.Warning("[SURVIVAL_INPUT] FALLBACK_BIND_FAILED generation="
+                        + String(inputGeneration) + " key=" + key + " command="
+                        + fallbackCommands[key] + " error=" + String(error));
+                }
+            });
+            $.Msg("[SURVIVAL_INPUT] FALLBACK_BINDS_APPLIED generation=",
+                String(inputGeneration), " keys=", fallbackKeys.join(""));
+        };
+        applyFallbackBinds();
+        $.Schedule(0.5, applyFallbackBinds);
+        $.Schedule(2.5, applyFallbackBinds);
+    }
+    $.Msg("[SURVIVAL_INPUT] LIFECYCLE_BOUND generation=", String(inputGeneration),
+        " context=", inputContextId);
     var hiddenElements = [
         "DOTA_DEFAULT_UI_TOP_BAR",
         "DOTA_DEFAULT_UI_TOP_BAR_BACKGROUND",

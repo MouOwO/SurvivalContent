@@ -505,14 +505,23 @@
         ) || {};
         return runtime.removed !== 1
             && Number(runtime.ability_entindex) === Number(abilityIndex)
-            && Number(runtime.owner_entindex) === Number(selectedUnit());
+            && unitOwnsAbility(Number(runtime.owner_entindex), abilityIndex);
+    }
+
+    function unitOwnsAbility(unit, abilityIndex) {
+        if (!isFinite(Number(unit)) || Number(unit) < 0) return false;
+        for (var slot = 0; slot < 24; slot++) {
+            try {
+                if (Number(Entities.GetAbility(Number(unit), slot))
+                    === Number(abilityIndex)) return true;
+            } catch (error) {}
+        }
+        return false;
     }
 
     function selectedUnit() {
-        try {
-            var unit = Players.GetLocalPlayerPortraitUnit();
-            if (unit !== undefined && unit !== -1) return unit;
-        } catch (error) {}
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.Resolve) return resolver.Resolve();
         return Players.GetPlayerHeroEntityIndex(Game.GetLocalPlayerID());
     }
 
@@ -580,7 +589,8 @@
     }
 
     function isManagedBuildingAction(abilityName) {
-        return /^ability_upgrade_tower/.test(abilityName)
+        return /^ability_build_/.test(abilityName)
+            || /^ability_upgrade_tower/.test(abilityName)
             || /^ability_tower_class_[1-7]$/.test(abilityName)
             || abilityName === "ability_upgrade_wall"
             || abilityName === "ability_upgrade_city"
@@ -594,8 +604,16 @@
     }
 
     function managedUpgrade(abilityIndex, abilityName) {
+        if (!managedRuntime(abilityIndex)) return false;
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", String(abilityIndex)
+        ) || {};
+        var ownerName = "";
+        try {
+            ownerName = Entities.GetUnitName(Number(runtime.owner_entindex)) || "";
+        } catch (error) {}
         return isManagedBuildingAction(abilityName)
-            && managedRuntime(abilityIndex);
+            || /^building_/.test(ownerName);
     }
 
     function isLocalUndyingVisibleAbility(abilityIndex) {
@@ -622,11 +640,12 @@
             $.Msg("[SURVIVAL_CAST][TOOLTIP] reject invalid ability=", String(abilityIndex));
             return false;
         }
-        var unit = selectedUnit();
         var runtime = CustomNetTables.GetTableValue(
             "survival_ability_runtime",
             String(abilityIndex)
         ) || {};
+        var unit = Number(runtime.owner_entindex);
+        if (!unitOwnsAbility(unit, abilityIndex)) unit = selectedUnit();
         if (runtime.removed === 1
             || runtime.available === 0) {
             $.Msg("[SURVIVAL_CAST][TOOLTIP] reject unavailable ability=",
@@ -647,7 +666,9 @@
         if ((behavior & 16) !== 0) {
             $.Msg("[SURVIVAL_CAST][TOOLTIP] POINT_TARGET_BEGIN unit=", String(unit), " ability=", String(abilityIndex), " name=", name, " behavior=", String(behavior));
             var pointInput = GameUI.CustomUIConfig().SurvivalPointTargetInput;
-            if (pointInput && pointInput.Begin) return pointInput.Begin(abilityIndex);
+            if (pointInput && pointInput.Begin) {
+                return pointInput.Begin(abilityIndex, unit);
+            }
             $.Msg("[SURVIVAL_CAST][TOOLTIP] POINT_TARGET_NO_INPUT_HANDLER");
             return false;
         }

@@ -29,7 +29,8 @@
         "building_gold_mine": "金矿",
         "building_hero_altar": "英雄祭坛",
         "enemy_tree": "树",
-        "npc_dota_hero_undying": "建造者"
+        "npc_dota_hero_undying": "建造者",
+        "npc_survival_builder_proxy": "建造者"
     };
     var heroPanelState = {
         unit: -1,
@@ -809,10 +810,8 @@
     }
 
     function selectedUnit() {
-        try {
-            var portrait = Players.GetLocalPlayerPortraitUnit();
-            if (portrait !== undefined && portrait >= 0) return portrait;
-        } catch (error) {}
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.Resolve) return resolver.Resolve();
         return Players.GetPlayerHeroEntityIndex(playerId);
     }
 
@@ -1083,7 +1082,7 @@
         var unit = selectedUnit();
         var unitName = unit === undefined || unit < 0
             ? "" : Entities.GetUnitName(unit);
-        if (unit === undefined || unit < 0 || !isHeroUnit(unit, unitName)) return;
+        if (unit === undefined || unit < 0) return;
 
         for (var index = 0; index < visibleAbilities.length; index++) {
             var key = utilityHotkeys[visibleAbilities[index].name];
@@ -1176,9 +1175,29 @@
     }
 
     function managedAbility(abilityIndex, abilityName, runtime) {
+        var owner = Number(runtime && runtime.owner_entindex);
+        var ownerName = "";
+        try { ownerName = Entities.GetUnitName(owner) || ""; } catch (error) {}
         return (Number(runtime && runtime.ability_entindex) === Number(abilityIndex)
-            && Number(runtime && runtime.owner_entindex) === Number(selectedUnit()))
+                && (owner === Number(selectedUnit()) || /^building_/.test(ownerName)))
             || managedBuildingAction(abilityName);
+    }
+
+    function unitOwnsAbility(unit, abilityIndex) {
+        if (!isFinite(Number(unit)) || Number(unit) < 0) return false;
+        for (var slot = 0; slot < 24; slot++) {
+            if (Number(abilityIndexForSlot(Number(unit), slot)) === Number(abilityIndex)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function casterForAbility(abilityIndex, runtime) {
+        var runtimeOwner = Number(runtime && runtime.owner_entindex);
+        if (unitOwnsAbility(runtimeOwner, abilityIndex)) return runtimeOwner;
+        var current = Number(selectedUnit());
+        return unitOwnsAbility(current, abilityIndex) ? current : -1;
     }
 
     function setPointTargetHint(active, name) {
@@ -1202,8 +1221,12 @@
         return true;
     }
 
-    function beginPointTarget(abilityIndex) {
-        var unit = selectedUnit();
+    function beginPointTarget(abilityIndex, caster) {
+        var unit = Number(caster);
+        if (!unitOwnsAbility(unit, abilityIndex)) {
+            unit = casterForAbility(abilityIndex, abilityRuntime(abilityIndex));
+        }
+        if (!unitOwnsAbility(unit, abilityIndex)) return false;
         var name = "";
         try { name = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
         pointTargetState.active = true;
@@ -1244,10 +1267,11 @@
     pointInput.Cancel = cancelPointTarget;
     GameUI.CustomUIConfig().SurvivalPointTargetInput = pointInput;
     var mouseConfig = GameUI.CustomUIConfig();
-    mouseConfig.SurvivalMouseHandlers = mouseConfig.SurvivalMouseHandlers || [];
-    if (!mouseConfig.SurvivalPointTargetMouseRegistered) {
-        mouseConfig.SurvivalPointTargetMouseRegistered = true;
-        mouseConfig.SurvivalMouseHandlers.unshift(pointTargetMouseHandler);
+    var pointDispatcher = mouseConfig.SurvivalInputDispatcher;
+    if (pointDispatcher && pointDispatcher.RegisterMouseHandler) {
+        pointDispatcher.RegisterMouseHandler(
+            "ability_point_target", pointTargetMouseHandler, 90
+        );
     }
 
     function executeAbility(abilityIndex) {
@@ -1255,12 +1279,12 @@
             $.Msg("[SURVIVAL_CAST][CLIENT] reject invalid ability index=", String(abilityIndex));
             return false;
         }
-        var unit = selectedUnit();
-        if (unit === undefined || unit < 0) {
+        var runtime = abilityRuntime(abilityIndex);
+        var unit = casterForAbility(abilityIndex, runtime);
+        if (unit < 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject invalid unit=", String(unit));
             return false;
         }
-        var runtime = abilityRuntime(abilityIndex);
         if (runtime.removed === 1
             || runtime.available === 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject unavailable ability=", String(abilityIndex),
@@ -1285,6 +1309,13 @@
             behavior = Number(Abilities.GetBehavior(abilityIndex) || 0);
         } catch (error) {}
         var managed = managedAbility(abilityIndex, name, runtime);
+        var currentUnit = Number(selectedUnit());
+        if (managed && unit !== currentUnit) {
+            $.Msg("[SURVIVAL_CAST][CLIENT] reject selection_owner_mismatch selected=",
+                String(currentUnit), " runtime_owner=", String(unit),
+                " ability=", String(abilityIndex), " name=", name);
+            return false;
+        }
         if ((behavior & 2) !== 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject passive ability=", String(abilityIndex),
                 " name=", name, " behavior=", String(behavior));
@@ -1303,7 +1334,7 @@
         }
         if ((behavior & 16) !== 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] POINT_TARGET_BEGIN unit=", String(unit), " ability=", String(abilityIndex), " name=", name, " behavior=", String(behavior));
-            return beginPointTarget(abilityIndex);
+            return beginPointTarget(abilityIndex, unit);
         }
         if ((behavior & 4) === 0) {
             $.Warning("[SURVIVAL_CAST][CLIENT] reject unsupported behavior ability="
@@ -1332,10 +1363,22 @@
         if (now - previous < 0.08) return false;
         lastHotkeyCastTime[slot] = now;
         var abilityIndex = abilityByDisplayIndex(slot);
+        var abilityName = abilityIndex >= 0
+            ? (Abilities.GetAbilityName(abilityIndex) || "") : "";
+        var runtime = abilityIndex >= 0 ? abilityRuntime(abilityIndex) : {};
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        var selection = resolver && resolver.Snapshot ? resolver.Snapshot() : {};
         $.Msg("[SURVIVAL_CAST][CLIENT] HOTKEY source=", source,
-            " display_slot=", String(slot), " ability=", String(abilityIndex));
+            " generation=", String(GameUI.CustomUIConfig().SurvivalInputLifecycleGeneration || 0),
+            " selected=", String(selection.selected || ""),
+            " portrait=", String(selection.portrait),
+            " resolved=", String(selection.resolved),
+            " unit_name=", String(selection.resolved_name || ""),
+            " builder=", String(selection.builder),
+            " display_slot=", String(slot), " ability=", String(abilityIndex),
+            " name=", abilityName,
+            " runtime_owner=", String(runtime.owner_entindex));
         if (abilityIndex < 0) return false;
-        var abilityName = Abilities.GetAbilityName(abilityIndex) || "";
         if (utilityHotkeys[abilityName]) return false;
         return executeAbility(abilityIndex);
     }
@@ -1362,22 +1405,6 @@
         return false;
     }
 
-    function applyAbilityKeyBinds(keys, commandPrefix) {
-        if (!Game.CreateCustomKeyBind) return;
-        keys.forEach(function (key, slot) {
-            Game.CreateCustomKeyBind(key, commandPrefix + String(slot));
-        });
-        $.Msg("[SURVIVAL_INPUT] KEYBINDS_APPLIED prefix=", commandPrefix,
-            " keys=QWERTYU");
-    }
-
-    function applyUtilityKeyBinds(commandPrefix) {
-        if (!Game.CreateCustomKeyBind) return;
-        ["D", "F"].forEach(function (key) {
-            Game.CreateCustomKeyBind(key, commandPrefix + "utility_" + key);
-        });
-    }
-
     function requestReturnHome(source) {
         var now = Game.GetGameTime ? Number(Game.GetGameTime()) : 0;
         if (now - lastReturnHomeTime < 0.15) return false;
@@ -1401,52 +1428,6 @@
         ) + 1;
         customConfig.SurvivalInputGenerationCounter = inputGeneration;
         inputGeneration = String(inputGeneration);
-        var commandPrefix = "survival_cast_ability_" + inputGeneration + "_";
-        var returnHomeCommand = "survival_return_home_" + inputGeneration;
-        if (Game.AddCommand && Game.CreateCustomKeyBind) {
-            keys.forEach(function (key, slot) {
-                var command = commandPrefix + String(slot);
-                Game.AddCommand(command, function () {
-                    castDisplaySlot(slot, "command");
-                }, "施放自定义技能 " + key, 0);
-                Game.AddCommand("+" + command, function () {
-                    castDisplaySlot(slot, "+command");
-                }, "按下自定义技能 " + key, 0);
-                Game.AddCommand("-" + command, function () {}, "松开自定义技能 " + key, 0);
-            });
-            var utilityKeys = ["D", "F"];
-            utilityKeys.forEach(function (key) {
-                var command = commandPrefix + "utility_" + key;
-                Game.AddCommand(command, function () {
-                    castAbilityByName(key, "command");
-                }, "施放工具技能 " + key, 0);
-                Game.AddCommand("+" + command, function () {
-                    castAbilityByName(key, "+command");
-                }, "按下工具技能 " + key, 0);
-                Game.AddCommand("-" + command, function () {},
-                    "松开工具技能 " + key, 0);
-            });
-            Game.AddCommand(returnHomeCommand, function () {
-                requestReturnHome("command");
-            }, "英雄回城", 0);
-            Game.AddCommand("+" + returnHomeCommand, function () {
-                requestReturnHome("+command");
-            }, "按下英雄回城", 0);
-            Game.AddCommand("-" + returnHomeCommand, function () {}, "松开英雄回城", 0);
-            Game.CreateCustomKeyBind("F2", returnHomeCommand);
-            applyAbilityKeyBinds(keys, commandPrefix);
-            applyUtilityKeyBinds(commandPrefix);
-            $.Schedule(0.5, function () {
-                applyAbilityKeyBinds(keys, commandPrefix);
-                applyUtilityKeyBinds(commandPrefix);
-                Game.CreateCustomKeyBind("F2", returnHomeCommand);
-            });
-            $.Schedule(2.5, function () {
-                applyAbilityKeyBinds(keys, commandPrefix);
-                applyUtilityKeyBinds(commandPrefix);
-                Game.CreateCustomKeyBind("F2", returnHomeCommand);
-            });
-        }
         var currentHandler = function (key, down) {
             var normalized = String(key).toUpperCase();
             $.Msg("[SURVIVAL_INPUT] KEY generation=", inputGeneration,
@@ -1465,22 +1446,15 @@
         // CustomUIConfig survives Workshop Tools Run sessions, but callbacks
         // from the previous Panorama context do not. Replace both the handler
         // collection and the dispatcher on every HUD load.
-        customConfig.SurvivalKeyHandlers = [currentHandler];
-        customConfig.SurvivalKeyDispatcherGeneration = inputGeneration;
-        if (GameUI.SetKeyPressedCallback) {
-            GameUI.SetKeyPressedCallback(function (key, down) {
-                var handlers = customConfig.SurvivalKeyHandlers || [];
-                for (var index = 0; index < handlers.length; index++) {
-                    if (handlers[index](key, down)) return true;
-                }
-                return false;
-            }, this);
+        var dispatcher = customConfig.SurvivalInputDispatcher;
+        if (dispatcher && dispatcher.RegisterKeyHandler) {
+            dispatcher.RegisterKeyHandler("ability_input", currentHandler, 60);
             $.Msg("[SURVIVAL_INPUT] BOUND generation=", inputGeneration,
-                " handlers=", String(customConfig.SurvivalKeyHandlers.length),
-                " command_prefix=", commandPrefix, " keys=QWERTYU,F,F2");
+                " dispatcher_generation=", String(dispatcher.generation),
+                " keys=QWERTYU,D,F,F2");
         } else {
             $.Warning("[SURVIVAL_INPUT] BIND_FAILED generation="
-                + inputGeneration + " reason=SetKeyPressedCallback_unavailable");
+                + inputGeneration + " reason=input_dispatcher_unavailable");
         }
     }
 

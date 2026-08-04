@@ -9,6 +9,8 @@
     var cameraFollowSerial = 0;
     var difficultyRequestPending = false;
     var difficultyOptionsSignature = "";
+    var initialBuilderSelectionFinished = false;
+    var initialBuilderSelectionSerial = 0;
 
     var waveStatusText = {
         dev_mode: "准备阶段",
@@ -266,18 +268,103 @@
         }
         $.Schedule(0, checkArrival);
     }
+
+    function validUnit(unit) {
+        return isFinite(Number(unit)) && Number(unit) >= 0
+            && Entities.IsValidEntity(Number(unit));
+    }
+
+    function selectedEntities() {
+        var selected = [];
+        try { selected = Players.GetSelectedEntities(playerId) || []; } catch (error) {}
+        if (Array.isArray(selected)) return selected.map(Number).filter(validUnit);
+        return Object.keys(selected).sort(function (left, right) {
+            return Number(left) - Number(right);
+        }).map(function (key) { return Number(selected[key]); }).filter(validUnit);
+    }
+
+    function recoverInitialBuilderSelection(reason, attempt, serial) {
+        if (initialBuilderSelectionFinished || serial !== initialBuilderSelectionSerial) return;
+        var identity = CustomNetTables.GetTableValue(
+            "survival_builder_identity", "player_" + String(playerId)
+        ) || {};
+        var builder = Number(identity.entindex);
+        if (!validUnit(builder)) {
+            if (attempt < 20) {
+                $.Schedule(0.10, function () {
+                    recoverInitialBuilderSelection(reason, attempt + 1, serial);
+                });
+            }
+            return;
+        }
+
+        var selected = selectedEntities();
+        var portrait = -1;
+        try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
+        if (selected.indexOf(builder) >= 0 || portrait === builder) {
+            initialBuilderSelectionFinished = true;
+            $.Msg("[SURVIVAL_SELECTION] INITIAL_BUILDER_READY reason=", reason,
+                " action=already_selected builder=", String(builder));
+            return;
+        }
+
+        var hasNonPlaceholderSelection = selected.some(function (unit) {
+            return (Entities.GetUnitName(unit) || "") !== "npc_dota_hero_undying";
+        });
+        var portraitName = validUnit(portrait) ? (Entities.GetUnitName(portrait) || "") : "";
+        if (hasNonPlaceholderSelection
+            || (validUnit(portrait) && portraitName !== "npc_dota_hero_undying")) {
+            initialBuilderSelectionFinished = true;
+            $.Msg("[SURVIVAL_SELECTION] INITIAL_BUILDER_READY reason=", reason,
+                " action=preserve_player_selection builder=", String(builder),
+                " selected=", selected.join(","), " portrait=", String(portrait),
+                " portrait_name=", portraitName);
+            return;
+        }
+
+        GameUI.SelectUnit(builder, false);
+        initialBuilderSelectionFinished = true;
+        $.Msg("[SURVIVAL_SELECTION] INITIAL_BUILDER_READY reason=", reason,
+            " action=select_builder builder=", String(builder),
+            " selected=", selected.join(","), " portrait=", String(portrait),
+            " portrait_name=", portraitName);
+    }
+
+    function scheduleInitialBuilderSelection(reason) {
+        if (initialBuilderSelectionFinished) return;
+        var serial = ++initialBuilderSelectionSerial;
+        recoverInitialBuilderSelection(String(reason || "unknown"), 0, serial);
+    }
+
     CustomNetTables.SubscribeNetTableListener(tableName, function (name, key, value) {
         if (key === tableKey) update(value);
     });
+    CustomNetTables.SubscribeNetTableListener(
+        "survival_builder_identity", function (name, key) {
+            if (key === "player_" + String(playerId)) {
+                scheduleInitialBuilderSelection("identity_update");
+            }
+        }
+    );
     GameEvents.Subscribe("ui_state_snapshot", update);
     GameEvents.Subscribe("ui_notification", showNotification);
     GameEvents.Subscribe("ui_difficulty_select_result", handleDifficultyResult);
     GameEvents.Subscribe("ui_camera_follow_hero", followHeroUntilArrival);
+    GameEvents.Subscribe("survival_select_unit", function (data) {
+        var entindex = Number(data && data.entindex);
+        if (entindex >= 0 && Entities.IsValidEntity(entindex)) {
+            GameUI.SelectUnit(entindex, false);
+            initialBuilderSelectionFinished = true;
+            $.Msg("[SURVIVAL_SELECTION] INITIAL_BUILDER_READY reason=event",
+                " action=select_builder builder=", String(entindex));
+        }
+    });
     GameUI.CustomUIConfig().SurvivalCamera = {
         FollowHeroUntilArrival: followHeroUntilArrival
     };
 
     $.Msg("[SurvivalUI] realtime HUD listener ready.");
+    scheduleInitialBuilderSelection("hud_ready");
     $.Schedule(0.10, function () {
         readSnapshot();
         requestSnapshot();

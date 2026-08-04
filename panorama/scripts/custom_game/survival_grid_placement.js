@@ -17,6 +17,7 @@
     var requestSequence = 0;
     var newestResponse = 0;
     var lastValidation = null;
+    var cursorWorldAvailable = null;
     var previewSessionSequence = Math.max(
         0,
         Math.floor((Game.GetGameTime ? Number(Game.GetGameTime()) : 0) * 1000)
@@ -57,12 +58,9 @@
     }
 
     function selectedUnit() {
-        try {
-            var unit = Players.GetLocalPlayerPortraitUnit();
-            return unit === undefined || unit === null ? -1 : Number(unit);
-        } catch (error) {
-            return -1;
-        }
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.Resolve) return Number(resolver.Resolve());
+        return -1;
     }
 
     function abilityByName(unit, name) {
@@ -95,6 +93,11 @@
             if (profiles.hasOwnProperty(name) && text.indexOf(name) >= 0) return name;
         }
         return "";
+    }
+
+    function customPointTargetState() {
+        var shared = GameUI.CustomUIConfig().SurvivalPointTargetState;
+        return shared && shared.active ? shared : null;
     }
 
     function screenPoint(world) {
@@ -183,7 +186,12 @@
         );
         hideProjectedVisuals();
         setVisualValid(false);
-        $.Msg("[GridPlacement] preview begin ability=" + profile.ability_name + " mode=" + mode);
+        $.Msg("[GridPlacement][CLIENT] BEGIN session=" + String(activePreviewSession)
+            + " ability_name=" + String(profile.ability_name)
+            + " ability=" + String(abilityIndex)
+            + " unit=" + String(unit)
+            + " unit_name=" + String(unit >= 0 ? Entities.GetUnitName(unit) : "invalid")
+            + " mode=" + String(mode));
     }
 
     function hidePreview(notifyServer) {
@@ -223,7 +231,14 @@
 
     function cursorWorld() {
         var cursor = GameUI.GetCursorPosition();
-        return cursor ? GameUI.GetScreenWorldPosition(cursor) : null;
+        var world = cursor ? GameUI.GetScreenWorldPosition(cursor) : null;
+        var available = !!world;
+        if (available !== cursorWorldAvailable) {
+            cursorWorldAvailable = available;
+            $.Msg("[GridPlacement][CLIENT] CURSOR_WORLD available=" + String(available)
+                + " cursor=" + String(cursor));
+        }
+        return world;
     }
 
     function approximateAnchor(world) {
@@ -247,6 +262,14 @@
             hideProjectedVisuals();
             setVisualValid(false, "正在验证建筑占地……");
         }
+        $.Msg("[GridPlacement][CLIENT] VALIDATE_SEND session="
+            + String(activePreviewSession) + " request=" + String(requestSequence)
+            + " ability_name=" + String(activeProfile.ability_name)
+            + " ability=" + String(activeAbility) + " unit=" + String(activeUnit)
+            + " world=" + Number(world[0]).toFixed(1) + ","
+            + Number(world[1]).toFixed(1) + "," + Number(world[2]).toFixed(1)
+            + " anchor=" + String(anchor[0]) + ":" + String(anchor[1])
+            + " changed=" + String(anchorChanged));
         GameEvents.SendCustomGameEventToServer("ui_grid_placement_validate", {
             session_id: String(activePreviewSession),
             request_id: String(requestSequence),
@@ -407,8 +430,9 @@
         var nativeName = abilityName(nativeIndex);
         var nativeProfile = profiles[nativeName];
         if (customProfile) {
-            var unit = selectedUnit();
-            var ability = abilityByName(unit, customName);
+            var customState = customPointTargetState();
+            var unit = Number(customState && customState.unit);
+            var ability = Number(customState && customState.ability);
             if (!activeProfile || activeAbility !== ability || inputMode !== "custom") {
                 showProfile(customProfile, ability, unit, "custom");
             }
@@ -451,12 +475,34 @@
 
     function onValidation(data) {
         var sequence = Number(data && data.request_id);
-        if (Number(data && data.session_id) !== activePreviewSession
-            || isNaN(sequence)
-            || sequence < newestResponse) return;
+        var responseSession = Number(data && data.session_id);
+        var responseAbility = String(data && data.ability_name || "");
+        var responseAnchorKey = String(data && data.request_anchor_x) + ":"
+            + String(data && data.request_anchor_y) + ":" + responseAbility;
+        $.Msg("[GridPlacement][CLIENT] VALIDATE_RECV session=" + String(responseSession)
+            + " request=" + String(sequence) + " ability_name=" + responseAbility
+            + " success=" + String(data && data.success)
+            + " error=" + String(data && data.error || "")
+            + " request_anchor=" + responseAnchorKey
+            + " current_anchor=" + String(lastAnchorKey));
+        if (responseSession !== activePreviewSession) {
+            $.Msg("[GridPlacement][CLIENT] RESPONSE_REJECTED reason=session_mismatch");
+            return;
+        }
+        if (isNaN(sequence) || sequence < newestResponse) {
+            $.Msg("[GridPlacement][CLIENT] RESPONSE_REJECTED reason=request_stale newest="
+                + String(newestResponse));
+            return;
+        }
         newestResponse = sequence;
-        if (!activeProfile || data.ability_name !== activeProfile.ability_name) return;
-        if (validationKey(data) !== lastAnchorKey) return;
+        if (!activeProfile || responseAbility !== activeProfile.ability_name) {
+            $.Msg("[GridPlacement][CLIENT] RESPONSE_REJECTED reason=ability_mismatch");
+            return;
+        }
+        if (responseAnchorKey !== lastAnchorKey) {
+            $.Msg("[GridPlacement][CLIENT] RESPONSE_REJECTED reason=anchor_mismatch");
+            return;
+        }
         lastValidation = data;
         renderValidation(data);
     }
@@ -472,8 +518,9 @@
         var name = customPointTargetName();
         var profile = profiles[name];
         if (!profile) return false;
-        var unit = selectedUnit();
-        var ability = abilityByName(unit, name);
+        var customState = customPointTargetState();
+        var unit = Number(customState && customState.unit);
+        var ability = Number(customState && customState.ability);
         if (ability < 0) return false;
         showProfile(profile, ability, unit, "custom");
         var world = cursorWorld();
@@ -518,31 +565,12 @@
 
     function bindInputHandlers() {
         var customConfig = GameUI.CustomUIConfig();
-        customConfig.SurvivalMouseHandlers = customConfig.SurvivalMouseHandlers || [];
-        promoteHandler(customConfig.SurvivalMouseHandlers, mouseHandler);
-        customConfig.SurvivalGridPlacementMouseRegistered = true;
-        if (!customConfig.SurvivalMouseDispatcherBound) {
-            customConfig.SurvivalMouseDispatcherBound = true;
-            GameUI.SetMouseCallback(function (eventName, button, gameTime) {
-                var handlers = customConfig.SurvivalMouseHandlers || [];
-                for (var index = 0; index < handlers.length; index += 1) {
-                    if (handlers[index](eventName, button, gameTime)) return true;
-                }
-                return false;
-            });
+        var dispatcher = customConfig.SurvivalInputDispatcher;
+        if (dispatcher && dispatcher.RegisterMouseHandler) {
+            dispatcher.RegisterMouseHandler("grid_placement", mouseHandler, 100);
         }
-        customConfig.SurvivalKeyHandlers = customConfig.SurvivalKeyHandlers || [];
-        promoteHandler(customConfig.SurvivalKeyHandlers, keyHandler);
-        customConfig.SurvivalGridPlacementKeyRegistered = true;
-        if (GameUI.SetKeyPressedCallback && !customConfig.SurvivalKeyDispatcherBound) {
-            customConfig.SurvivalKeyDispatcherBound = true;
-            GameUI.SetKeyPressedCallback(function (key, down) {
-                var handlers = customConfig.SurvivalKeyHandlers || [];
-                for (var index = 0; index < handlers.length; index += 1) {
-                    if (handlers[index](key, down)) return true;
-                }
-                return false;
-            }, this);
+        if (dispatcher && dispatcher.RegisterKeyHandler) {
+            dispatcher.RegisterKeyHandler("grid_placement", keyHandler, 100);
         }
     }
 

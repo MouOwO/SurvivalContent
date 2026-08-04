@@ -14,12 +14,9 @@
     }
 
     function selectedUnit() {
-        try {
-            var unit = Players.GetLocalPlayerPortraitUnit();
-            return unit === undefined || unit === null ? -1 : Number(unit);
-        } catch (e) {
-            return -1;
-        }
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.Resolve) return Number(resolver.Resolve());
+        return -1;
     }
 
     function isMovable(unit) {
@@ -96,41 +93,19 @@
     }
 
     var customConfig = GameUI.CustomUIConfig();
-    customConfig.SurvivalMouseHandlers = customConfig.SurvivalMouseHandlers || [];
-    customConfig.SurvivalMouseHandlers.push(mouseCallback);
-    if (!customConfig.SurvivalMouseDispatcherBound) {
-        customConfig.SurvivalMouseDispatcherBound = true;
-        GameUI.SetMouseCallback(function (eventName, button, gameTime) {
-            var handlers = customConfig.SurvivalMouseHandlers || [];
-            for (var index = 0; index < handlers.length; index++) {
-                if (handlers[index](eventName, button, gameTime)) return true;
-            }
-            return false;
-        });
+    var dispatcher = customConfig.SurvivalInputDispatcher;
+    if (dispatcher && dispatcher.RegisterMouseHandler) {
+        dispatcher.RegisterMouseHandler("building_move", mouseCallback, 80);
     }
-    customConfig.SurvivalKeyHandlers = customConfig.SurvivalKeyHandlers || [];
-    customConfig.SurvivalKeyHandlers.push(function (key, down) {
+    var keyHandler = function (key, down) {
         if (!down || String(key).toUpperCase() !== KEY_NAME) return false;
+        if (!moving && !isMovable(selectedUnit())) return false;
         if (moving) cancelMove();
         else beginMove();
         return true;
-    });
-    if (Game.AddCommand && Game.CreateCustomKeyBind) {
-        Game.AddCommand("survival_move_building", function () {
-            if (moving) cancelMove();
-            else beginMove();
-        }, "移动当前建筑", 0);
-        Game.CreateCustomKeyBind(KEY_NAME, "survival_move_building");
-    }
-    if (GameUI.SetKeyPressedCallback && !customConfig.SurvivalKeyDispatcherBound) {
-        customConfig.SurvivalKeyDispatcherBound = true;
-        GameUI.SetKeyPressedCallback(function (key, down) {
-            var handlers = customConfig.SurvivalKeyHandlers || [];
-            for (var index = 0; index < handlers.length; index++) {
-                if (handlers[index](key, down)) return true;
-            }
-            return false;
-        }, this);
+    };
+    if (dispatcher && dispatcher.RegisterKeyHandler) {
+        dispatcher.RegisterKeyHandler("building_move", keyHandler, 80);
     }
     GameEvents.Subscribe("ui_building_move_result", function (data) {
         if (!data || Number(data.success) === 1) return;

@@ -122,21 +122,14 @@
 
     function bindTab() {
         var config = GameUI.CustomUIConfig();
-        var command = "survival_toggle_game_info_" + String(generation);
-        if (Game.AddCommand && Game.CreateCustomKeyBind) {
-            Game.AddCommand(command, function () { toggle("command"); }, "打开游戏信息", 0);
-            Game.AddCommand("+" + command, function () { toggle("+command"); }, "按下游戏信息", 0);
-            Game.AddCommand("-" + command, function () {}, "松开游戏信息", 0);
-            Game.CreateCustomKeyBind("TAB", command);
-            $.Schedule(0.5, function () { Game.CreateCustomKeyBind("TAB", command); });
-            $.Schedule(2.5, function () { Game.CreateCustomKeyBind("TAB", command); });
-        }
         var handler = function (key, down) {
             if (!down || String(key).toUpperCase() !== "TAB") return false;
             return toggle("key_dispatch");
         };
-        config.SurvivalKeyHandlers = config.SurvivalKeyHandlers || [];
-        config.SurvivalKeyHandlers.push(handler);
+        var dispatcher = config.SurvivalInputDispatcher;
+        if (dispatcher && dispatcher.RegisterKeyHandler) {
+            dispatcher.RegisterKeyHandler("game_info", handler, 40);
+        }
         $.Msg("[GAME_INFO][CLIENT] TAB_BOUND generation=", String(generation));
     }
 
