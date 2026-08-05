@@ -55,6 +55,11 @@
     var defaultTooltipFadeDuration = 0.08;
     var tooltipFadeDuration = defaultTooltipFadeDuration;
     var tooltipAnimationFrame = 0.016;
+    // Entities.GetAbility() addresses sparse engine slots, not Valve's compact
+    // Ability0..N visual row. Native heroes can have many hidden abilities ahead
+    // of the six project-visible abilities, so every Tooltip path must share this
+    // bounded sparse scan instead of assuming a small contiguous engine range.
+    var maxAbilityEngineSlots = 64;
 
     function byId(id) { return $("#" + id); }
 
@@ -516,64 +521,68 @@
             && unitOwnsAbility(Number(runtime.owner_entindex), abilityIndex);
     }
 
-    function unitOwnsAbility(unit, abilityIndex) {
-        if (!isFinite(Number(unit)) || Number(unit) < 0) return false;
-        for (var slot = 0; slot < 24; slot++) {
-            try {
-                if (Number(Entities.GetAbility(Number(unit), slot))
-                    === Number(abilityIndex)) return true;
-            } catch (error) {}
-        }
-        return false;
-    }
-
     function selectedUnit() {
         var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
         if (resolver && resolver.Resolve) return resolver.Resolve();
         return Players.GetPlayerHeroEntityIndex(Game.GetLocalPlayerID());
     }
 
-    function abilityFromSlot(slot) {
-        var unit = selectedUnit();
-        if (unit === undefined || unit < 0) return -1;
-        try { return Entities.GetAbility(unit, slot); } catch (error) { return -1; }
-    }
-
-    function abilityFromDisplayIndex(displayIndex) {
-        var unit = selectedUnit();
-        if (unit === undefined || unit < 0) return -1;
-        var visible = [];
-        for (var slot = 0; slot < 24; slot++) {
-            var abilityIndex = abilityFromSlot(slot);
-            if (abilityIndex === undefined || abilityIndex < 0) continue;
-            var abilityName = "";
-            var hidden = false;
-            try {
-                abilityName = Abilities.GetAbilityName(abilityIndex) || "";
-                hidden = Abilities.IsHidden(abilityIndex);
-            } catch (error) {}
-            if (abilityName && !hidden) visible.push(abilityIndex);
-        }
-        return visible[displayIndex] === undefined
-            ? -1 : visible[displayIndex];
-    }
-
-    function visibleAbilityIndexes() {
-        var visible = [];
-        for (var slot = 0; slot < 24; slot++) {
-            var abilityIndex = abilityFromSlot(slot);
-            if (abilityIndex === undefined || abilityIndex < 0) continue;
+    function enumerateAbilitySlots(unit) {
+        var entries = [];
+        unit = Number(unit);
+        if (!isFinite(unit) || unit < 0) return entries;
+        for (var engineSlot = 0; engineSlot < maxAbilityEngineSlots; engineSlot++) {
+            var abilityIndex = -1;
+            try { abilityIndex = Number(Entities.GetAbility(unit, engineSlot)); } catch (error) {}
+            if (!isFinite(abilityIndex) || abilityIndex < 0) continue;
             var abilityName = "";
             var hidden = false;
             try {
                 abilityName = Abilities.GetAbilityName(abilityIndex) || "";
                 hidden = !!Abilities.IsHidden(abilityIndex);
             } catch (error) {}
-            if (!abilityName || hidden
-                || abilityName.indexOf("special_bonus_") === 0) continue;
-            visible.push(abilityIndex);
+            entries.push({
+                engineSlot: engineSlot,
+                abilityIndex: abilityIndex,
+                abilityName: abilityName,
+                hidden: hidden
+            });
         }
-        return visible;
+        return entries;
+    }
+
+    function visibleAbilityEntries() {
+        return enumerateAbilitySlots(selectedUnit()).filter(function (entry) {
+            return entry.abilityName && !entry.hidden
+                && entry.abilityName.indexOf("special_bonus_") !== 0;
+        });
+    }
+
+    function unitOwnsAbility(unit, abilityIndex) {
+        return enumerateAbilitySlots(unit).some(function (entry) {
+            return Number(entry.abilityIndex) === Number(abilityIndex);
+        });
+    }
+
+    function engineSlotForAbility(unit, abilityIndex) {
+        var matched = -1;
+        enumerateAbilitySlots(unit).some(function (entry) {
+            if (Number(entry.abilityIndex) !== Number(abilityIndex)) return false;
+            matched = entry.engineSlot;
+            return true;
+        });
+        return matched;
+    }
+
+    function abilityFromDisplayIndex(displayIndex) {
+        var entry = visibleAbilityEntries()[displayIndex];
+        return entry === undefined ? -1 : entry.abilityIndex;
+    }
+
+    function visibleAbilityIndexes() {
+        return visibleAbilityEntries().map(function (entry) {
+            return entry.abilityIndex;
+        });
     }
 
     function localBuilderEntity() {
@@ -619,10 +628,9 @@
     }
 
     function visibleAbilitySignature() {
-        return visibleAbilityIndexes().map(function (abilityIndex) {
-            var abilityName = "";
-            try { abilityName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
-            return String(abilityIndex) + ":" + abilityName;
+        return visibleAbilityEntries().map(function (entry) {
+            return String(entry.engineSlot) + ":"
+                + String(entry.abilityIndex) + ":" + entry.abilityName;
         }).join("|");
     }
 
@@ -689,30 +697,18 @@
 
     function isSelectedBuilderVisibleAbility(abilityIndex) {
         if (!isSelectedLocalBuilder()) return false;
-        var unit = Number(selectedUnit());
         try {
             if (Abilities.IsHidden(abilityIndex)) return false;
-            for (var slot = 0; slot < 24; slot++) {
-                if (Number(Entities.GetAbility(unit, slot)) === Number(abilityIndex)) {
-                    return true;
-                }
-            }
         } catch (error) {}
-        return false;
+        return unitOwnsAbility(Number(selectedUnit()), abilityIndex);
     }
 
     function isSelectedCombatHeroVisibleAbility(abilityIndex) {
         if (!isSelectedCombatHero()) return false;
-        var unit = Number(selectedUnit());
         try {
             if (Abilities.IsHidden(abilityIndex)) return false;
-            for (var slot = 0; slot < 24; slot++) {
-                if (Number(Entities.GetAbility(unit, slot)) === Number(abilityIndex)) {
-                    return true;
-                }
-            }
         } catch (error) {}
-        return false;
+        return unitOwnsAbility(Number(selectedUnit()), abilityIndex);
     }
 
     function customTooltipAbility(abilityIndex, abilityName) {
@@ -979,6 +975,7 @@
                 || Math.abs(delta.height) > tolerance;
             var diagnostic = "unit=" + String(selectedUnit())
                 + " display=" + String(binding.displayIndex)
+                    + " engine_slot=" + String(active.engineSlot)
                 + " ability=" + String(binding.abilityIndex)
                 + " status=" + (geometryMismatch ? "geometry_mismatch" : "aligned")
                 + " anchor=" + Math.round(anchorRect.x) + ","
@@ -1019,7 +1016,7 @@
         var result = [];
         var seen = [];
         if (!abilities || !abilities.FindChildTraverse) return result;
-        for (var nodeIndex = 0; nodeIndex < 24; nodeIndex++) {
+        for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
             var panel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
             if (!panel || seen.indexOf(panel) >= 0) continue;
             seen.push(panel);
@@ -1057,6 +1054,7 @@
             if (!proxy || !proxy.IsValid || !proxy.IsValid()) return;
             proxy.__survivalAbilityIndex = -1;
             proxy.__survivalAbilityName = "";
+            proxy.__survivalEngineSlot = -1;
             setExternalProxyHighlight(proxy, false);
             proxy.__survivalVisualAnchor = null;
             proxy.__survivalPointerInside = false;
@@ -1075,6 +1073,7 @@
                 || usedProxies.indexOf(proxy) >= 0) return;
             proxy.__survivalAbilityIndex = -1;
             proxy.__survivalAbilityName = "";
+            proxy.__survivalEngineSlot = -1;
             setExternalProxyHighlight(proxy, false);
             proxy.__survivalVisualAnchor = null;
             proxy.__survivalPointerInside = false;
@@ -1160,6 +1159,7 @@
                 var diagnostic = "reason=" + String(reason || "binding")
                     + " unit=" + String(selectedUnit())
                     + " display=" + String(active.displayIndex)
+                    + " engine_slot=" + String(active.engineSlot)
                     + " node=Ability" + String(active.entry.nodeIndex)
                     + " ability=" + String(active.abilityIndex)
                     + " name=" + active.abilityName
@@ -1186,6 +1186,7 @@
     function bindingDecision(entry, displayIndex, abilityIndex, abilityName,
             requested, prepared) {
         var unit = Number(selectedUnit());
+        var engineSlot = engineSlotForAbility(unit, abilityIndex);
         var hidden = false;
         try { hidden = !!Abilities.IsHidden(abilityIndex); } catch (error) {}
         var definition = CustomNetTables.GetTableValue(
@@ -1198,6 +1199,7 @@
             "survival_ability_runtime", String(abilityIndex)
         ) || {};
         return "display=" + String(displayIndex)
+            + ",engine_slot=" + String(engineSlot)
             + ",node=Ability" + String(entry.nodeIndex)
             + ",ability=" + String(abilityIndex)
             + ",name=" + abilityName
@@ -1216,6 +1218,7 @@
     function externalOutDiagnostic(proxy, state, tooltipState, action) {
         $.Msg("[SURVIVAL_TOOLTIP_OUT] unit=", String(selectedUnit()),
             " display=", String(proxy.__survivalDisplayIndex),
+            " engine_slot=", String(proxy.__survivalEngineSlot),
             " ability=", String(proxy.__survivalAbilityIndex),
             " inside=", String(state.inside),
             " tooltip_inside=", String(tooltipState.inside),
@@ -1248,6 +1251,7 @@
                 lastState = sessionState;
                 $.Msg("[SURVIVAL_TOOLTIP_SESSION] unit=", String(selectedUnit()),
                     " display=", String(proxy.__survivalDisplayIndex),
+                    " engine_slot=", String(proxy.__survivalEngineSlot),
                     " ability=", String(abilityIndex),
                     " state=", sessionState,
                     " tooltip_hidden=", String(!tooltipVisible),
@@ -1306,6 +1310,7 @@
         proxy.__survivalHighlightTarget = null;
         proxy.__survivalHighlightBrightness = "";
         proxy.__survivalHighlightSaturation = "";
+        proxy.__survivalEngineSlot = -1;
         proxy.style.visibility = "collapse";
         proxy.SetPanelEvent("onmouseover", function () {
             proxy.__survivalPointerInside = true;
@@ -1317,6 +1322,7 @@
                 || !customTooltipAbility(boundAbility, abilityName)) return;
             var hover = "unit=" + String(selectedUnit())
                 + " display=" + String(proxy.__survivalDisplayIndex)
+                + " engine_slot=" + String(proxy.__survivalEngineSlot)
                 + " ability=" + String(boundAbility)
                 + " name=" + abilityName
                 + " source=external_proxy";
@@ -1350,7 +1356,8 @@
                 || !customTooltipAbility(boundAbility, abilityName)) return;
             if (!managedUpgrade(boundAbility, abilityName)) {
                 $.Msg("[SURVIVAL_CAST][CLIENT] EXTERNAL_PROXY_ENGINE display_slot=",
-                    String(proxy.__survivalDisplayIndex), " ability=", String(boundAbility),
+                    String(proxy.__survivalDisplayIndex), " engine_slot=",
+                    String(proxy.__survivalEngineSlot), " ability=", String(boundAbility),
                     " name=", abilityName, " unit=", String(selectedUnit()));
                 try {
                     Abilities.ExecuteAbility(boundAbility, selectedUnit(), false);
@@ -1364,7 +1371,8 @@
                 String(boundAbility)
             ) || {};
             $.Msg("[SURVIVAL_CAST][CLIENT] EXTERNAL_PROXY display_slot=",
-                String(proxy.__survivalDisplayIndex), " ability=", String(boundAbility),
+                String(proxy.__survivalDisplayIndex), " engine_slot=",
+                String(proxy.__survivalEngineSlot), " ability=", String(boundAbility),
                 " name=", abilityName, " available=",
                 String(runtime.available), " can_afford=",
                 String(runtime.can_afford), " resource_version=",
@@ -1380,10 +1388,12 @@
         var layer = ensureExternalProxyLayer();
         var proxy = ensureExternalProxy(displayIndex);
         var anchor = entry && entry.anchor;
+        var engineSlot = engineSlotForAbility(selectedUnit(), abilityIndex);
         if (!layer || !proxy || !anchor
             || !layer.GetPositionWithinWindow || !anchor.GetPositionWithinWindow) {
             $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=dependencies",
                 " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " engine_slot=", String(engineSlot),
                 " ability=", String(abilityIndex), " name=", String(abilityName),
                 " layer=", String(!!layer), " proxy=", String(!!proxy),
                 " anchor=", panelIdentity(anchor));
@@ -1392,6 +1402,7 @@
         if (!customTooltipAbility(abilityIndex, abilityName)) {
             $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=scope",
                 " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " engine_slot=", String(engineSlot),
                 " ability=", String(abilityIndex), " name=", String(abilityName),
                 " scope=", selectedTooltipScope());
             return null;
@@ -1408,6 +1419,7 @@
             || Math.abs(Number(anchorPosition.y)) > positionLimit) {
             $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=position",
                 " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " engine_slot=", String(engineSlot),
                 " ability=", String(abilityIndex), " name=", String(abilityName));
             return null;
         }
@@ -1423,6 +1435,7 @@
             || width <= 0 || height <= 0) {
             $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=rect",
                 " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " engine_slot=", String(engineSlot),
                 " ability=", String(abilityIndex), " name=", String(abilityName),
                 " rect=", String(x), ",", String(y), ",",
                 String(width), ",", String(height));
@@ -1436,6 +1449,7 @@
             entry: entry,
             proxy: proxy,
             displayIndex: displayIndex,
+            engineSlot: engineSlot,
             abilityIndex: abilityIndex,
             abilityName: abilityName,
             x: x,
@@ -1445,7 +1459,7 @@
             position: position,
             proxyWidth: proxyWidth,
             proxyHeight: proxyHeight,
-            key: String(abilityIndex) + "|" + abilityName + "|"
+            key: String(engineSlot) + "|" + String(abilityIndex) + "|" + abilityName + "|"
                 + String(displayIndex) + "|" + position + "|"
                 + proxyWidth + "|" + proxyHeight
         };
@@ -1464,6 +1478,7 @@
             proxy.__survivalAbilityIndex = binding.abilityIndex;
             proxy.__survivalAbilityName = binding.abilityName;
             proxy.__survivalDisplayIndex = binding.displayIndex;
+            proxy.__survivalEngineSlot = binding.engineSlot;
             proxy.style.position = binding.position;
             proxy.style.width = binding.proxyWidth;
             proxy.style.height = binding.proxyHeight;
@@ -1476,6 +1491,7 @@
         var proxyPosition = proxy.GetPositionWithinWindow
             ? proxy.GetPositionWithinWindow() : { x: 0, y: 0 };
         return "Ability" + String(binding.entry.nodeIndex) + "->" + binding.abilityName
+            + " engine_slot=" + String(binding.engineSlot)
             + " anchor=" + String(binding.entry.anchor.id || "unknown")
             + " rect=" + Math.round(binding.x) + "," + Math.round(binding.y)
             + "," + Math.round(binding.width) + "," + Math.round(binding.height)
@@ -1542,7 +1558,10 @@
             var abilityIndex = abilityIndexes[displayIndex];
             var abilityName = "";
             try { abilityName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
-            mapping.push("Ability" + String(entry.nodeIndex) + "->" + abilityName);
+            var engineSlot = engineSlotForAbility(selectedUnit(), abilityIndex);
+            mapping.push("Ability" + String(entry.nodeIndex) + "->" + abilityName
+                + " engine_slot=" + String(engineSlot)
+                + " ability=" + String(abilityIndex));
             var requested = customTooltipAbility(abilityIndex, abilityName);
             var prepared = null;
             if (requested) {

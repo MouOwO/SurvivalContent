@@ -43,6 +43,7 @@
     };
     var lastHotkeyCastTime = {};
     var lastReturnHomeTime = -100;
+    var maxAbilityEngineSlots = 64;
     var towerRuntimeTrace = {};
     var utilityHotkeys = {
         ability_survival_builder_blink: "D",
@@ -1040,7 +1041,7 @@
             return;
         }
         var seen = [];
-        for (var i = 0; i < 24; i++) {
+        for (var i = 0; i < maxAbilityEngineSlots; i++) {
             var abilityIndex = Entities.GetAbility(unit, i);
             if (abilityIndex !== undefined && abilityIndex >= 0) {
                 var abilityName = Abilities.GetAbilityName(abilityIndex);
@@ -1084,7 +1085,7 @@
         // label left on one of those panels therefore appears on the next
         // unit's ability in that position. Hide every old marker before finding
         // the current builder's utility abilities.
-        for (var slot = 0; slot < 24; slot++) {
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
             var oldPanel = abilities.FindChildTraverse("Ability" + String(slot));
             var oldLabel = oldPanel && oldPanel.FindChildTraverse
                 ? oldPanel.FindChildTraverse("SurvivalUtilityHotkey") : null;
@@ -1155,7 +1156,7 @@
 
     function visibleAbilityEntries(unit) {
         var entries = [];
-        for (var slot = 0; slot < 24; slot++) {
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
             var ability = abilityIndexForSlot(unit, slot);
             if (ability === undefined || ability < 0) continue;
             var name = Abilities.GetAbilityName(ability) || "";
@@ -1216,7 +1217,7 @@
 
     function unitOwnsAbility(unit, abilityIndex) {
         if (!isFinite(Number(unit)) || Number(unit) < 0) return false;
-        for (var slot = 0; slot < 24; slot++) {
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
             if (Number(abilityIndexForSlot(Number(unit), slot)) === Number(abilityIndex)) {
                 return true;
             }
@@ -1418,7 +1419,7 @@
         var unit = selectedUnit();
         var abilityName = utilityAbilityForKey[key];
         if (unit === undefined || unit < 0 || !abilityName) return false;
-        for (var slot = 0; slot < 24; slot++) {
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
             var abilityIndex = Entities.GetAbility(unit, slot);
             if (abilityIndex === undefined || abilityIndex < 0) continue;
             if (Abilities.GetAbilityName(abilityIndex) === abilityName) {
