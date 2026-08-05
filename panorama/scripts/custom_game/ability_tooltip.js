@@ -39,9 +39,15 @@
     var externalGeometryDiagnostics = [];
     var externalProxyLayer = null;
     var externalProxies = [];
+    var officialBindings = [];
+    var bindingDecisionDiagnostic = "";
+    var cursorProbeSerial = 0;
+    var cursorProbeDiagnostic = "";
     var observedSelectedUnit = null;
-    var observedBuilderAbilitySignature = "";
-    var builderRuntimeObservationSerial = 0;
+    var observedAuthorityAbilitySignature = "";
+    var scopeDiagnostic = "";
+    var recoveryDiagnostic = "";
+    var authorityRuntimeObservationSerial = 0;
     var selectionObservationSerial = 0;
     var externalHoverExitSerial = 0;
     var selectiveTooltipOwner = "selective_proxy";
@@ -359,6 +365,8 @@
 
     function render(abilityIndex, abilityName, sourcePanel) {
         var upgradeMode = managedUpgrade(abilityIndex, abilityName);
+        var heroMode = isSelectedCombatHero()
+            && unitOwnsAbility(selectedUnit(), abilityIndex);
         var definition = CustomNetTables.GetTableValue(
             "survival_ability_data",
             abilityName
@@ -382,7 +390,7 @@
         tooltip.RemoveClass("ExtensionOnly");
         setText("CustomAbilityExtensionLabel", upgradeMode
             ? localize("Survival_UpgradeTooltip_Category", "SURVIVAL · UPGRADE")
-            : "SURVIVAL · ABILITY");
+            : (heroMode ? "SURVIVAL · HERO" : "SURVIVAL · ABILITY"));
 
         var localizedTitle = localize("DOTA_Tooltip_ability_" + abilityName, "");
         setText("CustomAbilityTitle", runtime.display_name || localizedTitle
@@ -423,7 +431,7 @@
         setText("CustomAbilityWoodCost", woodCost);
 
         fields.RemoveAndDeleteChildren();
-        if (upgradeMode) {
+        if (upgradeMode || heroMode) {
             asArray(runtime.fields).forEach(function (field) {
                 if (field) addField(fields, field.label, field.value);
             });
@@ -568,24 +576,87 @@
         return visible;
     }
 
-    function isLocalUndyingBuilder() {
+    function localBuilderEntity() {
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (!resolver || !resolver.BuilderEntity) return -1;
+        try { return Number(resolver.BuilderEntity()); } catch (error) { return -1; }
+    }
+
+    function localCombatHeroEntity() {
+        var playerId = Game.GetLocalPlayerID();
+        var identity = CustomNetTables.GetTableValue(
+            "survival_hero_skills", "player_" + String(playerId)
+        ) || {};
+        var hero = Number(identity.unit_entindex);
+        if (!isFinite(hero) || hero < 0) return -1;
+        try { return Entities.IsValidEntity(hero) ? hero : -1; } catch (error) { return -1; }
+    }
+
+    function isSelectedCombatHero() {
         var unit = Number(selectedUnit());
-        var hero = Number(Players.GetPlayerHeroEntityIndex(Game.GetLocalPlayerID()));
-        if (!isFinite(unit) || unit < 0 || unit !== hero) return false;
+        var hero = localCombatHeroEntity();
+        return isFinite(unit) && unit >= 0 && hero >= 0 && unit === hero;
+    }
+
+    function isSelectedLocalBuilder() {
+        var unit = Number(selectedUnit());
+        if (!isFinite(unit) || unit < 0) return false;
+        var builder = localBuilderEntity();
+        if (isFinite(builder) && builder >= 0) return unit === builder;
+        // The identity net table can arrive one HUD frame after the initial
+        // Builder selection. Unit-name fallback keeps that first binding from
+        // exposing Valve's Tooltip without broadening the rule to heroes.
         try {
-            return Entities.GetUnitName(unit) === "npc_dota_hero_undying";
+            return Entities.GetUnitName(unit) === "npc_survival_builder_proxy";
         } catch (error) {
             return false;
         }
     }
 
-    function builderAbilitySignature() {
-        if (!isLocalUndyingBuilder()) return "";
+    function authorityAbilitySignature() {
+        if (!isSelectedLocalBuilder() && !isSelectedCombatHero()) return "";
+        return visibleAbilitySignature();
+    }
+
+    function visibleAbilitySignature() {
         return visibleAbilityIndexes().map(function (abilityIndex) {
             var abilityName = "";
             try { abilityName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
             return String(abilityIndex) + ":" + abilityName;
         }).join("|");
+    }
+
+    function selectionSnapshot() {
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.Snapshot) {
+            try { return resolver.Snapshot() || {}; } catch (error) {}
+        }
+        return { resolved: selectedUnit(), builder: localBuilderEntity() };
+    }
+
+    function selectedTooltipScope() {
+        if (isSelectedLocalBuilder()) return "builder";
+        if (isSelectedCombatHero()) return "combat_hero";
+        return "native_or_managed";
+    }
+
+    function logTooltipScope(reason) {
+        var snapshot = selectionSnapshot();
+        var unit = Number(selectedUnit());
+        var unitName = "";
+        try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
+        var diagnostic = "reason=" + String(reason || "unknown")
+            + " selected=" + String(snapshot.selected === undefined ? "" : snapshot.selected)
+            + " portrait=" + String(snapshot.portrait === undefined ? -1 : snapshot.portrait)
+            + " resolved=" + String(unit)
+            + " resolved_name=" + unitName
+            + " builder=" + String(localBuilderEntity())
+            + " combat_hero=" + String(localCombatHeroEntity())
+            + " scope=" + selectedTooltipScope()
+            + " abilities=" + visibleAbilitySignature();
+        if (diagnostic === scopeDiagnostic) return;
+        scopeDiagnostic = diagnostic;
+        $.Msg("[SURVIVAL_TOOLTIP_SCOPE] ", diagnostic);
     }
 
     function isManagedBuildingAction(abilityName) {
@@ -616,8 +687,22 @@
             || /^building_/.test(ownerName);
     }
 
-    function isLocalUndyingVisibleAbility(abilityIndex) {
-        if (!isLocalUndyingBuilder()) return false;
+    function isSelectedBuilderVisibleAbility(abilityIndex) {
+        if (!isSelectedLocalBuilder()) return false;
+        var unit = Number(selectedUnit());
+        try {
+            if (Abilities.IsHidden(abilityIndex)) return false;
+            for (var slot = 0; slot < 24; slot++) {
+                if (Number(Entities.GetAbility(unit, slot)) === Number(abilityIndex)) {
+                    return true;
+                }
+            }
+        } catch (error) {}
+        return false;
+    }
+
+    function isSelectedCombatHeroVisibleAbility(abilityIndex) {
+        if (!isSelectedCombatHero()) return false;
         var unit = Number(selectedUnit());
         try {
             if (Abilities.IsHidden(abilityIndex)) return false;
@@ -632,7 +717,8 @@
 
     function customTooltipAbility(abilityIndex, abilityName) {
         return managedUpgrade(abilityIndex, abilityName)
-            || isLocalUndyingVisibleAbility(abilityIndex);
+            || isSelectedBuilderVisibleAbility(abilityIndex)
+            || isSelectedCombatHeroVisibleAbility(abilityIndex);
     }
 
     function executeAbility(abilityIndex) {
@@ -796,6 +882,21 @@
         return host;
     }
 
+    function disableInactiveTakeoverLayer() {
+        var layer = byId("SurvivalAbilityTakeoverLayer");
+        if (!layer) return;
+        layer.hittest = false;
+        layer.hittestchildren = false;
+    }
+
+    function moveProxyLayerToFront(host, layer) {
+        if (!host || !layer || !host.MoveChildAfter || !host.GetChildCount) return;
+        var count = host.GetChildCount();
+        if (count <= 0) return;
+        var last = host.GetChild(count - 1);
+        if (last && last !== layer) host.MoveChildAfter(layer, last);
+    }
+
     function ensureExternalProxyLayer() {
         var root = hudRoot();
         if (!root) return null;
@@ -812,6 +913,7 @@
         if (!layer || !layer.GetParent || !layer.SetParent) return null;
         if (layer.GetParent() !== host) layer.SetParent(host);
         if (layer.GetParent() !== host || insideOfficialAbilityTree(layer)) return null;
+        disableInactiveTakeoverLayer();
         externalProxyLayer = layer;
         layer.hittest = false;
         layer.hittestchildren = true;
@@ -821,6 +923,7 @@
         layer.style.overflow = "noclip";
         layer.style.zIndex = "32767";
         layer.style.visibility = "visible";
+        moveProxyLayerToFront(host, layer);
         var position = layer.GetPositionWithinWindow
             ? layer.GetPositionWithinWindow() : { x: 0, y: 0 };
         var diagnostic = "mode=custom_hud parent=" + panelIdentity(layer.GetParent())
@@ -1011,6 +1114,105 @@
         };
     }
 
+    function rectContainsCursor(panel) {
+        return proxyCursorState(panel).inside;
+    }
+
+    function panelAncestorDiagnostic(panel) {
+        var rows = [];
+        var current = panel;
+        for (var depth = 0; current && depth < 12; depth++) {
+            var state = proxyCursorState(current);
+            rows.push(panelIdentity(current)
+                + ":inside=" + String(state.inside)
+                + ",rect=" + Math.round(state.left) + "," + Math.round(state.top)
+                + "," + Math.round(state.width) + "," + Math.round(state.height)
+                + ",hit=" + String(current.hittest)
+                + ",children=" + String(current.hittestchildren)
+                + ",visible=" + panelStyle(current, "visibility"));
+            current = current.GetParent ? current.GetParent() : null;
+        }
+        return rows.join("/");
+    }
+
+    function startBoundedCursorProbe(reason) {
+        cursorProbeSerial += 1;
+        var serial = cursorProbeSerial;
+        var observationsRemaining = 200;
+        cursorProbeDiagnostic = "";
+        function observe() {
+            if (serial !== cursorProbeSerial) return;
+            var active = null;
+            officialBindings.some(function (binding) {
+                if (!binding || !binding.entry || !binding.entry.anchor) return false;
+                if (!rectContainsCursor(binding.entry.anchor)) return false;
+                active = binding;
+                return true;
+            });
+            if (active) {
+                var proxy = active.proxy;
+                var runtime = CustomNetTables.GetTableValue(
+                    "survival_ability_runtime", String(active.abilityIndex)
+                ) || {};
+                var definition = CustomNetTables.GetTableValue(
+                    "survival_ability_data", active.abilityName
+                ) || {};
+                var diagnostic = "reason=" + String(reason || "binding")
+                    + " unit=" + String(selectedUnit())
+                    + " display=" + String(active.displayIndex)
+                    + " node=Ability" + String(active.entry.nodeIndex)
+                    + " ability=" + String(active.abilityIndex)
+                    + " name=" + active.abilityName
+                    + " official_inside=true"
+                    + " proxy_inside=" + String(rectContainsCursor(proxy))
+                    + " proxy_event=" + String(!!(proxy && proxy.__survivalPointerInside))
+                    + " definition=" + String(!!definition.abilityid)
+                    + " runtime=" + String(Number(runtime.ability_entindex)
+                        === Number(active.abilityIndex))
+                    + " active=" + String(Number(activeAbilityIndex)
+                        === Number(active.abilityIndex))
+                    + " ancestors=" + panelAncestorDiagnostic(proxy);
+                if (diagnostic !== cursorProbeDiagnostic) {
+                    cursorProbeDiagnostic = diagnostic;
+                    $.Msg("[SURVIVAL_TOOLTIP_CURSOR] ", diagnostic);
+                }
+            }
+            observationsRemaining -= 1;
+            if (observationsRemaining > 0) $.Schedule(0.05, observe);
+        }
+        $.Schedule(0.0, observe);
+    }
+
+    function bindingDecision(entry, displayIndex, abilityIndex, abilityName,
+            requested, prepared) {
+        var unit = Number(selectedUnit());
+        var hidden = false;
+        try { hidden = !!Abilities.IsHidden(abilityIndex); } catch (error) {}
+        var definition = CustomNetTables.GetTableValue(
+            "survival_ability_data", abilityName
+        ) || {};
+        var tooltipDefinition = CustomNetTables.GetTableValue(
+            "survival_tooltips", definition.tooltip_id || ("ability:" + abilityName)
+        ) || {};
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", String(abilityIndex)
+        ) || {};
+        return "display=" + String(displayIndex)
+            + ",node=Ability" + String(entry.nodeIndex)
+            + ",ability=" + String(abilityIndex)
+            + ",name=" + abilityName
+            + ",owned=" + String(unitOwnsAbility(unit, abilityIndex))
+            + ",hidden=" + String(hidden)
+            + ",definition=" + String(!!definition.abilityid)
+            + ",tooltip=" + String(!!tooltipDefinition.tooltip_id)
+            + ",runtime=" + String(Number(runtime.ability_entindex)
+                === Number(abilityIndex))
+            + ",runtime_owner=" + String(runtime.owner_entindex)
+            + ",scope=" + selectedTooltipScope()
+            + ",requested=" + String(requested)
+            + ",prepared=" + String(prepared);
+    }
+
     function externalOutDiagnostic(proxy, state, tooltipState, action) {
         $.Msg("[SURVIVAL_TOOLTIP_OUT] unit=", String(selectedUnit()),
             " display=", String(proxy.__survivalDisplayIndex),
@@ -1180,9 +1382,20 @@
         var anchor = entry && entry.anchor;
         if (!layer || !proxy || !anchor
             || !layer.GetPositionWithinWindow || !anchor.GetPositionWithinWindow) {
+            $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=dependencies",
+                " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " ability=", String(abilityIndex), " name=", String(abilityName),
+                " layer=", String(!!layer), " proxy=", String(!!proxy),
+                " anchor=", panelIdentity(anchor));
             return null;
         }
-        if (!customTooltipAbility(abilityIndex, abilityName)) return null;
+        if (!customTooltipAbility(abilityIndex, abilityName)) {
+            $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=scope",
+                " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " ability=", String(abilityIndex), " name=", String(abilityName),
+                " scope=", selectedTooltipScope());
+            return null;
+        }
         var layerPosition = layer.GetPositionWithinWindow();
         var anchorPosition = anchor.GetPositionWithinWindow();
         var positionLimit = 1000000;
@@ -1192,7 +1405,12 @@
             || Math.abs(Number(layerPosition.x)) > positionLimit
             || Math.abs(Number(layerPosition.y)) > positionLimit
             || Math.abs(Number(anchorPosition.x)) > positionLimit
-            || Math.abs(Number(anchorPosition.y)) > positionLimit) return null;
+            || Math.abs(Number(anchorPosition.y)) > positionLimit) {
+            $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=position",
+                " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " ability=", String(abilityIndex), " name=", String(abilityName));
+            return null;
+        }
         var scaleX = Math.max(0.001, Number(layer.actualuiscale_x || 1));
         var scaleY = Math.max(0.001, Number(layer.actualuiscale_y || 1));
         var width = Number(anchor.actuallayoutwidth || 0) / scaleX;
@@ -1202,7 +1420,14 @@
         var y = (Number(anchorPosition.y || 0)
             - Number(layerPosition.y || 0)) / scaleY;
         if (!isFinite(x) || !isFinite(y) || !isFinite(width) || !isFinite(height)
-            || width <= 0 || height <= 0) return null;
+            || width <= 0 || height <= 0) {
+            $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=rect",
+                " unit=", String(selectedUnit()), " display=", String(displayIndex),
+                " ability=", String(abilityIndex), " name=", String(abilityName),
+                " rect=", String(x), ",", String(y), ",",
+                String(width), ",", String(height));
+            return null;
+        }
         var position = Math.round(x * 1000) / 1000 + "px "
             + Math.round(y * 1000) / 1000 + "px 0px";
         var proxyWidth = Math.round(width * 1000) / 1000 + "px";
@@ -1279,15 +1504,20 @@
         // Never attach, hide, or change hit testing inside Valve's AbilityN tree.
         var officialPanels = collectOfficialAbilityPanels(abilities);
         var abilityIndexes = visibleAbilityIndexes();
-        var builderScope = isLocalUndyingBuilder();
+        var builderScope = isSelectedLocalBuilder();
+        var heroScope = isSelectedCombatHero();
+        var fullScope = builderScope || heroScope;
         var mappingUnavailable = officialPanels.length < abilityIndexes.length
-            || (!builderScope && officialPanels.length !== abilityIndexes.length);
+            || (!fullScope && officialPanels.length !== abilityIndexes.length);
         if (mappingUnavailable) {
+            officialBindings = [];
+            cursorProbeSerial += 1;
             disableExternalProxies();
             var mismatch = "unit=" + String(selectedUnit())
                 + " mode=fallback abilities=" + String(abilityIndexes.length)
                 + " panels=" + String(officialPanels.length)
-                + " builder=" + String(builderScope);
+                + " builder=" + String(builderScope)
+                + " combat_hero=" + String(heroScope);
             if (mismatch !== officialMapDiagnostic) {
                 officialMapDiagnostic = mismatch;
                 $.Msg("[SURVIVAL_TOOLTIP_MAP] ", mismatch);
@@ -1300,29 +1530,37 @@
             }
             return;
         }
-        if (builderScope && officialPanels.length > abilityIndexes.length) {
+        if (fullScope && officialPanels.length > abilityIndexes.length) {
             officialPanels = officialPanels.slice(0, abilityIndexes.length);
         }
         var mapping = [];
         var proxyMapping = [];
         var preparedBindings = [];
+        var decisions = [];
         var proxyFailed = false;
         officialPanels.forEach(function (entry, displayIndex) {
             var abilityIndex = abilityIndexes[displayIndex];
             var abilityName = "";
             try { abilityName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
             mapping.push("Ability" + String(entry.nodeIndex) + "->" + abilityName);
-            if (customTooltipAbility(abilityIndex, abilityName)) {
-                var prepared = prepareExternalAbility(
+            var requested = customTooltipAbility(abilityIndex, abilityName);
+            var prepared = null;
+            if (requested) {
+                prepared = prepareExternalAbility(
                     entry, displayIndex, abilityIndex, abilityName
                 );
                 if (prepared) preparedBindings.push(prepared);
                 else proxyFailed = true;
             }
+            decisions.push(bindingDecision(
+                entry, displayIndex, abilityIndex, abilityName,
+                requested, !!prepared
+            ));
         });
         if (proxyFailed) {
             disableExternalProxies();
             preparedBindings = [];
+            officialBindings = [];
         } else {
             preparedBindings.forEach(function (binding) {
                 proxyMapping.push(commitExternalAbility(binding));
@@ -1330,8 +1568,18 @@
             disableUnusedExternalProxies(preparedBindings.map(function (binding) {
                 return binding.proxy;
             }));
+            officialBindings = preparedBindings;
+        }
+        var decisionSignature = "unit=" + String(selectedUnit())
+            + " commit=" + (proxyFailed ? "atomic_fallback" : "external")
+            + " " + decisions.join("|");
+        var bindingChanged = decisionSignature !== bindingDecisionDiagnostic;
+        if (bindingChanged) {
+            bindingDecisionDiagnostic = decisionSignature;
+            $.Msg("[SURVIVAL_TOOLTIP_BIND] ", decisionSignature);
         }
         var mapped = "unit=" + String(selectedUnit())
+            + " scope=" + selectedTooltipScope()
             + " mode=mapped " + mapping.join("|");
         if (mapped !== officialMapDiagnostic) {
             officialMapDiagnostic = mapped;
@@ -1346,6 +1594,9 @@
             externalProxyDiagnostic = proxyMapped;
             $.Msg("[SURVIVAL_TOOLTIP_PROXY] ", proxyMapped);
         }
+        if (bindingChanged && !proxyFailed && preparedBindings.length > 0) {
+            startBoundedCursorProbe("mapped");
+        }
     }
 
     function handleSelectedUnitChange(unit, reason) {
@@ -1357,8 +1608,9 @@
         officialMapDiagnostic = "";
         externalProxyDiagnostic = "";
         externalHoverDiagnostic = "";
-        observedBuilderAbilitySignature = builderAbilitySignature();
+        observedAuthorityAbilitySignature = authorityAbilitySignature();
         disableExternalProxies();
+        logTooltipScope(reason || "selected_unit_changed");
         scheduleBindingRecovery(reason || "selected_unit_changed");
         return true;
     }
@@ -1379,13 +1631,37 @@
     function scheduleBindingRecovery(reason) {
         bindingRecoverySerial += 1;
         var serial = bindingRecoverySerial;
+        var authorityScope = isSelectedLocalBuilder() || isSelectedCombatHero();
         var delays = reason === "startup"
             ? [0.0, 0.10, 0.35, 1.0]
-            : [0.0, 0.016, 0.05, 0.10, 0.20];
+            : (authorityScope
+                ? [0.0, 0.016, 0.05, 0.10, 0.20, 0.35, 0.60, 1.0]
+                : [0.0, 0.016, 0.05, 0.10, 0.20]);
+        var recoveryKey = "reason=" + String(reason || "recovery")
+            + " unit=" + String(selectedUnit())
+            + " scope=" + selectedTooltipScope();
+        if (recoveryKey !== recoveryDiagnostic) {
+            recoveryDiagnostic = recoveryKey;
+            $.Msg("[SURVIVAL_TOOLTIP_RECOVERY] action=schedule ", recoveryKey,
+                " serial=", String(serial));
+        }
         delays.forEach(function (delay) {
             $.Schedule(delay, function () {
                 if (serial !== bindingRecoverySerial) return;
                 try {
+                    var root = hudRoot();
+                    var abilities = root && root.FindChildTraverse
+                        ? (root.FindChildTraverse("abilities")
+                            || root.FindChildTraverse("AbilitiesAndStatBranch")) : null;
+                    var panels = collectOfficialAbilityPanels(abilities);
+                    $.Msg("[SURVIVAL_TOOLTIP_RECOVERY] action=attempt reason=",
+                        String(reason || "recovery"), " serial=", String(serial),
+                        " delay=", Number(delay).toFixed(3),
+                        " unit=", String(selectedUnit()),
+                        " scope=", selectedTooltipScope(),
+                        " abilities=", String(visibleAbilityIndexes().length),
+                        " panels=", String(panels.length),
+                        " signature=", visibleAbilitySignature());
                     refreshBindings(reason || "recovery");
                 } catch (error) {
                     tooltipError("binding_recovery:" + String(reason || "recovery"),
@@ -1408,35 +1684,54 @@
         if (!localSelectionEvent(payload)) return;
         selectionObservationSerial += 1;
         var serial = selectionObservationSerial;
-        [0.0, 0.016, 0.05, 0.10, 0.20].forEach(function (delay) {
+        [0.0, 0.016, 0.05, 0.10, 0.20, 0.35, 0.60, 1.0].forEach(function (delay) {
             $.Schedule(delay, function () {
                 if (serial !== selectionObservationSerial) return;
-                handleSelectedUnitChange(selectedUnit(), reason);
+                if (handleSelectedUnitChange(selectedUnit(), reason)) return;
+                if (!recoverChangedAuthorityAbilities()) {
+                    refreshBindings(reason + "_same_unit");
+                }
             });
         });
     }
 
-    function recoverChangedBuilderAbilities() {
-        var signature = builderAbilitySignature();
-        if (signature === observedBuilderAbilitySignature) return false;
-        observedBuilderAbilitySignature = signature;
+    function forceAuthorityRecovery(reason) {
         hideAllTooltips(activeSourcePanel);
         officialMapDiagnostic = "";
         externalProxyDiagnostic = "";
         externalHoverDiagnostic = "";
         disableExternalProxies();
-        scheduleBindingRecovery("builder_abilities_changed");
+        observedSelectedUnit = Number(selectedUnit());
+        observedAuthorityAbilitySignature = authorityAbilitySignature();
+        logTooltipScope(reason);
+        scheduleBindingRecovery(reason);
+    }
+
+    function recoverChangedAuthorityAbilities() {
+        var signature = authorityAbilitySignature();
+        if (signature === observedAuthorityAbilitySignature) return false;
+        var previous = observedAuthorityAbilitySignature;
+        observedAuthorityAbilitySignature = signature;
+        hideAllTooltips(activeSourcePanel);
+        officialMapDiagnostic = "";
+        externalProxyDiagnostic = "";
+        externalHoverDiagnostic = "";
+        disableExternalProxies();
+        $.Msg("[SURVIVAL_TOOLTIP_RECOVERY] action=signature_changed unit=",
+            String(selectedUnit()), " scope=", selectedTooltipScope(),
+            " previous=", previous, " current=", signature);
+        scheduleBindingRecovery("authority_abilities_changed");
         return true;
     }
 
-    function observeBuilderRuntimeEvent() {
-        if (!isLocalUndyingBuilder()) return;
-        builderRuntimeObservationSerial += 1;
-        var serial = builderRuntimeObservationSerial;
-        [0.0, 0.016, 0.05, 0.10, 0.20].forEach(function (delay) {
+    function observeAuthorityRuntimeEvent() {
+        if (!isSelectedLocalBuilder() && !isSelectedCombatHero()) return;
+        authorityRuntimeObservationSerial += 1;
+        var serial = authorityRuntimeObservationSerial;
+        [0.0, 0.016, 0.05, 0.10, 0.20, 0.35, 0.60, 1.0].forEach(function (delay) {
             $.Schedule(delay, function () {
-                if (serial !== builderRuntimeObservationSerial) return;
-                recoverChangedBuilderAbilities();
+                if (serial !== authorityRuntimeObservationSerial) return;
+                recoverChangedAuthorityAbilities();
             });
         });
     }
@@ -1444,9 +1739,25 @@
     CustomNetTables.SubscribeNetTableListener(
         "survival_ability_runtime",
         function (name, key) {
-            observeBuilderRuntimeEvent();
+            observeAuthorityRuntimeEvent();
             if (Number(key) === Number(activeAbilityIndex)) {
                 refreshVisible("ability_runtime");
+            }
+        }
+    );
+    CustomNetTables.SubscribeNetTableListener(
+        "survival_builder_identity",
+        function (name, key) {
+            if (key === "player_" + String(Game.GetLocalPlayerID())) {
+                forceAuthorityRecovery("builder_identity");
+            }
+        }
+    );
+    CustomNetTables.SubscribeNetTableListener(
+        "survival_hero_skills",
+        function (name, key) {
+            if (key === "player_" + String(Game.GetLocalPlayerID())) {
+                forceAuthorityRecovery("combat_hero_identity");
             }
         }
     );
@@ -1456,12 +1767,18 @@
     };
     registerTooltipFadeDebug();
     observedSelectedUnit = Number(selectedUnit());
-    observedBuilderAbilitySignature = builderAbilitySignature();
+    observedAuthorityAbilitySignature = authorityAbilitySignature();
+    disableInactiveTakeoverLayer();
     GameEvents.Subscribe("dota_player_update_selected_unit", function (payload) {
         onSelectionEvent("selected_unit_event", payload);
     });
     GameEvents.Subscribe("dota_player_update_query_unit", function (payload) {
         onSelectionEvent("query_unit_event", payload);
     });
+    GameEvents.Subscribe("survival_select_unit", function (payload) {
+        if (!localSelectionEvent(payload)) return;
+        forceAuthorityRecovery("project_select_unit");
+    });
+    logTooltipScope("startup");
     scheduleBindingRecovery("startup");
 })();
