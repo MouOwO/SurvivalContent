@@ -53,6 +53,11 @@
         D: "ability_survival_builder_blink",
         F: "ability_survival_pickup_materials"
     };
+    var utilityDisplayOrder = {
+        ability_survival_builder_blink: 10,
+        ability_survival_return_home: 20,
+        ability_survival_pickup_materials: 30
+    };
 
     function panel(id) { return $("#" + id); }
     function setText(id, value) {
@@ -1046,6 +1051,7 @@
                 }
             }
         }
+        seen = orderVisibleAbilities(seen);
         var signature = seen.map(function (entry) {
             return entry.slot + ":" + entry.name;
         }).join("|");
@@ -1131,6 +1137,36 @@
         try { return Entities.GetAbility(unit, slot); } catch (error) { return -1; }
     }
 
+    function orderVisibleAbilities(entries) {
+        var standard = [];
+        var utility = [];
+        entries.forEach(function (entry) {
+            if (utilityHotkeys[entry.name]) utility.push(entry);
+            else standard.push(entry);
+        });
+        utility.sort(function (left, right) {
+            var order = Number(utilityDisplayOrder[left.name] || 1000)
+                - Number(utilityDisplayOrder[right.name] || 1000);
+            if (order !== 0) return order;
+            return Number(left.slot) - Number(right.slot);
+        });
+        return standard.concat(utility);
+    }
+
+    function visibleAbilityEntries(unit) {
+        var entries = [];
+        for (var slot = 0; slot < 24; slot++) {
+            var ability = abilityIndexForSlot(unit, slot);
+            if (ability === undefined || ability < 0) continue;
+            var name = Abilities.GetAbilityName(ability) || "";
+            var hidden = false;
+            try { hidden = Abilities.IsHidden(ability); } catch (error) {}
+            if (!name || hidden || name.indexOf("special_bonus_") === 0) continue;
+            entries.push({ ability: ability, name: name, slot: slot });
+        }
+        return orderVisibleAbilities(entries);
+    }
+
     function refreshInventory() {
         // Official Reborn HUD owns inventory rendering and interaction.
     }
@@ -1138,33 +1174,20 @@
     function abilityByDisplayIndex(slot) {
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) return -1;
-        var visible = [];
-        for (var i = 0; i < 24; i++) {
-            var index = Entities.GetAbility(unit, i);
-            if (index === undefined || index < 0) continue;
-            var name = Abilities.GetAbilityName(index) || "";
-            var hidden = false;
-            try { hidden = Abilities.IsHidden(index); } catch (error) {}
-            if (name && !hidden) {
-                visible.push(index);
-            }
-        }
-        return visible[slot] === undefined ? -1 : visible[slot];
+        var standard = visibleAbilityEntries(unit).filter(function (entry) {
+            return !utilityHotkeys[entry.name];
+        });
+        return standard[slot] === undefined ? -1 : standard[slot].ability;
     }
 
     function visibleSlotForAbility(abilityIndex) {
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) return -1;
-        var visibleSlot = 0;
-        for (var entitySlot = 0; entitySlot < 24; entitySlot++) {
-            var current = abilityIndexForSlot(unit, entitySlot);
-            if (current === undefined || current < 0) continue;
-            var name = Abilities.GetAbilityName(current) || "";
-            var hidden = false;
-            try { hidden = Abilities.IsHidden(current); } catch (error) {}
-            if (!name || hidden) continue;
-            if (Number(current) === Number(abilityIndex)) return visibleSlot;
-            visibleSlot++;
+        var entries = visibleAbilityEntries(unit);
+        for (var visibleSlot = 0; visibleSlot < entries.length; visibleSlot++) {
+            if (Number(entries[visibleSlot].ability) === Number(abilityIndex)) {
+                return visibleSlot;
+            }
         }
         return -1;
     }

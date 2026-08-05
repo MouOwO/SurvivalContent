@@ -10,6 +10,11 @@
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
     };
+    var utilityDisplayOrder = {
+        ability_survival_builder_blink: 10,
+        ability_survival_return_home: 20,
+        ability_survival_pickup_materials: 30
+    };
     var slots = [];
     var officialStates = {};
     var signature = "";
@@ -233,8 +238,9 @@
 
     function visibleAbilities() {
         var unit = selectedUnit();
-        var result = [];
-        if (unit === undefined || unit < 0) return result;
+        var standard = [];
+        var utility = [];
+        if (unit === undefined || unit < 0) return standard;
         for (var entitySlot = 0; entitySlot < 24; entitySlot++) {
             var ability = -1;
             try { ability = Entities.GetAbility(unit, entitySlot); } catch (error) {}
@@ -246,9 +252,20 @@
                 hidden = !!Abilities.IsHidden(ability);
             } catch (error) {}
             if (!name || hidden || name.indexOf("special_bonus_") === 0) continue;
-            result.push({ ability: ability, name: name, entitySlot: entitySlot });
+            var entry = { ability: ability, name: name, entitySlot: entitySlot };
+            if (utilityHotkeys[name]) utility.push(entry);
+            else standard.push(entry);
         }
-        return result;
+        utility.sort(function (left, right) {
+            var order = Number(utilityDisplayOrder[left.name] || 1000)
+                - Number(utilityDisplayOrder[right.name] || 1000);
+            if (order !== 0) return order;
+            return Number(left.entitySlot) - Number(right.entitySlot);
+        });
+        standard.forEach(function (entry, standardHotkeyIndex) {
+            entry.standardHotkeyIndex = standardHotkeyIndex;
+        });
+        return standard.concat(utility);
     }
 
     function rememberOfficial(displayIndex, panel) {
@@ -1087,7 +1104,7 @@
         slot.panel.__survivalAbilityName = entry.name;
         slot.image.abilityname = entry.name;
         slot.hotkey.text = utilityHotkeys[entry.name]
-            || (hotkeys[displayIndex] || "");
+            || (hotkeys[entry.standardHotkeyIndex] || "");
         var level = abilityLevel(entry.ability);
         slot.level.text = level > 0 ? "Lv." + String(level) : "";
         var mana = manaCost(entry.ability);
