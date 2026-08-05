@@ -392,7 +392,7 @@
         if (!overlay) return;
 
         var hasAuthoritativeText = officialAttackText !== ""
-            && Number(selectedUnit()) === Number(officialAttackUnit);
+            && Number(displayUnit()) === Number(officialAttackUnit);
         if (!hasAuthoritativeText) {
             overlay.style.visibility = "collapse";
             setNativeAttackLabelsVisible(damage, true);
@@ -426,7 +426,7 @@
             statsContainer, "SurvivalAuthoritativeArmorLabel",
             authoritativeArmorLabel
         );
-        var matches = Number(selectedUnit()) === Number(officialAttackUnit);
+        var matches = Number(displayUnit()) === Number(officialAttackUnit);
         if (!matches || officialAttackSpeedText === "") {
             authoritativeAttackSpeedLabel.style.visibility = "collapse";
             authoritativeArmorLabel.style.visibility = "collapse";
@@ -775,7 +775,7 @@
         setText("CombatStrengthValue", formatNumber(snapshot.strength));
         setText("CombatAgilityValue", formatNumber(snapshot.agility));
         setText("CombatIntellectValue", formatNumber(snapshot.intellect));
-        if (Number(snapshot.entindex) === Number(selectedUnit())) {
+        if (Number(snapshot.entindex) === Number(displayUnit())) {
             updateLogicalAttributes(snapshot);
         }
         setText(
@@ -813,6 +813,12 @@
         var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
         if (resolver && resolver.Resolve) return resolver.Resolve();
         return Players.GetPlayerHeroEntityIndex(playerId);
+    }
+
+    function displayUnit() {
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.ResolveDisplayUnit) return resolver.ResolveDisplayUnit();
+        return selectedUnit();
     }
 
     function requestSelectedUnitStats(unit, force) {
@@ -858,12 +864,12 @@
     }
 
     function refreshHeroVitalsTick() {
-        refreshHeroVitals(selectedUnit());
+        refreshHeroVitals(displayUnit());
         $.Schedule(0.25, refreshHeroVitalsTick);
     }
 
     function refreshHeroPanel() {
-        var unit = selectedUnit();
+        var unit = displayUnit();
         if (unit === undefined || unit < 0) return;
         var unitName = "npc_dota_hero_undying";
         try {
@@ -930,7 +936,7 @@
         unitNameRetryDelays.forEach(function (delay, retryIndex) {
             $.Schedule(delay, function () {
                 if (serial !== unitNameTransitionSerial) return;
-                var currentUnit = Number(selectedUnit());
+                var currentUnit = Number(displayUnit());
                 if (currentUnit < 0) return;
                 if (currentUnit !== observedSelectedUnit) {
                     observedSelectedUnit = currentUnit;
@@ -1478,7 +1484,7 @@
         tableName,
         function (name, key, snapshot) {
             if (key !== tableKey) return;
-            if (snapshot && Number(snapshot.entindex) === Number(selectedUnit())) {
+            if (snapshot && Number(snapshot.entindex) === Number(displayUnit())) {
                 update(snapshot);
                 refreshHeroPanel(false);
             }
@@ -1486,7 +1492,7 @@
     );
     var initialCombatSnapshot = CustomNetTables.GetTableValue(tableName, tableKey);
     if (initialCombatSnapshot
-        && Number(initialCombatSnapshot.entindex) === Number(selectedUnit())) {
+        && Number(initialCombatSnapshot.entindex) === Number(displayUnit())) {
         update(initialCombatSnapshot);
     }
     CustomNetTables.SubscribeNetTableListener(
@@ -1500,12 +1506,12 @@
         if (snapshot && snapshot.player_id !== undefined
             && Number(snapshot.player_id) !== Number(playerId)) return;
         var hero = Number(snapshot && snapshot.hero_entindex || -1);
-        if (hero < 0 || Number(selectedUnit()) !== hero) return;
+        if (hero < 0 || Number(displayUnit()) !== hero) return;
         requestSelectedUnitStats(hero, true);
     });
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
         if (!snapshot || snapshot.success !== 1) return;
-        if (Number(snapshot.entindex) !== Number(selectedUnit())) return;
+        if (Number(snapshot.entindex) !== Number(displayUnit())) return;
         $.Msg("[SURVIVAL_STATS][CLIENT] SNAPSHOT unit=", String(snapshot.entindex),
             " phase=", String(snapshot.push_phase || snapshot.source || "request"),
             " sequence=", String(snapshot.refresh_sequence || 0),
@@ -1569,10 +1575,10 @@
         if (!refreshesBuilding) return;
         var unit = Number(result.entindex);
         $.Schedule(0.10, function () {
-            if (Number(selectedUnit()) === unit) requestSelectedUnitStats(unit, true);
+            if (Number(displayUnit()) === unit) requestSelectedUnitStats(unit, true);
         });
         $.Schedule(0.35, function () {
-            if (Number(selectedUnit()) === unit) requestSelectedUnitStats(unit, true);
+            if (Number(displayUnit()) === unit) requestSelectedUnitStats(unit, true);
         });
     });
     bindHeroPortrait();

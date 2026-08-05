@@ -129,9 +129,18 @@
         return validUnit(hero) ? hero : -1;
     }
 
+    function resolveDisplayUnit() {
+        var portrait = -1;
+        try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
+        var portraitName = validUnit(portrait) ? (Entities.GetUnitName(portrait) || "") : "";
+        if (validUnit(portrait) && portraitName !== "npc_dota_hero_undying") return portrait;
+        return resolveSelectedUnit();
+    }
+
     inputConfig.SurvivalSelectionResolver = {
         BuilderEntity: function () { return builderEntity(Game.GetLocalPlayerID()); },
         Resolve: resolveSelectedUnit,
+        ResolveDisplayUnit: resolveDisplayUnit,
         Snapshot: function () {
             var playerId = Game.GetLocalPlayerID();
             var portrait = -1;
