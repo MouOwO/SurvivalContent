@@ -2,7 +2,7 @@
     "use strict";
 
     var LOG_PREFIX = "[SurvivalUIBootstrap]";
-    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260804_nettable_rebind_v2");
+    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260804_camera_target_position_v3");
     // Phase 0 rollback boundary. Keep inventory native until the separate item
     // interaction controller (use/drag/swap/drop/sell) is complete.
     GameUI.CustomUIConfig().SurvivalHudTakeover = {
@@ -88,6 +88,30 @@
         return validUnit(builder) ? builder : -1;
     }
 
+    function sendClientDiagnostic(stage, payload) {
+        var data = payload || {};
+        data.stage = stage;
+        GameEvents.SendCustomGameEventToServer("ui_client_diagnostic", data);
+    }
+
+    function focusCameraOnUnit(target, position) {
+        if (typeof GameUI.MoveCameraToEntity === "function") {
+            try {
+                GameUI.MoveCameraToEntity(target);
+                return "move_to_entity";
+            } catch (error) {}
+        }
+        if (!position || typeof GameUI.SetCameraTargetPosition !== "function") {
+            return "api_unavailable";
+        }
+        try {
+            GameUI.SetCameraTargetPosition(position, 0.0);
+            return "target_position_fallback";
+        } catch (error) {
+            return "api_error:" + String(error);
+        }
+    }
+
     function resolveSelectedUnit() {
         var playerId = Game.GetLocalPlayerID();
         var portrait = -1;
@@ -122,6 +146,40 @@
             };
         }
     };
+
+    function selectPlayableUnitOnSpace(key, down) {
+        if (String(key).toUpperCase() !== "SPACE" || down === false) return false;
+        var playerId = Game.GetLocalPlayerID();
+        var hero = Number(Players.GetPlayerHeroEntityIndex(playerId));
+        var heroName = validUnit(hero) ? (Entities.GetUnitName(hero) || "") : "";
+        var builder = builderEntity(playerId);
+        var target = heroName === "npc_dota_hero_undying" ? builder : hero;
+        var targetOrigin = validUnit(target) ? Entities.GetAbsOrigin(target) : null;
+        var cameraResult = "target_unavailable";
+        if (validUnit(target)) {
+            GameUI.SelectUnit(target, false);
+            cameraResult = focusCameraOnUnit(target, targetOrigin);
+        }
+        sendClientDiagnostic("space_select", {
+            hero: hero,
+            hero_name: heroName,
+            builder: builder,
+            target: target,
+            result: validUnit(target) ? "select_playable" : "block_placeholder",
+            move_camera_api: typeof GameUI.MoveCameraToEntity,
+            camera_api: typeof GameUI.SetCameraTargetPosition,
+            camera_result: cameraResult
+        });
+        $.Msg("[SURVIVAL_SELECTION] SPACE_SELECT player=", String(playerId),
+            " hero=", String(hero), " hero_name=", heroName,
+            " builder=", String(builder), " target=", String(target),
+            " camera=", cameraResult,
+            " action=", validUnit(target) ? "select_playable" : "block_placeholder");
+        return true;
+    }
+
+    registerHandler(keyHandlers, keyHandlerOrder,
+        "placeholder_space_guard", selectPlayableUnitOnSpace, 120);
     // CustomUIConfig survives Workshop Tools Run, callbacks do not. Always
     // replace both dispatchers for this fresh HUD context.
     if (GameUI.SetKeyPressedCallback) {
@@ -133,7 +191,7 @@
         return dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
     });
     if (Game.AddCommand && Game.CreateCustomKeyBind) {
-        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "D", "F", "F2", "TAB"];
+        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "D", "F", "F2", "TAB", "SPACE"];
         var fallbackCommands = {};
         fallbackKeys.forEach(function (key) {
             var command = "survival_input_" + inputContextId + "_"

@@ -1167,6 +1167,8 @@
 
     function managedBuildingAction(abilityName) {
         return /^ability_build_/.test(abilityName)
+            || /^ability_summon_/.test(abilityName)
+            || /^(ability_enter_(endless_training|shadow_realm))$/.test(abilityName)
             || /^ability_upgrade_tower/.test(abilityName)
             || /^ability_tower_class_/.test(abilityName)
             || /^(ability_upgrade_(wall|city|farm|gold_mine))$/.test(abilityName)

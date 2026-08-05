@@ -6,7 +6,6 @@
     var tableKey = "player_" + playerId;
     var lastSequence = -1;
     var lastSnapshotAt = 0;
-    var cameraFollowSerial = 0;
     var difficultyRequestPending = false;
     var difficultyOptionsSignature = "";
     var initialBuilderSelectionFinished = false;
@@ -231,8 +230,26 @@
         });
     }
 
-    function followHeroUntilArrival(payload) {
-        if (!payload || !GameUI.SetCameraTarget) return;
+    function sendClientDiagnostic(stage, payload) {
+        var data = payload || {};
+        data.stage = stage;
+        GameEvents.SendCustomGameEventToServer("ui_client_diagnostic", data);
+    }
+
+    function setCameraPosition(position) {
+        if (!position || typeof GameUI.SetCameraTargetPosition !== "function") {
+            return "api_unavailable";
+        }
+        try {
+            GameUI.SetCameraTargetPosition(position, 0.0);
+            return "target_position";
+        } catch (error) {
+            return "api_error:" + String(error);
+        }
+    }
+
+    function focusHeroWithoutLock(payload) {
+        if (!payload) return;
         var entindex = Number(payload.entindex || payload.focus_hero_entindex || -1);
         if (entindex <= 0) return;
         var x = Number(payload.target_x !== undefined
@@ -242,31 +259,31 @@
         var z = Number(payload.target_z !== undefined
             ? payload.target_z : payload.focus_target_z);
         var hasTarget = isFinite(x) && isFinite(y) && isFinite(z);
-        var startedAt = Game.GetGameTime();
-        var serial = ++cameraFollowSerial;
-        GameUI.SetCameraTarget(entindex);
-
-        function checkArrival() {
-            if (serial !== cameraFollowSerial) return;
-            var elapsed = Game.GetGameTime() - startedAt;
-            var arrived = false;
-            if (hasTarget && Entities.IsValidEntity(entindex)) {
-                var origin = Entities.GetAbsOrigin(entindex);
-                if (origin) {
-                    var dx = Number(origin[0]) - x;
-                    var dy = Number(origin[1]) - y;
-                    arrived = dx * dx + dy * dy <= 180 * 180;
-                }
-            }
-            // Keep official hero-follow active until the teleport reaches the
-            // client. Timeout prevents a deleted entity from locking camera.
-            if ((elapsed >= 0.20 && arrived) || elapsed >= 5.0) {
-                GameUI.SetCameraTarget(-1);
-                return;
-            }
-            $.Schedule(0, checkArrival);
+        var finalPosition = hasTarget ? [x, y, z] : null;
+        if (!finalPosition && Entities.IsValidEntity(entindex)) {
+            finalPosition = Entities.GetAbsOrigin(entindex);
         }
-        $.Schedule(0, checkArrival);
+        var cameraResult = "api_unavailable";
+        if (typeof GameUI.MoveCameraToEntity === "function") {
+            try {
+                GameUI.MoveCameraToEntity(entindex);
+                cameraResult = "move_to_entity";
+            } catch (error) {
+                cameraResult = "move_to_entity_error:" + String(error);
+            }
+        }
+        if (cameraResult !== "move_to_entity") cameraResult = setCameraPosition(finalPosition);
+        sendClientDiagnostic("camera_follow_settled", {
+            entindex: entindex,
+            reason: "non_locking_focus",
+            target: finalPosition ? finalPosition.join(",") : "unavailable",
+            move_camera_api: typeof GameUI.MoveCameraToEntity,
+            camera_api: typeof GameUI.SetCameraTargetPosition,
+            camera_result: cameraResult
+        });
+        $.Msg("[SURVIVAL_CAMERA] NON_LOCKING_FOCUS entindex=", String(entindex),
+            " target=", finalPosition ? finalPosition.join(",") : "unavailable",
+            " camera=", cameraResult);
     }
 
     function validUnit(unit) {
@@ -349,7 +366,7 @@
     GameEvents.Subscribe("ui_state_snapshot", update);
     GameEvents.Subscribe("ui_notification", showNotification);
     GameEvents.Subscribe("ui_difficulty_select_result", handleDifficultyResult);
-    GameEvents.Subscribe("ui_camera_follow_hero", followHeroUntilArrival);
+    GameEvents.Subscribe("ui_camera_follow_hero", focusHeroWithoutLock);
     GameEvents.Subscribe("survival_select_unit", function (data) {
         var entindex = Number(data && data.entindex);
         if (entindex >= 0 && Entities.IsValidEntity(entindex)) {
@@ -360,8 +377,12 @@
         }
     });
     GameUI.CustomUIConfig().SurvivalCamera = {
-        FollowHeroUntilArrival: followHeroUntilArrival
+        FocusHeroWithoutLock: focusHeroWithoutLock
     };
+    sendClientDiagnostic("hud_ready", {
+        camera_api: typeof GameUI.SetCameraTargetPosition,
+        move_camera_api: typeof GameUI.MoveCameraToEntity
+    });
 
     $.Msg("[SurvivalUI] realtime HUD listener ready.");
     scheduleInitialBuilderSelection("hud_ready");

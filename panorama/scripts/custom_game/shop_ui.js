@@ -648,14 +648,44 @@
 
     function focusHero(payload) {
         var camera = GameUI.CustomUIConfig().SurvivalCamera;
-        if (camera && camera.FollowHeroUntilArrival) {
-            camera.FollowHeroUntilArrival(payload || {});
+        if (camera && camera.FocusHeroWithoutLock) {
+            camera.FocusHeroWithoutLock(payload || {});
             return;
         }
         var target = Number(payload && payload.focus_hero_entindex || -1);
-        if (target <= 0 || !GameUI.SetCameraTarget) return;
-        GameUI.SetCameraTarget(target);
-        $.Schedule(5.0, function () { GameUI.SetCameraTarget(-1); });
+        if (target <= 0) return;
+        var x = Number(payload && payload.focus_target_x);
+        var y = Number(payload && payload.focus_target_y);
+        var z = Number(payload && payload.focus_target_z);
+        var hasTarget = isFinite(x) && isFinite(y) && isFinite(z);
+        var position = hasTarget ? [x, y, z]
+            : (Entities.IsValidEntity(target) ? Entities.GetAbsOrigin(target) : null);
+        var result = "api_unavailable";
+        if (typeof GameUI.MoveCameraToEntity === "function") {
+            try {
+                GameUI.MoveCameraToEntity(target);
+                result = "move_to_entity";
+            } catch (error) {
+                result = "move_to_entity_error:" + String(error);
+            }
+        }
+        if (result !== "move_to_entity"
+            && position && typeof GameUI.SetCameraTargetPosition === "function") {
+            try {
+                GameUI.SetCameraTargetPosition(position, 0.0);
+                result = "target_position_fallback";
+            } catch (error) {
+                result = "api_error:" + String(error);
+            }
+        }
+        GameEvents.SendCustomGameEventToServer("ui_client_diagnostic", {
+            stage: "camera_fallback",
+            entindex: target,
+            target: position ? position.join(",") : "unavailable",
+            move_camera_api: typeof GameUI.MoveCameraToEntity,
+            camera_api: typeof GameUI.SetCameraTargetPosition,
+            camera_result: result
+        });
     }
 
     function onResult(payload) {
