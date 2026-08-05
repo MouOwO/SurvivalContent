@@ -5,7 +5,7 @@
 	m_nMaxParticles = 1
 	m_flConstantRadius = 4.0
 	m_bShouldSort = false
-	m_BoundingBoxMin = [ -800.0, -800.0, -900.0 ]
+	m_BoundingBoxMin = [ -800.0, -800.0, -1100.0 ]
 	m_BoundingBoxMax = [ 800.0, 800.0, 100.0 ]
 	m_Emitters =
 	[
@@ -21,8 +21,8 @@
 		},
 		{
 			_class = "C_INIT_RandomLifeTime"
-			m_fLifetimeMin = 0.14
-			m_fLifetimeMax = 0.14
+			m_fLifetimeMin = 0.28
+			m_fLifetimeMax = 0.28
 		},
 		{
 			_class = "C_INIT_VelocityFromCP"
@@ -62,6 +62,7 @@
 	[
 		{
 			_class = "C_OP_BasicMovement"
+			m_Gravity = [ 0.0, 0.0, -23010.0 ]
 		},
 		{
 			_class = "C_OP_Orient2DRelToCP"
