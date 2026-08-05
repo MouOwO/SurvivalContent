@@ -95,7 +95,6 @@
                 option.difficulty_id,
                 option.display_name,
                 option.subtitle,
-                option.description,
                 option.total_waves
             ].join("|");
         }).join(";");
@@ -113,9 +112,6 @@
             var subtitle = $.CreatePanel("Label", header, "");
             subtitle.AddClass("DifficultyOptionSubtitle");
             subtitle.text = option.subtitle || (String(option.total_waves || 0) + " 波");
-            var description = $.CreatePanel("Label", button, "");
-            description.AddClass("DifficultyOptionDescription");
-            description.text = option.description || "";
             button.SetPanelEvent("onactivate", function () {
                 selectDifficulty(String(option.difficulty_id || ""));
             });

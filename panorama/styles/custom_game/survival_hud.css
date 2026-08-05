@@ -437,8 +437,8 @@
 }
 
 #DifficultySelectionDialog {
-    width: 760px;
-    min-height: 430px;
+    width: 1280px;
+    min-height: 250px;
     horizontal-align: center;
     vertical-align: center;
     flow-children: down;
@@ -467,15 +467,15 @@
 
 #DifficultySelectionButtons {
     width: 100%;
-    flow-children: down;
+    flow-children: right;
 }
 
 .DifficultyOptionButton {
-    width: 100%;
-    min-height: 112px;
-    flow-children: down;
-    margin-bottom: 14px;
-    padding: 15px 20px;
+    width: 228px;
+    height: 72px;
+    flow-children: none;
+    margin-right: 12px;
+    padding: 14px 16px;
     background-color: gradient(linear, 0% 0%, 100% 0%, from(#172532), to(#243848));
     border: 1px solid #72889a;
     transition-property: brightness, transform, border;
@@ -505,23 +505,15 @@
 
 .DifficultyOptionName {
     color: #ffffff;
-    font-size: 25px;
+    font-size: 22px;
     font-weight: bold;
 }
 
 .DifficultyOptionSubtitle {
     horizontal-align: right;
     color: #efcf83;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
-}
-
-.DifficultyOptionDescription {
-    width: 100%;
-    margin-top: 8px;
-    color: #c9d3da;
-    font-size: 17px;
-    white-space: normal;
 }
 
 #DifficultySelectionLoading {
