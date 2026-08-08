@@ -157,6 +157,10 @@
     }
 
     function setVisualValid(valid, message) {
+        if (root && root.SetHasClass) {
+            root.SetHasClass("PlacementValid", valid === true);
+            root.SetHasClass("PlacementInvalid", valid !== true);
+        }
         if (!status) return;
         if (message) {
             status.text = message;
@@ -341,6 +345,9 @@
             return;
         }
         panel.visible = true;
+        var valid = cell.ok === true || Number(cell.ok) === 1;
+        panel.SetHasClass("Valid", valid);
+        panel.SetHasClass("Invalid", !valid);
         var fillCount = panel.__fills ? panel.__fills.length : 0;
         var sideOne = Math.sqrt(
             Math.pow(points[3][0] - points[0][0], 2)

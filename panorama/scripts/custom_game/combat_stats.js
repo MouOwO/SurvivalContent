@@ -1339,6 +1339,24 @@
         );
     }
 
+    function selectedEntindexesForRequest() {
+        var raw = [];
+        try {
+            raw = Players.GetSelectedEntities(Players.GetLocalPlayer()) || [];
+        } catch (error) {}
+        var result = [];
+        var seen = {};
+        for (var index = 0; index < raw.length && result.length < 64; index += 1) {
+            var entindex = Number(raw[index]);
+            var key = String(entindex);
+            if (entindex >= 0 && !seen[key]) {
+                seen[key] = true;
+                result.push(entindex);
+            }
+        }
+        return result;
+    }
+
     function executeAbility(abilityIndex) {
         if (abilityIndex === undefined || abilityIndex < 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject invalid ability index=", String(abilityIndex));
@@ -1411,6 +1429,7 @@
         GameEvents.SendCustomGameEventToServer("ui_ability_cast_request", {
             entindex: unit,
             ability_entindex: abilityIndex,
+            selected_entindexes: selectedEntindexesForRequest(),
         });
         return true;
     }

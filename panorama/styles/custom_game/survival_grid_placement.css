@@ -33,6 +33,23 @@
     background-color: #78cfc51c;
 }
 
+.GridPlacementCell.Invalid .GridPlacementCellEdge {
+    background-color: #ff665ee8;
+    box-shadow: 0 0 4px 1px #ff302d70;
+}
+
+.GridPlacementCell.Invalid .GridPlacementCellFill {
+    background-color: #e6423f35;
+}
+
+.GridPlacementRoot.PlacementValid #GridPlacementStatus {
+    color: #bce8d8;
+}
+
+.GridPlacementRoot.PlacementInvalid #GridPlacementStatus {
+    color: #ffaaa5;
+}
+
 .GridPlacementHint {
     horizontal-align: center;
     vertical-align: bottom;
