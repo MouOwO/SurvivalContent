@@ -69,6 +69,8 @@
         "DOTA_Tooltip_ability_item_survival_lust_essence_Description" "Use to upgrade Icefire Judgment +1 and reduce armor by 3 per attack."
         "DOTA_Tooltip_ability_ability_survival_return_home" "Return Home"
         "DOTA_Tooltip_ability_ability_survival_return_home_Description" "Immediately returns to a safe position near your main city."
+        "DOTA_Tooltip_ability_ability_survival_hero_ball_lightning" "Ball Lightning Travel"
+        "DOTA_Tooltip_ability_ability_survival_hero_ball_lightning_Description" "Travel to a target point within 800 range for 20 mana. You are invulnerable and cannot attack while traveling. Deals no damage."
         "DOTA_Tooltip_ability_ability_survival_pickup_materials" "Collect Upgrade Materials"
         "DOTA_Tooltip_ability_ability_survival_pickup_materials_Description" "Collect all visible upgrade materials you own within 300 range. Matching materials synthesize immediately; unmatched materials remain on the ground and never occupy inventory slots."
         "DOTA_Tooltip_ability_ability_build_wall" "Build Wall"

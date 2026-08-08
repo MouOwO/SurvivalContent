@@ -6,11 +6,13 @@
     var playerId = Game.GetLocalPlayerID();
     var hotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
     var utilityHotkeys = {
+        ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
     };
     var utilityDisplayOrder = {
+        ability_survival_hero_ball_lightning: 10,
         ability_survival_builder_blink: 10,
         ability_survival_return_home: 20,
         ability_survival_pickup_materials: 30

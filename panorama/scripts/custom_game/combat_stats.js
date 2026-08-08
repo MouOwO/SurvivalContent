@@ -46,15 +46,20 @@
     var maxAbilityEngineSlots = 64;
     var towerRuntimeTrace = {};
     var utilityHotkeys = {
+        ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
     };
     var utilityAbilityForKey = {
-        D: "ability_survival_builder_blink",
-        F: "ability_survival_pickup_materials"
+        D: [
+            "ability_survival_hero_ball_lightning",
+            "ability_survival_builder_blink"
+        ],
+        F: ["ability_survival_pickup_materials"]
     };
     var utilityDisplayOrder = {
+        ability_survival_hero_ball_lightning: 10,
         ability_survival_builder_blink: 10,
         ability_survival_return_home: 20,
         ability_survival_pickup_materials: 30
@@ -1294,6 +1299,34 @@
         return true;
     }
 
+    function quickCastPositionAtCursor(abilityIndex, caster, source) {
+        var unit = Number(caster);
+        if (!unitOwnsAbility(unit, abilityIndex)) return false;
+        var runtime = abilityRuntime(abilityIndex);
+        if (runtime.removed === 1 || runtime.available === 0) {
+            $.Msg("[SURVIVAL_CAST][CLIENT] QUICK_CAST_REJECT unavailable ability=",
+                String(abilityIndex), " source=", String(source || "unknown"));
+            return false;
+        }
+        var screen = GameUI.GetCursorPosition();
+        var world = GameUI.GetScreenWorldPosition(screen);
+        if (!world) {
+            $.Msg("[SURVIVAL_CAST][CLIENT] QUICK_CAST_NO_WORLD ability=",
+                String(abilityIndex), " source=", String(source || "unknown"));
+            return false;
+        }
+        cancelPointTarget("quick_cast");
+        $.Msg("[SURVIVAL_CAST][CLIENT] QUICK_CAST_SEND unit=", String(unit),
+            " ability=", String(abilityIndex), " source=", String(source || "unknown"),
+            " x=", String(world[0]), " y=", String(world[1]), " z=", String(world[2]));
+        GameEvents.SendCustomGameEventToServer("ui_ability_cast_position_request", {
+            entindex: unit,
+            ability_entindex: abilityIndex,
+            x: world[0], y: world[1], z: world[2],
+        });
+        return true;
+    }
+
     var pointInput = GameUI.CustomUIConfig().SurvivalPointTargetInput || {};
     pointInput.Begin = beginPointTarget;
     pointInput.Cancel = cancelPointTarget;
@@ -1417,15 +1450,19 @@
 
     function castAbilityByName(key, source) {
         var unit = selectedUnit();
-        var abilityName = utilityAbilityForKey[key];
-        if (unit === undefined || unit < 0 || !abilityName) return false;
+        var abilityNames = utilityAbilityForKey[key] || [];
+        if (unit === undefined || unit < 0 || !abilityNames.length) return false;
         for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
             var abilityIndex = Entities.GetAbility(unit, slot);
             if (abilityIndex === undefined || abilityIndex < 0) continue;
-            if (Abilities.GetAbilityName(abilityIndex) === abilityName) {
+            var abilityName = Abilities.GetAbilityName(abilityIndex);
+            if (abilityNames.indexOf(abilityName) >= 0) {
                 $.Msg("[SURVIVAL_CAST][CLIENT] UTILITY source=", source,
                     " key=", key, " ability=", String(abilityIndex),
                     " name=", abilityName);
+                if (abilityName === "ability_survival_hero_ball_lightning") {
+                    return quickCastPositionAtCursor(abilityIndex, unit, source);
+                }
                 if (abilityName === "ability_survival_builder_blink") {
                     if (!Abilities.ExecuteAbility) return false;
                     Abilities.ExecuteAbility(abilityIndex, unit, false);
