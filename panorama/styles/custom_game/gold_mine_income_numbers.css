@@ -1,0 +1,24 @@
+#GoldMineIncomeNumbers
+{
+    width: 100%;
+    height: 100%;
+    overflow: noclip;
+    z-index: 25;
+}
+.GoldMineIncomeNumber
+{
+    position: 0px 0px 0px;
+    width: 100px;
+    height: 36px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #f5d45b;
+    text-shadow: 1px 2px 2px 3 #000000dd;
+    visibility: collapse;
+}
+.GoldMineIncomeNumber.Critical
+{
+    font-size: 30px;
+    color: #ff9f2f;
+}
