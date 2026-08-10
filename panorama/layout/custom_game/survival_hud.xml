@@ -8,9 +8,11 @@
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
         <include src="file://{resources}/styles/custom_game/weapon_growth_hud.css" />
         <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
+        <include src="file://{resources}/styles/custom_game/gold_mine_income_numbers.css" />
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
+        <include src="file://{resources}/scripts/custom_game/gold_mine_income_numbers.js" />
         <include src="file://{resources}/scripts/custom_game/survival_ui.js" />
         <include src="file://{resources}/scripts/custom_game/building_move.js" />
         <include src="file://{resources}/scripts/custom_game/tooltip_position.js" />
@@ -25,6 +27,7 @@
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
     </scripts>
     <Panel class="SurvivalHUDRoot Theme_Native" hittest="false">
+        <Panel id="GoldMineIncomeNumbers" hittest="false" hittestchildren="false" />
         <Panel id="TopBar">
             <Label id="WoodValue" text="木材 0" />
             <Label id="GoldValue" text="金币 0" />

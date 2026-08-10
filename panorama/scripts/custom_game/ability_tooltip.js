@@ -677,9 +677,9 @@
             || abilityName === "ability_upgrade_gold_mine"
             || abilityName === "ability_upgrade_gold_mine_efficiency"
             || abilityName === "ability_upgrade_gold_mine_crit"
-            // This is the only training action with a complete authoritative
-            // runtime projection. Keep the proxy whitelist deliberately narrow.
-            || abilityName === "ability_train_lumberjack";
+            || abilityName === "ability_train_lumberjack"
+            || abilityName === "ability_train_repairer"
+            || abilityName === "ability_train_advanced_repairer";
     }
 
     function managedUpgrade(abilityIndex, abilityName) {
