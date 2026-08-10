@@ -106,6 +106,15 @@
                 .replace(/_/g, " ");
     }
 
+    function displayNameWithTreeLevel(displayName, snapshot) {
+        if (!snapshot || Number(snapshot.is_resource_tree || 0) !== 1) {
+            return displayName;
+        }
+        var current = Math.max(1, Number(snapshot.level || 1));
+        var maximum = Math.max(current, Number(snapshot.max_level || current));
+        return "大树等级 " + formatNumber(current) + "/" + formatNumber(maximum);
+    }
+
     function copyPanelClasses(source, target) {
         if (!source || !target || !source.GetClasses) return;
         var classes = source.GetClasses();
@@ -914,6 +923,10 @@
                 ? (selectedUnitSnapshot.display_name || selectedUnitSnapshot.unit_name || "")
                 : "";
             var displayName = resolveUnitDisplayName(unitName, snapshotName);
+            displayName = displayNameWithTreeLevel(
+                displayName,
+                snapshotMatches ? selectedUnitSnapshot : null
+            );
             if (heroPanelState.displayName !== displayName) {
                 heroPanelState.displayName = displayName;
                 setText("SurvivalHeroName", displayName);
