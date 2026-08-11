@@ -1022,7 +1022,7 @@
                 || Math.abs(delta.height) > tolerance;
             var diagnostic = "unit=" + String(selectedUnit())
                 + " display=" + String(binding.displayIndex)
-                    + " engine_slot=" + String(active.engineSlot)
+                + " engine_slot=" + String(binding.engineSlot)
                 + " ability=" + String(binding.abilityIndex)
                 + " status=" + (geometryMismatch ? "geometry_mismatch" : "aligned")
                 + " anchor=" + Math.round(anchorRect.x) + ","
