@@ -43,11 +43,14 @@
     var bindingDecisionDiagnostic = "";
     var cursorProbeSerial = 0;
     var cursorProbeDiagnostic = "";
+    var pendingHoverRestore = null;
     var observedSelectedUnit = null;
     var observedAuthorityAbilitySignature = "";
     var scopeDiagnostic = "";
     var recoveryDiagnostic = "";
     var authorityRuntimeObservationSerial = 0;
+    var authorityRuntimeEventKey = "";
+    var authorityRuntimeEventData = null;
     var selectionObservationSerial = 0;
     var externalHoverExitSerial = 0;
     var selectiveTooltipOwner = "selective_proxy";
@@ -622,8 +625,32 @@
         }
     }
 
+    function runtimeOwnerMatchesSelectedUnit(runtime) {
+        var unit = Number(selectedUnit());
+        return !!runtime && isFinite(unit) && unit >= 0
+            && Number(runtime.owner_entindex) === unit;
+    }
+
+    function runtimeOwnedBySelectedUnit(runtime, abilityIndex) {
+        var unit = Number(selectedUnit());
+        if (!runtimeOwnerMatchesSelectedUnit(runtime)) return false;
+        return abilityIndex === undefined
+            || unitOwnsAbility(unit, Number(abilityIndex));
+    }
+
+    function isSelectedRuntimeManagedUnit() {
+        var entries = visibleAbilityEntries();
+        return entries.some(function (entry) {
+            var runtime = CustomNetTables.GetTableValue(
+                "survival_ability_runtime", String(entry.abilityIndex)
+            ) || {};
+            return runtimeOwnedBySelectedUnit(runtime, entry.abilityIndex);
+        });
+    }
+
     function authorityAbilitySignature() {
-        if (!isSelectedLocalBuilder() && !isSelectedCombatHero()) return "";
+        if (!isSelectedLocalBuilder() && !isSelectedCombatHero()
+            && !isSelectedRuntimeManagedUnit()) return "";
         return visibleAbilitySignature();
     }
 
@@ -645,6 +672,7 @@
     function selectedTooltipScope() {
         if (isSelectedLocalBuilder()) return "builder";
         if (isSelectedCombatHero()) return "combat_hero";
+        if (isSelectedRuntimeManagedUnit()) return "runtime_unit";
         return "native_or_managed";
     }
 
@@ -1169,6 +1197,36 @@
             });
             if (active) {
                 var proxy = active.proxy;
+                var pending = pendingHoverRestore;
+                var restoreHover = pending
+                    && Number(pending.unit) === Number(selectedUnit())
+                    && Number(pending.displayIndex) === Number(active.displayIndex);
+                if (restoreHover) {
+                    pendingHoverRestore = null;
+                    proxy.__survivalPointerInside = true;
+                    setExternalProxyHighlight(activeSourcePanel, false);
+                    var shown = false;
+                    try {
+                        shown = showSlot(-1, proxy);
+                        setExternalProxyHighlight(proxy,
+                            shown && activeSourcePanel === proxy);
+                        if (shown && activeSourcePanel === proxy) {
+                            startExternalHoverSession(proxy, active.abilityIndex);
+                            $.Msg("[SURVIVAL_TOOLTIP_CURSOR] action=restore_hover reason=",
+                                String(reason || "binding"), " unit=",
+                                String(selectedUnit()), " display=",
+                                String(active.displayIndex), " ability=",
+                                String(active.abilityIndex), " name=",
+                                active.abilityName);
+                        }
+                    } catch (error) {
+                        tooltipError("cursor_restore_hover", error, proxy);
+                        hideCustomTooltip();
+                    }
+                } else if (pending
+                    && Number(pending.unit) === Number(selectedUnit())) {
+                    pendingHoverRestore = null;
+                }
                 var runtime = CustomNetTables.GetTableValue(
                     "survival_ability_runtime", String(active.abilityIndex)
                 ) || {};
@@ -1195,6 +1253,16 @@
                     cursorProbeDiagnostic = diagnostic;
                     $.Msg("[SURVIVAL_TOOLTIP_CURSOR] ", diagnostic);
                 }
+            } else if (pendingHoverRestore
+                && Number(pendingHoverRestore.unit) === Number(selectedUnit())) {
+                var pendingBinding = null;
+                officialBindings.some(function (binding) {
+                    if (!binding || Number(binding.displayIndex)
+                        !== Number(pendingHoverRestore.displayIndex)) return false;
+                    pendingBinding = binding;
+                    return true;
+                });
+                if (pendingBinding) pendingHoverRestore = null;
             }
             observationsRemaining -= 1;
             if (observationsRemaining > 0) $.Schedule(0.05, observe);
@@ -1642,6 +1710,7 @@
         observedSelectedUnit = Number(unit);
         selectionObservationSerial += 1;
         bindingRecoverySerial += 1;
+        pendingHoverRestore = null;
         hideAllTooltips(activeSourcePanel);
         officialMapDiagnostic = "";
         externalProxyDiagnostic = "";
@@ -1669,7 +1738,8 @@
     function scheduleBindingRecovery(reason) {
         bindingRecoverySerial += 1;
         var serial = bindingRecoverySerial;
-        var authorityScope = isSelectedLocalBuilder() || isSelectedCombatHero();
+        var authorityScope = isSelectedLocalBuilder() || isSelectedCombatHero()
+            || isSelectedRuntimeManagedUnit();
         var delays = reason === "startup"
             ? [0.0, 0.10, 0.35, 1.0]
             : (authorityScope
@@ -1734,6 +1804,7 @@
     }
 
     function forceAuthorityRecovery(reason) {
+        pendingHoverRestore = null;
         hideAllTooltips(activeSourcePanel);
         officialMapDiagnostic = "";
         externalProxyDiagnostic = "";
@@ -1750,6 +1821,15 @@
         if (signature === observedAuthorityAbilitySignature) return false;
         var previous = observedAuthorityAbilitySignature;
         observedAuthorityAbilitySignature = signature;
+        var hoveredProxy = activeSourcePanel;
+        var hoveredDisplayIndex = Number(
+            hoveredProxy && hoveredProxy.__survivalDisplayIndex
+        );
+        pendingHoverRestore = hoveredProxy && activeAbilityIndex >= 0
+            && isFinite(hoveredDisplayIndex) && hoveredDisplayIndex >= 0
+            && rectContainsCursor(hoveredProxy)
+            ? { unit: Number(selectedUnit()), displayIndex: hoveredDisplayIndex }
+            : null;
         hideAllTooltips(activeSourcePanel);
         officialMapDiagnostic = "";
         externalProxyDiagnostic = "";
@@ -1763,7 +1843,10 @@
     }
 
     function observeAuthorityRuntimeEvent() {
-        if (!isSelectedLocalBuilder() && !isSelectedCombatHero()) return;
+        var runtime = authorityRuntimeEventData || CustomNetTables.GetTableValue(
+            "survival_ability_runtime", String(authorityRuntimeEventKey)
+        ) || {};
+        if (!runtimeOwnerMatchesSelectedUnit(runtime)) return;
         authorityRuntimeObservationSerial += 1;
         var serial = authorityRuntimeObservationSerial;
         [0.0, 0.016, 0.05, 0.10, 0.20, 0.35, 0.60, 1.0].forEach(function (delay) {
@@ -1776,7 +1859,9 @@
 
     CustomNetTables.SubscribeNetTableListener(
         "survival_ability_runtime",
-        function (name, key) {
+        function (name, key, data) {
+            authorityRuntimeEventKey = key;
+            authorityRuntimeEventData = data || null;
             observeAuthorityRuntimeEvent();
             if (Number(key) === Number(activeAbilityIndex)) {
                 refreshVisible("ability_runtime");
