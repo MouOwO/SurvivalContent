@@ -1,0 +1,131 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+[
+	{
+		saved_search_name = "maps/template_map.vmap"
+		saved_search_string = ""
+		saved_search_data = 
+		{
+			set_name = "Most Recently Used Assets"
+			user_tab_name = ""
+			view_mode_name = "Grid"
+			grid_icon_scale_name = "Medium"
+			hidden_types = 
+			{
+				"0" = "VData"
+				"2" = "Animation"
+				"3" = "Animation Group"
+				"4" = "Sequence Group"
+				"7" = "Mesh"
+				"10" = "Physics Collision Mesh"
+				"12" = "MorphSet"
+				"13" = "ResourceManifest"
+				"14" = "World"
+				"15" = "WorldNode"
+				"16" = "WorldVisibility"
+				"17" = "EntityLump"
+				"22" = "Resource Remap Table"
+				"31" = "Blender"
+				"32" = "Maya ASCII"
+				"33" = "Maya Binary"
+				"34" = "3DS Max"
+				"35" = "Modo"
+				"36" = "smd file"
+				"37" = "Speedtree file"
+				"38" = "fbx"
+				"39" = "obj"
+				"40" = "qc"
+				"41" = "Meshgroup File"
+				"42" = "Lodgroup File"
+				"43" = "Breakgroup File"
+				"44" = "Prop Data File"
+				"45" = "Matrgoup File"
+				"46" = "KV File"
+				"47" = "TXT File"
+				"60" = "DMX File"
+				"65" = "Speech Graphics RTS"
+			}
+			shown_types = 
+			{
+				"1" = "VData Include"
+				"5" = "Particle System"
+				"6" = "Material"
+				"8" = "Compiled Texture"
+				"9" = "Model"
+				"11" = "Sound"
+				"18" = "Surface Properties"
+				"19" = "Sound Event Script"
+				"20" = "Sound Stack Script"
+				"21" = "Postprocessing Settings"
+				"23" = "Panorama Style"
+				"24" = "Panorama Layout"
+				"25" = "Panorama Dynamic Images"
+				"26" = "JavaScript"
+				"27" = "Vector Graphic"
+				"28" = "Particle Snapshot"
+				"29" = "Lua Script"
+				"30" = "Sheetfile"
+				"48" = "ModelDoc Template"
+				"49" = "ModelDoc Prefab"
+				"50" = "Animation Graph"
+				"51" = "Animation Sub-Graph"
+				"52" = "Photoshop File"
+				"53" = "TGA File"
+				"54" = "TIF File"
+				"55" = "TIFF File"
+				"56" = "PFM File"
+				"57" = "EXR File"
+				"58" = "PNG File"
+				"59" = "JPG File"
+				"61" = "Map"
+				"62" = "Sub-Rectangle Definition"
+				"63" = "Panorama Movie (webm)"
+				"64" = "Smart Prop"
+			}
+			mod_selection = 
+			{
+				selected_mods = 
+				{
+					"dota_addons/Survival" = true
+					dota_schinese = true
+					dota = true
+					core = false
+				}
+			}
+			tag_selection = 
+			{
+				require_all_include = false
+				include_all_tags = true
+				include_untagged = true
+				include = null
+				exclude = null
+			}
+			List = 
+			{
+				column_0_width = 1140
+				column_1_width = 100
+				column_2_width = 100
+				column_3_width = 100
+				column_4_width = 100
+				column_5_width = 0
+			}
+			Grid = null
+			filter_text = ""
+			dir_tree_splitter = "AAAA/wAAAAEAAAACAAAAAAAAAyAB/////wEAAAABAA=="
+		}
+		saved_search_preview_image = 
+#[
+89 50 4E 47 0D 0A 1A 0A 00 00 00 0D 49 48 44 52 00 00 01 90 00 00 00 4B 08 02 00 00 00 D1 53 46
+			C3 00 00 00 09 70 48 59 73 00 00 0E C4 00 00 0E C4 01 95 2B 0E 1B 00 00 01 1E 49 44 41 54 78 9C
+			ED D6 B1 0D 80 30 10 04 41 78 D1 94 FB 2F CB 09 25 38 84 95 66 2A B8 68 75 F7 5A 6B 66 2E 80 DF
+			7B 66 66 EF FD F5 0C 80 33 DF 0A C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C
+			C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8
+			10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80
+			0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B
+			C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0
+			80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04
+			0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 10 2C 20 43
+			B0 80 0C C1 02 32 04 0B C8 10 2C 20 43 B0 80 0C C1 02 32 04 0B C8 78 01 FB E1 04 40 2C 3D CD E8
+			00 00 00 00 49 45 4E 44 AE 42 60 82
+		]
+	},
+]
