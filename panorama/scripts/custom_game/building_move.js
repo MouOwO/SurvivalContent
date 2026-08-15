@@ -1,17 +1,12 @@
 (function () {
     "use strict";
 
-    var panel = null;
     var moving = false;
     var selectedEnt = -1;
-    var lastUnit = -1;
+    var confirmEnt = -1;
     var RANGE = 1000;
-    var KEY_NAME = "D";
-
-    function getPanel() {
-        if (!panel) panel = $("#BuildingMoveButton");
-        return panel;
-    }
+    var MOVE_ABILITY = "ability_building_blink";
+    var DESTROY_ABILITY = "ability_destroy_arrow_tower";
 
     function selectedUnit() {
         var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
@@ -19,46 +14,84 @@
         return -1;
     }
 
-    function isMovable(unit) {
+    function isArrowTower(unit) {
         var name = "";
         try { name = Entities.GetUnitName(unit) || ""; } catch (e) {}
-        return name === "building_wall" || name === "building_arrow_tower";
+        return name === "building_arrow_tower";
     }
 
-    function updateButton() {
-        var p = getPanel();
-        if (!p) return;
-        var unit = selectedUnit();
-        lastUnit = unit;
-        if (unit >= 0 && isMovable(unit)) {
-            p.RemoveClass("Hidden");
-            p.text = moving ? "取消移动" : "D 移动建筑";
-        } else {
-            p.AddClass("Hidden");
-            moving = false;
+    function visibleAbility(unit, abilityName) {
+        if (unit < 0 || !isArrowTower(unit)) return -1;
+        for (var slot = 0; slot < 64; slot += 1) {
+            var ability = -1;
+            try { ability = Entities.GetAbility(unit, slot); } catch (error) {}
+            if (ability < 0) continue;
+            try {
+                if (Abilities.GetAbilityName(ability) === abilityName
+                    && !Abilities.IsHidden(ability)) return ability;
+            } catch (error) {}
         }
-        $.Schedule(0.15, updateButton);
+        return -1;
     }
 
-    function beginMove() {
-        var unit = selectedUnit();
-        if (unit < 0 || !isMovable(unit)) return;
+    function beginMove(unit) {
+        unit = Number(unit === undefined ? selectedUnit() : unit);
+        if (visibleAbility(unit, MOVE_ABILITY) < 0) return false;
         selectedEnt = unit;
         moving = true;
-        var p = getPanel();
-        if (p) p.text = "请点击目标位置（右键取消）";
+        var hint = $("#SurvivalPointTargetHint");
+        if (hint) {
+            hint.text = "请选择箭塔移动位置（右键取消）";
+            hint.AddClass("PointTargetActive");
+        }
         $.Msg("[BuildingMove] select ent=" + String(selectedEnt));
+        return true;
     }
 
     function cancelMove() {
         moving = false;
         selectedEnt = -1;
-        var p = getPanel();
-        if (p) p.text = "D 移动建筑";
+        var hint = $("#SurvivalPointTargetHint");
+        if (hint) hint.RemoveClass("PointTargetActive");
+    }
+
+    function confirmPanel() { return $("#ArrowTowerDestroyConfirm"); }
+
+    function closeDestroyConfirm() {
+        confirmEnt = -1;
+        var panel = confirmPanel();
+        if (panel) panel.AddClass("Hidden");
+    }
+
+    function openDestroyConfirm(unit) {
+        unit = Number(unit === undefined ? selectedUnit() : unit);
+        if (visibleAbility(unit, DESTROY_ABILITY) < 0) return false;
+        cancelMove();
+        confirmEnt = unit;
+        var panel = confirmPanel();
+        if (panel) panel.RemoveClass("Hidden");
+        return true;
+    }
+
+    function confirmDestroy() {
+        if (confirmEnt < 0
+            || visibleAbility(confirmEnt, DESTROY_ABILITY) < 0) {
+            closeDestroyConfirm();
+            return false;
+        }
+        GameEvents.SendCustomGameEventToServer("ui_arrow_tower_destroy_request", {
+            entindex: confirmEnt
+        });
+        closeDestroyConfirm();
+        return true;
     }
 
     function sendPosition() {
-        if (!moving || selectedEnt < 0) return false;
+        if (!moving || selectedEnt < 0
+            || visibleAbility(selectedEnt, MOVE_ABILITY) < 0) {
+            cancelMove();
+            return false;
+        }
         var screen = GameUI.GetCursorPosition();
         var world = GameUI.GetScreenWorldPosition(screen);
         if (!world) {
@@ -83,6 +116,7 @@
     }
 
     function mouseCallback(eventName, button, gameTime) {
+        if (confirmEnt >= 0) return true;
         if (!moving) return false;
         if (eventName === "pressed" && button === 0) return sendPosition();
         if (eventName === "pressed" && button === 1) {
@@ -92,17 +126,34 @@
         return false;
     }
 
+    function normalizeKey(key) {
+        var normalized = String(key || "").toUpperCase();
+        if (normalized === "ESC") return "ESCAPE";
+        return normalized;
+    }
+
     var customConfig = GameUI.CustomUIConfig();
     var dispatcher = customConfig.SurvivalInputDispatcher;
     if (dispatcher && dispatcher.RegisterMouseHandler) {
         dispatcher.RegisterMouseHandler("building_move", mouseCallback, 80);
     }
     var keyHandler = function (key, down) {
-        if (!down || String(key).toUpperCase() !== KEY_NAME) return false;
-        if (!moving && !isMovable(selectedUnit())) return false;
-        if (moving) cancelMove();
-        else beginMove();
-        return true;
+        if (!down) return false;
+        var normalized = normalizeKey(key);
+        if (confirmEnt >= 0) {
+            if (normalized === "ESCAPE") {
+                closeDestroyConfirm();
+                return true;
+            }
+            return false;
+        }
+        if (normalized === "G") return openDestroyConfirm();
+        if (normalized !== "D") return false;
+        if (moving) {
+            cancelMove();
+            return true;
+        }
+        return beginMove();
     };
     if (dispatcher && dispatcher.RegisterKeyHandler) {
         dispatcher.RegisterKeyHandler("building_move", keyHandler, 80);
@@ -111,8 +162,33 @@
         if (!data || Number(data.success) === 1) return;
         $.Msg("[BuildingMove] server rejected " + String(data.error || "unknown"));
     });
-    var button = $("#BuildingMoveButton");
-    if (button) button.SetPanelEvent("onactivate", beginMove);
-    // 按钮作为备用入口；D 键通过共享按键分发器触发同一移动流程。
-    $.Schedule(0.1, updateButton);
+    GameEvents.Subscribe("ui_arrow_tower_destroy_result", function (data) {
+        if (!data || Number(data.success) === 1) return;
+        $.Msg("[ArrowTowerDestroy] server rejected " + String(data.error || "unknown"));
+    });
+    GameUI.CustomUIConfig().SurvivalArrowTowerTools = {
+        TriggerAbility: function (abilityName, unit) {
+            if (abilityName === MOVE_ABILITY) return beginMove(unit);
+            if (abilityName === DESTROY_ABILITY) return openDestroyConfirm(unit);
+            return false;
+        },
+        Confirm: confirmDestroy,
+        Cancel: function () {
+            cancelMove();
+            closeDestroyConfirm();
+        }
+    };
+
+    function lifecycleTick() {
+        if (confirmEnt >= 0 && (selectedUnit() !== confirmEnt
+            || visibleAbility(confirmEnt, DESTROY_ABILITY) < 0)) {
+            closeDestroyConfirm();
+        }
+        if (moving && (selectedUnit() !== selectedEnt
+            || visibleAbility(selectedEnt, MOVE_ABILITY) < 0)) {
+            cancelMove();
+        }
+        $.Schedule(0.1, lifecycleTick);
+    }
+    lifecycleTick();
 })();

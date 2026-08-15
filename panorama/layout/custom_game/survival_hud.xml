@@ -322,10 +322,17 @@
             </Panel>
         </Panel>
 
-        <Button id="BuildingMoveButton" class="BuildingMoveButton" hittest="true">
-            <DOTAItemImage class="BuildingMoveIcon" itemname="item_blink" />
-            <Label id="BuildingMoveButtonLabel" text="D 移动建筑" />
-        </Button>
+        <Panel id="ArrowTowerDestroyConfirm" class="ArrowTowerDestroyConfirm Hidden" hittest="true">
+            <Panel class="ArrowTowerDestroyBackdrop" hittest="true" />
+            <Panel class="ArrowTowerDestroyDialog" hittest="true">
+                <Label class="ArrowTowerDestroyTitle" text="确认销毁箭塔？" />
+                <Label class="ArrowTowerDestroyMessage" text="不会返还木材或金币。网格、人口和数量名额会正常释放。" />
+                <Panel class="ArrowTowerDestroyActions">
+                    <Button class="ArrowTowerDestroyCancel" onactivate="GameUI.CustomUIConfig().SurvivalArrowTowerTools.Cancel()"><Label text="取消  Esc" /></Button>
+                    <Button class="ArrowTowerDestroyConfirmButton" onactivate="GameUI.CustomUIConfig().SurvivalArrowTowerTools.Confirm()"><Label text="确认" /></Button>
+                </Panel>
+            </Panel>
+        </Panel>
         <Label id="SurvivalPointTargetHint" class="SurvivalPointTargetHint" text="" />
       <Panel id="NotificationContainer" />
     </Panel>

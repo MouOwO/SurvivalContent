@@ -705,6 +705,9 @@
             || abilityName === "ability_upgrade_gold_mine"
             || abilityName === "ability_upgrade_gold_mine_efficiency"
             || abilityName === "ability_upgrade_gold_mine_crit"
+            || abilityName === "ability_challenge_auto_summon"
+            || abilityName === "ability_building_blink"
+            || abilityName === "ability_destroy_arrow_tower"
             || abilityName === "ability_train_lumberjack"
             || abilityName === "ability_train_repairer"
             || abilityName === "ability_train_advanced_repairer";
@@ -791,6 +794,12 @@
             name = Abilities.GetAbilityName(abilityIndex) || "";
             behavior = Number(Abilities.GetBehavior(abilityIndex) || 0);
         } catch (error) {}
+        if (name === "ability_building_blink"
+            || name === "ability_destroy_arrow_tower") {
+            var tools = GameUI.CustomUIConfig().SurvivalArrowTowerTools;
+            return !!(tools && tools.TriggerAbility
+                && tools.TriggerAbility(name, unit));
+        }
         if ((behavior & 16) !== 0) {
             $.Msg("[SURVIVAL_CAST][TOOLTIP] POINT_TARGET_BEGIN unit=", String(unit), " ability=", String(abilityIndex), " name=", name, " behavior=", String(behavior));
             var pointInput = GameUI.CustomUIConfig().SurvivalPointTargetInput;

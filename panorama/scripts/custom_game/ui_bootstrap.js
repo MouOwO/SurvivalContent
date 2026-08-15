@@ -200,7 +200,7 @@
         return dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
     });
     if (Game.AddCommand && Game.CreateCustomKeyBind) {
-        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "D", "F", "F2", "TAB", "SPACE"];
+        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "D", "F", "G", "F2", "TAB", "SPACE", "ESCAPE"];
         var fallbackCommands = {};
         fallbackKeys.forEach(function (key) {
             var command = "survival_input_" + inputContextId + "_"

@@ -1221,7 +1221,8 @@
             || /^ability_tower_class_/.test(abilityName)
             || /^(ability_upgrade_(wall|city|farm|gold_mine))$/.test(abilityName)
             || /^(ability_upgrade_gold_mine_(efficiency|crit))$/.test(abilityName)
-            || /^(ability_gold_mine_(auto_upgrade|stop_auto_upgrade))$/.test(abilityName);
+            || /^(ability_gold_mine_(auto_upgrade|stop_auto_upgrade))$/.test(abilityName)
+            || abilityName === "ability_challenge_auto_summon";
     }
 
     function managedAbility(abilityIndex, abilityName, runtime) {
@@ -1432,7 +1433,7 @@
             $.Msg("[SURVIVAL_CAST][CLIENT] POINT_TARGET_BEGIN unit=", String(unit), " ability=", String(abilityIndex), " name=", name, " behavior=", String(behavior));
             return beginPointTarget(abilityIndex, unit);
         }
-        if ((behavior & 4) === 0) {
+        if ((behavior & 4) === 0 && (behavior & 512) === 0) {
             $.Warning("[SURVIVAL_CAST][CLIENT] reject unsupported behavior ability="
                 + String(abilityIndex) + " name=" + name
                 + " behavior=" + String(behavior));

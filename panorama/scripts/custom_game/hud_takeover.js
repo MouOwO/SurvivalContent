@@ -1022,6 +1022,14 @@
     }
 
     function activate(entry) {
+        if (entry.name === "ability_building_blink"
+            || entry.name === "ability_destroy_arrow_tower") {
+            var tools = config.SurvivalArrowTowerTools;
+            if (tools && tools.TriggerAbility) {
+                tools.TriggerAbility(entry.name, selectedUnit());
+            }
+            return;
+        }
         if (entry.name === "ability_survival_return_home") {
             var returnHome = config.SurvivalReturnHomeInput;
             if (returnHome && returnHome.Request) returnHome.Request("takeover_button");
