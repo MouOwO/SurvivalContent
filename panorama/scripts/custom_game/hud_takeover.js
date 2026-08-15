@@ -5,6 +5,11 @@
     var takeover = config.SurvivalHudTakeover || {};
     var playerId = Game.GetLocalPlayerID();
     var hotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
+    var builderHotkeysBySlotOrder = {
+        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A"
+    };
+    var researchHotkeys = ["Q", "W", "E", "R", "T", "A"];
+    var advancedResearchHotkeys = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"];
     var utilityHotkeys = {
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
@@ -34,7 +39,7 @@
     var takeoverTooltipOwner = "full_takeover";
     var fixedCellSize = 52;
     var fixedCellGap = 4;
-    var takeoverBuild = "grid52_preset_v6";
+    var takeoverBuild = "grid52_research_row_v8";
     var calibrationPreset = {
         version: 1,
         alignment: "middle_left",
@@ -156,6 +161,15 @@
         ) || {};
     }
 
+    function unitAbilityCount(unit) {
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", "unit:" + String(unit)
+        ) || {};
+        if (runtime.removed === 1
+            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
+        return Math.max(0, Number(runtime.ability_count) || 0);
+    }
+
     function asArray(value) {
         if (!value) return [];
         if (Array.isArray(value)) return value;
@@ -238,12 +252,54 @@
         return "技能";
     }
 
+    function selectedUnitName() {
+        var unit = selectedUnit();
+        if (unit === undefined || unit < 0) return "";
+        try {
+            return Entities.GetUnitName(unit) || "";
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function advancedResearchSelected() {
+        return selectedUnitName() === "building_advanced_research_lab";
+    }
+
+    function researchLabSelected() {
+        var name = selectedUnitName();
+        return name === "building_research_lab"
+            || name === "building_advanced_research_lab";
+    }
+
+    function abilityTakeoverEnabled() {
+        return takeover.abilities && !researchLabSelected();
+    }
+
+    function hotkeyForEntry(entry) {
+        if (utilityHotkeys[entry.name]) return utilityHotkeys[entry.name];
+        if (selectedUnitName() === "npc_survival_builder_proxy") {
+            var builderRuntime = runtimeFor(entry.ability);
+            return builderHotkeysBySlotOrder[
+                Number(builderRuntime.builder_slot_order || 0)
+            ] || "";
+        }
+        var runtime = runtimeFor(entry.ability);
+        var slot = Number(runtime.research_slot_order || 0) - 1;
+        if (slot >= 0) {
+            return runtime.research_building_id === "building_advanced_research_lab"
+                ? (advancedResearchHotkeys[slot] || "")
+                : (researchHotkeys[slot] || "");
+        }
+        return hotkeys[entry.standardHotkeyIndex] || "";
+    }
+
     function visibleAbilities() {
         var unit = selectedUnit();
         var standard = [];
         var utility = [];
         if (unit === undefined || unit < 0) return standard;
-        for (var entitySlot = 0; entitySlot < 24; entitySlot++) {
+        for (var entitySlot = 0; entitySlot < unitAbilityCount(unit); entitySlot++) {
             var ability = -1;
             try { ability = Entities.GetAbility(unit, entitySlot); } catch (error) {}
             if (ability === undefined || ability < 0) continue;
@@ -721,8 +777,12 @@
 
     function measureFixedRowGeometry(mappings, rowAnchorGeometry) {
         if (!mappings || mappings.length === 0 || !rowAnchorGeometry) return null;
-        var width = mappings.length * fixedCellSize
-            + Math.max(0, mappings.length - 1) * fixedCellGap;
+        var columnCount = mappings.length;
+        var rowCount = 1;
+        var width = columnCount * fixedCellSize
+            + Math.max(0, columnCount - 1) * fixedCellGap;
+        var height = rowCount * fixedCellSize
+            + Math.max(0, rowCount - 1) * fixedCellGap;
         var alignment = calibrationAlignments[calibration.alignment]
             || calibrationAlignments.top_left;
         // Align the same normalized point on the fixed row and Valve's stable
@@ -731,13 +791,13 @@
         var anchorX = rowAnchorGeometry.x + rowAnchorGeometry.width * alignment.x;
         var anchorY = rowAnchorGeometry.y + rowAnchorGeometry.height * alignment.y;
         var x = anchorX - width * alignment.x + calibration.offsetX;
-        var y = anchorY - fixedCellSize * alignment.y + calibration.offsetY;
+        var y = anchorY - height * alignment.y + calibration.offsetY;
         if (!isFinite(x) || !isFinite(y) || !isFinite(width) || width <= 0) return null;
         return {
             x: Math.round(x * 1000) / 1000,
             y: Math.round(y * 1000) / 1000,
             width: width,
-            height: fixedCellSize,
+            height: height,
             anchorX: Math.round(anchorX * 1000) / 1000,
             anchorY: Math.round(anchorY * 1000) / 1000,
             count: mappings.length
@@ -1085,6 +1145,12 @@
         panel.SetPanelEvent("onactivate", function () {
             if (slot.entry) activate(slot.entry);
         });
+        panel.SetPanelEvent("oncontextmenu", function () {
+            if (!slot.entry || !advancedResearchSelected()
+                || !/^ability_research_/.test(slot.entry.name)) return;
+            var shop = config.SurvivalShop;
+            if (shop && shop.OpenResearch) shop.OpenResearch(selectedUnit());
+        });
         slots[displayIndex] = slot;
         return slot;
     }
@@ -1113,8 +1179,7 @@
         slot.panel.__survivalAbilityIndex = entry.ability;
         slot.panel.__survivalAbilityName = entry.name;
         slot.image.abilityname = entry.name;
-        slot.hotkey.text = utilityHotkeys[entry.name]
-            || (hotkeys[entry.standardHotkeyIndex] || "");
+        slot.hotkey.text = hotkeyForEntry(entry);
         var level = abilityLevel(entry.ability);
         slot.level.text = level > 0 ? "Lv." + String(level) : "";
         var mana = manaCost(entry.ability);
@@ -1163,7 +1228,7 @@
             requestOfficialAbilitySurvey(surveyEntries, reason, false);
             return true;
         }
-        if (!takeover.abilities) {
+        if (!abilityTakeoverEnabled()) {
             hideTooltip();
             hideUnused(0);
             hideCalibrationGeometry();
@@ -1223,6 +1288,7 @@
             mapping.slot.panel.SetHasClass(
                 "LastInRow", displayIndex === plan.mappings.length - 1
             );
+            mapping.slot.panel.style.position = "0px 0px 0px";
             mapping.slot.panel.style.visibility = "visible";
             suppressOfficial(displayIndex, mapping.official.panel);
             updateSlot(mapping.slot, mapping.entry, displayIndex);
@@ -1248,7 +1314,14 @@
     }
 
     function beginSelectionTransition(reason) {
-        if (!takeover.abilities || takeover.abilitySurvey) return;
+        if (takeover.abilitySurvey) return;
+        if (!abilityTakeoverEnabled()) {
+            selectionTransition = null;
+            selectionTransitionUnit = -1;
+            signature = "";
+            refresh("selection_native_restore_" + String(reason || "unknown"));
+            return;
+        }
         var transitionUnit = Number(selectedUnit());
         if (selectionTransition
             && isFinite(transitionUnit)
@@ -1326,7 +1399,7 @@
     }
 
     function runtimeTick() {
-        if (takeover.abilities && !takeover.abilitySurvey) {
+        if (abilityTakeoverEnabled() && !takeover.abilitySurvey) {
             slots.forEach(function (slot, displayIndex) {
                 if (slot && slot.entry) updateSlot(slot, slot.entry, displayIndex);
             });
@@ -1335,7 +1408,7 @@
     }
 
     function geometryTick() {
-        if (takeover.abilities || takeover.abilitySurvey) {
+        if (abilityTakeoverEnabled() || takeover.abilitySurvey) {
             refresh("geometry_tick");
         }
         $.Schedule(0.50, geometryTick);
@@ -1451,6 +1524,10 @@
         "survival_ability_runtime",
         function (tableName, key) {
             if (takeover.abilitySurvey) return;
+            if (String(key) === "unit:" + String(selectedUnit())) {
+                refresh("unit_ability_count_changed");
+                return;
+            }
             var ability = Number(key);
             slots.forEach(function (slot, displayIndex) {
                 if (slot && slot.entry && Number(slot.entry.ability) === ability) {

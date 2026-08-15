@@ -58,10 +58,6 @@
             <DOTAItemImage id="CustomShopButtonIcon" itemname="item_ironwood_tree" />
             <Label id="CustomShopButtonLabel" text="商店" />
         </Button>
-        <Button id="CustomResearchButton" class="Locked" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalShop.ToggleResearch()">
-            <DOTAAbilityImage id="CustomResearchButtonIcon" abilityname="ability_build_research_lab" />
-            <Label id="CustomResearchButtonLabel" text="科技" />
-        </Button>
         <Panel id="HeroCombatDebugPanel" hittest="false">
             <Label id="HeroCombatDebugTitle" text="英雄伤害 / 科技状态" />
             <Panel id="HeroCombatDamageSummary">
@@ -90,7 +86,6 @@
             <Panel id="ShopHeader">
                 <Panel id="ShopModeToggles">
                     <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.Open()"><Label text="商店" /></Button>
-                    <Button id="ShopModeResearch" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenResearch()"><Label text="科技" /></Button>
                     <Button id="ShopModeChallenge" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenChallenge()"><Label text="挑战" /></Button>
                 </Panel>
                 <Panel id="ShopTitleBlock">

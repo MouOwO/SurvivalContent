@@ -97,23 +97,23 @@
     function updateModeText() {
         var research = currentMode === "research";
         var challenge = currentMode === "challenge";
-        setText("ShopTitle", research ? "科技" : (challenge ? "挑战" : "生存商店"));
+        var advancedResearch = research
+            && snapshot && snapshot.research_scope === "advanced";
+        setText("ShopTitle", research
+            ? (advancedResearch ? "高级研究" : "科技")
+            : (challenge ? "挑战" : "生存商店"));
         setText(
             "ShopSubtitle",
             research
-                ? "19组非金矿科技 · 研究耗时2秒"
+                ? (advancedResearch
+                    ? "ARS-01 至 ARS-10 · 团队研究"
+                    : "普通研究所科技 · 研究耗时2秒")
                 : (challenge ? "11个普通挑战 · 10个转职挑战"
                     : "武器装备 · 道具材料 · 提前通关")
         );
         var shopToggle = byId("ShopModeShop");
-        var researchToggle = byId("ShopModeResearch");
         var challengeToggle = byId("ShopModeChallenge");
         if (shopToggle) shopToggle.SetHasClass("Selected", !research && !challenge);
-        if (researchToggle) {
-            researchToggle.SetHasClass("Selected", research);
-            researchToggle.SetHasClass("Disabled", false);
-            researchToggle.enabled = true;
-        }
         if (challengeToggle) challengeToggle.SetHasClass("Selected", challenge);
     }
 
@@ -144,10 +144,10 @@
         requestSnapshot();
     }
 
-    function openResearch(sourceEntindex) {
-        if (!unlocks.shop && !unlocks.research) return;
-        currentMode = "research";
-        researchSourceEntindex = Number(sourceEntindex || -1);
+    function openChallenge() {
+        if (!unlocks.shop) return;
+        currentMode = "challenge";
+        researchSourceEntindex = -1;
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         updateModeText();
@@ -155,10 +155,11 @@
         requestSnapshot();
     }
 
-    function openChallenge() {
-        if (!unlocks.shop) return;
-        currentMode = "challenge";
-        researchSourceEntindex = -1;
+    function openResearch(sourceEntindex) {
+        var source = Number(sourceEntindex || -1);
+        if (source <= 0) return;
+        currentMode = "research";
+        researchSourceEntindex = source;
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         updateModeText();
@@ -187,13 +188,6 @@
         if (windowPanel && windowPanel.BHasClass("ShopOpen")
             && currentMode === "shop") close();
         else open();
-    }
-
-    function toggleResearch() {
-        var windowPanel = byId("CustomShopWindow");
-        if (windowPanel && windowPanel.BHasClass("ShopOpen")
-            && currentMode === "research") close();
-        else openResearch(-1);
     }
 
     function toggleChallenge() {
@@ -252,8 +246,25 @@
             : ("正在购买 " + entry.name + "……"), false);
         GameEvents.SendCustomGameEventToServer("ui_shop_purchase_request", {
             request_id: requestId("shop_buy"),
-            entry_id: entry.purchase_entry_id || entry.entry_id
+            entry_id: entry.purchase_entry_id || entry.entry_id,
+            source_entindex: researchSourceEntindex
         });
+    }
+
+    function toggleAutoResearch(entry) {
+        if (!entry || entry.auto_research_available !== 1) return;
+        if (Number(researchSourceEntindex || -1) <= 0) {
+            setStatus("高级研究所来源无效", true);
+            return;
+        }
+        GameEvents.SendCustomGameEventToServer(
+            "ui_shop_auto_research_toggle_request",
+            {
+                request_id: requestId("auto_research"),
+                technology_group: entry.technology_group || "",
+                source_entindex: researchSourceEntindex
+            }
+        );
     }
 
     function entryById(entryId) {
@@ -325,6 +336,8 @@
         if (!card || !entry) return;
         card.SetHasClass("Unavailable", entry.purchasable !== 1);
         card.SetHasClass("Technology", entry.content_type === "technology");
+        card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
+        card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
         var code = String(entry.disabled_reason_code || "");
         card.SetHasClass("PrerequisiteLocked", code === "prerequisite_not_met"
             || code === "rebirth_level_not_met"
@@ -477,6 +490,8 @@
             card.AddClass("ShopShelfSlot");
             card.SetHasClass("Unavailable", entry.purchasable !== 1);
             card.SetHasClass("Technology", entry.content_type === "technology");
+            card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
+            card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
             card.SetAttributeString("entry_id", entry.entry_id || "");
             entryCardsById[entry.entry_id] = card;
 
@@ -496,6 +511,11 @@
                 var level = $.CreatePanel("Label", frame, "");
                 level.AddClass("ShopTechnologyLevel");
                 level.text = entry.level_text || ("Lv." + Number(entry.technology_level || 0));
+                if (entry.technology_id) {
+                    var code = $.CreatePanel("Label", frame, "");
+                    code.AddClass("ShopTechnologyCode");
+                    code.text = entry.technology_id;
+                }
             } else if (currentMode === "challenge"
                 || entry.content_id === "service_early_final_boss") {
                 var name = $.CreatePanel("Label", frame, "");
@@ -511,7 +531,17 @@
                 if (tooltip) tooltip.Hide();
             });
             card.SetPanelEvent("oncontextmenu", function () {
-                purchase(entryById(card.GetAttributeString("entry_id", "")));
+                var current = entryById(card.GetAttributeString("entry_id", ""));
+                if (current && current.auto_research_available === 1) {
+                    toggleAutoResearch(current);
+                } else {
+                    purchase(current);
+                }
+            });
+            card.SetPanelEvent("onactivate", function () {
+                if (currentMode === "research") {
+                    purchase(entryById(card.GetAttributeString("entry_id", "")));
+                }
             });
             updateEntryCard(card, entry);
         });
@@ -581,6 +611,9 @@
         snapshot.technology_cooldown_source_group = payload.technology_cooldown_source_group;
         snapshot.technology_cooldown_source_entry = payload.technology_cooldown_source_entry;
         snapshot.technology_cooldown_sequence = payload.technology_cooldown_sequence;
+        snapshot.research_scope = payload.research_scope || snapshot.research_scope;
+        snapshot.research_source_entindex = payload.research_source_entindex === undefined
+            ? snapshot.research_source_entindex : payload.research_source_entindex;
         snapshot.sequence = payload.sequence;
         snapshot.reason = payload.reason;
         snapshot.ui_mode = payload.ui_mode || snapshot.ui_mode;
@@ -612,6 +645,11 @@
         latestSequence = Math.max(latestSequence, sequence);
         currentMode = payload.ui_mode === "research" ? "research"
             : (payload.ui_mode === "challenge" ? "challenge" : "shop");
+        if (currentMode === "research") {
+            researchSourceEntindex = Number(
+                snapshot && snapshot.research_source_entindex || researchSourceEntindex
+            );
+        }
         updateModeText();
         setLoading(false);
         if (!patchResult || payload.resources) renderResources();
@@ -695,6 +733,16 @@
             setStatus("商店同步失败：" + (payload.error || "未知错误"), true);
             return;
         }
+        if (payload.operation === "shop_auto_research_toggle") {
+            setStatus(
+                payload.success === 1
+                    ? (Number(payload.enabled || 0) === 1
+                        ? "自动研究已开启" : "自动研究已关闭")
+                    : ("自动研究切换失败：" + (payload.error || "未知错误")),
+                payload.success !== 1
+            );
+            return;
+        }
         if (payload.operation !== "shop_purchase") return;
         pendingTechnologyPurchases = {};
         if (payload.success === 1
@@ -743,12 +791,11 @@
     GameEvents.Subscribe("ui_operation_result", onResult);
     GameUI.CustomUIConfig().SurvivalShop = {
         Open: open,
-        OpenResearch: openResearch,
         Close: close,
         Toggle: toggle,
         ToggleShop: toggleShop,
-        ToggleResearch: toggleResearch,
         OpenChallenge: openChallenge,
+        OpenResearch: openResearch,
         ToggleChallenge: toggleChallenge,
         SetUnlocks: setUnlocks,
         Refresh: refresh

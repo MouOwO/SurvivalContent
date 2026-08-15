@@ -1,11 +1,38 @@
 (function () {
     "use strict";
 
-    var takeover = GameUI.CustomUIConfig().SurvivalHudTakeover || {};
+    var customConfig = GameUI.CustomUIConfig();
+    var contextPanel = $.GetContextPanel();
+    var lifecycleGeneration = Number(customConfig.SurvivalInputLifecycleGeneration || 0);
+    var contextShutdown = false;
+    var previousBindings = customConfig.SurvivalTooltipBindings;
+    if (previousBindings && previousBindings.Shutdown) {
+        try { previousBindings.Shutdown("replacement_context"); } catch (error) {}
+    }
+
+    function contextActive() {
+        return !contextShutdown
+            && contextPanel && contextPanel.IsValid && contextPanel.IsValid()
+            && Number(GameUI.CustomUIConfig().SurvivalInputLifecycleGeneration || 0)
+                === lifecycleGeneration;
+    }
+
+    function scheduleActive(delay, callback) {
+        return $.Schedule(delay, function () {
+            if (!contextActive()) {
+                shutdownTooltipContext("context_inactive");
+                return;
+            }
+            callback();
+        });
+    }
+
+    var takeover = customConfig.SurvivalHudTakeover || {};
     if (takeover.abilityTooltips === false) {
-        GameUI.CustomUIConfig().SurvivalTooltipBindings = {
+        customConfig.SurvivalTooltipBindings = {
             Recover: function () {},
-            RefreshVisible: function () {}
+            RefreshVisible: function () {},
+            Shutdown: function () { contextShutdown = true; }
         };
         $.Msg("[SURVIVAL_TOOLTIP] DISABLED crash_isolation_v3_alt_ability_takeover_disabled valve_ability_bindings=false click_proxies=false");
         return;
@@ -14,7 +41,7 @@
         // hud_takeover.js owns every visible ability hover source. Do not bind
         // events inside Valve's AbilityN tree, otherwise its ancestor can still
         // create DOTAAbilityTooltip even when our child handler hides it.
-        GameUI.CustomUIConfig().SurvivalTooltipBindings = {
+        customConfig.SurvivalTooltipBindings = {
             Recover: function () {
                 var controller = GameUI.CustomUIConfig().SurvivalAbilityTakeover;
                 if (controller && controller.Refresh) controller.Refresh("binding_recovery");
@@ -22,7 +49,8 @@
             RefreshVisible: function () {
                 var controller = GameUI.CustomUIConfig().SurvivalAbilityTakeover;
                 if (controller && controller.RefreshTooltip) controller.RefreshTooltip();
-            }
+            },
+            Shutdown: function () { contextShutdown = true; }
         };
         $.Msg("[SURVIVAL_TOOLTIP] legacy AbilityN binding disabled; takeover controller pending");
         return;
@@ -274,7 +302,7 @@
         tooltip.AddClass("FadingOut");
         // Keep the fully transparent panel alive for one render frame so
         // Panorama presents the final alpha sample before collapsing it.
-        $.Schedule(tooltipFadeDuration + tooltipAnimationFrame, function () {
+        scheduleActive(tooltipFadeDuration + tooltipAnimationFrame, function () {
             if (animationSerial !== tooltipAnimationSerial) return;
             var currentOwner = String(tooltip.__survivalTooltipOwner || "");
             if (currentOwner && currentOwner !== selectiveTooltipOwner) {
@@ -348,6 +376,23 @@
         return localize("Survival_UpgradeModel_Loading", "Loading");
     }
 
+    function researchStatus(runtime) {
+        var code = String(runtime.research_status_code || "available");
+        var tokens = {
+            "available": "Survival_ResearchStatus_Available",
+            "max_level": "Survival_ResearchStatus_MaxLevel",
+            "researching_current": "Survival_ResearchStatus_ResearchingCurrent",
+            "researching_other": "Survival_ResearchStatus_ResearchingOther",
+            "prerequisite_not_met": "Survival_ResearchStatus_Prerequisite"
+        };
+        var fallback = code === "max_level" ? "Maximum level reached"
+            : (code === "researching_current" ? "Research in progress"
+            : (code === "researching_other" ? "Another team research is in progress"
+            : (code === "prerequisite_not_met" ? "Prerequisite not met"
+            : "Available to research")));
+        return localize(tokens[code] || "", fallback);
+    }
+
     function addField(container, label, value) {
         if (value === undefined || value === null || value === "") return;
         var row = $.CreatePanel("Panel", container, "");
@@ -401,18 +446,23 @@
             : (heroMode ? "SURVIVAL · HERO" : "SURVIVAL · ABILITY"));
 
         var localizedTitle = localize("DOTA_Tooltip_ability_" + abilityName, "");
+        var researchMode = runtime.research_upgrade === 1;
         setText("CustomAbilityTitle", runtime.display_name || localizedTitle
             || tooltipDefinition.name || definition.abilityname || abilityName);
         var abilityLevel = 0;
         try { abilityLevel = Number(Abilities.GetLevel(abilityIndex) || 0); } catch (error) {}
-        var displayedLevel = upgradeMode && runtime.current_level !== undefined
+        var displayedLevel = researchMode && runtime.current_level !== undefined
+            ? runtime.current_level
+            : upgradeMode && runtime.current_level !== undefined
             ? runtime.current_level : abilityLevel;
-        setText("CustomAbilityLevel", displayedLevel > 0
+        setText("CustomAbilityLevel", researchMode || displayedLevel > 0
             ? localize("Survival_UpgradeField_Level", "Level")
                 + " " + displayedLevel : "");
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(abilityIndex) || 0); } catch (error) {}
-        var description = localizedAbilityDescription(abilityName)
+        var description = researchMode
+            ? runtime.upgrade_description
+            : localizedAbilityDescription(abilityName)
             || (upgradeMode ? runtime.upgrade_description : "") || tooltipDefinition.desc
             || definition.abilitydesc
             || "";
@@ -439,7 +489,11 @@
         setText("CustomAbilityWoodCost", woodCost);
 
         fields.RemoveAndDeleteChildren();
-        if (upgradeMode || heroMode) {
+        if (researchMode) {
+            asArray(runtime.fields).forEach(function (field) {
+                if (field) addField(fields, field.label, field.value);
+            });
+        } else if (upgradeMode || heroMode) {
             asArray(runtime.fields).forEach(function (field) {
                 if (field) addField(fields, field.label, field.value);
             });
@@ -453,7 +507,11 @@
                 : (lacksResources
                     ? localize("Survival_UpgradeTooltip_ResourceLow", "RESOURCE LOW")
                     : localize("Survival_UpgradeTooltip_Available", "AVAILABLE"))));
-        var statusText = upgradeMode && runtime.upgrade_in_progress === 1
+        var statusText = researchMode && lacksResources
+            ? localize("Survival_UpgradeTooltip_ResourceLowDetail",
+                "Not enough resources · server validates the final cost")
+            : researchMode ? researchStatus(runtime)
+            : upgradeMode && runtime.upgrade_in_progress === 1
             ? localize("Survival_UpgradeTooltip_InProgressDetail", "Upgrade completes in 1 second")
             : (lacksResources
                 ? localize("Survival_UpgradeTooltip_ResourceLowDetail", "Not enough resources · server validates the final cost")
@@ -479,7 +537,7 @@
             // Hidden and FadingOut establish a rendered alpha-zero start.
             // Waiting one frame prevents Panorama from coalescing the class
             // removal with visibility restoration and skipping the fade-in.
-            $.Schedule(tooltipAnimationFrame, function () {
+            scheduleActive(tooltipAnimationFrame, function () {
                 if (animationSerial !== tooltipAnimationSerial
                     || String(tooltip.__survivalTooltipOwner || "")
                         !== selectiveTooltipOwner) return;
@@ -491,7 +549,7 @@
             " source=", panelIdentity(sourcePanel),
             " hidden=", String(tooltip.BHasClass("Hidden")));
 
-        $.Schedule(0.0, function () {
+        scheduleActive(0.0, function () {
             if (activeAbilityIndex !== abilityIndex
                 || activeSourcePanel !== sourcePanel) return;
             try {
@@ -530,11 +588,20 @@
         return Players.GetPlayerHeroEntityIndex(Game.GetLocalPlayerID());
     }
 
+    function unitAbilityCount(unit) {
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", "unit:" + String(unit)
+        ) || {};
+        if (runtime.removed === 1
+            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
+        return Math.max(0, Number(runtime.ability_count) || 0);
+    }
+
     function enumerateAbilitySlots(unit) {
         var entries = [];
         unit = Number(unit);
         if (!isFinite(unit) || unit < 0) return entries;
-        for (var engineSlot = 0; engineSlot < maxAbilityEngineSlots; engineSlot++) {
+        for (var engineSlot = 0; engineSlot < unitAbilityCount(unit); engineSlot++) {
             var abilityIndex = -1;
             try { abilityIndex = Number(Entities.GetAbility(unit, engineSlot)); } catch (error) {}
             if (!isFinite(abilityIndex) || abilityIndex < 0) continue;
@@ -648,9 +715,21 @@
         });
     }
 
+    function isSelectedResearchLab() {
+        var unit = Number(selectedUnit());
+        if (!isFinite(unit) || unit < 0) return false;
+        try {
+            var name = Entities.GetUnitName(unit) || "";
+            return name === "building_research_lab"
+                || name === "building_advanced_research_lab";
+        } catch (error) {
+            return false;
+        }
+    }
+
     function authorityAbilitySignature() {
         if (!isSelectedLocalBuilder() && !isSelectedCombatHero()
-            && !isSelectedRuntimeManagedUnit()) return "";
+            && !isSelectedRuntimeManagedUnit() && !isSelectedResearchLab()) return "";
         return visibleAbilitySignature();
     }
 
@@ -697,6 +776,8 @@
 
     function isManagedBuildingAction(abilityName) {
         return /^ability_build_/.test(abilityName)
+            || abilityName === "ability_open_research"
+            || abilityName === "ability_challenge_auto_summon"
             || /^ability_upgrade_tower/.test(abilityName)
             || /^ability_tower_class_[1-7]$/.test(abilityName)
             || abilityName === "ability_upgrade_wall"
@@ -744,6 +825,7 @@
 
     function customTooltipAbility(abilityIndex, abilityName) {
         return managedUpgrade(abilityIndex, abilityName)
+            || (isSelectedResearchLab() && /^ability_research_/.test(abilityName))
             || isSelectedBuilderVisibleAbility(abilityIndex)
             || isSelectedCombatHeroVisibleAbility(abilityIndex);
     }
@@ -846,9 +928,7 @@
             activeAbilityIndex = -1;
             activeAbilityName = "";
             activeSourcePanel = null;
-            try {
-                $.DispatchEvent("DOTAShowAbilityTooltip", sourcePanel, abilityName);
-            } catch (error) {}
+            hideNativeTooltip(sourcePanel);
             return false;
         }
         return true;
@@ -998,19 +1078,22 @@
 
     function scheduleExternalGeometryDiagnostic(binding) {
         var expectedKey = binding.key;
-        $.Schedule(0.0, function () {
+        scheduleActive(0.0, function () {
             var proxy = binding.proxy;
             var anchor = binding.entry && binding.entry.anchor;
-            if (!proxy || !anchor || !proxy.IsValid || !proxy.IsValid()
+            if (!proxy || !proxy.IsValid || !proxy.IsValid()
                 || proxy.__survivalBindingKey !== expectedKey
-                || !proxy.GetPositionWithinWindow || !anchor.GetPositionWithinWindow) return;
-            var anchorPosition = anchor.GetPositionWithinWindow();
+                || !proxy.GetPositionWithinWindow) return;
+            if (anchor && !anchor.GetPositionWithinWindow) return;
+            var anchorPosition = anchor
+                ? anchor.GetPositionWithinWindow()
+                : { x: binding.windowX, y: binding.windowY };
             var proxyPosition = proxy.GetPositionWithinWindow();
             var anchorRect = {
                 x: Number(anchorPosition.x || 0),
                 y: Number(anchorPosition.y || 0),
-                width: Number(anchor.actuallayoutwidth || 0),
-                height: Number(anchor.actuallayoutheight || 0)
+                width: anchor ? Number(anchor.actuallayoutwidth || 0) : binding.windowWidth,
+                height: anchor ? Number(anchor.actuallayoutheight || 0) : binding.windowHeight
             };
             var proxyRect = {
                 x: Number(proxyPosition.x || 0),
@@ -1092,7 +1175,9 @@
                 anchor: anchor,
                 nodeIndex: nodeIndex,
                 x: Number(position.x || 0),
-                y: Number(position.y || 0)
+                y: Number(position.y || 0),
+                width: width,
+                height: height
             });
         }
         result.sort(function (left, right) {
@@ -1105,7 +1190,38 @@
         return result;
     }
 
+    function extendResearchAbilityPanels(entries, requiredCount) {
+        if (!isSelectedResearchLab() || entries.length >= requiredCount
+            || entries.length < 2) return entries;
+        var initialCount = entries.length;
+        var previous = entries[initialCount - 2];
+        var last = entries[initialCount - 1];
+        var stepX = Number(last.x) - Number(previous.x);
+        if (!isFinite(stepX) || Math.abs(stepX) < 0.5) {
+            stepX = Number(last.width || previous.width || 0);
+        }
+        if (!isFinite(stepX) || Math.abs(stepX) < 0.5) return entries;
+        for (var displayIndex = initialCount;
+                displayIndex < requiredCount; displayIndex += 1) {
+            var offset = displayIndex - initialCount + 1;
+            entries.push({
+                panel: null,
+                anchor: null,
+                nodeIndex: displayIndex,
+                x: Number(last.x) + stepX * offset,
+                y: Number(last.y),
+                width: Number(last.width),
+                height: Number(last.height),
+                virtual: true
+            });
+        }
+        return entries;
+    }
+
     function disableExternalProxies() {
+        if (activeSourcePanel && externalProxies.indexOf(activeSourcePanel) >= 0) {
+            hideAllTooltips(activeSourcePanel);
+        }
         externalProxies.forEach(function (proxy) {
             if (!proxy || !proxy.IsValid || !proxy.IsValid()) return;
             proxy.__survivalAbilityIndex = -1;
@@ -1127,6 +1243,7 @@
         externalProxies.forEach(function (proxy) {
             if (!proxy || !proxy.IsValid || !proxy.IsValid()
                 || usedProxies.indexOf(proxy) >= 0) return;
+            if (activeSourcePanel === proxy) hideAllTooltips(proxy);
             proxy.__survivalAbilityIndex = -1;
             proxy.__survivalAbilityName = "";
             proxy.__survivalEngineSlot = -1;
@@ -1199,8 +1316,9 @@
             if (serial !== cursorProbeSerial) return;
             var active = null;
             officialBindings.some(function (binding) {
-                if (!binding || !binding.entry || !binding.entry.anchor) return false;
-                if (!rectContainsCursor(binding.entry.anchor)) return false;
+                if (!binding || !binding.entry || !binding.proxy) return false;
+                var hitTarget = binding.entry.anchor || binding.proxy;
+                if (!rectContainsCursor(hitTarget)) return false;
                 active = binding;
                 return true;
             });
@@ -1274,9 +1392,9 @@
                 if (pendingBinding) pendingHoverRestore = null;
             }
             observationsRemaining -= 1;
-            if (observationsRemaining > 0) $.Schedule(0.05, observe);
+            if (observationsRemaining > 0) scheduleActive(0.05, observe);
         }
-        $.Schedule(0.0, observe);
+        scheduleActive(0.0, observe);
     }
 
     function bindingDecision(entry, displayIndex, abilityIndex, abilityName,
@@ -1364,7 +1482,7 @@
                 return;
             }
             if (sourceInside) {
-                $.Schedule(0.05, verify);
+                scheduleActive(0.05, verify);
                 return;
             }
             externalOutDiagnostic(proxy, state, tooltipState,
@@ -1372,7 +1490,7 @@
             hideCustomTooltip();
             hideNativeTooltip(proxy);
         }
-        $.Schedule(0.05, verify);
+        scheduleActive(0.05, verify);
     }
 
     function observeExternalHoverOut(proxy, abilityIndex, reason) {
@@ -1436,7 +1554,7 @@
             } catch (error) {
                 tooltipError("proxy_mouseover", error, proxy);
                 hideCustomTooltip();
-                showNativeAbilityTooltip(proxy, abilityName);
+                hideNativeTooltip(proxy);
             }
         });
         proxy.SetPanelEvent("onmouseout", function () {
@@ -1450,7 +1568,10 @@
             var abilityName = String(proxy.__survivalAbilityName || "");
             if (!isFinite(boundAbility) || boundAbility < 0
                 || !customTooltipAbility(boundAbility, abilityName)) return;
-            if (!managedUpgrade(boundAbility, abilityName)) {
+            var projectManagedInput = /^ability_build_/.test(abilityName)
+                || /^ability_research_/.test(abilityName)
+                || managedUpgrade(boundAbility, abilityName);
+            if (!projectManagedInput) {
                 $.Msg("[SURVIVAL_CAST][CLIENT] EXTERNAL_PROXY_ENGINE display_slot=",
                     String(proxy.__survivalDisplayIndex), " engine_slot=",
                     String(proxy.__survivalEngineSlot), " ability=", String(boundAbility),
@@ -1476,6 +1597,22 @@
             var input = GameUI.CustomUIConfig().SurvivalAbilityInput;
             if (input && input.ExecuteAbility) input.ExecuteAbility(boundAbility);
         });
+        proxy.SetPanelEvent("oncontextmenu", function () {
+            var boundAbility = Number(proxy.__survivalAbilityIndex);
+            var abilityName = String(proxy.__survivalAbilityName || "");
+            if (!isFinite(boundAbility) || boundAbility < 0
+                || !/^ability_research_/.test(abilityName)
+                || !isSelectedResearchLab()) return false;
+            var unit = Number(selectedUnit());
+            var unitName = "";
+            try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
+            if (unitName !== "building_advanced_research_lab") return false;
+            hideNativeTooltip(proxy);
+            var shop = GameUI.CustomUIConfig().SurvivalShop;
+            if (!shop || !shop.OpenResearch) return false;
+            shop.OpenResearch(unit);
+            return true;
+        });
         externalProxies[displayIndex] = proxy;
         return proxy;
     }
@@ -1484,9 +1621,11 @@
         var layer = ensureExternalProxyLayer();
         var proxy = ensureExternalProxy(displayIndex);
         var anchor = entry && entry.anchor;
+        var explicitRect = entry && entry.virtual ? entry : null;
         var engineSlot = engineSlotForAbility(selectedUnit(), abilityIndex);
-        if (!layer || !proxy || !anchor
-            || !layer.GetPositionWithinWindow || !anchor.GetPositionWithinWindow) {
+        if (!layer || !proxy || (!anchor && !explicitRect)
+            || !layer.GetPositionWithinWindow
+            || (anchor && !anchor.GetPositionWithinWindow)) {
             $.Msg("[SURVIVAL_TOOLTIP_GEOMETRY] status=prepare_failed stage=dependencies",
                 " unit=", String(selectedUnit()), " display=", String(displayIndex),
                 " engine_slot=", String(engineSlot),
@@ -1504,7 +1643,9 @@
             return null;
         }
         var layerPosition = layer.GetPositionWithinWindow();
-        var anchorPosition = anchor.GetPositionWithinWindow();
+        var anchorPosition = anchor
+            ? anchor.GetPositionWithinWindow()
+            : { x: explicitRect.x, y: explicitRect.y };
         var positionLimit = 1000000;
         if (!layerPosition || !anchorPosition
             || !isFinite(Number(layerPosition.x)) || !isFinite(Number(layerPosition.y))
@@ -1521,8 +1662,12 @@
         }
         var scaleX = Math.max(0.001, Number(layer.actualuiscale_x || 1));
         var scaleY = Math.max(0.001, Number(layer.actualuiscale_y || 1));
-        var width = Number(anchor.actuallayoutwidth || 0) / scaleX;
-        var height = Number(anchor.actuallayoutheight || 0) / scaleY;
+        var windowWidth = anchor
+            ? Number(anchor.actuallayoutwidth || 0) : Number(explicitRect.width || 0);
+        var windowHeight = anchor
+            ? Number(anchor.actuallayoutheight || 0) : Number(explicitRect.height || 0);
+        var width = windowWidth / scaleX;
+        var height = windowHeight / scaleY;
         var x = (Number(anchorPosition.x || 0)
             - Number(layerPosition.x || 0)) / scaleX;
         var y = (Number(anchorPosition.y || 0)
@@ -1552,6 +1697,10 @@
             y: y,
             width: width,
             height: height,
+            windowX: Number(anchorPosition.x || 0),
+            windowY: Number(anchorPosition.y || 0),
+            windowWidth: windowWidth,
+            windowHeight: windowHeight,
             position: position,
             proxyWidth: proxyWidth,
             proxyHeight: proxyHeight,
@@ -1588,7 +1737,8 @@
             ? proxy.GetPositionWithinWindow() : { x: 0, y: 0 };
         return "Ability" + String(binding.entry.nodeIndex) + "->" + binding.abilityName
             + " engine_slot=" + String(binding.engineSlot)
-            + " anchor=" + String(binding.entry.anchor.id || "unknown")
+            + " anchor=" + String(binding.entry.anchor
+                ? (binding.entry.anchor.id || "unknown") : "virtual")
             + " rect=" + Math.round(binding.x) + "," + Math.round(binding.y)
             + "," + Math.round(binding.width) + "," + Math.round(binding.height)
             + " actual=" + Math.round(Number(proxyPosition.x || 0)) + ","
@@ -1616,6 +1766,7 @@
         // Never attach, hide, or change hit testing inside Valve's AbilityN tree.
         var officialPanels = collectOfficialAbilityPanels(abilities);
         var abilityIndexes = visibleAbilityIndexes();
+        officialPanels = extendResearchAbilityPanels(officialPanels, abilityIndexes.length);
         var builderScope = isSelectedLocalBuilder();
         var heroScope = isSelectedCombatHero();
         var fullScope = builderScope || heroScope;
@@ -1732,6 +1883,7 @@
     }
 
     function refreshBindings(reason) {
+        if (!contextActive()) return;
         var unit = selectedUnit();
         if (handleSelectedUnitChange(unit, reason || "binding_refresh")) return;
         scan($("#SurvivalHeroAbilitySlots"));
@@ -1739,12 +1891,14 @@
     }
 
     function refreshVisible(reason) {
+        if (!contextActive()) return;
         if (activeAbilityIndex >= 0 && activeAbilityName && activeSourcePanel) {
             render(activeAbilityIndex, activeAbilityName, activeSourcePanel);
         }
     }
 
     function scheduleBindingRecovery(reason) {
+        if (!contextActive()) return;
         bindingRecoverySerial += 1;
         var serial = bindingRecoverySerial;
         var authorityScope = isSelectedLocalBuilder() || isSelectedCombatHero()
@@ -1763,7 +1917,7 @@
                 " serial=", String(serial));
         }
         delays.forEach(function (delay) {
-            $.Schedule(delay, function () {
+            scheduleActive(delay, function () {
                 if (serial !== bindingRecoverySerial) return;
                 try {
                     var root = hudRoot();
@@ -1798,11 +1952,12 @@
     }
 
     function onSelectionEvent(reason, payload) {
+        if (!contextActive()) return;
         if (!localSelectionEvent(payload)) return;
         selectionObservationSerial += 1;
         var serial = selectionObservationSerial;
         [0.0, 0.016, 0.05, 0.10, 0.20, 0.35, 0.60, 1.0].forEach(function (delay) {
-            $.Schedule(delay, function () {
+            scheduleActive(delay, function () {
                 if (serial !== selectionObservationSerial) return;
                 if (handleSelectedUnitChange(selectedUnit(), reason)) return;
                 if (!recoverChangedAuthorityAbilities()) {
@@ -1813,6 +1968,7 @@
     }
 
     function forceAuthorityRecovery(reason) {
+        if (!contextActive()) return;
         pendingHoverRestore = null;
         hideAllTooltips(activeSourcePanel);
         officialMapDiagnostic = "";
@@ -1826,6 +1982,7 @@
     }
 
     function recoverChangedAuthorityAbilities() {
+        if (!contextActive()) return false;
         var signature = authorityAbilitySignature();
         if (signature === observedAuthorityAbilitySignature) return false;
         var previous = observedAuthorityAbilitySignature;
@@ -1859,7 +2016,7 @@
         authorityRuntimeObservationSerial += 1;
         var serial = authorityRuntimeObservationSerial;
         [0.0, 0.016, 0.05, 0.10, 0.20, 0.35, 0.60, 1.0].forEach(function (delay) {
-            $.Schedule(delay, function () {
+            scheduleActive(delay, function () {
                 if (serial !== authorityRuntimeObservationSerial) return;
                 recoverChangedAuthorityAbilities();
             });
@@ -1869,6 +2026,7 @@
     CustomNetTables.SubscribeNetTableListener(
         "survival_ability_runtime",
         function (name, key, data) {
+            if (!contextActive()) return;
             authorityRuntimeEventKey = key;
             authorityRuntimeEventData = data || null;
             observeAuthorityRuntimeEvent();
@@ -1880,6 +2038,7 @@
     CustomNetTables.SubscribeNetTableListener(
         "survival_builder_identity",
         function (name, key) {
+            if (!contextActive()) return;
             if (key === "player_" + String(Game.GetLocalPlayerID())) {
                 forceAuthorityRecovery("builder_identity");
             }
@@ -1888,26 +2047,65 @@
     CustomNetTables.SubscribeNetTableListener(
         "survival_hero_skills",
         function (name, key) {
+            if (!contextActive()) return;
             if (key === "player_" + String(Game.GetLocalPlayerID())) {
                 forceAuthorityRecovery("combat_hero_identity");
             }
         }
     );
-    GameUI.CustomUIConfig().SurvivalTooltipBindings = {
+    function shutdownTooltipContext(reason) {
+        if (contextShutdown) return;
+        contextShutdown = true;
+        bindingRecoverySerial += 1;
+        selectionObservationSerial += 1;
+        authorityRuntimeObservationSerial += 1;
+        cursorProbeSerial += 1;
+        pendingHoverRestore = null;
+        hideAllTooltips(activeSourcePanel);
+        var tooltip = byId("CustomAbilityTooltip");
+        if (tooltip) {
+            tooltipAnimationSerial += 1;
+            tooltip.hittest = false;
+            tooltip.hittestchildren = false;
+            tooltip.AddClass("Hidden");
+            tooltip.RemoveClass("FadingOut");
+            releaseSelectiveTooltip(tooltip);
+        }
+        disableExternalProxies();
+        officialBindings = [];
+        var layer = externalProxyLayer;
+        if (layer && layer.IsValid && layer.IsValid()) {
+            layer.hittest = false;
+            layer.hittestchildren = false;
+            layer.style.visibility = "collapse";
+        }
+        if (GameUI.CustomUIConfig().SurvivalTooltipBindings
+            && GameUI.CustomUIConfig().SurvivalTooltipBindings.Shutdown
+                === shutdownTooltipContext) {
+            GameUI.CustomUIConfig().SurvivalTooltipBindings = null;
+        }
+        $.Msg("[SURVIVAL_TOOLTIP] shutdown reason=", String(reason || "unknown"));
+    }
+
+    customConfig.SurvivalTooltipBindings = {
         Recover: scheduleBindingRecovery,
-        RefreshVisible: refreshVisible
+        RefreshVisible: refreshVisible,
+        Shutdown: shutdownTooltipContext
     };
     registerTooltipFadeDebug();
     observedSelectedUnit = Number(selectedUnit());
     observedAuthorityAbilitySignature = authorityAbilitySignature();
     disableInactiveTakeoverLayer();
     GameEvents.Subscribe("dota_player_update_selected_unit", function (payload) {
+        if (!contextActive()) return;
         onSelectionEvent("selected_unit_event", payload);
     });
     GameEvents.Subscribe("dota_player_update_query_unit", function (payload) {
+        if (!contextActive()) return;
         onSelectionEvent("query_unit_event", payload);
     });
     GameEvents.Subscribe("survival_select_unit", function (payload) {
+        if (!contextActive()) return;
         if (!localSelectionEvent(payload)) return;
         forceAuthorityRecovery("project_select_unit");
     });

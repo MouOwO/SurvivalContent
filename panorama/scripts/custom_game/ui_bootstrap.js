@@ -200,7 +200,7 @@
         return dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
     });
     if (Game.AddCommand && Game.CreateCustomKeyBind) {
-        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "D", "F", "G", "F2", "TAB", "SPACE", "ESCAPE"];
+        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "A", "S", "D", "F", "G", "F2", "TAB", "SPACE"];
         var fallbackCommands = {};
         fallbackKeys.forEach(function (key) {
             var command = "survival_input_" + inputContextId + "_"
@@ -339,7 +339,7 @@
         Format: formatLogicalNumber
     };
 
-    $.Msg("[SURVIVAL_CRASH_ISOLATION] crash_isolation_v3_alt_ability_takeover_disabled abilities=false ability_tooltips=true native_ability_tree=true builder_tooltip_proxy=true");
+    $.Msg("[SURVIVAL_CRASH_ISOLATION] crash_isolation_v3_alt_ability_takeover_disabled abilities=false research_lab_native=true ability_tooltips=true native_ability_tree=true builder_tooltip_proxy=true");
     $.Msg(LOG_PREFIX + " loaded.");
     applyDefaultUIProfile();
     $.Schedule(0.10, applyDefaultUIProfile);

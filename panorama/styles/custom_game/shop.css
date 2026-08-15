@@ -13,28 +13,9 @@
 }
 #CustomShopButton:hover { brightness: 1.35; }
 #CustomShopButton:active { brightness: 0.8; }
-#CustomShopButton.Locked,
-#CustomResearchButton.Locked { visibility: collapse; }
+#CustomShopButton.Locked { visibility: collapse; }
 #CustomShopButtonIcon { width: 38px; height: 38px; margin-right: 8px; }
 #CustomShopButton Label { vertical-align: center; color: white; font-size: 20px; }
-
-#CustomResearchButton {
-    width: 118px;
-    height: 52px;
-    horizontal-align: left;
-    vertical-align: top;
-    margin-left: 24px;
-    margin-top: 156px;
-    flow-children: right;
-    padding: 5px 10px;
-    background-color: gradient(linear, 0% 0%, 0% 100%, from(#584934), to(#292117));
-    border: 1px solid #baa36f;
-    box-shadow: #000000aa 0px 0px 8px 0px;
-}
-#CustomResearchButton:hover { brightness: 1.35; }
-#CustomResearchButton:active { brightness: 0.8; }
-#CustomResearchButtonIcon { width: 38px; height: 38px; margin-right: 8px; }
-#CustomResearchButton Label { vertical-align: center; color: white; font-size: 20px; }
 
 #CustomShopWindow {
     width: 660px;
@@ -53,7 +34,7 @@
 #ShopEntryTooltip.Hidden { visibility: collapse; }
 
 #ShopHeader { width: 100%; height: 64px; flow-children: right; }
-#ShopModeToggles { width: 240px; height: 40px; flow-children: right; vertical-align: center; margin-right: 12px; }
+#ShopModeToggles { width: 162px; height: 40px; flow-children: right; vertical-align: center; margin-right: 12px; }
 .ShopModeToggle { width: 78px; height: 38px; background-color: #1c2831; border: 1px solid #526675; }
 .ShopModeToggle.Selected { background-color: #536b7c; border-color: #d6b36a; }
 .ShopModeToggle.Disabled { saturation: 0.1; brightness: 0.5; }
@@ -121,6 +102,14 @@
     border-color: #d8b765;
 }
 .ShopShelfSlot.Technology.MaxLevel { border-color: #6d7653; }
+.ShopShelfSlot.Technology.AutoResearchAvailable {
+    box-shadow: #172f42cc 0px 0px 0px 2px;
+}
+.ShopShelfSlot.Technology.AutoResearchActive {
+    border-color: #74d8a3;
+    box-shadow: #3fc77aaa 0px 0px 10px 1px;
+    brightness: 1.14;
+}
 .ShopShelfSlot.Unavailable {
     wash-color: #777777;
     saturation: 0.15;
@@ -165,6 +154,17 @@
     background-color: #07101ddd;
     text-shadow: 1px 1px 2px 2.0 #000000;
 }
+.ShopTechnologyCode {
+    horizontal-align: left;
+    vertical-align: top;
+    margin: 3px 0px 0px 3px;
+    padding: 1px 4px;
+    color: #d9f4ff;
+    font-size: 12px;
+    font-weight: bold;
+    background-color: #07101ddd;
+    text-shadow: 1px 1px 2px 2.0 #000000;
+}
 .ShopCardName {
     width: 100%;
     vertical-align: bottom;
@@ -178,6 +178,10 @@
 }
 .ShopShelfSlot.Technology.Unavailable {
     border-color: #6f5f5f;
+}
+.ShopShelfSlot.Technology.AutoResearchActive.Unavailable {
+    border-color: #74d8a3;
+    box-shadow: #3fc77aaa 0px 0px 10px 1px;
 }
 .ShopEmptyLabel { align: center center; color: #b8aa91; font-size: 20px; }
 

@@ -1,6 +1,32 @@
 (function () {
     "use strict";
 
+    var customConfig = GameUI.CustomUIConfig();
+    var contextPanel = $.GetContextPanel();
+    var lifecycleGeneration = Number(customConfig.SurvivalInputLifecycleGeneration || 0);
+    var contextShutdown = false;
+    var previousHotkeyController = customConfig.SurvivalAbilityHotkeys;
+    if (previousHotkeyController && previousHotkeyController.Shutdown) {
+        try { previousHotkeyController.Shutdown("replacement_context"); } catch (error) {}
+    }
+
+    function contextActive() {
+        return !contextShutdown
+            && contextPanel && contextPanel.IsValid && contextPanel.IsValid()
+            && Number(GameUI.CustomUIConfig().SurvivalInputLifecycleGeneration || 0)
+                === lifecycleGeneration;
+    }
+
+    function scheduleActive(delay, callback) {
+        return $.Schedule(delay, function () {
+            if (!contextActive()) {
+                shutdownCombatContext("context_inactive");
+                return;
+            }
+            callback();
+        });
+    }
+
     var playerId = Game.GetLocalPlayerID();
     var tableName = "survival_combat_stats";
     var tableKey = "player_" + playerId;
@@ -65,6 +91,11 @@
         ability_survival_return_home: 20,
         ability_survival_pickup_materials: 30
     };
+    var builderHotkeysBySlotOrder = {
+        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A"
+    };
+    var standardAbilityHotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
+    var officialAbilityMappings = [];
 
     function panel(id) { return $("#" + id); }
     function setText(id, value) {
@@ -886,8 +917,11 @@
 
     function refreshHeroVitalsTick() {
         refreshHeroVitals(displayUnit());
-        refreshAbilityHotkeysIfChanged(false);
-        $.Schedule(0.25, refreshHeroVitalsTick);
+        var unit = selectedUnit();
+        refreshOfficialUtilityHotkeys(
+            unit === undefined || unit < 0 ? [] : visibleAbilityEntries(unit)
+        );
+        scheduleActive(0.25, refreshHeroVitalsTick);
     }
 
     function refreshHeroPanel() {
@@ -960,7 +994,7 @@
         unitNameTransitionSerial += 1;
         var serial = unitNameTransitionSerial;
         unitNameRetryDelays.forEach(function (delay, retryIndex) {
-            $.Schedule(delay, function () {
+            scheduleActive(delay, function () {
                 if (serial !== unitNameTransitionSerial) return;
                 var currentUnit = Number(displayUnit());
                 if (currentUnit < 0) {
@@ -1198,8 +1232,23 @@
             $.Schedule(1.0, refreshAbilities);
             return;
         }
-        var seen = visibleAbilityEntries(unit);
-        var mappings = resolveOfficialAbilityMappings(seen);
+        var seen = [];
+        for (var i = 0; i < unitAbilityCount(unit); i++) {
+            var abilityIndex = Entities.GetAbility(unit, i);
+            if (abilityIndex !== undefined && abilityIndex >= 0) {
+                var abilityName = Abilities.GetAbilityName(abilityIndex);
+                var hidden = false;
+                try { hidden = Abilities.IsHidden(abilityIndex); } catch (error) {}
+                if (abilityName && !hidden) {
+                    seen.push({ name: abilityName, slot: i, ability: abilityIndex });
+                }
+            }
+        }
+        seen = orderVisibleAbilities(seen);
+        var signature = seen.map(function (entry) {
+            return entry.slot + ":" + entry.name;
+        }).join("|");
+        refreshAbilities.signature = signature;
         // Valve reuses Ability0/Ability1 panels and may restore DOTADisabled
         // after a selection change. Reapply the authoritative runtime state for
         // the currently selected unit instead of relying only on NetTable events.
@@ -1210,7 +1259,7 @@
         } else {
             refreshAbilities.signature = "";
         }
-        $.Schedule(1.0, refreshAbilities);
+        scheduleActive(1.0, refreshAbilities);
     }
 
     function belongsToLegacyHud(target) {
@@ -1223,6 +1272,143 @@
     }
 
     function refreshOfficialUtilityHotkeys(visibleAbilities, resolvedMappings) {
+    function officialAbilityAnchor(abilityPanel) {
+        if (!abilityPanel || !abilityPanel.FindChildTraverse) return null;
+        return abilityPanel.FindChildTraverse("AbilityButton")
+            || abilityPanel.FindChildTraverse("ButtonWell")
+            || abilityPanel.FindChildTraverse("AbilityImage")
+            || abilityPanel;
+    }
+
+    function panelVisibility(target) {
+        return target && target.style ? String(target.style.visibility || "") : "";
+    }
+
+    function collectVisibleOfficialAbilityPanels(abilities) {
+        var result = [];
+        var seen = [];
+        if (!abilities || !abilities.FindChildTraverse) return result;
+        for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
+            var abilityPanel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
+            if (!abilityPanel || seen.indexOf(abilityPanel) >= 0
+                || belongsToLegacyHud(abilityPanel)) continue;
+            seen.push(abilityPanel);
+            if (abilityPanel.IsValid && !abilityPanel.IsValid()) continue;
+            var anchor = officialAbilityAnchor(abilityPanel);
+            if (!anchor || !anchor.GetPositionWithinWindow
+                || abilityPanel.visible === false || anchor.visible === false
+                || panelVisibility(abilityPanel) === "collapse"
+                || panelVisibility(anchor) === "collapse") continue;
+            var width = Number(anchor.actuallayoutwidth || 0);
+            var height = Number(anchor.actuallayoutheight || 0);
+            if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) continue;
+            var position = anchor.GetPositionWithinWindow();
+            result.push({
+                panel: abilityPanel,
+                anchor: anchor,
+                nodeIndex: nodeIndex,
+                x: Number(position.x || 0),
+                y: Number(position.y || 0)
+            });
+        }
+        result.sort(function (left, right) {
+            var horizontal = left.x - right.x;
+            if (Math.abs(horizontal) > 0.5) return horizontal;
+            var vertical = left.y - right.y;
+            if (Math.abs(vertical) > 0.5) return vertical;
+            return left.nodeIndex - right.nodeIndex;
+        });
+        return result;
+    }
+
+    function restoreNativeAbilityHotkey(abilityPanel) {
+        if (!abilityPanel || !abilityPanel.FindChildTraverse) return;
+        var container = abilityPanel.FindChildTraverse("HotkeyContainer");
+        if (!container || container.__survivalNativeHotkeySaved !== true) return;
+        container.style.opacity = container.__survivalNativeHotkeyOpacity || null;
+        container.hittest = container.__survivalNativeHotkeyHitTest;
+        container.hittestchildren = container.__survivalNativeHotkeyHitTestChildren;
+        container.__survivalNativeHotkeySaved = false;
+    }
+
+    function suppressNativeAbilityHotkey(abilityPanel) {
+        if (!abilityPanel || !abilityPanel.FindChildTraverse) return false;
+        var container = abilityPanel.FindChildTraverse("HotkeyContainer");
+        if (!container) return false;
+        if (container.__survivalNativeHotkeySaved !== true) {
+            container.__survivalNativeHotkeyOpacity = String(container.style.opacity || "");
+            container.__survivalNativeHotkeyHitTest = container.hittest;
+            container.__survivalNativeHotkeyHitTestChildren = container.hittestchildren;
+            container.__survivalNativeHotkeySaved = true;
+        }
+        container.style.opacity = "0";
+        container.hittest = false;
+        container.hittestchildren = false;
+        return true;
+    }
+
+    function clearOfficialAbilityHotkeys(abilities) {
+        officialAbilityMappings = [];
+        if (!abilities || !abilities.FindChildTraverse) return;
+        for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
+            var abilityPanel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
+            if (!abilityPanel || belongsToLegacyHud(abilityPanel)) continue;
+            restoreNativeAbilityHotkey(abilityPanel);
+            var label = abilityPanel.FindChildTraverse("SurvivalAbilityHotkey");
+            if (label) label.style.visibility = "collapse";
+            var oldLabel = abilityPanel.FindChildTraverse("SurvivalUtilityHotkey");
+            if (oldLabel) oldLabel.style.visibility = "collapse";
+        }
+    }
+
+    function shutdownCombatContext(reason) {
+        if (contextShutdown) return;
+        contextShutdown = true;
+        var abilities = officialPanel("abilities")
+            || officialPanel("AbilitiesAndStatBranch");
+        clearOfficialAbilityHotkeys(abilities);
+        if (GameUI.CustomUIConfig().SurvivalAbilityHotkeys
+            && GameUI.CustomUIConfig().SurvivalAbilityHotkeys.Shutdown
+                === shutdownCombatContext) {
+            GameUI.CustomUIConfig().SurvivalAbilityHotkeys = null;
+        }
+        $.Msg("[SURVIVAL_ABILITY_HOTKEY] shutdown reason=", String(reason || "unknown"));
+    }
+
+    customConfig.SurvivalAbilityHotkeys = {
+        Refresh: function () {
+            var unit = selectedUnit();
+            refreshOfficialAbilityPresentation(
+                unit === undefined || unit < 0 ? [] : visibleAbilityEntries(unit)
+            );
+        },
+        Shutdown: shutdownCombatContext
+    };
+
+    function hotkeyForAbilityEntry(entry, unitName) {
+        var key = utilityHotkeys[entry.name] || "";
+        if (!key && unitName === "npc_survival_builder_proxy") {
+            var builderRuntime = abilityRuntime(entry.ability);
+            key = builderHotkeysBySlotOrder[
+                Number(builderRuntime.builder_slot_order || 0)
+            ] || "";
+        }
+        if (!key && /^ability_research_/.test(entry.name)) {
+            var runtime = abilityRuntime(entry.ability);
+            var researchSlot = Number(runtime.research_slot_order || 0) - 1;
+            var researchKeys = runtime.research_building_id
+                === "building_advanced_research_lab"
+                ? ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"]
+                : ["Q", "W", "E", "R", "T", "A"];
+            key = researchSlot >= 0 ? researchKeys[researchSlot] : "";
+        }
+        if (!key && entry.standardHotkeyIndex !== undefined) {
+            key = standardAbilityHotkeys[entry.standardHotkeyIndex] || "";
+        }
+        return key;
+    }
+
+    function refreshOfficialAbilityPresentation(visibleAbilities) {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return false;
         var abilities = officialPanel("abilities")
@@ -1245,18 +1431,24 @@
             });
         }
 
+        var officialPanels = collectVisibleOfficialAbilityPanels(abilities);
+        clearOfficialAbilityHotkeys(abilities);
         var unit = selectedUnit();
-        if (unit === undefined || unit < 0) return visibleAbilities.length === 0;
-        var mappings = resolvedMappings || resolveOfficialAbilityMappings(visibleAbilities);
-        if (!mappings) return false;
+        var unitName = unit === undefined || unit < 0
+            ? "" : Entities.GetUnitName(unit);
+        if (unit === undefined || unit < 0 || visibleAbilities.length === 0) return;
+        if (officialPanels.length !== visibleAbilities.length) return;
 
-        var standardIndex = 0;
-        var complete = true;
-        for (var index = 0; index < mappings.length; index++) {
-            var mapping = mappings[index];
-            var entry = mapping.entry;
-            var key = utilityHotkeys[entry.name]
-                || standardAbilityHotkeys[standardIndex++];
+        for (var index = 0; index < visibleAbilities.length; index++) {
+            var entry = visibleAbilities[index];
+            var mapping = officialPanels[index];
+            var abilityPanel = mapping.panel;
+            var buttonPanel = mapping.anchor;
+            var runtime = abilityRuntime(entry.ability);
+            var managed = Number(runtime.ability_entindex) === Number(entry.ability)
+                && Number(runtime.owner_entindex) === Number(unit);
+            if (managed) applyAbilityRuntime(abilityPanel, entry.ability);
+            var key = hotkeyForAbilityEntry(entry, unitName);
             if (!key) continue;
             var abilityPanel = mapping.panel;
             if (!abilityPanel || belongsToLegacyHud(abilityPanel)) {
@@ -1300,6 +1492,15 @@
             label.style.width = key === "F2" ? "27px" : "20px";
             label.text = key;
             label.style.visibility = "visible";
+            suppressNativeAbilityHotkey(abilityPanel);
+            officialAbilityMappings.push({
+                ability: entry.ability,
+                name: entry.name,
+                panel: abilityPanel,
+                anchor: buttonPanel,
+                key: key,
+                nodeIndex: mapping.nodeIndex
+            });
         }
         return complete;
     }
@@ -1329,8 +1530,23 @@
         }
     }
 
+    function refreshOfficialUtilityHotkeys(visibleAbilities) {
+        refreshOfficialAbilityPresentation(visibleAbilities);
+    }
+
     function abilityIndexForSlot(unit, slot) {
+        slot = Number(slot);
+        if (!isFinite(slot) || slot < 0 || slot >= unitAbilityCount(unit)) return -1;
         try { return Entities.GetAbility(unit, slot); } catch (error) { return -1; }
+    }
+
+    function unitAbilityCount(unit) {
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", "unit:" + String(unit)
+        ) || {};
+        if (runtime.removed === 1
+            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
+        return Math.max(0, Number(runtime.ability_count) || 0);
     }
 
     function orderVisibleAbilities(entries) {
@@ -1346,12 +1562,15 @@
             if (order !== 0) return order;
             return Number(left.slot) - Number(right.slot);
         });
+        standard.forEach(function (entry, index) {
+            entry.standardHotkeyIndex = index;
+        });
         return standard.concat(utility);
     }
 
     function visibleAbilityEntries(unit) {
         var entries = [];
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
+        for (var slot = 0; slot < unitAbilityCount(unit); slot++) {
             var ability = abilityIndexForSlot(unit, slot);
             if (ability === undefined || ability < 0) continue;
             var name = Abilities.GetAbilityName(ability) || "";
@@ -1376,6 +1595,40 @@
         return standard[slot] === undefined ? -1 : standard[slot].ability;
     }
 
+    function researchDisplaySlotForKey(key) {
+        var keys = ["Q", "W", "E", "R", "T", "A"];
+        var advancedKeys = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"];
+        var unit = selectedUnit();
+        if (unit === undefined || unit < 0) return -1;
+        var standard = visibleAbilityEntries(unit).filter(function (entry) {
+            return !utilityHotkeys[entry.name];
+        });
+        for (var index = 0; index < standard.length; index++) {
+            var runtime = abilityRuntime(standard[index].ability);
+            var slot = Number(runtime.research_slot_order || 0) - 1;
+            if (slot < 0) continue;
+            var expected = runtime.research_building_id === "building_advanced_research_lab"
+                ? advancedKeys[slot] : keys[slot];
+            if (expected === key) return index;
+        }
+        return -1;
+    }
+
+    function builderDisplaySlotForKey(key) {
+        var unit = selectedUnit();
+        if (unit === undefined || unit < 0
+            || Entities.GetUnitName(unit) !== "npc_survival_builder_proxy") return -1;
+        var entries = visibleAbilityEntries(unit);
+        for (var index = 0; index < entries.length; index++) {
+            if (utilityHotkeys[entries[index].name]) continue;
+            var runtime = abilityRuntime(entries[index].ability);
+            if (builderHotkeysBySlotOrder[
+                Number(runtime.builder_slot_order || 0)
+            ] === key) return index;
+        }
+        return -1;
+    }
+
     function visibleSlotForAbility(abilityIndex) {
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) return -1;
@@ -1392,6 +1645,9 @@
 
     function managedBuildingAction(abilityName) {
         return /^ability_build_/.test(abilityName)
+            || abilityName === "ability_open_research"
+            || /^ability_research_/.test(abilityName)
+            || abilityName === "ability_challenge_auto_summon"
             || /^ability_summon_/.test(abilityName)
             || /^(ability_enter_(endless_training|shadow_realm))$/.test(abilityName)
             || /^ability_upgrade_tower/.test(abilityName)
@@ -1413,7 +1669,7 @@
 
     function unitOwnsAbility(unit, abilityIndex) {
         if (!isFinite(Number(unit)) || Number(unit) < 0) return false;
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
+        for (var slot = 0; slot < unitAbilityCount(unit); slot++) {
             if (Number(abilityIndexForSlot(Number(unit), slot)) === Number(abilityIndex)) {
                 return true;
             }
@@ -1662,7 +1918,7 @@
         var unit = selectedUnit();
         var abilityNames = utilityAbilityForKey[key] || [];
         if (unit === undefined || unit < 0 || !abilityNames.length) return false;
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
+        for (var slot = 0; slot < unitAbilityCount(unit); slot++) {
             var abilityIndex = Entities.GetAbility(unit, slot);
             if (abilityIndex === undefined || abilityIndex < 0) continue;
             var abilityName = Abilities.GetAbilityName(abilityIndex);
@@ -1716,7 +1972,16 @@
                 return requestReturnHome("key_dispatch");
             }
             if (utilityAbilityForKey[normalized]) {
-                return castAbilityByName(normalized, "key_dispatch");
+                var utilityCast = castAbilityByName(normalized, "key_dispatch");
+                if (utilityCast) return true;
+            }
+            var researchSlot = researchDisplaySlotForKey(normalized);
+            if (researchSlot >= 0) {
+                return castDisplaySlot(researchSlot, "research_key_dispatch");
+            }
+            var builderSlot = builderDisplaySlotForKey(normalized);
+            if (builderSlot >= 0) {
+                return castDisplaySlot(builderSlot, "builder_key_dispatch");
             }
             var slot = keys.indexOf(normalized);
             if (slot < 0) return false;
@@ -1730,7 +1995,7 @@
             dispatcher.RegisterKeyHandler("ability_input", currentHandler, 60);
             $.Msg("[SURVIVAL_INPUT] BOUND generation=", inputGeneration,
                 " dispatcher_generation=", String(dispatcher.generation),
-                " keys=QWERTYU,D,F,F2");
+                " keys=QWERTYU,ASDFG,D,F,F2");
         } else {
             $.Warning("[SURVIVAL_INPUT] BIND_FAILED generation="
                 + inputGeneration + " reason=input_dispatcher_unavailable");
@@ -1795,7 +2060,7 @@
     CustomNetTables.SubscribeNetTableListener(
         "survival_ability_runtime",
         function (name, key, value) {
-            refreshAbilityHotkeysIfChanged(false);
+            if (!contextActive()) return;
             var runtimeAbility = Number(key);
             if (runtimeAbility < 0) return;
             var unit = selectedUnit();
@@ -1806,6 +2071,13 @@
             var mappings = resolveOfficialAbilityMappings(visibleAbilities);
             var mapping = visibleSlot >= 0 && mappings
                 ? mappings[visibleSlot] : null;
+
+            var mapping = null;
+            officialAbilityMappings.some(function (entry) {
+                if (Number(entry.ability) !== runtimeAbility) return false;
+                mapping = entry;
+                return true;
+            });
             var button = mapping ? mapping.panel : null;
             if (button) {
                 applyAbilityRuntime(button, runtimeAbility);
@@ -1849,10 +2121,10 @@
             || /^ability_tower_class_/.test(abilityName);
         if (!refreshesBuilding) return;
         var unit = Number(result.entindex);
-        $.Schedule(0.10, function () {
+        scheduleActive(0.10, function () {
             if (Number(displayUnit()) === unit) requestSelectedUnitStats(unit, true);
         });
-        $.Schedule(0.35, function () {
+        scheduleActive(0.35, function () {
             if (Number(displayUnit()) === unit) requestSelectedUnitStats(unit, true);
         });
     });
@@ -1861,12 +2133,12 @@
     $.Msg("[SURVIVAL_SCENE_PANEL] DISABLED crash_isolation_v4_scene_panels_disabled static_hero=false building=false cosmetic=false dynamic_create=false");
     subscribeUnitNameSelectionEvents();
     beginUnitNameTransition("initial_load");
-    $.Schedule(1.65, function () {
+    scheduleActive(1.65, function () {
         if (observedSelectedUnit < 0) beginUnitNameTransition("initial_fallback");
     });
     refreshHeroVitalsTick();
     refreshAbilities();
     refreshInventory();
-    $.Schedule(2.0, revealBottomHud);
+    scheduleActive(2.0, revealBottomHud);
     $.Msg("[CombatStats] authoritative attack overlay ready; server snapshot owns Damage text.");
 })();

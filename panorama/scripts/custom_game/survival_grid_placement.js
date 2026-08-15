@@ -63,9 +63,18 @@
         return -1;
     }
 
+    function unitAbilityCount(unit) {
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", "unit:" + String(unit)
+        ) || {};
+        if (runtime.removed === 1
+            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
+        return Math.max(0, Number(runtime.ability_count) || 0);
+    }
+
     function abilityByName(unit, name) {
         if (unit < 0 || !name) return -1;
-        for (var slot = 0; slot < 24; slot += 1) {
+        for (var slot = 0; slot < unitAbilityCount(unit); slot += 1) {
             var ability = Entities.GetAbility(unit, slot);
             if (ability === undefined || ability < 0) continue;
             if (String(Abilities.GetAbilityName(ability) || "") === name) return ability;
