@@ -2,5 +2,5 @@
 {
 	"Shader"	"ui.vfx"
 	"F_TRANSLUCENT"	"0"
-	"Texture"	"materials/overviews/template_map.tga"
+	"Texture"	"materials/overviews/template_map.vtex"
 }
