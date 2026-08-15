@@ -94,7 +94,7 @@
     var builderHotkeysBySlotOrder = {
         1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A"
     };
-    var standardAbilityHotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
+
     var officialAbilityMappings = [];
 
     function panel(id) { return $("#" + id); }
@@ -1134,17 +1134,30 @@
     function restoreNativeAbilityHotkey(panel) {
         var hotkey = nativeAbilityHotkeyContainer(panel);
         if (!hotkey || hotkey.__survivalHotkeySuppressed !== true) return;
-        hotkey.style.opacity = hotkey.__survivalOriginalOpacity;
-        hotkey.hittest = hotkey.__survivalOriginalHittest;
-        hotkey.hittestchildren = hotkey.__survivalOriginalHittestChildren;
-        hotkey.__survivalHotkeySuppressed = false;
+        var originalOpacity = String(hotkey.__survivalOriginalOpacity || "");
+        var validOpacity = /^(?:0(?:\.\d+)?|1(?:\.0+)?)$/.test(originalOpacity)
+            ? originalOpacity : null;
+        try {
+            hotkey.style.opacity = validOpacity;
+        } catch (error) {
+            // A stale Valve panel may expose a style value that cannot be written back.
+            try { hotkey.style.opacity = null; } catch (clearError) {}
+        } finally {
+            try { hotkey.hittest = hotkey.__survivalOriginalHittest; } catch (hitError) {}
+            try {
+                hotkey.hittestchildren = hotkey.__survivalOriginalHittestChildren;
+            } catch (childrenError) {}
+            hotkey.__survivalHotkeySuppressed = false;
+        }
     }
 
     function suppressNativeAbilityHotkey(panel) {
         var hotkey = nativeAbilityHotkeyContainer(panel);
         if (!hotkey) return false;
         if (hotkey.__survivalHotkeySuppressed !== true) {
-            hotkey.__survivalOriginalOpacity = abilityPanelStyleValue(hotkey, "opacity");
+            hotkey.__survivalOriginalOpacity = String(
+                abilityPanelStyleValue(hotkey, "opacity") || ""
+            );
             hotkey.__survivalOriginalHittest = hotkey.hittest;
             hotkey.__survivalOriginalHittestChildren = hotkey.hittestchildren;
             hotkey.__survivalHotkeySuppressed = true;
@@ -1224,11 +1237,7 @@
         hideDeferredHudFeatures();
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) {
-            if (refreshOfficialUtilityHotkeys([])) {
-                refreshAbilities.signature = "invalid";
-            } else {
-                refreshAbilities.signature = "";
-            }
+            refreshOfficialUtilityHotkeys([]);
             $.Schedule(1.0, refreshAbilities);
             return;
         }
@@ -1245,6 +1254,7 @@
             }
         }
         seen = orderVisibleAbilities(seen);
+        var mappings = resolveOfficialAbilityMappings(seen);
         var signature = seen.map(function (entry) {
             return entry.slot + ":" + entry.name;
         }).join("|");
@@ -1253,7 +1263,8 @@
         // after a selection change. Reapply the authoritative runtime state for
         // the currently selected unit instead of relying only on NetTable events.
         refreshOfficialAbilityRuntime(mappings);
-        if (refreshOfficialUtilityHotkeys(seen, mappings)) {
+        var hotkeysRefreshed = refreshOfficialUtilityHotkeys(seen);
+        if (hotkeysRefreshed) {
             refreshAbilities.signature = visibleAbilitySignature(unit, seen)
                 + "#" + officialAbilityMappingSignature(mappings);
         } else {
@@ -1270,83 +1281,6 @@
         }
         return false;
     }
-
-    function refreshOfficialUtilityHotkeys(visibleAbilities, resolvedMappings) {
-    function officialAbilityAnchor(abilityPanel) {
-        if (!abilityPanel || !abilityPanel.FindChildTraverse) return null;
-        return abilityPanel.FindChildTraverse("AbilityButton")
-            || abilityPanel.FindChildTraverse("ButtonWell")
-            || abilityPanel.FindChildTraverse("AbilityImage")
-            || abilityPanel;
-    }
-
-    function panelVisibility(target) {
-        return target && target.style ? String(target.style.visibility || "") : "";
-    }
-
-    function collectVisibleOfficialAbilityPanels(abilities) {
-        var result = [];
-        var seen = [];
-        if (!abilities || !abilities.FindChildTraverse) return result;
-        for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
-            var abilityPanel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
-            if (!abilityPanel || seen.indexOf(abilityPanel) >= 0
-                || belongsToLegacyHud(abilityPanel)) continue;
-            seen.push(abilityPanel);
-            if (abilityPanel.IsValid && !abilityPanel.IsValid()) continue;
-            var anchor = officialAbilityAnchor(abilityPanel);
-            if (!anchor || !anchor.GetPositionWithinWindow
-                || abilityPanel.visible === false || anchor.visible === false
-                || panelVisibility(abilityPanel) === "collapse"
-                || panelVisibility(anchor) === "collapse") continue;
-            var width = Number(anchor.actuallayoutwidth || 0);
-            var height = Number(anchor.actuallayoutheight || 0);
-            if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) continue;
-            var position = anchor.GetPositionWithinWindow();
-            result.push({
-                panel: abilityPanel,
-                anchor: anchor,
-                nodeIndex: nodeIndex,
-                x: Number(position.x || 0),
-                y: Number(position.y || 0)
-            });
-        }
-        result.sort(function (left, right) {
-            var horizontal = left.x - right.x;
-            if (Math.abs(horizontal) > 0.5) return horizontal;
-            var vertical = left.y - right.y;
-            if (Math.abs(vertical) > 0.5) return vertical;
-            return left.nodeIndex - right.nodeIndex;
-        });
-        return result;
-    }
-
-    function restoreNativeAbilityHotkey(abilityPanel) {
-        if (!abilityPanel || !abilityPanel.FindChildTraverse) return;
-        var container = abilityPanel.FindChildTraverse("HotkeyContainer");
-        if (!container || container.__survivalNativeHotkeySaved !== true) return;
-        container.style.opacity = container.__survivalNativeHotkeyOpacity || null;
-        container.hittest = container.__survivalNativeHotkeyHitTest;
-        container.hittestchildren = container.__survivalNativeHotkeyHitTestChildren;
-        container.__survivalNativeHotkeySaved = false;
-    }
-
-    function suppressNativeAbilityHotkey(abilityPanel) {
-        if (!abilityPanel || !abilityPanel.FindChildTraverse) return false;
-        var container = abilityPanel.FindChildTraverse("HotkeyContainer");
-        if (!container) return false;
-        if (container.__survivalNativeHotkeySaved !== true) {
-            container.__survivalNativeHotkeyOpacity = String(container.style.opacity || "");
-            container.__survivalNativeHotkeyHitTest = container.hittest;
-            container.__survivalNativeHotkeyHitTestChildren = container.hittestchildren;
-            container.__survivalNativeHotkeySaved = true;
-        }
-        container.style.opacity = "0";
-        container.hittest = false;
-        container.hittestchildren = false;
-        return true;
-    }
-
     function clearOfficialAbilityHotkeys(abilities) {
         officialAbilityMappings = [];
         if (!abilities || !abilities.FindChildTraverse) return;
@@ -1354,10 +1288,13 @@
             var abilityPanel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
             if (!abilityPanel || belongsToLegacyHud(abilityPanel)) continue;
             restoreNativeAbilityHotkey(abilityPanel);
-            var label = abilityPanel.FindChildTraverse("SurvivalAbilityHotkey");
-            if (label) label.style.visibility = "collapse";
-            var oldLabel = abilityPanel.FindChildTraverse("SurvivalUtilityHotkey");
-            if (oldLabel) oldLabel.style.visibility = "collapse";
+            ["SurvivalAbilityHotkey", "SurvivalUtilityHotkey"].forEach(function (labelId) {
+                var label = abilityPanel.FindChildTraverse
+                    ? abilityPanel.FindChildTraverse(labelId) : null;
+                if (!label) return;
+                label.text = "";
+                label.style.visibility = "collapse";
+            });
         }
     }
 
@@ -1367,10 +1304,10 @@
         var abilities = officialPanel("abilities")
             || officialPanel("AbilitiesAndStatBranch");
         clearOfficialAbilityHotkeys(abilities);
-        if (GameUI.CustomUIConfig().SurvivalAbilityHotkeys
-            && GameUI.CustomUIConfig().SurvivalAbilityHotkeys.Shutdown
-                === shutdownCombatContext) {
-            GameUI.CustomUIConfig().SurvivalAbilityHotkeys = null;
+        var config = GameUI.CustomUIConfig();
+        if (config.SurvivalAbilityHotkeys
+            && config.SurvivalAbilityHotkeys.Shutdown === shutdownCombatContext) {
+            config.SurvivalAbilityHotkeys = null;
         }
         $.Msg("[SURVIVAL_ABILITY_HOTKEY] shutdown reason=", String(reason || "unknown"));
     }
@@ -1378,13 +1315,12 @@
     customConfig.SurvivalAbilityHotkeys = {
         Refresh: function () {
             var unit = selectedUnit();
-            refreshOfficialAbilityPresentation(
-                unit === undefined || unit < 0 ? [] : visibleAbilityEntries(unit)
-            );
+            var visibleAbilities = unit === undefined || unit < 0
+                ? [] : visibleAbilityEntries(unit);
+            refreshOfficialUtilityHotkeys(visibleAbilities);
         },
         Shutdown: shutdownCombatContext
     };
-
     function hotkeyForAbilityEntry(entry, unitName) {
         var key = utilityHotkeys[entry.name] || "";
         if (!key && unitName === "npc_survival_builder_proxy") {
@@ -1407,59 +1343,41 @@
         }
         return key;
     }
-
-    function refreshOfficialAbilityPresentation(visibleAbilities) {
+    function refreshOfficialUtilityHotkeys(visibleAbilities) {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return false;
         var abilities = officialPanel("abilities")
             || officialPanel("AbilitiesAndStatBranch");
         if (!abilities || !abilities.FindChildTraverse) return false;
+        visibleAbilities = visibleAbilities || [];
 
-        // Valve reuses Ability0/Ability1/... panels when selection changes. A
-        // label left on one of those panels therefore appears on the next
-        // unit's ability in that position. Clear both the current marker and the
-        // legacy utility-only marker before assigning the new visible order.
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var oldPanel = abilities.FindChildTraverse("Ability" + String(slot));
-            restoreNativeAbilityHotkey(oldPanel);
-            ["SurvivalAbilityHotkey", "SurvivalUtilityHotkey"].forEach(function (id) {
-                var oldLabel = oldPanel && oldPanel.FindChildTraverse
-                    ? oldPanel.FindChildTraverse(id) : null;
-                if (!oldLabel) return;
-                oldLabel.text = "";
-                oldLabel.style.visibility = "collapse";
-            });
-        }
-
-        var officialPanels = collectVisibleOfficialAbilityPanels(abilities);
         clearOfficialAbilityHotkeys(abilities);
-        var unit = selectedUnit();
-        var unitName = unit === undefined || unit < 0
-            ? "" : Entities.GetUnitName(unit);
-        if (unit === undefined || unit < 0 || visibleAbilities.length === 0) return;
-        if (officialPanels.length !== visibleAbilities.length) return;
 
-        for (var index = 0; index < visibleAbilities.length; index++) {
-            var entry = visibleAbilities[index];
-            var mapping = officialPanels[index];
+        var unit = selectedUnit();
+        if (unit === undefined || unit < 0) return;
+        if (visibleAbilities.length === 0) return true;
+        var unitName = "";
+        try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
+        var mappings = resolveOfficialAbilityMappings(visibleAbilities);
+        if (!mappings || mappings.length !== visibleAbilities.length) return false;
+
+        var complete = true;
+        for (var index = 0; index < mappings.length; index++) {
+            var mapping = mappings[index];
+            var entry = mapping.entry;
             var abilityPanel = mapping.panel;
-            var buttonPanel = mapping.anchor;
+            var buttonPanel = mapping.anchor || officialAbilityButtonAnchor(abilityPanel);
+            if (!abilityPanel || belongsToLegacyHud(abilityPanel) || !buttonPanel) {
+                complete = false;
+                continue;
+            }
             var runtime = abilityRuntime(entry.ability);
             var managed = Number(runtime.ability_entindex) === Number(entry.ability)
                 && Number(runtime.owner_entindex) === Number(unit);
             if (managed) applyAbilityRuntime(abilityPanel, entry.ability);
+
             var key = hotkeyForAbilityEntry(entry, unitName);
             if (!key) continue;
-            var abilityPanel = mapping.panel;
-            if (!abilityPanel || belongsToLegacyHud(abilityPanel)) {
-                complete = false;
-                continue;
-            }
-            var buttonPanel = mapping.anchor || officialAbilityButtonAnchor(abilityPanel);
-            if (!buttonPanel) {
-                complete = false;
-                continue;
-            }
             if (!suppressNativeAbilityHotkey(abilityPanel)) {
                 complete = false;
                 continue;
@@ -1492,7 +1410,6 @@
             label.style.width = key === "F2" ? "27px" : "20px";
             label.text = key;
             label.style.visibility = "visible";
-            suppressNativeAbilityHotkey(abilityPanel);
             officialAbilityMappings.push({
                 ability: entry.ability,
                 name: entry.name,
@@ -1504,7 +1421,6 @@
         }
         return complete;
     }
-
     function visibleAbilitySignature(unit, visibleAbilities) {
         return String(unit) + "|" + visibleAbilities.map(function (entry) {
             return [entry.slot, entry.ability, entry.name].join(":");
@@ -1522,7 +1438,7 @@
                 + "#" + officialAbilityMappingSignature(mappings);
         if (!force && refreshAbilities.signature === signature
             && officialAbilityHotkeysMatch(mappings)) return;
-        if (refreshOfficialUtilityHotkeys(visibleAbilities, mappings)) {
+        if (refreshOfficialUtilityHotkeys(visibleAbilities)) {
             refreshAbilities.signature = signature;
         } else {
             // Retry while Valve is rebuilding AbilityN descendants.
@@ -1530,9 +1446,6 @@
         }
     }
 
-    function refreshOfficialUtilityHotkeys(visibleAbilities) {
-        refreshOfficialAbilityPresentation(visibleAbilities);
-    }
 
     function abilityIndexForSlot(unit, slot) {
         slot = Number(slot);
@@ -2069,15 +1982,13 @@
             var visibleSlot = visibleSlotForAbility(runtimeAbility);
             var visibleAbilities = visibleAbilityEntries(unit);
             var mappings = resolveOfficialAbilityMappings(visibleAbilities);
-            var mapping = visibleSlot >= 0 && mappings
-                ? mappings[visibleSlot] : null;
-
             var mapping = null;
             officialAbilityMappings.some(function (entry) {
                 if (Number(entry.ability) !== runtimeAbility) return false;
                 mapping = entry;
                 return true;
             });
+            if (!mapping && visibleSlot >= 0 && mappings) mapping = mappings[visibleSlot];
             var button = mapping ? mapping.panel : null;
             if (button) {
                 applyAbilityRuntime(button, runtimeAbility);
