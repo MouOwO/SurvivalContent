@@ -1,0 +1,20 @@
+<root>
+    <styles><include src="file://{resources}/styles/custom_game/rogue_reward_ui.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/rogue_reward_ui.js" /></scripts>
+    <Panel class="RogueRewardRoot" hittest="false">
+        <Panel id="RogueRewardBackdrop" class="RogueRewardHidden" hittest="true">
+            <Panel class="RogueRewardSurface" hittest="true">
+                <Label class="RogueRewardTitle" text="命运馈赠" />
+                <Panel class="RogueRewardRuleLine">
+                    <Panel class="RogueRewardRuleDivider" />
+                    <Label text="选择一张卡牌" />
+                    <Panel class="RogueRewardRuleDivider" />
+                </Panel>
+                <Panel id="RogueRewardCards" class="RogueRewardCards" />
+                <Button id="RogueRewardReroll" class="RogueRewardReroll">
+                    <Label id="RogueRewardRerollText" text="免费重抽" />
+                </Button>
+            </Panel>
+        </Panel>
+    </Panel>
+</root>

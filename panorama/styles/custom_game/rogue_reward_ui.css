@@ -1,0 +1,170 @@
+.RogueRewardRoot {
+    width: 100%;
+    height: 100%;
+}
+
+.RogueRewardHidden {
+    visibility: collapse;
+}
+
+#RogueRewardBackdrop {
+    width: 100%;
+    height: 100%;
+    background-color: #050708d9;
+}
+
+.RogueRewardSurface {
+    horizontal-align: center;
+    vertical-align: center;
+    width: 1120px;
+    height: 690px;
+    flow-children: down;
+}
+
+.RogueRewardTitle {
+    horizontal-align: center;
+    color: #f1e8d0;
+    font-size: 38px;
+    font-weight: bold;
+    text-shadow: 0px 2px 5px 3 #000000;
+}
+
+.RogueRewardRuleLine {
+    horizontal-align: center;
+    width: 610px;
+    height: 34px;
+    margin-top: 2px;
+    flow-children: right;
+}
+
+.RogueRewardRuleLine Label {
+    width: 170px;
+    text-align: center;
+    vertical-align: center;
+    color: #9ca7aa;
+    font-size: 16px;
+}
+
+.RogueRewardRuleDivider {
+    width: 220px;
+    height: 1px;
+    vertical-align: center;
+    background-color: #617073;
+}
+
+.RogueRewardCards {
+    horizontal-align: center;
+    width: 1020px;
+    height: 500px;
+    margin-top: 14px;
+    flow-children: right;
+}
+
+.RogueRewardCard {
+    width: 300px;
+    height: 468px;
+    margin-left: 20px;
+    margin-right: 20px;
+    flow-children: down;
+    background-color: #161b1c;
+    border: 2px solid #7b8886;
+    box-shadow: #000000cc 0px 7px 16px 2px;
+    transition-property: transform, brightness, border, box-shadow;
+    transition-duration: 0.16s;
+    animation-name: RogueRewardDeal;
+    animation-duration: 0.38s;
+    animation-timing-function: ease-out;
+}
+
+.RogueRewardCard2 { animation-delay: 0.07s; }
+.RogueRewardCard3 { animation-delay: 0.14s; }
+
+.RogueRewardCard:hover {
+    transform: translateY(-12px) scale3d(1.035, 1.035, 1);
+    brightness: 1.18;
+    border-color: #d2bb72;
+    box-shadow: #d2bb7240 0px 8px 20px 3px;
+}
+
+.RogueRewardArt {
+    horizontal-align: center;
+    width: 296px;
+    height: 218px;
+    saturation: 0.88;
+}
+
+.RogueRewardBody {
+    width: 100%;
+    height: 192px;
+    padding: 15px 17px 8px 17px;
+    flow-children: down;
+    background-color: #202728;
+    border-top: 1px solid #64716f;
+}
+
+.RogueRewardCardName {
+    horizontal-align: center;
+    width: 100%;
+    color: #f3e7c8;
+    font-size: 25px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.RogueRewardDescription {
+    width: 100%;
+    margin-top: 13px;
+    color: #c9d0cf;
+    font-size: 18px;
+    text-align: center;
+    white-space: normal;
+}
+
+.RogueRewardFooter {
+    width: 100%;
+    height: 54px;
+    background-color: #121718;
+    border-top: 1px solid #4e5a58;
+}
+
+.RogueRewardPickText {
+    horizontal-align: center;
+    vertical-align: center;
+    color: #d7bd71;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.RogueRewardReroll {
+    horizontal-align: center;
+    width: 190px;
+    height: 44px;
+    margin-top: 6px;
+    background-color: #354c50;
+    border: 1px solid #8ca4a5;
+    transition-property: brightness, transform;
+    transition-duration: 0.12s;
+}
+
+.RogueRewardReroll:hover {
+    brightness: 1.4;
+    transform: scale3d(1.03, 1.03, 1);
+}
+
+.RogueRewardReroll.Disabled {
+    saturation: 0;
+    opacity: 0.45;
+}
+
+.RogueRewardReroll Label {
+    horizontal-align: center;
+    vertical-align: center;
+    color: #eef3ef;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+@keyframes 'RogueRewardDeal' {
+    0% { opacity: 0; transform: translateY(32px) rotateY(82deg); }
+    100% { opacity: 1; transform: translateY(0px) rotateY(0deg); }
+}

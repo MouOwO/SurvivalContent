@@ -75,19 +75,25 @@
     var utilityHotkeys = {
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
+        ability_building_blink: "D",
+        ability_destroy_arrow_tower: "G",
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
     };
     var utilityAbilityForKey = {
         D: [
             "ability_survival_hero_ball_lightning",
-            "ability_survival_builder_blink"
+            "ability_survival_builder_blink",
+            "ability_building_blink"
         ],
-        F: ["ability_survival_pickup_materials"]
+        F: ["ability_survival_pickup_materials"],
+        G: ["ability_destroy_arrow_tower"]
     };
     var utilityDisplayOrder = {
         ability_survival_hero_ball_lightning: 10,
         ability_survival_builder_blink: 10,
+        ability_building_blink: 10,
+        ability_destroy_arrow_tower: 20,
         ability_survival_return_home: 20,
         ability_survival_pickup_materials: 30
     };
