@@ -6,13 +6,14 @@
     var playerId = Game.GetLocalPlayerID();
     var hotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
     var builderHotkeysBySlotOrder = {
-        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A"
+        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A", 7: "G"
     };
     var researchHotkeys = ["Q", "W", "E", "R", "T", "A"];
     var advancedResearchHotkeys = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"];
     var utilityHotkeys = {
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
+        ability_survival_rogue_reward: "G",
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
     };
@@ -27,6 +28,7 @@
     var signature = "";
     var activeAbility = -1;
     var activePanel = null;
+    var nativeTooltipSuppressionSerial = 0;
     var refreshSerial = 0;
     var anchorDiagnostic = "";
     var geometryDiagnostic = "";
@@ -165,9 +167,29 @@
         var runtime = CustomNetTables.GetTableValue(
             "survival_ability_runtime", "unit:" + String(unit)
         ) || {};
-        if (runtime.removed === 1
-            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
-        return Math.max(0, Number(runtime.ability_count) || 0);
+        if (runtime.removed !== 1
+            && Number(runtime.owner_entindex) === Number(unit)
+            && Number(runtime.ability_count) > 0) {
+            return Math.max(0, Number(runtime.ability_count));
+        }
+
+        // Worker abilities are attached dynamically and do not have a unit
+        // runtime row. Use a bounded engine probe until the authoritative row
+        // arrives, so the first hover does not fall back to Valve's tooltip.
+        var count = 0;
+        var emptySlots = 0;
+        for (var slot = 0; slot < 24; slot++) {
+            var ability = -1;
+            try { ability = Entities.GetAbility(unit, slot); } catch (error) {}
+            if (ability === undefined || ability < 0) {
+                emptySlots += 1;
+                if (count > 0 && emptySlots >= 4) break;
+                continue;
+            }
+            count = slot + 1;
+            emptySlots = 0;
+        }
+        return count;
     }
 
     function asArray(value) {
@@ -277,6 +299,9 @@
     }
 
     function hotkeyForEntry(entry) {
+        var behavior = 0;
+        try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
+        if ((behavior & 2) !== 0) return "";
         if (utilityHotkeys[entry.name]) return utilityHotkeys[entry.name];
         if (selectedUnitName() === "npc_survival_builder_proxy") {
             var builderRuntime = runtimeFor(entry.ability);
@@ -320,8 +345,12 @@
             if (order !== 0) return order;
             return Number(left.entitySlot) - Number(right.entitySlot);
         });
-        standard.forEach(function (entry, standardHotkeyIndex) {
-            entry.standardHotkeyIndex = standardHotkeyIndex;
+        var standardHotkeyIndex = 0;
+        standard.forEach(function (entry) {
+            var behavior = 0;
+            try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
+            entry.standardHotkeyIndex = (behavior & 2) !== 0
+                ? -1 : standardHotkeyIndex++;
         });
         return standard.concat(utility);
     }
@@ -992,6 +1021,7 @@
     }
 
     function hideTooltip() {
+        nativeTooltipSuppressionSerial += 1;
         activeAbility = -1;
         activePanel = null;
         var tooltip = byId("CustomAbilityTooltip");
@@ -1010,9 +1040,35 @@
         tooltip.AddClass("Hidden");
     }
 
+    function suppressNativeAbilityTooltip(panel) {
+        if (panel) {
+            try { $.DispatchEvent("DOTAHideAbilityTooltip", panel); } catch (error) {}
+            try { $.DispatchEvent("DOTAHideTextTooltip", panel); } catch (error) {}
+            try { $.DispatchEvent("DOTAHideTitleTextTooltip", panel); } catch (error) {}
+        }
+        try { $.DispatchEvent("DOTAHideAbilityTooltip"); } catch (error) {}
+        try { $.DispatchEvent("DOTAHideTextTooltip"); } catch (error) {}
+        try { $.DispatchEvent("DOTAHideTitleTextTooltip"); } catch (error) {}
+    }
+
+    function suppressNativeAbilityTooltipBurst(entry, panel) {
+        nativeTooltipSuppressionSerial += 1;
+        var serial = nativeTooltipSuppressionSerial;
+        var delays = [0.0, 0.03, 0.08, 0.16];
+        delays.forEach(function (delay) {
+            $.Schedule(delay, function () {
+                if (serial !== nativeTooltipSuppressionSerial
+                    || Number(activeAbility) !== Number(entry.ability)
+                    || activePanel !== panel) return;
+                suppressNativeAbilityTooltip(panel);
+            });
+        });
+    }
+
     function showTooltip(entry, panel) {
         activeAbility = entry.ability;
         activePanel = panel;
+        suppressNativeAbilityTooltipBurst(entry, panel);
         var definition = CustomNetTables.GetTableValue(
             "survival_ability_data", entry.name
         ) || {};

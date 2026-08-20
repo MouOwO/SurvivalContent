@@ -76,6 +76,7 @@
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
         ability_building_blink: "D",
+        ability_survival_rogue_reward: "G",
         ability_destroy_arrow_tower: "G",
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
@@ -87,7 +88,7 @@
             "ability_building_blink"
         ],
         F: ["ability_survival_pickup_materials"],
-        G: ["ability_destroy_arrow_tower"]
+        G: ["ability_survival_rogue_reward", "ability_destroy_arrow_tower"]
     };
     var utilityDisplayOrder = {
         ability_survival_hero_ball_lightning: 10,
@@ -98,7 +99,7 @@
         ability_survival_pickup_materials: 30
     };
     var builderHotkeysBySlotOrder = {
-        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A"
+        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A", 7: "G"
     };
 
     var officialAbilityMappings = [];
@@ -1328,6 +1329,9 @@
         Shutdown: shutdownCombatContext
     };
     function hotkeyForAbilityEntry(entry, unitName) {
+        var behavior = 0;
+        try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
+        if ((behavior & 2) !== 0) return "";
         var key = utilityHotkeys[entry.name] || "";
         if (!key && unitName === "npc_survival_builder_proxy") {
             var builderRuntime = abilityRuntime(entry.ability);
@@ -1463,9 +1467,25 @@
         var runtime = CustomNetTables.GetTableValue(
             "survival_ability_runtime", "unit:" + String(unit)
         ) || {};
-        if (runtime.removed === 1
-            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
-        return Math.max(0, Number(runtime.ability_count) || 0);
+        if (runtime.removed !== 1
+            && Number(runtime.owner_entindex) === Number(unit)
+            && Number(runtime.ability_count) > 0) {
+            return Math.max(0, Number(runtime.ability_count));
+        }
+        var count = 0;
+        var emptySlots = 0;
+        for (var probe = 0; probe < 24; probe++) {
+            var ability = -1;
+            try { ability = Entities.GetAbility(unit, probe); } catch (error) {}
+            if (ability === undefined || ability < 0) {
+                emptySlots += 1;
+                if (count > 0 && emptySlots >= 4) break;
+                continue;
+            }
+            count = probe + 1;
+            emptySlots = 0;
+        }
+        return count;
     }
 
     function orderVisibleAbilities(entries) {
@@ -1481,8 +1501,12 @@
             if (order !== 0) return order;
             return Number(left.slot) - Number(right.slot);
         });
-        standard.forEach(function (entry, index) {
-            entry.standardHotkeyIndex = index;
+        var standardHotkeyIndex = 0;
+        standard.forEach(function (entry) {
+            var behavior = 0;
+            try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
+            entry.standardHotkeyIndex = (behavior & 2) !== 0
+                ? -1 : standardHotkeyIndex++;
         });
         return standard.concat(utility);
     }
@@ -1509,7 +1533,9 @@
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) return -1;
         var standard = visibleAbilityEntries(unit).filter(function (entry) {
-            return !utilityHotkeys[entry.name];
+            var behavior = 0;
+            try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
+            return !utilityHotkeys[entry.name] && (behavior & 2) === 0;
         });
         return standard[slot] === undefined ? -1 : standard[slot].ability;
     }
@@ -1538,6 +1564,18 @@
         if (unit === undefined || unit < 0
             || Entities.GetUnitName(unit) !== "npc_survival_builder_proxy") return -1;
         var entries = visibleAbilityEntries(unit);
+        var builderAbilityByKey = {
+            D: "ability_survival_builder_blink",
+            G: "ability_survival_rogue_reward"
+        };
+        var builderAbilityName = builderAbilityByKey[key];
+        if (builderAbilityName) {
+            for (var builderIndex = 0; builderIndex < entries.length; builderIndex++) {
+                if (entries[builderIndex].name === builderAbilityName) {
+                    return builderIndex;
+                }
+            }
+        }
         for (var index = 0; index < entries.length; index++) {
             if (utilityHotkeys[entries[index].name]) continue;
             var runtime = abilityRuntime(entries[index].ability);
@@ -1564,6 +1602,7 @@
 
     function managedBuildingAction(abilityName) {
         return /^ability_build_/.test(abilityName)
+            || abilityName === "ability_survival_rogue_reward"
             || abilityName === "ability_open_research"
             || /^ability_research_/.test(abilityName)
             || abilityName === "ability_challenge_auto_summon"
@@ -1914,7 +1953,7 @@
             dispatcher.RegisterKeyHandler("ability_input", currentHandler, 60);
             $.Msg("[SURVIVAL_INPUT] BOUND generation=", inputGeneration,
                 " dispatcher_generation=", String(dispatcher.generation),
-                " keys=QWERTYU,ASDFG,D,F,F2");
+                " keys=QWERTYU,ASDFG,D,F,F2 builder_rogue=G");
         } else {
             $.Warning("[SURVIVAL_INPUT] BIND_FAILED generation="
                 + inputGeneration + " reason=input_dispatcher_unavailable");

@@ -316,8 +316,10 @@
     }
 
     function showNativeAbilityTooltip(panel, abilityName) {
-        if (!panel || !abilityName) return;
-        try { $.DispatchEvent("DOTAShowAbilityTooltip", panel, abilityName); } catch (error) {}
+        // Native ability tooltips are intentionally disabled for the takeover.
+        // Valve can recreate them asynchronously from AbilityN ancestors; the
+        // custom tooltip is the only supported renderer for visible abilities.
+        hideNativeTooltip(panel);
     }
 
     function hideAllTooltips(panel) {
@@ -592,9 +594,25 @@
         var runtime = CustomNetTables.GetTableValue(
             "survival_ability_runtime", "unit:" + String(unit)
         ) || {};
-        if (runtime.removed === 1
-            || Number(runtime.owner_entindex) !== Number(unit)) return 0;
-        return Math.max(0, Number(runtime.ability_count) || 0);
+        if (runtime.removed !== 1
+            && Number(runtime.owner_entindex) === Number(unit)
+            && Number(runtime.ability_count) > 0) {
+            return Math.max(0, Number(runtime.ability_count));
+        }
+        var count = 0;
+        var emptySlots = 0;
+        for (var slot = 0; slot < 24; slot++) {
+            var ability = -1;
+            try { ability = Entities.GetAbility(unit, slot); } catch (error) {}
+            if (ability === undefined || ability < 0) {
+                emptySlots += 1;
+                if (count > 0 && emptySlots >= 4) break;
+                continue;
+            }
+            count = slot + 1;
+            emptySlots = 0;
+        }
+        return count;
     }
 
     function enumerateAbilitySlots(unit) {
@@ -776,6 +794,7 @@
 
     function isManagedBuildingAction(abilityName) {
         return /^ability_build_/.test(abilityName)
+            || abilityName === "ability_survival_rogue_reward"
             || abilityName === "ability_open_research"
             || abilityName === "ability_challenge_auto_summon"
             || /^ability_upgrade_tower/.test(abilityName)
@@ -792,6 +811,30 @@
             || abilityName === "ability_train_lumberjack"
             || abilityName === "ability_train_repairer"
             || abilityName === "ability_train_advanced_repairer";
+    }
+
+    function isLumberjackAbility(abilityName) {
+        return /^ability_fuse_lumberjack_\d+$/.test(abilityName)
+            || /^ability_lumberjack_personality_/.test(abilityName);
+    }
+
+    function isSelectedLumberjackVisibleAbility(abilityIndex, abilityName) {
+        var unitName = "";
+        try { unitName = Entities.GetUnitName(Number(selectedUnit())) || ""; } catch (error) {}
+        if (unitName !== "npc_survival_lumberjack"
+            && unitName.indexOf("npc_survival_super_lumberjack_") !== 0) return false;
+        if (!isLumberjackAbility(abilityName)) return false;
+        try {
+            if (Abilities.IsHidden(abilityIndex)) return false;
+        } catch (error) {}
+        return unitOwnsAbility(Number(selectedUnit()), abilityIndex);
+    }
+
+    function isSelectedLumberjack() {
+        var unitName = "";
+        try { unitName = Entities.GetUnitName(Number(selectedUnit())) || ""; } catch (error) {}
+        return unitName === "npc_survival_lumberjack"
+            || unitName.indexOf("npc_survival_super_lumberjack_") === 0;
     }
 
     function managedUpgrade(abilityIndex, abilityName) {
@@ -827,7 +870,8 @@
         return managedUpgrade(abilityIndex, abilityName)
             || (isSelectedResearchLab() && /^ability_research_/.test(abilityName))
             || isSelectedBuilderVisibleAbility(abilityIndex)
-            || isSelectedCombatHeroVisibleAbility(abilityIndex);
+            || isSelectedCombatHeroVisibleAbility(abilityIndex)
+            || isSelectedLumberjackVisibleAbility(abilityIndex, abilityName);
     }
 
     function selectedEntindexesForRequest() {
@@ -1568,7 +1612,8 @@
             var abilityName = String(proxy.__survivalAbilityName || "");
             if (!isFinite(boundAbility) || boundAbility < 0
                 || !customTooltipAbility(boundAbility, abilityName)) return;
-            var projectManagedInput = /^ability_build_/.test(abilityName)
+        var projectManagedInput = /^ability_build_/.test(abilityName)
+            || abilityName === "ability_survival_rogue_reward"
                 || /^ability_research_/.test(abilityName)
                 || managedUpgrade(boundAbility, abilityName);
             if (!projectManagedInput) {
@@ -1769,7 +1814,8 @@
         officialPanels = extendResearchAbilityPanels(officialPanels, abilityIndexes.length);
         var builderScope = isSelectedLocalBuilder();
         var heroScope = isSelectedCombatHero();
-        var fullScope = builderScope || heroScope;
+        var lumberjackScope = isSelectedLumberjack();
+        var fullScope = builderScope || heroScope || lumberjackScope;
         var mappingUnavailable = officialPanels.length < abilityIndexes.length
             || (!fullScope && officialPanels.length !== abilityIndexes.length);
         if (mappingUnavailable) {
@@ -1780,7 +1826,8 @@
                 + " mode=fallback abilities=" + String(abilityIndexes.length)
                 + " panels=" + String(officialPanels.length)
                 + " builder=" + String(builderScope)
-                + " combat_hero=" + String(heroScope);
+                + " combat_hero=" + String(heroScope)
+                + " lumberjack=" + String(lumberjackScope);
             if (mismatch !== officialMapDiagnostic) {
                 officialMapDiagnostic = mismatch;
                 $.Msg("[SURVIVAL_TOOLTIP_MAP] ", mismatch);

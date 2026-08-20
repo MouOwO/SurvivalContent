@@ -20,8 +20,8 @@
         return name === "building_arrow_tower";
     }
 
-    function visibleAbility(unit, abilityName) {
-        if (unit < 0 || !isArrowTower(unit)) return -1;
+    function abilityOnUnit(unit, abilityName) {
+        if (unit < 0) return -1;
         for (var slot = 0; slot < 64; slot += 1) {
             var ability = -1;
             try { ability = Entities.GetAbility(unit, slot); } catch (error) {}
@@ -32,6 +32,17 @@
             } catch (error) {}
         }
         return -1;
+    }
+
+    function isUtilityTower(unit) {
+        return isArrowTower(unit)
+            || (abilityOnUnit(unit, MOVE_ABILITY) >= 0
+                && abilityOnUnit(unit, DESTROY_ABILITY) >= 0);
+    }
+
+    function visibleAbility(unit, abilityName) {
+        if (!isUtilityTower(unit)) return -1;
+        return abilityOnUnit(unit, abilityName);
     }
 
     function beginMove(unit) {
