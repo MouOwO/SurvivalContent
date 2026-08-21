@@ -356,7 +356,7 @@
             }
         }
     );
-    GameEvents.Subscribe("ui_state_snapshot", update);
+    GameEvents.Subscribe("survival_ui_private_snapshot", update);
     GameEvents.Subscribe("ui_notification", showNotification);
     GameEvents.Subscribe("ui_difficulty_select_result", handleDifficultyResult);
     GameEvents.Subscribe("ui_camera_follow_hero", focusHeroWithoutLock);
