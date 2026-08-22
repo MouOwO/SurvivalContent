@@ -59,6 +59,7 @@
     var activeAbilityIndex = -1;
     var activeAbilityName = "";
     var activeSourcePanel = null;
+    var nativeTooltipSuppressionSerial = 0;
     var bindingRecoverySerial = 0;
     var officialMapDiagnostic = "";
     var externalProxyDiagnostic = "";
@@ -188,15 +189,46 @@
         );
     }
 
-    function hideNativeTooltip(sourcePanel) {
-        if (sourcePanel) {
-            try { $.DispatchEvent("DOTAHideAbilityTooltip", sourcePanel); } catch (error) {}
-            try { $.DispatchEvent("DOTAHideTextTooltip", sourcePanel); } catch (error) {}
-            try { $.DispatchEvent("DOTAHideTitleTextTooltip", sourcePanel); } catch (error) {}
+    function nativeTooltipOwners(sourcePanel) {
+        var owners = [sourcePanel, activeSourcePanel, $.GetContextPanel()];
+        var current = sourcePanel;
+        for (var depth = 0; current && depth < 8; depth += 1) {
+            owners.push(current);
+            if (current.FindChildTraverse) {
+                owners.push(current.FindChildTraverse("AbilityButton"));
+                owners.push(current.FindChildTraverse("ButtonWell"));
+                owners.push(current.FindChildTraverse("AbilityImage"));
+            }
+            current = current.GetParent ? current.GetParent() : null;
         }
+        return owners;
+    }
+
+    function hideNativeTooltip(sourcePanel) {
+        var seen = [];
+        nativeTooltipOwners(sourcePanel).forEach(function (owner) {
+            if (!owner || seen.indexOf(owner) >= 0) return;
+            seen.push(owner);
+            try { $.DispatchEvent("DOTAHideAbilityTooltip", owner); } catch (error) {}
+            try { $.DispatchEvent("DOTAHideTextTooltip", owner); } catch (error) {}
+            try { $.DispatchEvent("DOTAHideTitleTextTooltip", owner); } catch (error) {}
+        });
         try { $.DispatchEvent("DOTAHideAbilityTooltip"); } catch (error) {}
         try { $.DispatchEvent("DOTAHideTextTooltip"); } catch (error) {}
         try { $.DispatchEvent("DOTAHideTitleTextTooltip"); } catch (error) {}
+    }
+
+    function suppressNativeTooltip(abilityIndex, sourcePanel) {
+        nativeTooltipSuppressionSerial += 1;
+        var serial = nativeTooltipSuppressionSerial;
+        [0.0, 0.03, 0.08, 0.16, 0.30].forEach(function (delay) {
+            scheduleActive(delay, function () {
+                if (serial !== nativeTooltipSuppressionSerial
+                    || Number(activeAbilityIndex) !== Number(abilityIndex)
+                    || activeSourcePanel !== sourcePanel) return;
+                hideNativeTooltip(sourcePanel);
+            });
+        });
     }
 
     function tooltipError(stage, error, sourcePanel) {
@@ -280,6 +312,7 @@
     function hideCustomTooltip() {
         setExternalProxyHighlight(activeSourcePanel, false);
         externalHoverExitSerial += 1;
+        nativeTooltipSuppressionSerial += 1;
         activeAbilityIndex = -1;
         activeAbilityName = "";
         activeSourcePanel = null;
@@ -967,8 +1000,9 @@
         activeAbilityIndex = abilityIndex;
         activeAbilityName = abilityName;
         activeSourcePanel = sourcePanel;
-        hideNativeTooltip(sourcePanel);
+        suppressNativeTooltip(abilityIndex, sourcePanel);
         if (!render(abilityIndex, abilityName, sourcePanel)) {
+            nativeTooltipSuppressionSerial += 1;
             activeAbilityIndex = -1;
             activeAbilityName = "";
             activeSourcePanel = null;
@@ -1526,6 +1560,7 @@
                 return;
             }
             if (sourceInside) {
+                hideNativeTooltip(proxy);
                 scheduleActive(0.05, verify);
                 return;
             }

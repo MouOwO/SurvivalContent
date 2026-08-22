@@ -141,6 +141,11 @@
             ? (entry.owned_count + " / " + entry.purchase_limit)
             : (entry.owned_count + " / 不限");
         setText("ShopTooltipOwned", "已购买：" + limitText);
+        if (entry.stock !== undefined && entry.stock !== null) {
+            setText("ShopTooltipOwned", "库存：" + Number(entry.stock)
+                + " · " + Number(entry.refresh_remaining || 0).toFixed(1)
+                + "秒后刷新");
+        }
         if (isTechnology) {
             setText("ShopTooltipOwned", "科技等级：Lv."
                 + Number(entry.technology_level || 0) + " / Lv."

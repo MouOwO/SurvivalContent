@@ -12,6 +12,7 @@
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
+        <include src="file://{resources}/scripts/custom_game/attack_range_input.js" />
         <include src="file://{resources}/scripts/custom_game/gold_mine_income_numbers.js" />
         <include src="file://{resources}/scripts/custom_game/survival_ui.js" />
         <include src="file://{resources}/scripts/custom_game/building_move.js" />

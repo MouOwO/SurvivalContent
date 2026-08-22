@@ -1394,7 +1394,12 @@
         hideTooltip();
         hideUnused(0);
         hideCalibrationGeometry();
-        suppressOfficialContainerForTransition();
+        // Keep Valve's complete action bar visible until a new custom mapping
+        // has passed every anchor and geometry check. A selection event can be
+        // followed by a HUD rebuild, so hiding the whole container here could
+        // otherwise leave every ability invisible when that rebuild is delayed.
+        restoreOfficial();
+        restoreOfficialContainerAfterTransition();
         $.Msg("[SURVIVAL_TAKEOVER_SELECTION] begin reason=", selectionTransition.reason,
             " serial=", String(serial), " unit=", String(selectedUnit()));
         selectionRetryDelays.forEach(function (delay, retryIndex) {
@@ -1405,8 +1410,11 @@
                     observedSelectedUnit = currentUnit;
                 }
                 // Valve can replace the abilities container between frames.
-                // Reacquire and suppress the current generation before mapping.
-                suppressOfficialContainerForTransition();
+                // Keep the native generation visible while refresh validates
+                // the current anchors; successful takeover suppresses only
+                // its mapped visuals after that validation completes.
+                restoreOfficial();
+                restoreOfficialContainerAfterTransition();
                 var finalRetry = retryIndex === selectionRetryDelays.length - 1;
                 if (finalRetry) {
                     selectionTransition = null;

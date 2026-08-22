@@ -200,6 +200,17 @@
     function setUnlocks(value) {
         unlocks = value || unlocks;
         updateModeText();
+        var shopButton = byId("CustomShopButton");
+        if (shopButton) shopButton.SetHasClass("Locked", !unlocks.shop);
+    }
+
+    function onShopUnlock(payload) {
+        var unlocked = Number(payload && payload.unlocked || 0) === 1;
+        var wasUnlocked = !!unlocks.shop;
+        setUnlocks({ shop: unlocked, research: unlocks.research });
+        if (unlocked && !wasUnlocked) {
+            setStatus("装备商店已解锁", false);
+        }
     }
 
     function refresh() {
@@ -410,7 +421,9 @@
                 entry.icon_type,
                 entry.icon,
                 entry.level_text,
-                entry.name
+                entry.name,
+                entry.stock,
+                entry.refresh_remaining
             ].join(":");
         }).join("|");
     }
@@ -604,6 +617,7 @@
             return previousById[entryId];
         });
         if (payload.resources) snapshot.resources = payload.resources;
+        if (payload.refresh_stock) snapshot.refresh_stock = payload.refresh_stock;
         if (payload.categories) snapshot.categories = payload.categories;
         snapshot.technology_cooldown_remaining = payload.technology_cooldown_remaining;
         snapshot.technology_cooldown_total = payload.technology_cooldown_total;
@@ -787,6 +801,7 @@
     }
     bindCloseSurfaces();
     GameEvents.Subscribe("ui_shop_snapshot", onSnapshot);
+    GameEvents.Subscribe("ui_shop_unlock_state", onShopUnlock);
     GameEvents.Subscribe("ui_shop_force_open", onForceOpen);
     GameEvents.Subscribe("ui_operation_result", onResult);
     GameUI.CustomUIConfig().SurvivalShop = {

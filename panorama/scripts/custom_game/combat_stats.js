@@ -120,6 +120,15 @@
         return /^npc_dota_hero_/.test(String(unitName || ""));
     }
 
+    function isFarmUnit(unitName) {
+        return String(unitName || "") === "building_farm";
+    }
+
+    function isArmorHiddenUnit(unitName) {
+        var name = String(unitName || "");
+        return name === "building_farm" || name === "building_gold_mine";
+    }
+
     function localizedText(token) {
         var localized = $.Localize(token);
         return localized && localized !== token ? localized : "";
@@ -477,6 +486,19 @@
         var armorPanel = officialPanel("Armor");
         if (!statsContainer || !attackSpeedPanel || !armorPanel) return;
 
+        var unitName = "";
+        try {
+            unitName = Entities.GetUnitName(displayUnit()) || "";
+        } catch (error) {}
+        if (isArmorHiddenUnit(unitName)) {
+            if (authoritativeArmorLabel) {
+                authoritativeArmorLabel.style.visibility = "collapse";
+            }
+            armorPanel.style.visibility = "collapse";
+            armorPanel.hittest = false;
+            armorPanel.hittestchildren = false;
+        }
+
         authoritativeAttackSpeedLabel = ensureAuthoritativeStatOverlay(
             statsContainer, "SurvivalAuthoritativeAttackSpeedLabel",
             authoritativeAttackSpeedLabel
@@ -496,15 +518,17 @@
         if (!positionRelativeToStatRow(
             attackSpeedPanel, statsContainer, authoritativeAttackSpeedLabel
         )) return;
-        if (!positionRelativeToStatRow(
-            armorPanel, statsContainer, authoritativeArmorLabel
-        )) return;
+        if (!isArmorHiddenUnit(unitName)
+            && !positionRelativeToStatRow(
+                armorPanel, statsContainer, authoritativeArmorLabel
+            )) return;
         authoritativeAttackSpeedLabel.text = officialAttackSpeedText;
         authoritativeArmorLabel.text = officialArmorText;
         authoritativeAttackSpeedLabel.style.visibility = "visible";
-        authoritativeArmorLabel.style.visibility = "visible";
+        authoritativeArmorLabel.style.visibility = isArmorHiddenUnit(unitName)
+            ? "collapse" : "visible";
         setNativeStatLabelsVisible(attackSpeedPanel, false);
-        setNativeStatLabelsVisible(armorPanel, false);
+        if (!isArmorHiddenUnit(unitName)) setNativeStatLabelsVisible(armorPanel, false);
     }
 
     function ensureLogicalAttributeOverlay(statsContainer) {
@@ -654,7 +678,7 @@
         setOfficialPanelVisible(root, "Damage", true);
         writeOfficialAttackText();
         setOfficialPanelVisible(root, "AttackSpeed", true);
-        setOfficialPanelVisible(root, "Armor", true);
+        setOfficialPanelVisible(root, "Armor", !isArmorHiddenUnit(unitName));
         // These panels are read-only displays. Keep their icons and
         // authoritative numbers visible, but do not let Valve or project code
         // create detailed stat tooltips from their hover tree.
