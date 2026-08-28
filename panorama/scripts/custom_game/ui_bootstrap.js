@@ -129,10 +129,18 @@
         return validUnit(hero) ? hero : -1;
     }
 
+    var displayIdentityMode = "selection";
+    var selectionIdentityLockUntil = 0;
+
     function resolveDisplayUnit() {
+        var playerId = Game.GetLocalPlayerID();
         var portrait = -1;
         try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
         var portraitName = validUnit(portrait) ? (Entities.GetUnitName(portrait) || "") : "";
+        if (displayIdentityMode === "query" && validUnit(portrait)
+            && portraitName !== "npc_dota_hero_undying") return portrait;
+        var selected = selectedEntities(playerId).filter(validUnit);
+        if (selected.length > 0) return selected[0];
         if (validUnit(portrait) && portraitName !== "npc_dota_hero_undying") return portrait;
         return resolveSelectedUnit();
     }
@@ -141,6 +149,15 @@
         BuilderEntity: function () { return builderEntity(Game.GetLocalPlayerID()); },
         Resolve: resolveSelectedUnit,
         ResolveDisplayUnit: resolveDisplayUnit,
+        SetDisplayIdentityMode: function (mode) {
+            var now = Date.now();
+            if (mode === "query" && now < selectionIdentityLockUntil) return false;
+            displayIdentityMode = mode === "query" ? "query" : "selection";
+            if (displayIdentityMode === "selection") {
+                selectionIdentityLockUntil = now + 250;
+            }
+            return true;
+        },
         Snapshot: function () {
             var playerId = Game.GetLocalPlayerID();
             var portrait = -1;

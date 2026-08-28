@@ -63,5 +63,12 @@
 - 已确认等级规则：伐木工速度/防御塔强化/墙强化/伐木工暴击普通科技最高 Lv.10；伐木效率普通科技最高 Lv.20；高级科技从对应普通科技 Lv.10 解锁。
 - Lua 词法级结构检查与 `git diff --check` 通过。需完全重启 Workshop Tools/地图会话加载运行端 Lua 后实测。
 
+## 2026-08-27 Cosmetic Portrait Phase 2A 隔离尖峰
+- 已在运行端仓库 `spikes/portrait_world_unit_phase2a` 建立 CSV 驱动的隔离源，并部署 sibling addon `survival_phase2a`；四阶段严格为 Base Axe → Head `22217` → Head + Weapon `22218` → 五件 ItemDef，所有 style 显式为 `0`。
+- `portrait_world_unit` 字段来自本机官方 prefab 取证；Panorama 使用静态 `DOTAScenePanel map/camera` 绑定，不使用旧 `SetUnit` 第二参数，不添加 `skin_override`，也不修改 survival 生产 HUD、地图或饰品服务。
+- 专项契约、PowerShell 解析、Lua 5.1、XML 与 Resource Compiler 均通过；入口地图、四张 scene VPK 和五个 Panorama 编译产物已生成。自动直启只到 Asset Browser/Idle loading，尚未进入 `phase2a_lab`，因此四阶段渲染与 wearable 行为仍待 Workshop Tools 人工冷启动，且未进入 Phase 2B。
+- 用户已人工确认正式环境 Axe 的 `Phase 2A Baseline`：世界模型正常；正式左下 `Portrait` 为基础 Axe；当前未同步自定义饰品。该状态不替代隔离 Test 1 的运行证据。
+- 后续只执行隔离 Test 1（Base Axe）；Test 1 PASS 后只加载 Head ItemDef `22217`，不测试其他 ItemDef，不修改正式 HUD、世界 `prop_dynamic`、Juggernaut 或 Monkey King，也不进入 Phase 2B。
+
 ## 验证清单
 

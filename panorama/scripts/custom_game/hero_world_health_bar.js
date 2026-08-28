@@ -16,6 +16,15 @@
         }
     }
 
+    function windowPosition(panel) {
+        if (!panel || !panel.GetPositionWithinWindow) return { x: 0, y: 0 };
+        var position = panel.GetPositionWithinWindow();
+        return {
+            x: Number(position && position.x) || 0,
+            y: Number(position && position.y) || 0
+        };
+    }
+
     function validPanel(target) {
         return target && (!target.IsValid || target.IsValid());
     }
@@ -29,6 +38,12 @@
         var fill = $.CreatePanel("Panel", bar, "");
         fill.AddClass("SurvivalHeroWorldHealthFill");
         fill.hittest = false;
+        for (var index = 1; index < 10; index++) {
+            var divider = $.CreatePanel("Panel", bar, "");
+            divider.AddClass("SurvivalHeroWorldHealthTick");
+            divider.AddClass("SurvivalHeroWorldHealthTick" + (index * 10));
+            divider.hittest = false;
+        }
         bar.__fill = fill;
         panels[key] = bar;
         return bar;
@@ -76,6 +91,7 @@
         if (!container) return;
         var scaleX = Number(container.actualuiscale_x) || 1;
         var scaleY = Number(container.actualuiscale_y) || 1;
+        var containerPosition = windowPosition(container);
         Object.keys(states).forEach(function (key) {
             var state = states[key];
             var bar = ensurePanel(key);
@@ -112,9 +128,14 @@
                 hide(key);
                 return;
             }
-            bar.style.transform = "translate3d("
-                + (screenX / scaleX - 31).toFixed(2) + "px, "
-                + (screenY / scaleY - 26).toFixed(2) + "px, 0px)";
+            var localX = (screenX - containerPosition.x) / scaleX - 31;
+            var localY = (screenY - containerPosition.y) / scaleY - 26;
+            if (!isFinite(localX) || !isFinite(localY)) {
+                hide(key);
+                return;
+            }
+            bar.style.position = localX.toFixed(2) + "px "
+                + localY.toFixed(2) + "px 0px";
             bar.style.visibility = "visible";
         });
         // Run once per Panorama frame. The previous fixed 30 Hz layout update

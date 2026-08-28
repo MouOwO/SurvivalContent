@@ -2,6 +2,7 @@
     <styles>
         <include src="file://{resources}/styles/custom_game/survival_hud.css" />
         <include src="file://{resources}/styles/custom_game/survival_hud_native.css" />
+        <include src="file://{resources}/styles/custom_game/hero_world_health_bar.css" />
         <include src="file://{resources}/styles/custom_game/ability_tooltip.css" />
         <include src="file://{resources}/styles/custom_game/inventory_tooltip.css" />
         <include src="file://{resources}/styles/custom_game/shop.css" />
@@ -12,6 +13,7 @@
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
+        <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
         <include src="file://{resources}/scripts/custom_game/attack_range_input.js" />
         <include src="file://{resources}/scripts/custom_game/gold_mine_income_numbers.js" />
         <include src="file://{resources}/scripts/custom_game/survival_ui.js" />
@@ -28,7 +30,12 @@
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
     </scripts>
     <Panel class="SurvivalHUDRoot Theme_Native" hittest="false">
+        <Panel id="SurvivalHeroWorldHealthBars" hittest="false" hittestchildren="false" />
         <Panel id="GoldMineIncomeNumbers" hittest="false" hittestchildren="false" />
+        <Panel id="SurvivalNativePortraitVideoOverlay" class="SurvivalNativePortraitVideoOverlay" hittest="false" hittestchildren="false">
+            <MoviePanel id="SurvivalHeroPortraitMovie" class="NativeHeroPortraitMovie" hittest="false" src="file://{resources}/videos/portraits/monkey_king.webm" autoplay="false" repeat="true" />
+            <Image id="SurvivalHeroPortraitImage" class="NativeHeroPortraitImage" hittest="false" src="file://{images}/heroes/npc_dota_hero_juggernaut.png" />
+        </Panel>
         <Panel id="TopBar">
             <Label id="WoodValue" text="木材 0" />
             <Label id="GoldValue" text="金币 0" />
@@ -284,9 +291,7 @@
                     <Panel id="SurvivalCenterBlock" class="SurvivalCenterBlock" hittest="false">
             <Panel id="SurvivalNativeCenterBackground" hittest="false" />
             <Panel id="SurvivalHeroPortraitBlock" class="SurvivalHeroPortraitBlock" hittest="true">
-                <Panel id="SurvivalHeroPortraitCache" class="SurvivalHeroPortraitCache" hittest="false">
-                    <Panel id="SurvivalBuildingPortraitCache" class="SurvivalBuildingPortraitCache" hittest="false" />
-                </Panel>
+                <DOTAScenePanel id="SurvivalHeroPortrait" class="NativeHeroPortrait" hittest="false" />
                 <Panel id="SurvivalNativePortraitFrame" hittest="false" />
                 <Panel id="SurvivalHeroLevelBadge"><Label id="SurvivalHeroLevel" text="1" /></Panel>
             </Panel>

@@ -3,6 +3,29 @@
     height: 100%;
 }
 
+.SurvivalNativePortraitVideoOverlay {
+    width: 1px;
+    height: 1px;
+    position: 0px 0px 0px;
+    visibility: collapse;
+    overflow: clip;
+    z-index: 5000;
+}
+
+.SurvivalNativePortraitVideoOverlay .NativeHeroPortraitMovie {
+    width: 100%;
+    height: 100%;
+    position: 0px 0px 0px;
+    visibility: collapse;
+}
+
+.SurvivalNativePortraitVideoOverlay .NativeHeroPortraitImage {
+    width: 100%;
+    height: 100%;
+    position: 0px 0px 0px;
+    visibility: collapse;
+}
+
 #CustomShopButton {
     horizontal-align: left;
     vertical-align: top;
@@ -208,16 +231,7 @@
     position: 0px 0px 0px;
 }
 
-.SurvivalHeroPortraitCache {
-    width: 116px;
-    height: 112px;
-    position: 0px 0px 0px;
-    overflow: noclip;
-}
-
-.SurvivalHeroPortrait,
-.SurvivalBuildingPortraitCache,
-.SurvivalBuildingPortraitCache > DOTAScenePanel {
+.SurvivalHeroPortrait {
     width: 116px;
     height: 112px;
     position: 0px 0px 0px;
@@ -226,24 +240,14 @@
 }
 
 .NativeHeroPortrait {
+    visibility: visible;
+}
+
+.NativeHeroPortraitMovie {
+    width: 100%;
+    height: 100%;
+    position: 0px 0px 0px;
     visibility: collapse;
-}
-
-.NativeHeroPortrait.PortraitCacheVisible {
-    visibility: visible;
-}
-
-.SurvivalBuildingPortraitCache > DOTAScenePanel {
-    visibility: collapse;
-}
-
-.SurvivalBuildingPortraitCache > DOTAScenePanel.PortraitCacheVisible {
-    visibility: visible;
-}
-
-.SurvivalBuildingPortraitCache > DOTAScenePanel.PortraitPrewarm {
-    visibility: visible;
-    opacity: 0;
 }
 
 #SurvivalHeroLevelBadge {

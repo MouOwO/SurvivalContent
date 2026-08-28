@@ -143,8 +143,10 @@
         setText("ShopTooltipOwned", "已购买：" + limitText);
         if (entry.stock !== undefined && entry.stock !== null) {
             setText("ShopTooltipOwned", "库存：" + Number(entry.stock)
-                + " · " + Number(entry.refresh_remaining || 0).toFixed(1)
-                + "秒后刷新");
+                + " / " + Number(entry.stock_max || 0)
+                + (Number(entry.stock_replenish_remaining || 0) > 0
+                    ? (" · " + Number(entry.stock_replenish_remaining).toFixed(1)
+                        + "秒后补货") : "");
         }
         if (isTechnology) {
             setText("ShopTooltipOwned", "科技等级：Lv."

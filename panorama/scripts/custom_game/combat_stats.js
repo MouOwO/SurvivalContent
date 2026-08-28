@@ -48,6 +48,12 @@
     var unitNameTransitionSerial = 0;
     var unitNameRetryDelays = [0.0, 0.016, 0.05, 0.10, 0.20];
     var observedSelectedUnit = -1;
+    var activePortraitMode = "";
+    var activePortraitUnit = "";
+    var portraitAnchorDiagnostic = "";
+    var portraitGeometrySignature = "";
+    var monkeyKingPortraitUnit = "npc_dota_hero_monkey_king";
+    var juggernautPortraitUnit = "npc_dota_hero_juggernaut";
     var configuredUnitNames = {
         "building_main_city": "主城",
         "building_wall": "城墙",
@@ -114,6 +120,14 @@
 
     function setWidth(target, value) {
         if (target && target.style.width !== value) target.style.width = value;
+    }
+
+    function dumpCursorEntities() {
+        var cursor = GameUI.GetCursorPosition();
+        var entities = GameUI.FindScreenEntities(cursor[0], cursor[1]);
+        $.Msg("[SURVIVAL_CURSOR] survival_dump_cursor_entities count=",
+            String(entities ? entities.length : 0));
+        return entities || [];
     }
 
     function isNativeHero(unitName) {
@@ -237,19 +251,163 @@
         return cached;
     }
 
+    function belongsToCustomPortraitHud(candidate) {
+        var current = candidate;
+        while (current) {
+            var id = String(current.id || "");
+            if (id === "SurvivalHeroBottomHUD"
+                || id === "SurvivalNativePortraitVideoOverlay") return true;
+            current = current.GetParent ? current.GetParent() : null;
+        }
+        return false;
+    }
+
+    function portraitCandidateUsable(candidate, root) {
+        if (!candidate || !root || !candidate.GetPositionWithinWindow
+            || belongsToCustomPortraitHud(candidate)) return false;
+        if (candidate.IsValid && !candidate.IsValid()) return false;
+        if (candidate.visible === false || candidate.style.visibility === "collapse") return false;
+        var width = Number(candidate.actuallayoutwidth || 0);
+        var height = Number(candidate.actuallayoutheight || 0);
+        var rootHeight = Number(root.actuallayoutheight || 0);
+        var position = candidate.GetPositionWithinWindow();
+        if (!isFinite(width) || !isFinite(height) || width < 64 || height < 56
+            || width > 280 || height > 240) return false;
+        return !rootHeight || Number(position.y || 0) >= rootHeight * 0.45;
+    }
+
     function officialPortraitPanel() {
-        var ids = ["HeroImage", "HeroPortrait", "Portrait", "SelectedHeroImage"];
+        var root = officialHudRoot();
+        if (!root || !root.FindChildTraverse) return null;
+        var ids = [
+            "PortraitGroup", "HeroImage", "HeroPortrait", "Portrait",
+            "SelectedHeroImage", "portraitHUD", "portrait"
+        ];
         for (var index = 0; index < ids.length; index++) {
-            var candidate = officialPanel(ids[index]);
-            if (candidate) return candidate;
+            var candidate = root.FindChildTraverse(ids[index]);
+            if (!candidate) continue;
+            if (ids[index] === "PortraitGroup" && candidate.FindChildTraverse) {
+                var visualIds = [
+                    "HeroImage", "HeroPortrait", "Portrait", "SelectedHeroImage",
+                    "portraitHUD", "portrait"
+                ];
+                for (var visualIndex = 0; visualIndex < visualIds.length; visualIndex++) {
+                    var visual = candidate.FindChildTraverse(visualIds[visualIndex]);
+                    if (portraitCandidateUsable(visual, root)) return visual;
+                }
+            }
+            if (portraitCandidateUsable(candidate, root)) return candidate;
         }
         return null;
     }
 
+    function setPortraitAnchorDiagnostic(value) {
+        value = String(value || "unknown");
+        if (portraitAnchorDiagnostic === value) return;
+        portraitAnchorDiagnostic = value;
+        $.Msg("[SURVIVAL_PORTRAIT] anchor_state=", value);
+    }
+
+    function hideCosmeticPortrait(reason) {
+        var overlay = panel("SurvivalNativePortraitVideoOverlay");
+        var movie = panel("SurvivalHeroPortraitMovie");
+        var image = panel("SurvivalHeroPortraitImage");
+        if (overlay) overlay.style.visibility = "collapse";
+        if (movie) movie.style.visibility = "collapse";
+        if (image) image.style.visibility = "collapse";
+        portraitGeometrySignature = "";
+        if (activePortraitMode) {
+            $.Msg("[SURVIVAL_PORTRAIT] HIDE mode=", activePortraitMode,
+                " reason=", String(reason || "unknown"));
+        }
+        activePortraitMode = "";
+        activePortraitUnit = "";
+    }
+
+    function positionCosmeticPortrait(overlay, anchor) {
+        var layer = overlay && overlay.GetParent ? overlay.GetParent() : null;
+        if (!layer || !layer.GetPositionWithinWindow || !anchor.GetPositionWithinWindow) {
+            return false;
+        }
+        var anchorPosition = anchor.GetPositionWithinWindow();
+        var layerPosition = layer.GetPositionWithinWindow();
+        var scaleX = Math.max(0.001, Number(layer.actualuiscale_x || 1));
+        var scaleY = Math.max(0.001, Number(layer.actualuiscale_y || 1));
+        var x = (Number(anchorPosition.x || 0) - Number(layerPosition.x || 0)) / scaleX;
+        var y = (Number(anchorPosition.y || 0) - Number(layerPosition.y || 0)) / scaleY;
+        var width = Number(anchor.actuallayoutwidth || 0) / scaleX;
+        var height = Number(anchor.actuallayoutheight || 0) / scaleY;
+        var signature = [
+            Math.round(x), Math.round(y), Math.round(width), Math.round(height),
+            String(anchor.id || "")
+        ].join(":");
+        if (signature !== portraitGeometrySignature) {
+            portraitGeometrySignature = signature;
+            overlay.style.position = x + "px " + y + "px 0px";
+            overlay.style.width = width + "px";
+            overlay.style.height = height + "px";
+            $.Msg("[SURVIVAL_PORTRAIT] geometry=", signature);
+        }
+        return true;
+    }
+
     function updateCosmeticPortrait(snapshot) {
-        // crash_isolation_v4_scene_panels_disabled: keep the authoritative
-        // snapshot update chain intact, but never create an econ/model preview.
-        return;
+        var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
+        if (!snapshot || Number(snapshot.entindex) !== Number(displayUnit())
+            || (portraitUnit !== monkeyKingPortraitUnit
+                && portraitUnit !== juggernautPortraitUnit)) {
+            hideCosmeticPortrait("unsupported_portrait");
+            return false;
+        }
+        var overlay = panel("SurvivalNativePortraitVideoOverlay");
+        var movie = panel("SurvivalHeroPortraitMovie");
+        var image = panel("SurvivalHeroPortraitImage");
+        var anchor = officialPortraitPanel();
+        if (!overlay || !movie || !image || !anchor) {
+            setPortraitAnchorDiagnostic(!overlay || !movie || !image
+                ? "missing_overlay" : "missing_anchor");
+            hideCosmeticPortrait("anchor_unavailable");
+            return false;
+        }
+        if (!positionCosmeticPortrait(overlay, anchor)) {
+            setPortraitAnchorDiagnostic("invalid_geometry");
+            hideCosmeticPortrait("invalid_geometry");
+            return false;
+        }
+        setPortraitAnchorDiagnostic("ready:" + String(anchor.id || "anonymous"));
+        var portraitMode = portraitUnit === monkeyKingPortraitUnit ? "video" : "image";
+        movie.style.visibility = portraitMode === "video" ? "visible" : "collapse";
+        image.style.visibility = portraitMode === "image" ? "visible" : "collapse";
+        if (portraitMode === "video"
+            && (activePortraitMode !== "video" || activePortraitUnit !== portraitUnit)) {
+            try {
+                if (movie.SetRepeat) movie.SetRepeat(true);
+                if (movie.SetPlaybackVolume) movie.SetPlaybackVolume(0);
+                if (movie.Play) movie.Play();
+            } catch (error) {
+                $.Warning("[SURVIVAL_PORTRAIT] VIDEO_FAILED unit=" + portraitUnit);
+                hideCosmeticPortrait("play_failed");
+                return false;
+            }
+        }
+        if (activePortraitMode !== portraitMode || activePortraitUnit !== portraitUnit) {
+            $.Msg("[SURVIVAL_PORTRAIT] SHOW mode=", portraitMode,
+                " unit=", portraitUnit);
+        }
+        activePortraitMode = portraitMode;
+        activePortraitUnit = portraitUnit;
+        overlay.style.visibility = "visible";
+        return true;
+    }
+
+    function cosmeticPortraitSentinel() {
+        var current = selectedUnitSnapshot;
+        if (current && Number(current.entindex) === Number(displayUnit())) {
+            updateCosmeticPortrait(current);
+        } else {
+            hideCosmeticPortrait("snapshot_pending");
+        }
+        scheduleActive(0.10, cosmeticPortraitSentinel);
     }
 
     function setOfficialPanelVisible(root, id, visible) {
@@ -975,6 +1133,7 @@
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
                 selectedUnitSnapshot = null;
+                hideCosmeticPortrait("selected_unit_changed");
                 acceptedSnapshotUnit = Number(unit);
                 acceptedSnapshotVersion = 0;
                 var tooltipBindings = GameUI.CustomUIConfig().SurvivalTooltipBindings;
@@ -1033,6 +1192,7 @@
 
     function beginUnitNameTransition(reason) {
         unitNameTransitionSerial += 1;
+        hideCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
         unitNameRetryDelays.forEach(function (delay, retryIndex) {
             scheduleActive(delay, function () {
@@ -1059,6 +1219,12 @@
 
     function onUnitSelectionEvent(reason, payload) {
         if (!localSelectionEvent(payload)) return;
+        var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
+        if (resolver && resolver.SetDisplayIdentityMode) {
+            resolver.SetDisplayIdentityMode(
+                reason === "query_unit_event" ? "query" : "selection"
+            );
+        }
         beginUnitNameTransition(reason);
     }
 
@@ -2131,6 +2297,7 @@
         if (observedSelectedUnit < 0) beginUnitNameTransition("initial_fallback");
     });
     refreshHeroVitalsTick();
+    cosmeticPortraitSentinel();
     refreshAbilities();
     refreshInventory();
     scheduleActive(2.0, revealBottomHud);

@@ -363,6 +363,10 @@
             card.__survivalLockBadge.text = lockBadgeText(entry);
             card.__survivalLockBadge.visible = card.__survivalLockBadge.text !== "";
         }
+        if (card.__survivalStockLabel) {
+            card.__survivalStockLabel.text = "库存 " + Number(entry.stock || 0)
+                + "/" + Number(entry.stock_max || 0);
+        }
         updateCooldownOverlay(card, entry, technologyCooldownRemaining(),
             Number(snapshot && snapshot.technology_cooldown_total || 2),
             technologyCooldownSource());
@@ -534,6 +538,13 @@
                 var name = $.CreatePanel("Label", frame, "");
                 name.AddClass("ShopCardName");
                 name.text = entry.name || "";
+            }
+            if (Number(entry.stock_max || 0) > 0) {
+                var stockLabel = $.CreatePanel("Label", frame, "");
+                stockLabel.AddClass("ShopStockLabel");
+                stockLabel.text = "库存 " + Number(entry.stock || 0)
+                    + "/" + Number(entry.stock_max);
+                card.__survivalStockLabel = stockLabel;
             }
 
             card.SetPanelEvent("onmouseover", function () {
