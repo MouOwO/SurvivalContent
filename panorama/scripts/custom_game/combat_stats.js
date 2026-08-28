@@ -898,6 +898,16 @@
         return Players.GetPlayerHeroEntityIndex(playerId);
     }
 
+    function isSelectedCombatHero() {
+        var unit = Number(selectedUnit());
+        if (!isFinite(unit) || unit < 0) return false;
+        var unitName = "";
+        try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
+        return unitName !== "npc_dota_hero_undying"
+            && unitName !== "npc_survival_builder_proxy"
+            && isHeroUnit(unit, unitName);
+    }
+
     function displayUnit() {
         var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
         if (resolver && resolver.ResolveDisplayUnit) return resolver.ResolveDisplayUnit();
@@ -1368,8 +1378,8 @@
             var researchSlot = Number(runtime.research_slot_order || 0) - 1;
             var researchKeys = runtime.research_building_id
                 === "building_advanced_research_lab"
-                ? ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"]
-                : ["Q", "W", "E", "R", "T", "A"];
+                ? ["Q", "W", "E", "R", "T", "S", "D", "F", "G", "H"]
+                : ["Q", "W", "E", "R", "T", "S"];
             key = researchSlot >= 0 ? researchKeys[researchSlot] : "";
         }
         if (!key && entry.standardHotkeyIndex !== undefined) {
@@ -1565,8 +1575,8 @@
     }
 
     function researchDisplaySlotForKey(key) {
-        var keys = ["Q", "W", "E", "R", "T", "A"];
-        var advancedKeys = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"];
+        var keys = ["Q", "W", "E", "R", "T", "S"];
+        var advancedKeys = ["Q", "W", "E", "R", "T", "S", "D", "F", "G", "H"];
         var unit = selectedUnit();
         if (unit === undefined || unit < 0) return -1;
         var standard = visibleAbilityEntries(unit).filter(function (entry) {
@@ -1956,6 +1966,10 @@
             if (utilityAbilityForKey[normalized]) {
                 var utilityCast = castAbilityByName(normalized, "key_dispatch");
                 if (utilityCast) return true;
+            }
+            if (normalized === "A" && isSelectedCombatHero()) {
+                $.Msg("[SURVIVAL_INPUT] PASS_THROUGH native_attack key=A");
+                return false;
             }
             var researchSlot = researchDisplaySlotForKey(normalized);
             if (researchSlot >= 0) {

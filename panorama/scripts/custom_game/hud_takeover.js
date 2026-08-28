@@ -8,8 +8,8 @@
     var builderHotkeysBySlotOrder = {
         1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A", 7: "G"
     };
-    var researchHotkeys = ["Q", "W", "E", "R", "T", "A"];
-    var advancedResearchHotkeys = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G"];
+    var researchHotkeys = ["Q", "W", "E", "R", "T", "S"];
+    var advancedResearchHotkeys = ["Q", "W", "E", "R", "T", "S", "D", "F", "G", "H"];
     var utilityHotkeys = {
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
