@@ -3,27 +3,25 @@
     height: 100%;
 }
 
-.SurvivalNativePortraitVideoOverlay {
+.SurvivalTowerPortraitOverlay {
     width: 1px;
     height: 1px;
     position: 0px 0px 0px;
     visibility: collapse;
     overflow: clip;
-    z-index: 5000;
+    /* Keep the scene in the normal HUD layer so Valve's portrait frame can paint above it. */
+    z-index: 0;
+    clip: rect(0px, 100%, 100%, 0px);
+    background-color: #10151aff;
+    border: 0px solid transparent;
 }
 
-.SurvivalNativePortraitVideoOverlay .NativeHeroPortraitMovie {
+.SurvivalTowerPortraitOverlay .SurvivalTowerPortraitScene {
     width: 100%;
     height: 100%;
     position: 0px 0px 0px;
     visibility: collapse;
-}
-
-.SurvivalNativePortraitVideoOverlay .NativeHeroPortraitImage {
-    width: 100%;
-    height: 100%;
-    position: 0px 0px 0px;
-    visibility: collapse;
+    overflow: clip;
 }
 
 #CustomShopButton {
@@ -237,17 +235,6 @@
     position: 0px 0px 0px;
     background-color: #273747;
     border: 1px solid #8fa6b7;
-}
-
-.NativeHeroPortrait {
-    visibility: visible;
-}
-
-.NativeHeroPortraitMovie {
-    width: 100%;
-    height: 100%;
-    position: 0px 0px 0px;
-    visibility: collapse;
 }
 
 #SurvivalHeroLevelBadge {

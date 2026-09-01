@@ -63,26 +63,6 @@
     background-color: #10151acc;
     border: 1px solid #3d454d;
 }
-.Theme_Native #SurvivalHeroPortrait
-{
-    width: 159px;
-    height: 145px;
-    position: 0px 0px 0px;
-}
-.Theme_Native #SurvivalHeroPortraitMovie
-{
-    width: 159px;
-    height: 145px;
-    position: 0px 0px 0px;
-    visibility: collapse;
-}
-.Theme_Native #SurvivalNativePortraitVideoOverlay #SurvivalHeroPortraitMovie
-{
-    width: 100%;
-    height: 100%;
-    position: 0px 0px 0px;
-    visibility: visible;
-}
 .Theme_Native #SurvivalNativePortraitFrame
 {
     width: 159px;

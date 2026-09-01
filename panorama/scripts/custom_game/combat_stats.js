@@ -50,10 +50,18 @@
     var observedSelectedUnit = -1;
     var activePortraitMode = "";
     var activePortraitUnit = "";
+    var activePortraitKey = "";
+    var activePortraitEntity = -1;
     var portraitAnchorDiagnostic = "";
     var portraitGeometrySignature = "";
-    var monkeyKingPortraitUnit = "npc_dota_hero_monkey_king";
-    var juggernautPortraitUnit = "npc_dota_hero_juggernaut";
+    var portraitGeometryDiagnosticSignature = "";
+    var portraitTransitionSignature = "";
+    var dimmedNativePortraits = [];
+    var towerPortraitOverlay = null;
+    var towerPortraitScene = null;
+    var towerPortraitHome = null;
+    var towerPortraitLayerAnchor = null;
+    var TOWER_PORTRAIT_CONTENT_SCALE = 0.90;
     var configuredUnitNames = {
         "building_main_city": "主城",
         "building_wall": "城墙",
@@ -251,12 +259,43 @@
         return cached;
     }
 
+    function validPortraitPanel(candidate) {
+        return !!candidate && (!candidate.IsValid || candidate.IsValid());
+    }
+
+    function towerPortraitOverlayPanel() {
+        if (validPortraitPanel(towerPortraitOverlay)) return towerPortraitOverlay;
+        var candidate = panel("SurvivalTowerPortraitOverlay");
+        if (!candidate) {
+            var root = officialHudRoot();
+            candidate = root && root.FindChildTraverse
+                ? root.FindChildTraverse("SurvivalTowerPortraitOverlay") : null;
+        }
+        if (!validPortraitPanel(candidate)) return null;
+        towerPortraitOverlay = candidate;
+        if (!validPortraitPanel(towerPortraitHome) && candidate.GetParent) {
+            towerPortraitHome = candidate.GetParent();
+        }
+        return towerPortraitOverlay;
+    }
+
+    function towerPortraitScenePanel() {
+        if (validPortraitPanel(towerPortraitScene)) return towerPortraitScene;
+        var overlay = towerPortraitOverlayPanel();
+        var candidate = overlay && overlay.FindChildTraverse
+            ? overlay.FindChildTraverse("SurvivalTowerPortraitScene") : null;
+        if (!candidate) candidate = panel("SurvivalTowerPortraitScene");
+        if (!validPortraitPanel(candidate)) return null;
+        towerPortraitScene = candidate;
+        return towerPortraitScene;
+    }
+
     function belongsToCustomPortraitHud(candidate) {
         var current = candidate;
         while (current) {
             var id = String(current.id || "");
             if (id === "SurvivalHeroBottomHUD"
-                || id === "SurvivalNativePortraitVideoOverlay") return true;
+                || id === "SurvivalTowerPortraitOverlay") return true;
             current = current.GetParent ? current.GetParent() : null;
         }
         return false;
@@ -276,6 +315,19 @@
         return !rootHeight || Number(position.y || 0) >= rootHeight * 0.45;
     }
 
+    function nativePortraitScenePanel(container, root, depth) {
+        if (!container || depth > 12) return null;
+        if (String(container.paneltype || "").toLowerCase() === "dotascenepanel"
+            && portraitCandidateUsable(container, root)) return container;
+        if (!container.GetChildCount || !container.GetChild) return null;
+        var count = container.GetChildCount();
+        for (var index = 0; index < count; index++) {
+            var match = nativePortraitScenePanel(container.GetChild(index), root, depth + 1);
+            if (match) return match;
+        }
+        return null;
+    }
+
     function officialPortraitPanel() {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return null;
@@ -287,18 +339,48 @@
             var candidate = root.FindChildTraverse(ids[index]);
             if (!candidate) continue;
             if (ids[index] === "PortraitGroup" && candidate.FindChildTraverse) {
+                var nativeScene = nativePortraitScenePanel(candidate, root, 0);
+                if (nativeScene) return nativeScene;
                 var visualIds = [
-                    "HeroImage", "HeroPortrait", "Portrait", "SelectedHeroImage",
-                    "portraitHUD", "portrait"
+                    "portraitHUD", "portrait", "HeroImage", "HeroPortrait",
+                    "Portrait", "SelectedHeroImage"
                 ];
                 for (var visualIndex = 0; visualIndex < visualIds.length; visualIndex++) {
                     var visual = candidate.FindChildTraverse(visualIds[visualIndex]);
                     if (portraitCandidateUsable(visual, root)) return visual;
                 }
+                // PortraitGroup is a shared container, never an opacity target.
+                continue;
             }
             if (portraitCandidateUsable(candidate, root)) return candidate;
         }
         return null;
+    }
+
+    function clearLegacyPortraitGroupOpacity() {
+        var root = officialHudRoot();
+        var group = root && root.FindChildTraverse
+            ? root.FindChildTraverse("PortraitGroup") : null;
+        if (!group || group.__survivalPortraitDimmed === true) return;
+        // The previous implementation could dim this shared parent before the
+        // current leaf-only guard existed. Remove only that exact stale value.
+        if (String(group.style.opacity || "") !== "0.01") return;
+        try {
+            group.style.opacity = null;
+            $.Msg("[SURVIVAL_PORTRAIT] CLEARED_LEGACY_GROUP_OPACITY");
+        } catch (error) {}
+    }
+
+    function clearLegacyPortraitLeafOpacity() {
+        var current = officialPortraitPanel();
+        if (!current || current.__survivalPortraitDimmed === true) return;
+        // The former global path could also leave the visual leaf at 0.01 after
+        // Valve rebuilt PortraitGroup. Clear that exact stale value as well.
+        if (String(current.style.opacity || "") !== "0.01") return;
+        try {
+            current.style.opacity = null;
+            $.Msg("[SURVIVAL_PORTRAIT] CLEARED_LEGACY_LEAF_OPACITY");
+        } catch (error) {}
     }
 
     function setPortraitAnchorDiagnostic(value) {
@@ -308,23 +390,235 @@
         $.Msg("[SURVIVAL_PORTRAIT] anchor_state=", value);
     }
 
-    function hideCosmeticPortrait(reason) {
-        var overlay = panel("SurvivalNativePortraitVideoOverlay");
-        var movie = panel("SurvivalHeroPortraitMovie");
-        var image = panel("SurvivalHeroPortraitImage");
-        if (overlay) overlay.style.visibility = "collapse";
-        if (movie) movie.style.visibility = "collapse";
-        if (image) image.style.visibility = "collapse";
+    function portraitRect(target) {
+        if (!target || !target.GetPositionWithinWindow) return null;
+        var position = target.GetPositionWithinWindow();
+        var width = Number(target.actuallayoutwidth || 0);
+        var height = Number(target.actuallayoutheight || 0);
+        if (!position || !isFinite(width) || !isFinite(height)
+            || width <= 0 || height <= 0) return null;
+        return {
+            x: Number(position.x || 0),
+            y: Number(position.y || 0),
+            width: width,
+            height: height
+        };
+    }
+
+    function formatPortraitRect(rect) {
+        if (!rect) return "none";
+        return [rect.x, rect.y, rect.width, rect.height].map(function (value) {
+            return Math.round(Number(value || 0) * 10) / 10;
+        }).join(",");
+    }
+
+    function restoreNativePortraitOpacity() {
+        (dimmedNativePortraits || []).forEach(function (entry) {
+            restoreNativePortraitEntry(entry);
+        });
+        dimmedNativePortraits = [];
+        // A previous Panorama context can have left the inline style behind
+        // after its local JavaScript state was discarded. Clear that marker on
+        // the current native leaf as part of every non-tower transition.
+        var current = officialPortraitPanel();
+        if (current) restoreNativePortraitEntry({ panel: current });
+        clearLegacyPortraitGroupOpacity();
+        clearLegacyPortraitLeafOpacity();
+    }
+
+    function restoreNativePortraitsExcept(anchor) {
+        var retained = [];
+        dimmedNativePortraits.forEach(function (entry) {
+            if (entry && entry.panel === anchor) {
+                retained.push(entry);
+            } else {
+                restoreNativePortraitEntry(entry);
+            }
+        });
+        dimmedNativePortraits = retained;
+    }
+
+    function restoreNativePortraitEntry(entry) {
+        var target = entry && entry.panel;
+        if (!target || (target.IsValid && !target.IsValid())) return;
+        var hasRecordedOpacity = entry
+            && Object.prototype.hasOwnProperty.call(entry, "opacity");
+        if (!hasRecordedOpacity && target.__survivalPortraitDimmed !== true) return;
+        var original = hasRecordedOpacity ? entry.opacity : undefined;
+        if (target.__survivalPortraitDimmed === true) {
+            original = target.__survivalPortraitOriginalOpacity;
+        }
+        try {
+            target.style.opacity = original ? String(original) : null;
+        } catch (error) {
+            try { target.style.opacity = null; } catch (clearError) {}
+        }
+        target.__survivalPortraitDimmed = false;
+        target.__survivalPortraitOriginalOpacity = "";
+    }
+
+    function dimNativePortraitOpacity(anchor) {
+        if (!anchor) return;
+        var alreadyDimmed = dimmedNativePortraits.some(function (entry) {
+            return entry && entry.panel === anchor;
+        });
+        if (alreadyDimmed) {
+            // Valve may rewrite inline opacity while rebuilding the same HUD node.
+            if (String(anchor.style.opacity || "") !== "0") {
+                anchor.style.opacity = "0";
+            }
+            return;
+        }
+        if (anchor.__survivalPortraitDimmed === true) {
+            restoreNativePortraitEntry({ panel: anchor });
+        } else if (String(anchor.style.opacity || "") === "0.01") {
+            // Recover the inline value written by the previous implementation.
+            try { anchor.style.opacity = null; } catch (error) {}
+        }
+        var originalOpacity = String(anchor.style.opacity || "");
+        dimmedNativePortraits.push({
+            panel: anchor,
+            opacity: originalOpacity
+        });
+        anchor.__survivalPortraitDimmed = true;
+        anchor.__survivalPortraitOriginalOpacity = originalOpacity;
+        // Keep Valve's panel alive for layout/selection updates, but fully hide
+        // its incorrect pixels while the custom SetUnit scene is visible.
+        anchor.style.opacity = "0";
+    }
+
+    function mountTowerPortraitAtNativeLayer(overlay, anchor) {
+        if (!overlay || !anchor || !overlay.GetParent || !overlay.SetParent
+            || !anchor.GetParent) return false;
+        var host = anchor.GetParent();
+        if (!host || (host.IsValid && !host.IsValid())) return false;
+        var layerChanged = overlay.GetParent() !== host
+            || towerPortraitLayerAnchor !== anchor;
+        if (overlay.GetParent() !== host) overlay.SetParent(host);
+        if (overlay.GetParent() !== host) return false;
+        overlay.style.ignoreParentFlow = true;
+        var nativeZIndex = String(anchor.style.zIndex || "");
+        overlay.style.zIndex = /^-?\d+$/.test(nativeZIndex) ? nativeZIndex : "0";
+        if (layerChanged && host.MoveChildAfter) host.MoveChildAfter(overlay, anchor);
+        if (layerChanged) {
+            towerPortraitLayerAnchor = anchor;
+            portraitGeometrySignature = "";
+            portraitGeometryDiagnosticSignature = "";
+            $.Msg("[SURVIVAL_PORTRAIT] LAYER_MOUNT host=",
+                String(host.id || host.paneltype || "anonymous"),
+                " anchor=", String(anchor.id || anchor.paneltype || "anonymous"),
+                " z_index=", String(overlay.style.zIndex || "0"));
+        }
+        return true;
+    }
+
+    function restoreTowerPortraitHome(overlay) {
+        if (!overlay || !overlay.GetParent || !overlay.SetParent
+            || !validPortraitPanel(towerPortraitHome)) return;
+        if (overlay.GetParent() !== towerPortraitHome) overlay.SetParent(towerPortraitHome);
+        overlay.style.zIndex = "0";
+        towerPortraitLayerAnchor = null;
         portraitGeometrySignature = "";
+        portraitGeometryDiagnosticSignature = "";
+    }
+
+    function applyTowerPortraitContentScale(scene) {
+        if (!scene) return;
+        scene.style.transformOrigin = "50% 50%";
+        scene.style.transform = "scale3d("
+            + String(TOWER_PORTRAIT_CONTENT_SCALE) + ", "
+            + String(TOWER_PORTRAIT_CONTENT_SCALE) + ", 1.0)";
+    }
+
+    function resetTowerPortraitContentScale(scene) {
+        if (!scene) return;
+        scene.style.transform = null;
+        scene.style.transformOrigin = null;
+    }
+
+    function unitUsesTowerPortrait(unit) {
+        unit = Number(unit);
+        if (!isFinite(unit) || unit < 0) return false;
+        try {
+            if (String(Entities.GetUnitName(unit) || "") === "building_arrow_tower") {
+                return true;
+            }
+            for (var index = 0; index < maxAbilityEngineSlots; index++) {
+                var ability = Entities.GetAbility(unit, index);
+                if (ability >= 0
+                    && String(Abilities.GetAbilityName(ability) || "")
+                        === "ability_destroy_arrow_tower") return true;
+            }
+        } catch (error) {}
+        return false;
+    }
+
+    function towerPortraitEntityUnchanged(unit) {
+        unit = Number(unit);
+        return activePortraitMode === "tower_scene"
+            && Number(activePortraitEntity) === unit
+            && !!activePortraitKey
+            && !!selectedUnitSnapshot
+            && Number(selectedUnitSnapshot.entindex) === unit;
+    }
+
+    function holdTowerPortraitTransition(reason) {
+        var unit = Number(displayUnit());
+        if (!unitUsesTowerPortrait(unit)) return false;
+        var overlay = towerPortraitOverlayPanel();
+        var scene = towerPortraitScenePanel();
+        var anchor = officialPortraitPanel();
+        if (!overlay || !scene || !anchor
+            || !mountTowerPortraitAtNativeLayer(overlay, anchor)
+            || !positionCosmeticPortrait(overlay, anchor, scene)) return false;
+        restoreNativePortraitsExcept(anchor);
+        dimNativePortraitOpacity(anchor);
+        resetTowerPortraitContentScale(scene);
+        scene.style.visibility = "collapse";
+        overlay.style.visibility = "visible";
+        var signature = [unit, String(anchor.id || anchor.paneltype || "anonymous")]
+            .join(":");
+        if (portraitTransitionSignature !== signature) {
+            portraitTransitionSignature = signature;
+            $.Msg("[SURVIVAL_PORTRAIT] TRANSITION_MASK unit=", String(unit),
+                " reason=", String(reason || "unknown"));
+        }
+        return true;
+    }
+
+    function transitionCosmeticPortrait(reason) {
+        // Repeated selection events for the same entity must not collapse or
+        // restart the custom Scene. The sentinel independently repairs Valve
+        // anchor/opacity changes without entering the black transition mask.
+        if (towerPortraitEntityUnchanged(Number(displayUnit()))) return;
+        if (holdTowerPortraitTransition(reason)) return;
+        hideCosmeticPortrait(reason);
+    }
+
+    function hideCosmeticPortrait(reason) {
+        var overlay = towerPortraitOverlayPanel();
+        var scene = towerPortraitScenePanel();
+        if (overlay) overlay.style.visibility = "collapse";
+        if (scene) {
+            resetTowerPortraitContentScale(scene);
+            scene.style.visibility = "collapse";
+        }
+        restoreNativePortraitOpacity();
+        restoreTowerPortraitHome(overlay);
+        portraitGeometrySignature = "";
+        portraitGeometryDiagnosticSignature = "";
+        portraitTransitionSignature = "";
         if (activePortraitMode) {
             $.Msg("[SURVIVAL_PORTRAIT] HIDE mode=", activePortraitMode,
                 " reason=", String(reason || "unknown"));
         }
         activePortraitMode = "";
         activePortraitUnit = "";
+        activePortraitKey = "";
+        activePortraitEntity = -1;
     }
 
-    function positionCosmeticPortrait(overlay, anchor) {
+    function positionCosmeticPortrait(overlay, anchor, scene) {
         var layer = overlay && overlay.GetParent ? overlay.GetParent() : null;
         if (!layer || !layer.GetPositionWithinWindow || !anchor.GetPositionWithinWindow) {
             return false;
@@ -337,6 +631,10 @@
         var y = (Number(anchorPosition.y || 0) - Number(layerPosition.y || 0)) / scaleY;
         var width = Number(anchor.actuallayoutwidth || 0) / scaleX;
         var height = Number(anchor.actuallayoutheight || 0) / scaleY;
+        if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) {
+            $.Warning("[SURVIVAL_PORTRAIT] geometry_invalid reason=empty_anchor");
+            return false;
+        }
         var signature = [
             Math.round(x), Math.round(y), Math.round(width), Math.round(height),
             String(anchor.id || "")
@@ -346,49 +644,86 @@
             overlay.style.position = x + "px " + y + "px 0px";
             overlay.style.width = width + "px";
             overlay.style.height = height + "px";
-            $.Msg("[SURVIVAL_PORTRAIT] geometry=", signature);
+        }
+        var layerRect = portraitRect(layer);
+        var anchorRect = portraitRect(anchor);
+        var overlayActualRect = portraitRect(overlay);
+        var sceneRect = portraitRect(scene);
+        var overlayRect = {
+            x: Number(layerPosition.x || 0) + x * scaleX,
+            y: Number(layerPosition.y || 0) + y * scaleY,
+            width: width * scaleX,
+            height: height * scaleY
+        };
+        var diagnosticSignature = [
+            signature,
+            formatPortraitRect(overlayActualRect),
+            formatPortraitRect(sceneRect),
+            String(scaleX), String(scaleY)
+        ].join(":");
+        if (diagnosticSignature !== portraitGeometryDiagnosticSignature) {
+            portraitGeometryDiagnosticSignature = diagnosticSignature;
+            $.Msg("[SURVIVAL_PORTRAIT] geometry anchor_id=",
+                String(anchor.id || "anonymous"),
+                " layer=", formatPortraitRect(layerRect),
+                " anchor=", formatPortraitRect(anchorRect),
+                " overlay=", formatPortraitRect(overlayRect),
+                " overlay_actual=", formatPortraitRect(overlayActualRect),
+                " scene_rect=", formatPortraitRect(sceneRect),
+                " scale=", String(scaleX), "x", String(scaleY),
+                " signature=", signature);
         }
         return true;
     }
 
     function updateCosmeticPortrait(snapshot) {
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
+        var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
+        var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
+        var isTowerPortrait = /^tower_/.test(modelAssetId)
+            && /^npc_dota_hero_/.test(portraitUnit);
         if (!snapshot || Number(snapshot.entindex) !== Number(displayUnit())
-            || (portraitUnit !== monkeyKingPortraitUnit
-                && portraitUnit !== juggernautPortraitUnit)) {
+            || !isTowerPortrait) {
             hideCosmeticPortrait("unsupported_portrait");
             return false;
         }
-        var overlay = panel("SurvivalNativePortraitVideoOverlay");
-        var movie = panel("SurvivalHeroPortraitMovie");
-        var image = panel("SurvivalHeroPortraitImage");
+        var overlay = towerPortraitOverlayPanel();
+        var scene = towerPortraitScenePanel();
         var anchor = officialPortraitPanel();
-        if (!overlay || !movie || !image || !anchor) {
-            setPortraitAnchorDiagnostic(!overlay || !movie || !image
+        var portraitMode = "tower_scene";
+        if (!overlay || !anchor || !scene) {
+            setPortraitAnchorDiagnostic(!overlay || !scene
                 ? "missing_overlay" : "missing_anchor");
             hideCosmeticPortrait("anchor_unavailable");
             return false;
         }
-        if (!positionCosmeticPortrait(overlay, anchor)) {
+        if (!mountTowerPortraitAtNativeLayer(overlay, anchor)) {
+            setPortraitAnchorDiagnostic("native_layer_unavailable");
+            hideCosmeticPortrait("native_layer_unavailable");
+            return false;
+        }
+        applyTowerPortraitContentScale(scene);
+        scene.style.visibility = "visible";
+        if (!positionCosmeticPortrait(overlay, anchor, scene)) {
             setPortraitAnchorDiagnostic("invalid_geometry");
             hideCosmeticPortrait("invalid_geometry");
             return false;
         }
         setPortraitAnchorDiagnostic("ready:" + String(anchor.id || "anonymous"));
-        var portraitMode = portraitUnit === monkeyKingPortraitUnit ? "video" : "image";
-        movie.style.visibility = portraitMode === "video" ? "visible" : "collapse";
-        image.style.visibility = portraitMode === "image" ? "visible" : "collapse";
-        if (portraitMode === "video"
-            && (activePortraitMode !== "video" || activePortraitUnit !== portraitUnit)) {
+        var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
+        if (activePortraitKey !== portraitKey) {
             try {
-                if (movie.SetRepeat) movie.SetRepeat(true);
-                if (movie.SetPlaybackVolume) movie.SetPlaybackVolume(0);
-                if (movie.Play) movie.Play();
+                var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
+                if (setUnitResult === false) throw new Error("SetUnit returned false");
             } catch (error) {
-                $.Warning("[SURVIVAL_PORTRAIT] VIDEO_FAILED unit=" + portraitUnit);
-                hideCosmeticPortrait("play_failed");
+                $.Warning("[SURVIVAL_PORTRAIT] SCENE_FAILED unit=" + portraitUnit
+                    + " asset=" + modelAssetId);
+                hideCosmeticPortrait("scene_failed");
                 return false;
             }
+            $.Msg("[SURVIVAL_PORTRAIT] SCENE_SET unit=", portraitUnit,
+                " asset=", modelAssetId, " item_def=", portraitItemDef,
+                " scene_rect=", formatPortraitRect(portraitRect(scene)));
         }
         if (activePortraitMode !== portraitMode || activePortraitUnit !== portraitUnit) {
             $.Msg("[SURVIVAL_PORTRAIT] SHOW mode=", portraitMode,
@@ -396,6 +731,11 @@
         }
         activePortraitMode = portraitMode;
         activePortraitUnit = portraitUnit;
+        activePortraitKey = portraitKey;
+        activePortraitEntity = Number(snapshot.entindex);
+        portraitTransitionSignature = "";
+        restoreNativePortraitsExcept(anchor);
+        dimNativePortraitOpacity(anchor);
         overlay.style.visibility = "visible";
         return true;
     }
@@ -405,7 +745,7 @@
         if (current && Number(current.entindex) === Number(displayUnit())) {
             updateCosmeticPortrait(current);
         } else {
-            hideCosmeticPortrait("snapshot_pending");
+            transitionCosmeticPortrait("snapshot_pending");
         }
         scheduleActive(0.10, cosmeticPortraitSentinel);
     }
@@ -1133,7 +1473,7 @@
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
                 selectedUnitSnapshot = null;
-                hideCosmeticPortrait("selected_unit_changed");
+                transitionCosmeticPortrait("selected_unit_changed");
                 acceptedSnapshotUnit = Number(unit);
                 acceptedSnapshotVersion = 0;
                 var tooltipBindings = GameUI.CustomUIConfig().SurvivalTooltipBindings;
@@ -1192,7 +1532,7 @@
 
     function beginUnitNameTransition(reason) {
         unitNameTransitionSerial += 1;
-        hideCosmeticPortrait("selection_transition");
+        transitionCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
         unitNameRetryDelays.forEach(function (delay, retryIndex) {
             scheduleActive(delay, function () {
@@ -1508,6 +1848,7 @@
     function shutdownCombatContext(reason) {
         if (contextShutdown) return;
         contextShutdown = true;
+        hideCosmeticPortrait("context_shutdown");
         var abilities = officialPanel("abilities")
             || officialPanel("AbilitiesAndStatBranch");
         clearOfficialAbilityHotkeys(abilities);
@@ -2290,7 +2631,7 @@
     });
     bindHeroPortrait();
     bindHotkeys();
-    $.Msg("[SURVIVAL_SCENE_PANEL] DISABLED crash_isolation_v4_scene_panels_disabled static_hero=false building=false cosmetic=false dynamic_create=false");
+    $.Msg("[SURVIVAL_SCENE_PANEL] READY tower_portrait=true native_non_tower=true");
     subscribeUnitNameSelectionEvents();
     beginUnitNameTransition("initial_load");
     scheduleActive(1.65, function () {
