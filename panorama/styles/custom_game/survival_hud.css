@@ -24,6 +24,118 @@
     overflow: clip;
 }
 
+.SurvivalJuggernautPortraitOverlay {
+    width: 180px;
+    height: 180px;
+    position: 20px 520px 0px;
+    visibility: visible;
+    overflow: clip;
+    z-index: 10;
+    background-color: transparent;
+}
+
+.SurvivalJuggernautPortraitOverlay .SurvivalJuggernautPortraitScene {
+    width: 100%;
+    height: 100%;
+    position: 0px 0px 0px;
+    visibility: visible;
+    overflow: clip;
+}
+
+.SurvivalPortraitCameraEditor {
+    width: 360px;
+    height: 365px;
+    position: 24px 180px 0px;
+    flow-children: down;
+    padding: 10px;
+    background-color: #10151fee;
+    border: 1px solid #65758fff;
+    box-shadow: 0px 0px 12px #000000aa;
+    z-index: 20;
+}
+
+.SurvivalPortraitCameraEditor.Hidden { visibility: collapse; }
+
+.PortraitCameraEditorHeader {
+    width: 100%;
+    height: 30px;
+    flow-children: right;
+}
+
+.PortraitCameraEditorTitle {
+    color: #f2d38aff;
+    font-size: 18px;
+    vertical-align: center;
+}
+
+.PortraitCameraEditorClose {
+    width: 28px;
+    height: 26px;
+    horizontal-align: right;
+}
+
+.PortraitCameraEditorClose Label {
+    horizontal-align: center;
+    color: #ffffffff;
+    font-size: 20px;
+}
+
+.PortraitCameraEditorStatus,
+.PortraitCameraEditorValues {
+    width: 100%;
+    color: #cbd6e5ff;
+    font-size: 14px;
+    margin-top: 4px;
+    white-space: normal;
+}
+
+.PortraitCameraEditorRows {
+    width: 100%;
+    flow-children: down;
+    margin-top: 8px;
+}
+
+.PortraitCameraEditorRow {
+    width: 100%;
+    height: 34px;
+    flow-children: right;
+}
+
+.PortraitCameraEditorRow > Label {
+    width: 55px;
+    color: #f2d38aff;
+    vertical-align: center;
+    font-size: 15px;
+}
+
+.PortraitCameraEditorRow Button,
+.PortraitCameraEditorActions Button {
+    width: 58px;
+    height: 27px;
+    margin-right: 4px;
+    background-color: #26364cff;
+    border: 1px solid #536b83ff;
+}
+
+.PortraitCameraEditorRow Button Label,
+.PortraitCameraEditorActions Button Label {
+    horizontal-align: center;
+    vertical-align: center;
+    color: #e6edf5ff;
+    font-size: 13px;
+}
+
+.PortraitCameraEditorActions {
+    width: 100%;
+    flow-children: right;
+    margin-top: 8px;
+}
+
+.PortraitCameraEditorActions Button.Primary {
+    width: 150px;
+    background-color: #426b4dff;
+}
+
 #CustomShopButton {
     horizontal-align: left;
     vertical-align: top;
@@ -536,3 +648,5 @@
     color: #e7a26e;
     font-size: 17px;
 }
+
+

@@ -25,6 +25,8 @@
         <include src="file://{resources}/scripts/custom_game/shop_ui.js" />
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
+        <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" />
+
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
         <include src="file://{resources}/scripts/custom_game/weapon_growth_hud.js" />
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
@@ -34,6 +36,31 @@
         <Panel id="GoldMineIncomeNumbers" hittest="false" hittestchildren="false" />
         <Panel id="SurvivalTowerPortraitOverlay" class="SurvivalTowerPortraitOverlay" hittest="false" hittestchildren="false">
             <DOTAScenePanel id="SurvivalTowerPortraitScene" class="SurvivalTowerPortraitScene" hittest="false" />
+        </Panel>
+        <!-- Fixed background scene containing the Bladeform Legacy Origins
+             model and its wearable parts. It is mounted only for Juggernaut. -->
+        <Panel id="SurvivalJuggernautPortraitOverlay" class="SurvivalJuggernautPortraitOverlay" hittest="false" hittestchildren="false">
+            <DOTAScenePanel id="SurvivalJuggernautPortraitScene" class="SurvivalJuggernautPortraitScene" map="portraits/juggernaut_arcana_origins_v5" camera="jugg_portrait_camera" particleonly="false" hittest="false" />
+        </Panel>
+        <Panel id="SurvivalPortraitCameraEditor" class="SurvivalPortraitCameraEditor Hidden" hittest="true" hittestchildren="true">
+            <Panel class="PortraitCameraEditorHeader">
+                <Label class="PortraitCameraEditorTitle" text="主宰 ScanPanel 镜头校准器" />
+                <Button class="PortraitCameraEditorClose" onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.SetVisible(false)"><Label text="×" /></Button>
+            </Panel>
+            <Label id="PortraitCameraEditorStatus" class="PortraitCameraEditorStatus" text="准备就绪" />
+            <Panel class="PortraitCameraEditorRows">
+                <Panel class="PortraitCameraEditorRow"><Label text="X" /><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('x', -10)"><Label text="-10" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('x', -1)"><Label text="-1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('x', 1)"><Label text="+1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('x', 10)"><Label text="+10" /></Button></Panel>
+                <Panel class="PortraitCameraEditorRow"><Label text="Y" /><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('y', -10)"><Label text="-10" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('y', -1)"><Label text="-1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('y', 1)"><Label text="+1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('y', 10)"><Label text="+10" /></Button></Panel>
+                <Panel class="PortraitCameraEditorRow"><Label text="Z" /><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('z', -10)"><Label text="-10" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('z', -1)"><Label text="-1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('z', 1)"><Label text="+1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('z', 10)"><Label text="+10" /></Button></Panel>
+                <Panel class="PortraitCameraEditorRow"><Label text="Pitch" /><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('pitch', -5)"><Label text="-5" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('pitch', -1)"><Label text="-1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('pitch', 1)"><Label text="+1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('pitch', 5)"><Label text="+5" /></Button></Panel>
+                <Panel class="PortraitCameraEditorRow"><Label text="Yaw" /><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('yaw', -5)"><Label text="-5" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('yaw', -1)"><Label text="-1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('yaw', 1)"><Label text="+1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('yaw', 5)"><Label text="+5" /></Button></Panel>
+                <Panel class="PortraitCameraEditorRow"><Label text="Roll" /><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('roll', -5)"><Label text="-5" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('roll', -1)"><Label text="-1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('roll', 1)"><Label text="+1" /></Button><Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Nudge('roll', 5)"><Label text="+5" /></Button></Panel>
+            </Panel>
+            <Label id="PortraitCameraEditorValues" class="PortraitCameraEditorValues" text="" />
+            <Panel class="PortraitCameraEditorActions">
+                <Button onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Reset()"><Label text="重置" /></Button>
+                <Button class="Primary" onactivate="GameUI.CustomUIConfig().SurvivalPortraitCameraEditor.Confirm()"><Label text="确定并输出" /></Button>
+            </Panel>
         </Panel>
         <Panel id="TopBar">
             <Label id="WoodValue" text="木材 0" />
@@ -336,3 +363,8 @@
       <Panel id="NotificationContainer" />
     </Panel>
 </root>
+
+
+
+
+

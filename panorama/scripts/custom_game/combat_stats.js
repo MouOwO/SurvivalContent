@@ -60,6 +60,9 @@
     var towerPortraitOverlay = null;
     var towerPortraitScene = null;
     var towerPortraitHome = null;
+    var juggernautPortraitOverlay = null;
+    var juggernautPortraitScene = null;
+    var juggernautPortraitHome = null;
     var towerPortraitLayerAnchor = null;
     var TOWER_PORTRAIT_CONTENT_SCALE = 0.90;
     var configuredUnitNames = {
@@ -290,12 +293,40 @@
         return towerPortraitScene;
     }
 
+    function juggernautPortraitOverlayPanel() {
+        if (validPortraitPanel(juggernautPortraitOverlay)) return juggernautPortraitOverlay;
+        var candidate = panel("SurvivalJuggernautPortraitOverlay");
+        if (!candidate) {
+            var root = officialHudRoot();
+            candidate = root && root.FindChildTraverse
+                ? root.FindChildTraverse("SurvivalJuggernautPortraitOverlay") : null;
+        }
+        if (!validPortraitPanel(candidate)) return null;
+        juggernautPortraitOverlay = candidate;
+        if (!validPortraitPanel(juggernautPortraitHome) && candidate.GetParent) {
+            juggernautPortraitHome = candidate.GetParent();
+        }
+        return juggernautPortraitOverlay;
+    }
+
+    function juggernautPortraitScenePanel() {
+        if (validPortraitPanel(juggernautPortraitScene)) return juggernautPortraitScene;
+        var overlay = juggernautPortraitOverlayPanel();
+        var candidate = overlay && overlay.FindChildTraverse
+            ? overlay.FindChildTraverse("SurvivalJuggernautPortraitScene") : null;
+        if (!candidate) candidate = panel("SurvivalJuggernautPortraitScene");
+        if (!validPortraitPanel(candidate)) return null;
+        juggernautPortraitScene = candidate;
+        return juggernautPortraitScene;
+    }
+
     function belongsToCustomPortraitHud(candidate) {
         var current = candidate;
         while (current) {
             var id = String(current.id || "");
             if (id === "SurvivalHeroBottomHUD"
-                || id === "SurvivalTowerPortraitOverlay") return true;
+                || id === "SurvivalTowerPortraitOverlay"
+                || id === "SurvivalJuggernautPortraitOverlay") return true;
             current = current.GetParent ? current.GetParent() : null;
         }
         return false;
@@ -522,6 +553,15 @@
         portraitGeometryDiagnosticSignature = "";
     }
 
+    function restoreJuggernautPortraitHome(overlay) {
+        if (!overlay || !overlay.GetParent || !overlay.SetParent
+            || !validPortraitPanel(juggernautPortraitHome)) return;
+        if (overlay.GetParent() !== juggernautPortraitHome) overlay.SetParent(juggernautPortraitHome);
+        overlay.style.zIndex = "0";
+        portraitGeometrySignature = "";
+        portraitGeometryDiagnosticSignature = "";
+    }
+
     function applyTowerPortraitContentScale(scene) {
         if (!scene) return;
         scene.style.transformOrigin = "50% 50%";
@@ -598,13 +638,18 @@
     function hideCosmeticPortrait(reason) {
         var overlay = towerPortraitOverlayPanel();
         var scene = towerPortraitScenePanel();
+        var juggernautOverlay = juggernautPortraitOverlayPanel();
+        var juggernautScene = juggernautPortraitScenePanel();
         if (overlay) overlay.style.visibility = "collapse";
         if (scene) {
             resetTowerPortraitContentScale(scene);
             scene.style.visibility = "collapse";
         }
+        if (juggernautOverlay) juggernautOverlay.style.visibility = "collapse";
+        if (juggernautScene) juggernautScene.style.visibility = "collapse";
         restoreNativePortraitOpacity();
         restoreTowerPortraitHome(overlay);
+        restoreJuggernautPortraitHome(juggernautOverlay);
         portraitGeometrySignature = "";
         portraitGeometryDiagnosticSignature = "";
         portraitTransitionSignature = "";
@@ -680,6 +725,36 @@
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
+        var isJuggernautArcana = portraitUnit === "npc_dota_hero_juggernaut"
+            && modelAssetId === "hero_permanent_hero_blademaster"
+            && Number(snapshot && snapshot.entindex) === Number(displayUnit());
+        if (snapshot && isJuggernautArcana) {
+            var jugKey = [modelAssetId, portraitUnit, "origins"].join(":");
+            if (activePortraitMode === "juggernaut_arcana_scene"
+                && activePortraitKey === jugKey
+                && Number(activePortraitEntity) === Number(snapshot.entindex)) return true;
+            var juggernautOverlay = juggernautPortraitOverlayPanel();
+            var juggernautScene = juggernautPortraitScenePanel();
+            var juggernautAnchor = officialPortraitPanel();
+            if (!juggernautOverlay || !juggernautScene || !juggernautAnchor
+                || !mountTowerPortraitAtNativeLayer(juggernautOverlay, juggernautAnchor)
+                || !positionCosmeticPortrait(juggernautOverlay, juggernautAnchor, juggernautScene)) {
+                hideCosmeticPortrait("juggernaut_anchor_unavailable");
+                return false;
+            }
+            juggernautScene.style.visibility = "visible";
+            juggernautOverlay.style.visibility = "visible";
+            restoreNativePortraitsExcept(juggernautAnchor);
+            dimNativePortraitOpacity(juggernautAnchor);
+            activePortraitMode = "juggernaut_arcana_scene";
+            activePortraitUnit = portraitUnit;
+            activePortraitKey = [modelAssetId, portraitUnit, "origins"].join(":");
+            activePortraitEntity = Number(snapshot.entindex);
+            portraitTransitionSignature = [activePortraitKey, String(activePortraitEntity)].join(":");
+            $.Msg("[SURVIVAL_PORTRAIT] SHOW mode=juggernaut_arcana_scene unit=",
+                portraitUnit, " style=origins");
+            return true;
+        }
         var isTowerPortrait = /^tower_/.test(modelAssetId)
             && /^npc_dota_hero_/.test(portraitUnit);
         if (!snapshot || Number(snapshot.entindex) !== Number(displayUnit())
@@ -1531,6 +1606,13 @@
     }
 
     function beginUnitNameTransition(reason) {
+        var currentUnit = Number(displayUnit());
+        if (currentUnit >= 0 && currentUnit === observedSelectedUnit) {
+            // Repeated selection/query events for the same unit must not
+            // hide the custom portrait or restart its render transition.
+            refreshHeroPanel();
+            return;
+        }
         unitNameTransitionSerial += 1;
         transitionCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
@@ -2644,3 +2726,5 @@
     scheduleActive(2.0, revealBottomHud);
     $.Msg("[CombatStats] authoritative attack overlay ready; server snapshot owns Damage text.");
 })();
+
+
