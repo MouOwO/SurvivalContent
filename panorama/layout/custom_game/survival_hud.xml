@@ -10,6 +10,7 @@
         <include src="file://{resources}/styles/custom_game/weapon_growth_hud.css" />
         <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
         <include src="file://{resources}/styles/custom_game/gold_mine_income_numbers.css" />
+        <include src="file://{resources}/styles/custom_game/lottery.css" />
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
@@ -26,6 +27,7 @@
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" />
+        <include src="file://{resources}/scripts/custom_game/lottery_ui.js" />
 
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
         <include src="file://{resources}/scripts/custom_game/weapon_growth_hud.js" />
@@ -92,6 +94,71 @@
             <DOTAItemImage id="CustomShopButtonIcon" itemname="item_ironwood_tree" />
             <Label id="CustomShopButtonLabel" text="商店" />
         </Button>
+        <Button id="LotteryButton" hittest="true" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Toggle()">
+            <DOTAItemImage id="LotteryButtonIcon" itemname="item_treasure_chest" />
+            <Label id="LotteryButtonLabel" text="抽奖" />
+        </Button>
+        <Panel id="LotteryWindow" class="LotteryWindow LotteryClosed" hittest="true">
+            <Panel id="LotteryHeader">
+                <Button id="LotteryBackButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Close()">
+                    <Label text="‹  返回" />
+                </Button>
+                <Panel id="LotteryTitleBlock">
+                    <Label id="LotteryTitle" text="星悦抽奖" />
+                    <Label id="LotterySubtitle" text="重复物品自动兑换为星悦积分" />
+                </Panel>
+                <Panel id="LotteryWallet">
+                    <Label id="LotteryTicketValue" text="抽奖券  0" />
+                    <Label id="LotteryPointValue" text="星悦积分  0" />
+                </Panel>
+                <Button id="LotteryRefreshButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Refresh()">
+                    <Label text="刷新" />
+                </Button>
+                <Button id="LotteryCloseButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Close()">
+                    <Label text="×" />
+                </Button>
+            </Panel>
+            <Panel id="LotteryPoolTabs" />
+            <Panel id="LotterySummary">
+                <Label id="LotteryTierValue" text="地图奖池" />
+                <Label text="· 单抽完全独立概率 · 重复道具自动转积分" />
+            </Panel>
+            <Panel id="LotteryBody">
+                <Panel id="LotteryItemList" class="LotteryChestMode" />
+            </Panel>
+            <Panel id="LotteryFooter">
+                <Panel id="LotteryGuaranteeRow">
+                    <Label text="十连保底" />
+                    <Label id="LotteryGuaranteeValue" text="10连保底 SR" />
+                </Panel>
+                <Panel id="LotteryActions">
+                    <Panel class="LotteryActionBlock">
+                        <Button id="LotterySingleButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.DrawSingle()">
+                            <Label text="开启 1 个" />
+                        </Button>
+                        <Label id="LotterySingleCost" class="LotteryCostLabel" text="使用 1 张抽奖券" />
+                    </Panel>
+                    <Panel class="LotteryActionBlock">
+                        <Button id="LotteryTenButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.DrawTen()">
+                            <Label text="开启 10 个" />
+                        </Button>
+                        <Label id="LotteryTenCost" class="LotteryCostLabel" text="使用 10 张抽奖券" />
+                    </Panel>
+                </Panel>
+                <Label id="LotteryStatus" text="请选择开启数量" />
+            </Panel>
+        </Panel>
+        <Panel id="LotteryItemTooltip" class="Hidden" hittest="false" hittestchildren="false">
+            <Panel id="LotteryTooltipHeader">
+                <Panel id="LotteryTooltipIconHost" />
+                <Panel id="LotteryTooltipTitleBlock">
+                    <Label id="LotteryTooltipName" text="道具名称" />
+                    <Label id="LotteryTooltipType" text="类型：积分道具" />
+                    <Label id="LotteryTooltipDuration" text="期限：永久" />
+                </Panel>
+            </Panel>
+            <Label id="LotteryTooltipDescription" text="简介：" />
+        </Panel>
         <Panel id="HeroCombatDebugPanel" hittest="false">
             <Label id="HeroCombatDebugTitle" text="英雄伤害 / 科技状态" />
             <Panel id="HeroCombatDamageSummary">
@@ -121,6 +188,7 @@
                 <Panel id="ShopModeToggles">
                     <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.Open()"><Label text="商店" /></Button>
                     <Button id="ShopModeChallenge" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenChallenge()"><Label text="挑战" /></Button>
+                    <Button id="ShopModeLottery" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalLottery.OpenFromShop()"><Label text="积分兑换" /></Button>
                 </Panel>
                 <Panel id="ShopTitleBlock">
                     <Label id="ShopTitle" text="生存商店" />

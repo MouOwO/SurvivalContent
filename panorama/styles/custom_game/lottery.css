@@ -1,0 +1,311 @@
+#LotteryButton {
+    width: 118px;
+    height: 52px;
+    horizontal-align: left;
+    vertical-align: top;
+    margin-left: 24px;
+    margin-top: 154px;
+    flow-children: right;
+    padding: 5px 10px;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#664b20), to(#21170b));
+    border: 1px solid #d8ae49;
+    box-shadow: #000000aa 0px 0px 8px 0px;
+}
+#LotteryButton:hover { brightness: 1.3; }
+#LotteryButton:active { brightness: 0.8; }
+#LotteryButtonIcon { width: 38px; height: 38px; margin-right: 8px; }
+#LotteryButtonLabel { vertical-align: center; color: #fff1be; font-size: 20px; }
+
+#ShopModeToggles { width: 242px; }
+
+#LotteryWindow {
+    width: 1180px;
+    height: 790px;
+    horizontal-align: center;
+    vertical-align: center;
+    padding: 20px 28px 18px 28px;
+    flow-children: down;
+    background-color: #111018fa;
+    background-image: url("s2r://panorama/images/hud/reborn/bg_scoreboard_psd.vtex");
+    background-size: 100% 100%;
+    border: 1px solid #b99750;
+    box-shadow: #000000ee 0px 10px 34px 0px;
+}
+#LotteryWindow.LotteryClosed { visibility: collapse; }
+
+#LotteryHeader { width: 100%; height: 74px; flow-children: right; }
+#LotteryBackButton {
+    width: 98px;
+    height: 38px;
+    vertical-align: center;
+    background-color: #211e20dd;
+    border: 1px solid #ab955f;
+}
+#LotteryBackButton:hover { brightness: 1.35; }
+#LotteryBackButton Label { align: center center; color: #e6d9ad; font-size: 18px; }
+#LotteryTitleBlock {
+    width: fill-parent-flow(1);
+    height: 70px;
+    flow-children: down;
+    margin-left: 24px;
+}
+#LotteryTitle {
+    horizontal-align: center;
+    color: #ffd15a;
+    font-size: 38px;
+    font-weight: bold;
+    text-shadow: 0px 2px 4px 3 #000000dd;
+}
+#LotterySubtitle {
+    horizontal-align: center;
+    color: #cfc4ae;
+    font-size: 15px;
+    margin-top: -2px;
+}
+#LotteryWallet {
+    width: 210px;
+    height: 54px;
+    vertical-align: center;
+    padding: 6px 12px;
+    flow-children: down;
+    background-color: #15171ddd;
+    border: 1px solid #5e6470;
+}
+#LotteryWallet Label { color: #f4df94; font-size: 16px; }
+#LotteryPointValue { color: #b5c8e5; }
+#LotteryRefreshButton, #LotteryCloseButton {
+    width: 62px;
+    height: 38px;
+    vertical-align: center;
+    margin-left: 8px;
+    background-color: #293346;
+    border: 1px solid #617a9d;
+}
+#LotteryCloseButton { width: 42px; background-color: #3f2023; border-color: #a76979; }
+#LotteryRefreshButton:hover, #LotteryCloseButton:hover { brightness: 1.35; }
+#LotteryRefreshButton Label, #LotteryCloseButton Label {
+    align: center center;
+    color: white;
+    font-size: 16px;
+}
+#LotteryCloseButton Label { font-size: 25px; }
+
+#LotteryPoolTabs {
+    width: 720px;
+    height: 40px;
+    horizontal-align: center;
+    flow-children: right;
+    margin-top: 2px;
+}
+.LotteryPoolTab {
+    width: fill-parent-flow(1);
+    height: 36px;
+    margin: 0px 4px;
+    background-color: #1f2229ee;
+    border: 1px solid #4e5664;
+}
+.LotteryPoolTab:hover { brightness: 1.3; }
+.LotteryPoolTab.Selected {
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#735827), to(#302510));
+    border-color: #e1bb59;
+    box-shadow: #d49e3555 0px 0px 8px 0px;
+}
+.LotteryPoolTab Label {
+    align: center center;
+    color: #d9dce2;
+    font-size: 16px;
+    text-overflow: shrink;
+}
+.LotteryPoolTab.Selected Label { color: #ffe7a1; }
+
+#LotterySummary {
+    width: 100%;
+    height: 34px;
+    horizontal-align: center;
+    flow-children: right;
+    padding: 5px 12px;
+    background-color: #15151bd9;
+    border-top: 1px solid #4f4a3e;
+    border-bottom: 1px solid #4f4a3e;
+}
+#LotterySummary Label { color: #aaa69e; font-size: 14px; margin-right: 8px; }
+#LotteryTierValue { color: #e3c270; font-weight: bold; }
+
+#LotteryBody {
+    width: 100%;
+    height: 500px;
+    margin-top: 4px;
+    background-color: #08090dad;
+    background-image: url("s2r://panorama/images/hud/reborn/bg_scoreboard_psd.vtex");
+    background-size: 100% 100%;
+    border: 1px solid #383a40;
+}
+#LotteryItemList {
+    width: 1040px;
+    height: 474px;
+    align: center center;
+}
+#LotteryItemList.LotteryTenResults {
+    flow-children: right-wrap;
+    padding: 10px 14px;
+}
+#LotteryItemList.LotterySingleResult { flow-children: none; }
+#LotteryItemList.LotterySingleResult .LotteryRewardCard { align: center center; }
+
+.LotteryChestStage { width: 100%; height: 100%; align: center center; }
+.LotteryChestAura {
+    width: 390px;
+    height: 390px;
+    align: center center;
+    border-radius: 50%;
+    background-color: gradient(radial, 50% 50%, 0% 0%, 50% 50%, from(#ffd46655), color-stop(0.42, #b8792433), to(#00000000));
+    box-shadow: #e4a53655 0px 0px 50px 4px;
+}
+.LotteryChestFrame {
+    width: 240px;
+    height: 240px;
+    align: center center;
+    padding: 18px;
+    background-color: #17130ddd;
+    border: 3px solid #d4a43f;
+    box-shadow: #eebd4e88 0px 0px 26px 3px;
+}
+.LotteryChestIcon { width: 200px; height: 200px; align: center center; }
+.LotteryChestPrompt {
+    horizontal-align: center;
+    vertical-align: bottom;
+    margin-bottom: 44px;
+    color: #e8ddc4;
+    font-size: 20px;
+    text-shadow: 0px 1px 3px 2 #000000;
+}
+
+.LotteryRewardCard {
+    width: 176px;
+    height: 214px;
+    margin: 4px 7px;
+    flow-children: down;
+    background-color: #0f131af2;
+    border: 1px solid #59616c;
+    box-shadow: #000000cc 0px 3px 8px 0px;
+}
+.LotteryRewardCard:hover { brightness: 1.22; transform: scale3d(1.025, 1.025, 1); }
+.LotteryRewardIconFrame {
+    width: 164px;
+    height: 164px;
+    horizontal-align: center;
+    margin-top: 5px;
+    padding: 9px;
+    background-color: #211c13;
+    border: 3px solid #818181;
+    box-shadow: #000000aa 0px 0px 8px 0px inset;
+}
+.LotteryRewardIcon { width: 140px; height: 140px; align: center center; }
+.LotteryRewardQuality {
+    horizontal-align: right;
+    vertical-align: top;
+    margin: -8px 4px 0px 0px;
+    color: white;
+    font-size: 25px;
+    font-weight: bold;
+    text-shadow: 0px 1px 3px 3 #000000;
+}
+.LotteryRewardName {
+    width: 100%;
+    height: 37px;
+    padding-top: 7px;
+    color: #edf1f6;
+    font-size: 17px;
+    text-align: center;
+    text-overflow: shrink;
+}
+.LotteryDuplicateBadge {
+    width: 100%;
+    height: 24px;
+    vertical-align: bottom;
+    padding-top: 3px;
+    background-color: #000000cc;
+    color: #f2cf72;
+    font-size: 12px;
+    text-align: center;
+    text-overflow: shrink;
+}
+
+.LotteryQuality_N { border-color: #66c9a5; }
+.LotteryQuality_R { border-color: #55aee9; }
+.LotteryQuality_SR { border-color: #d45df1; box-shadow: #bd3fe077 0px 0px 12px 1px; }
+.LotteryQuality_SSR { border-color: #f0b343; box-shadow: #e49d3477 0px 0px 14px 2px; }
+.LotteryQuality_UR { border-color: #ef667c; box-shadow: #ff526f88 0px 0px 17px 2px; }
+.LotteryQuality_N .LotteryRewardQuality { color: #82e4c0; }
+.LotteryQuality_R .LotteryRewardQuality { color: #71c7ff; }
+.LotteryQuality_SR .LotteryRewardQuality { color: #ee82ff; }
+.LotteryQuality_SSR .LotteryRewardQuality { color: #ffd069; }
+.LotteryQuality_UR .LotteryRewardQuality { color: #ff8495; }
+
+#LotteryFooter {
+    width: 100%;
+    height: 112px;
+    flow-children: down;
+    margin-top: 5px;
+}
+#LotteryGuaranteeRow {
+    height: 28px;
+    horizontal-align: center;
+    flow-children: right;
+}
+#LotteryGuaranteeRow Label { color: #d7c49e; font-size: 17px; margin: 0px 5px; }
+#LotteryGuaranteeValue { color: #ec7bff; font-size: 22px; font-weight: bold; }
+#LotteryActions { height: 62px; horizontal-align: center; flow-children: right; }
+.LotteryActionBlock { width: 226px; height: 62px; flow-children: down; margin: 0px 10px; }
+#LotteryActions Button {
+    width: 226px;
+    height: 42px;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#ffe36e), to(#d99b16));
+    border: 1px solid #ffdf64;
+    box-shadow: #000000aa 0px 3px 8px 0px;
+}
+#LotteryActions Button:hover { brightness: 1.2; }
+#LotteryActions Button:active { brightness: 0.85; }
+#LotteryActions Button.Disabled { brightness: 0.45; saturation: 0.25; }
+#LotteryActions Button Label { align: center center; color: #4b2200; font-size: 24px; font-weight: bold; }
+.LotteryCostLabel { horizontal-align: center; color: #d4d6dc; font-size: 14px; }
+#LotteryStatus {
+    width: 100%;
+    height: 22px;
+    color: #bfc5ce;
+    font-size: 14px;
+    text-align: center;
+}
+
+#LotteryItemTooltip {
+    width: 340px;
+    min-height: 190px;
+    padding: 12px;
+    flow-children: down;
+    background-color: #111b25fa;
+    border: 1px solid #6a879f;
+    box-shadow: #000000dd 0px 0px 14px 1px;
+    z-index: 220;
+}
+#LotteryItemTooltip.Hidden { visibility: collapse; }
+#LotteryTooltipHeader { width: 100%; height: 86px; flow-children: right; }
+#LotteryTooltipIconHost { width: 78px; height: 78px; margin-right: 12px; }
+.LotteryTooltipIconFrame {
+    width: 76px;
+    height: 76px;
+    padding: 5px;
+    border: 2px solid #818181;
+    background-color: #211c13;
+}
+.LotteryTooltipIconFrame .LotteryRewardIcon { width: 62px; height: 62px; }
+.LotteryTooltipIconFrame .LotteryRewardQuality { font-size: 14px; margin: -5px 1px 0px 0px; }
+#LotteryTooltipTitleBlock { width: fill-parent-flow(1); flow-children: down; }
+#LotteryTooltipName { color: #ffffff; font-size: 21px; font-weight: bold; }
+#LotteryTooltipType, #LotteryTooltipDuration { color: #e7ca79; font-size: 15px; }
+#LotteryTooltipDescription {
+    width: 100%;
+    color: #d5dde6;
+    font-size: 16px;
+    white-space: normal;
+    margin-top: 6px;
+}
