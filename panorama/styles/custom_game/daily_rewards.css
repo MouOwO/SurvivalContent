@@ -1,0 +1,45 @@
+#DailyEntry, #PassEntry { margin-top: 154px; height: 52px; background-color: #182d32ee; border: 1px solid #a28b56; flow-children: right; padding: 8px; }
+#DailyEntry { margin-left: 282px; width: 150px; }
+#PassEntry { margin-left: 442px; width: 80px; }
+#DailyEntry Label, #PassEntry Label { vertical-align: center; horizontal-align: center; font-size: 19px; color: #f3dfae; }
+#DailyChest { width: 32px; height: 32px; margin-right: 8px; }
+.ChestBase { width: 28px; height: 20px; margin-top: 12px; background-color: #956b30; border: 2px solid #edc675; }
+.ChestLid { width: 30px; height: 12px; margin-top: 3px; background-color: #cf9e47; border: 2px solid #f6d995; border-radius: 5px 5px 0px 0px; }
+.ChestLock { width: 6px; height: 9px; margin: 15px 0px 0px 12px; background-color: #ffe1a0; }
+.DailyClaimed .ChestLid { transform: translateY(-6px) rotateZ(-15deg); background-color: #746542; }
+.DailyClaimed .ChestBase { brightness: 0.7; }
+.DailyCanClaim #DailyChest { animation-name: DailyChestBounce; animation-duration: 1.2s; animation-iteration-count: infinite; }
+@keyframes 'DailyChestBounce' { 0% { transform: translateY(0px); } 45% { transform: translateY(-6px); } 100% { transform: translateY(0px); } }
+#DailyWindow { width: 940px; height: 610px; align: center center; padding: 25px; flow-children: down; background-color: gradient(linear,0% 0%,100% 100%,from(#203941ff),to(#0c171fff)); border: 2px solid #a99a6c; box-shadow: #000000dd 0px 8px 32px 4px; }
+.DailyHeader { width: 100%; height: 46px; flow-children: right; }
+#DailyHeading { width: fill-parent-flow(1); color: #f3e4b8; font-size: 30px; }
+.DailyHeader Button { width: 35px; height: 35px; }
+.DailyHeader Button Label { font-size: 28px; color: #d6cbae; }
+#DailySubtitle { color: #98b3b8; font-size: 16px; margin: 10px 0px 24px; }
+#DailyClaimPage, #DailyPassPage { width: 100%; height: fill-parent-flow(1); flow-children: down; }
+#DailyCards { flow-children: right; width: 100%; height: 190px; }
+.DailyCard { width: fill-parent-flow(1); height: 180px; margin-right: 7px; padding: 10px 7px; flow-children: down; background-color: #1c2b35; border: 1px solid #5e757a; }
+.DailyCard Label { width: 100%; text-align: center; color: #d5ded9; font-size: 17px; margin-bottom: 12px; white-space: normal; }
+.DailyCardNext { border: 2px solid #e5c278; background-color: #344143; }
+.DailyDay { color: #efcc82; font-size: 22px; }
+.DailySection { color: #e3c886; font-size: 21px; margin: 12px 0px; }
+#DailySpecials { flow-children: right; width: 100%; height: 92px; }
+.DailySpecial { width: fill-parent-flow(1); margin-right: 8px; padding: 12px; background-color: #443c2a; border: 1px solid #8f7b48; flow-children: down; }
+.DailySpecial Label { font-size: 18px; color: #e9d8a6; }
+.DailyActions { flow-children: right; width: 100%; margin-top: 20px; height: 44px; }
+#DailyCount { width: fill-parent-flow(1); color: #a8c0c2; vertical-align: center; font-size: 17px; }
+.DailyActions Button, #PassPurchase { background-color: #ab8950; border: 1px solid #e4c68d; padding: 9px 16px; margin-left: 10px; }
+.DailyActions Button Label, #PassPurchase Label { color: #fff2d2; font-size: 18px; }
+.DailyActions Button:disabled, #PassPurchase:disabled { saturation: 0; brightness: 0.45; }
+#DailyNotice { height: 26px; font-size: 16px; color: #bdb08c; }
+#DailyPassPage { flow-children: right; }
+.PassIllustration { width: 330px; height: 100%; flow-children: down; background-color: gradient(radial,50% 35%,0% 0%,75% 75%,from(#426073),to(#152331)); border: 1px solid #677e83; }
+.PassIllustration Label { color: #efda9f; horizontal-align: center; font-size: 32px; }
+.PassIllustration .PassMoon { font-size: 120px; margin-top: 24px; text-shadow: 0px 0px 15px 2 #d9bd75; }
+.PassIllustration .PassTagline { font-size: 17px; margin-top: 18px; }
+.PassDetails { width: fill-parent-flow(1); padding-left: 35px; flow-children: down; }
+.PassDetails Label { white-space: normal; font-size: 19px; color: #d4e0db; margin-bottom: 14px; }
+.PassDetails .PassFinePrint { color: #81979e; font-size: 14px; margin-top: 18px; }
+#DailyTooltip { ignore-parent-flow: true; align: center bottom; margin-bottom: 78px; width: 430px; flow-children: down; background-color: #090f17ff; border: 1px solid #b89e64; padding: 16px; z-index: 20; }
+#DailyTooltipName { color: #eccb85; font-size: 22px; }
+#DailyTooltipEffect { color: #d3ded9; font-size: 17px; white-space: normal; }

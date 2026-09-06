@@ -1,0 +1,9 @@
+#DifficultySelectionButtons
+{
+    flow-children: right-wrap;
+}
+
+.DifficultyOptionButton
+{
+    margin-bottom: 12px;
+}

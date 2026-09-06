@@ -1,0 +1,92 @@
+.ArchiveRoot { width: 100%; height: 100%; }
+.ArchiveHidden { visibility: collapse; }
+#ArchiveEntry {
+    margin-left: 154px; margin-top: 154px; width: 118px; height: 52px;
+    padding: 5px 10px; flow-children: right;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#394646), to(#111a1d));
+    border: 1px solid #b89c57; box-shadow: #000000aa 0px 0px 8px 0px;
+}
+#ArchiveEntry:hover { brightness: 1.3; }
+.ArchiveEntryText { vertical-align: center; color: #fff1be; font-size: 20px; }
+.ArchiveEntryScroll { width: 30px; height: 33px; margin: 3px 12px 0px 0px; border: 2px solid #a5915d; border-radius: 3px; background-color: #674c33; transform: rotateZ(-8deg); }
+.ArchiveEntryScroll Label { align: center center; color: #e9ce87; font-size: 20px; }
+#ArchiveWindow {
+    width: 1080px; height: 760px; align: center center; flow-children: down; padding: 0px 22px 14px;
+    background-color: gradient(linear, 0% 0%, 100% 100%, from(#202c2dfc), color-stop(0.45, #10191dfc), to(#0b1115fc));
+    border: 2px solid #7c7962; border-radius: 8px;
+    box-shadow: #000000dd 0px 8px 36px 4px;
+}
+#ArchiveHeader { width: 100%; height: 100px; flow-children: right; border-bottom: 1px solid #73644366; }
+#ArchiveTitleBlock { width: fill-parent-flow(1); height: 100%; flow-children: down; padding-left: 44px; }
+#ArchiveTitle { horizontal-align: center; margin-top: 15px; font-size: 36px; font-weight: bold; color: #eee0b6; letter-spacing: 10px; text-shadow: 0px 2px 3px 3 #000000; }
+#ArchiveSubtitle { horizontal-align: center; font-size: 14px; color: #849b9c; letter-spacing: 3px; }
+#ArchiveClose { width: 44px; height: 44px; margin-top: 18px; background-color: #162023; border: 1px solid #647170; }
+#ArchiveClose Label { align: center center; font-size: 32px; color: #b5b8ac; }
+#ArchiveClose:hover { brightness: 1.5; }
+#ArchiveBody { width: 100%; height: fill-parent-flow(1); flow-children: right; padding-top: 20px; }
+#ArchiveTabs { width: 150px; height: 100%; flow-children: down; overflow: squish scroll; padding-right: 12px; }
+.ArchiveTab { width: 134px; height: 58px; margin-bottom: 10px; padding: 0px; background-color: gradient(linear, 0% 0%, 0% 100%, from(#374341), to(#192426)); border: 1px solid #55615b; border-radius: 4px; }
+.ArchiveTab .RadioBox { visibility: collapse; }
+.ArchiveTab Label { margin: 0px; align: center center; color: #bcc6bd; font-size: 20px; }
+.ArchiveTab:selected { border: 2px solid #c2a45e; background-color: gradient(linear, 0% 0%, 0% 100%, from(#514c32), to(#252d29)); }
+.ArchiveTab:selected Label { color: #f6d57c; }
+.ArchiveTab:hover { brightness: 1.2; }
+#ArchiveContent { width: fill-parent-flow(1); height: 100%; flow-children: down; padding: 16px 14px; background-color: #080f13bb; border: 1px solid #3c5050; }
+#ArchivePageHeader { width: 100%; height: 34px; flow-children: right; }
+#ArchivePageTitle { width: fill-parent-flow(1); font-size: 24px; color: #e2d4b0; }
+#ArchiveSummary { font-size: 16px; color: #92aca8; vertical-align: center; }
+#ArchiveHint { color: #6f898c; font-size: 14px; height: 34px; margin-top: 4px; }
+#ArchiveGrid { width: 100%; height: fill-parent-flow(1); flow-children: right-wrap; overflow: squish scroll; }
+.ArchiveCard { width: 100px; height: 118px; margin: 0px 3px 10px; flow-children: down; }
+.ArchiveArt { width: 70px; height: 80px; horizontal-align: center; border: 1px solid #817250; border-radius: 4px; background-color: gradient(radial, 50% 55%, 0% 0%, 80% 80%, from(#4e492e), to(#101d24)); }
+.ArchiveGlyph { width: 42px; height: 53px; align: center center; margin-top: -7px; border: 3px solid #b7995f; border-radius: 4px; background-color: gradient(linear, 0% 0%, 100% 100%, from(#96543c), to(#40251e)); transform: rotateZ(8deg); box-shadow: #dba95b22 0px 0px 10px 1px; }
+.ArchiveArt_shard .ArchiveGlyph { width: 36px; height: 45px; border-radius: 2px; transform: rotateZ(45deg); background-color: gradient(linear, 0% 0%, 100% 100%, from(#c6e1df), color-stop(0.5, #526f78), to(#172e38)); border-color: #a0c0c5; }
+.ArchiveArt_seal .ArchiveGlyph { width: 46px; height: 46px; border-radius: 50%; transform: rotateZ(0deg); background-color: #343546; border-color: #aaa287; }
+.ArchiveRune { align: center center; margin-top: -10px; font-size: 19px; font-weight: bold; color: #f1e5b7; text-shadow: 0px 1px 2px 2 #000000; }
+.ArchiveCount { horizontal-align: center; vertical-align: bottom; width: 100%; text-align: center; font-size: 15px; color: #f5eedb; background-color: #081012dd; padding: 2px 0px; }
+.ArchiveItemName { width: 100%; text-align: center; font-size: 15px; color: #bccac6; margin-top: 5px; text-overflow: shrink; }
+.ArchiveCompleted { saturation: 0; brightness: 0.38; }
+.ArchiveFragmentCard { height: 172px; }
+.ArchiveFragmentLevel { horizontal-align: center; color: #e4c57d; font-size: 14px; }
+.ArchivePromote { width: 90px; height: 26px; horizontal-align: center; margin-top: 3px; background-color: #3e4734; border: 1px solid #a49362; }
+.ArchivePromote Label { align: center center; color: #e4d7ad; font-size: 13px; }
+.ArchivePromote:disabled { saturation: 0; opacity: 0.35; }
+.ArchiveQuality_white, .ArchiveQuality_n { border-color: #a1b1b6; }
+.ArchiveQuality_blue, .ArchiveQuality_r { border-color: #4e9cd6; }
+.ArchiveQuality_blue .ArchiveGlyph, .ArchiveQuality_r .ArchiveGlyph { wash-color: #65b4ff; }
+.ArchiveQuality_purple, .ArchiveQuality_sr { border-color: #9c6fd7; }
+.ArchiveQuality_purple .ArchiveGlyph, .ArchiveQuality_sr .ArchiveGlyph { wash-color: #c590ff; }
+.ArchiveQuality_green { border-color: #5eb68d; }
+.ArchiveQuality_green .ArchiveGlyph { wash-color: #66e5a3; }
+.ArchiveQuality_ssr { border-color: #e0ba65; }
+.ArchiveQuality_ur { border-color: #e48b65; }
+#ArchiveEmpty { align: center center; color: #80928f; font-size: 20px; margin-bottom: 26px; }
+#ArchiveStatus { height: 25px; margin-top: 12px; horizontal-align: right; color: #85948a; font-size: 14px; }
+#ArchiveTooltip { width: 330px; padding: 15px 18px; flow-children: down; background-color: #10191dfc; border: 1px solid #a48b55; box-shadow: #000000cc 0px 4px 16px 0px; }
+#ArchiveTooltipName { width: 100%; color: #ffffff; font-size: 21px; margin-bottom: 9px; }
+.ArchiveRewardIcon { width: 100%; height: 100%; }
+#EndlessStatus { margin-top: 112px; margin-left: 12px; padding: 8px 12px; background-color: #101a20ee; color: #ffd069; font-size: 18px; }
+#ArchiveTooltipEffect { width: 100%; color: #c2d5ce; font-size: 17px; white-space: normal; }
+#ArchiveDrawBar { ignore-parent-flow: true; align: right bottom; flow-children: right; width: 100%; height: 48px; margin: 0px 14px 12px; padding: 6px 10px; background-color: #101a1fff; border-top: 1px solid #665c40; z-index: 10; }
+#ArchiveContent.ArchiveHasDraw #ArchiveGrid { margin-bottom: 62px; }
+#ArchiveDrawResult { width: fill-parent-flow(1); text-overflow: shrink; }
+#ArchiveDraw { width: 108px; height: 36px; margin-left: 16px; vertical-align: center; background-color: #684c24; border: 1px solid #c5a465; }
+#ArchiveDraw Label { horizontal-align: center; vertical-align: center; color: #fff0c9; font-size: 18px; }
+#ArchiveDraw:disabled { saturation: 0; brightness: 0.45; }
+#ArchiveTickets, #ArchiveDrawResult { margin-left: 14px; vertical-align: center; color: #e5cf9f; font-size: 17px; }
+#TreasureEntry { margin-left: 532px; margin-top: 154px; width: 80px; height: 52px; background-color: #182d32ee; border: 1px solid #a28b56; }
+#TreasureEntry Label { align: center center; color: #f3dfae; font-size: 19px; }
+#TreasureWindow { margin-left: 154px; margin-top: 216px; width: 440px; height: 390px; padding: 18px; flow-children: down; background-color: #0e1a21fc; border: 1px solid #a28b56; box-shadow: #000000bb 0px 6px 18px 3px; }
+#TreasureHeader { width: 100%; height: 34px; flow-children: right; }
+#TreasureHeader > Label { width: fill-parent-flow(1); font-size: 24px; color: #efdbac; }
+#TreasureHeader Button { width: 30px; height: 30px; }
+#TreasureHeader Button Label { color: #dcc795; font-size: 24px; }
+#TreasureHint { font-size: 15px; color: #9bb0b1; margin-bottom: 16px; }
+#TreasureCards { width: 100%; height: fill-parent-flow(1); flow-children: right-wrap; }
+.TreasureCard { width: 190px; height: 120px; margin: 0px 8px 10px 0px; padding: 14px; flow-children: down; background-color: #25332f; border: 1px solid #6c7051; }
+.TreasureCard Label { width: 100%; color: #eddbb0; font-size: 19px; text-align: center; }
+.TreasureCard .TreasureGlyph { font-size: 32px; margin-bottom: 8px; color: #d2b269; }
+.TreasureVacant { saturation: 0; brightness: 0.5; }
+#TreasureTooltip { ignore-parent-flow: true; align: center bottom; margin-bottom: 18px; width: 380px; padding: 14px; flow-children: down; background-color: #070f16ff; border: 1px solid #ad935d; z-index: 20; }
+#TreasureTooltipName { font-size: 21px; color: #fff2cf; }
+#TreasureTooltipEffect { width: 100%; white-space: normal; font-size: 17px; color: #c2d5ce; }

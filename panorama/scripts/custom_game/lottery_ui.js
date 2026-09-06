@@ -51,22 +51,7 @@
     }
 
     function createRewardIcon(parent, item, className) {
-        var iconType = String(item.icon_type || "item");
-        var icon;
-        if (iconType === "image") {
-            icon = $.CreatePanel("Image", parent, "");
-            if (icon.SetImage) icon.SetImage(item.icon || "");
-        } else if (iconType === "ability") {
-            icon = $.CreatePanel("DOTAAbilityImage", parent, "");
-            icon.abilityname = item.icon || "attribute_bonus";
-        } else {
-            icon = $.CreatePanel("DOTAItemImage", parent, "");
-            icon.itemname = item.icon || "item_branches";
-        }
-        icon.AddClass(className || "LotteryRewardIcon");
-        icon.hittest = false;
-        icon.hittestchildren = false;
-        return icon;
+        return GameUI.CustomUIConfig().SurvivalRewardPresentation.CreateIcon(parent, item, className || "LotteryRewardIcon");
     }
 
     function createIconFrame(parent, item, className) {
@@ -97,6 +82,7 @@
         iconHost.RemoveAndDeleteChildren();
         createIconFrame(iconHost, item, "LotteryTooltipIconFrame");
         setText("LotteryTooltipName", item.name || item.id || "未命名道具");
+        panel("LotteryTooltipName").style.color = GameUI.CustomUIConfig().SurvivalRewardPresentation.NameColor(item.quality);
         setText("LotteryTooltipType", "类型：" + String(item.item_type || "积分道具"));
         setText("LotteryTooltipDuration", "期限：" + String(item.duration_text || "永久"));
         setText("LotteryTooltipDescription", "简介：" + String(item.description || "暂无简介"));
@@ -142,15 +128,16 @@
         var card = $.CreatePanel("Panel", parent, "");
         card.AddClass("LotteryRewardCard");
         card.AddClass(qualityClass(item.quality));
-        createIconFrame(card, item, "LotteryRewardIconFrame");
+        var iconFrame = createIconFrame(card, item, "LotteryRewardIconFrame");
         var name = $.CreatePanel("Label", card, "");
         name.AddClass("LotteryRewardName");
         name.text = item.name || item.id || "物品";
         if (succeeded(item.duplicate)) {
-            var duplicate = $.CreatePanel("Label", card, "");
+            var duplicate = $.CreatePanel("Label", iconFrame, "");
             duplicate.AddClass("LotteryDuplicateBadge");
-            duplicate.text = "已拥有，兑换 "
-                + Number(item.converted_points || 0) + " 积分";
+            duplicate.text = "重复物品，已转化为"
+                + Number(item.converted_points || 0) + "积分";
+            duplicate.hittest = false;
         }
         card.SetPanelEvent("onmouseover", function () {
             showTooltip(item, card);

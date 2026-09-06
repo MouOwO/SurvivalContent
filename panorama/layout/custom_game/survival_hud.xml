@@ -11,8 +11,10 @@
         <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
         <include src="file://{resources}/styles/custom_game/gold_mine_income_numbers.css" />
         <include src="file://{resources}/styles/custom_game/lottery.css" />
+        <include src="file://{resources}/styles/custom_game/archive_difficulty.css" />
     </styles>
     <scripts>
+        <include src="file://{resources}/scripts/custom_game/reward_presentation.js" />
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
         <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
         <include src="file://{resources}/scripts/custom_game/attack_range_input.js" />

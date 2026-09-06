@@ -1504,6 +1504,17 @@
         try {
             var maxHealth = Entities.GetMaxHealth(unit);
             var health = Entities.GetHealth(unit);
+            // Engine health is bounded for endless monsters. Use live native
+            // health times the server scale, not a stale selected-unit value.
+            var healthState = CustomNetTables.GetTableValue("survival_hero_health_bar", "unit_" + unit);
+            var snapshot = selectedUnitSnapshot && Number(selectedUnitSnapshot.entindex) === Number(unit)
+                ? selectedUnitSnapshot : null;
+            var healthScale = Number(healthState && !Number(healthState.removed) && healthState.health_scale
+                || snapshot && snapshot.health_scale || 1);
+            if (isFinite(healthScale) && healthScale > 0) {
+                maxHealth *= healthScale;
+                health *= healthScale;
+            }
             var maxMana = Entities.GetMaxMana(unit);
             var mana = Entities.GetMana(unit);
             var healthText = formatNumber(health) + " / " + formatNumber(maxHealth);

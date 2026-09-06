@@ -1,0 +1,63 @@
+<root>
+    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/archive.js" /><include src="file://{resources}/scripts/custom_game/daily_rewards.js" /><include src="file://{resources}/scripts/custom_game/treasure_history.js" /></scripts>
+    <Panel class="ArchiveRoot" hittest="false">
+        <Button id="ArchiveEntry" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Toggle()">
+            <Panel class="ArchiveEntryScroll"><Label text="卷" /></Panel>
+            <Label class="ArchiveEntryText" text="存档" />
+        </Button>
+        <Label id="EndlessStatus" class="ArchiveHidden" hittest="false" />
+        <Button id="TreasureEntry" onactivate="GameUI.CustomUIConfig().SurvivalTreasure.Toggle()"><Label text="宝物" /></Button>
+        <Panel id="TreasureWindow" class="ArchiveHidden">
+            <Panel id="TreasureHeader"><Label text="最近获得的宝物" /><Button onactivate="GameUI.CustomUIConfig().SurvivalTreasure.Toggle()"><Label text="×" /></Button></Panel>
+            <Label id="TreasureHint" text="本局最近4次肉鸽选择 · 最新在前" />
+            <Panel id="TreasureCards" />
+            <Panel id="TreasureTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false"><Label id="TreasureTooltipName" /><Label id="TreasureTooltipEffect" /></Panel>
+        </Panel>
+        <Button id="DailyEntry" onactivate="GameUI.CustomUIConfig().SurvivalDaily.Open(false)">
+            <Panel id="DailyChest"><Panel class="ChestLid" /><Panel class="ChestBase" /><Panel class="ChestLock" /></Panel><Label text="每日奖励" />
+        </Button>
+        <Button id="PassEntry" onactivate="GameUI.CustomUIConfig().SurvivalDaily.Open(true)"><Label text="月卡" /></Button>
+        <Panel id="DailyWindow" class="ArchiveHidden">
+            <Panel class="DailyHeader"><Label id="DailyHeading" text="每日奖励" /><Button onactivate="GameUI.CustomUIConfig().SurvivalDaily.Close()"><Label text="×" /></Button></Panel>
+            <Label id="DailySubtitle" text="每日零点刷新 · 七日奖励循环 · 断签不重置累计进度" />
+            <Panel id="DailyClaimPage">
+                <Panel id="DailyCards" />
+                <Label class="DailySection" text="月卡专享 · 累计签到礼" />
+                <Panel id="DailySpecials" />
+                <Panel class="DailyActions"><Label id="DailyCount" /><Button id="DailyMakeup"><Label text="补签最早漏签日" /></Button><Button id="DailyClaim"><Label text="领取今日奖励" /></Button></Panel>
+            </Panel>
+            <Panel id="DailyPassPage" class="ArchiveHidden">
+                <Panel class="PassIllustration"><Label class="PassMoon" text="月" /><Label text="星月通行证" /><Label class="PassTagline" text="每一次归来，都有一份馈赠" /></Panel>
+                <Panel class="PassDetails"><Label class="DailySection" text="月卡权益" /><Label text="BOSS存档激活门槛减半\n有效期内可补签最近30天漏签\n累计7 / 14 / 21次签到专属珍藏\n享有存档挑战的现有通行证权益" /><Label id="PassValidity" /><Label id="PassPrice" /><Button id="PassPurchase"><Label id="PassPurchaseText" text="购买暂未开放" /></Button><Label class="PassFinePrint" text="购买成功后由服务端确认开通；到期恢复普通门槛。" /></Panel>
+            </Panel>
+            <Label id="DailyNotice" text="正在读取签到档案…" />
+            <Panel id="DailyTooltip" class="ArchiveHidden" hittest="false"><Label id="DailyTooltipName" /><Label id="DailyTooltipEffect" /></Panel>
+        </Panel>
+        <Panel id="ArchiveWindow" class="ArchiveHidden">
+            <Panel id="ArchiveHeader">
+                <Panel id="ArchiveTitleBlock"><Label id="ArchiveTitle" text="存档" /><Label id="ArchiveSubtitle" text="征途留痕 · 永久成长" /></Panel>
+                <Button id="ArchiveClose" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()"><Label text="×" /></Button>
+            </Panel>
+            <Panel id="ArchiveBody">
+                <Panel id="ArchiveTabs" />
+                <Panel id="ArchiveContent">
+                    <Panel id="ArchivePageHeader"><Label id="ArchivePageTitle" text="通关存档" /><Label id="ArchiveSummary" text="" /></Panel>
+                    <Label id="ArchiveHint" text="" />
+                    <Panel id="ArchiveGrid" />
+                    <Label id="ArchiveEmpty" text="正在读取存档…" />
+                    <Panel id="ArchiveDrawBar" class="ArchiveHidden">
+                        <Label id="ArchiveDrawResult" text="" />
+                        <Label id="ArchiveTickets" text="正在读取抽奖券…" />
+                        <Button id="ArchiveDraw"><Label text="抽奖 ×1" /></Button>
+                    </Panel>
+                </Panel>
+            </Panel>
+            <Label id="ArchiveStatus" text="" />
+        </Panel>
+        <Panel id="ArchiveTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false">
+            <Label id="ArchiveTooltipName" text="" />
+            <Label id="ArchiveTooltipEffect" text="" />
+        </Panel>
+    </Panel>
+</root>
