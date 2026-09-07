@@ -90,3 +90,8 @@
 #TreasureTooltip { ignore-parent-flow: true; align: center bottom; margin-bottom: 18px; width: 380px; padding: 14px; flow-children: down; background-color: #070f16ff; border: 1px solid #ad935d; z-index: 20; }
 #TreasureTooltipName { font-size: 21px; color: #fff2cf; }
 #TreasureTooltipEffect { width: 100%; white-space: normal; font-size: 17px; color: #c2d5ce; }
+.ArchiveWorkCard { height: 135px; }
+.ArchiveWorkCost { horizontal-align: center; color: #b8aaa0; font-size: 13px; }
+.ArchiveWorkAvailable { background-color: #8e75301c; }
+.ArchiveWorkAvailable:hover { background-color: #b493413b; brightness: 1.2; }
+.ArchiveWorkAvailable .ArchiveWorkCost { color: #f1d58f; }

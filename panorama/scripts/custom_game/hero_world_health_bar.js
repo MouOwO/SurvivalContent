@@ -33,6 +33,7 @@
         if (validPanel(panels[key])) return panels[key];
         if (!container) return null;
         var bar = $.CreatePanel("Panel", container, "SurvivalHeroWorldHealth_" + key);
+        bar.style.visibility = "collapse";
         bar.AddClass("SurvivalHeroWorldHealthBar");
         bar.hittest = false;
         var fill = $.CreatePanel("Panel", bar, "");
@@ -94,15 +95,22 @@
         var containerPosition = windowPosition(container);
         Object.keys(states).forEach(function (key) {
             var state = states[key];
-            var bar = ensurePanel(key);
             var entindex = Number(state.entindex);
-            if (!bar || Number(state.alive) !== 1 || entindex < 0
-                || !Entities.IsValidEntity(entindex)) {
+            if (!isFinite(entindex) || entindex < 0 || !Entities.IsValidEntity(entindex)) {
+                removePanel(key);
+                return;
+            }
+            var bar = ensurePanel(key);
+            if (!bar || Number(state.alive) !== 1
+                || (Entities.IsAlive && !Entities.IsAlive(entindex))
+                || (Entities.IsDormant && Entities.IsDormant(entindex))
+                || (state.unit_name && Entities.GetUnitName
+                    && Entities.GetUnitName(entindex) !== state.unit_name)) {
                 hide(key);
                 return;
             }
             var origin = Entities.GetAbsOrigin(entindex);
-            if (!origin || origin.length < 3) {
+            if (!origin || origin.length < 3 || Number(origin[2]) < -5000) {
                 hide(key);
                 return;
             }

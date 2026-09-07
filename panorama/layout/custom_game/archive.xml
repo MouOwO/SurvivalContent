@@ -1,5 +1,5 @@
 <root>
-    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /></styles>
+    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /><include src="file://{resources}/styles/custom_game/archive_gothic.css" /></styles>
     <scripts><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/archive.js" /><include src="file://{resources}/scripts/custom_game/daily_rewards.js" /><include src="file://{resources}/scripts/custom_game/treasure_history.js" /></scripts>
     <Panel class="ArchiveRoot" hittest="false">
         <Button id="ArchiveEntry" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Toggle()">
@@ -36,7 +36,7 @@
         </Panel>
         <Panel id="ArchiveWindow" class="ArchiveHidden">
             <Panel id="ArchiveHeader">
-                <Panel id="ArchiveTitleBlock"><Label id="ArchiveTitle" text="存档" /><Label id="ArchiveSubtitle" text="征途留痕 · 永久成长" /></Panel>
+                <Panel id="ArchiveTitleBlock"><Label id="ArchiveTitle" text="存 档" /><Label id="ArchiveSubtitle" text="征途留痕 · 永久成长" /></Panel>
                 <Button id="ArchiveClose" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()"><Label text="×" /></Button>
             </Panel>
             <Panel id="ArchiveBody">
@@ -51,9 +51,12 @@
                         <Label id="ArchiveTickets" text="正在读取抽奖券…" />
                         <Button id="ArchiveDraw"><Label text="抽奖 ×1" /></Button>
                     </Panel>
+                    <Panel id="ArchiveFooter">
+                        <Label id="ArchiveStatus" text="" />
+                        <Label id="ArchiveFaith" class="ArchiveHidden" text="" />
+                    </Panel>
                 </Panel>
             </Panel>
-            <Label id="ArchiveStatus" text="" />
         </Panel>
         <Panel id="ArchiveTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false">
             <Label id="ArchiveTooltipName" text="" />

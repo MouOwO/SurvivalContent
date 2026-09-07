@@ -7,6 +7,66 @@
     var selectedPoolId = "map";
     var visibleResults = [];
     var activeTooltipItem = null;
+    var animating = false, animationSerial = 0, skipAnimation = false;
+    var resultCards = [], lastDrawCount = 1, history = [], seenResults = {};
+    var activeRequest = null, opened = false, switchingPool = false;
+    var motion = { single: {enter:650, flip:1250, ready:2000}, ten: {enter:800, enterStep:40, flip:1350, flipStep:110, ready:2800}, flipHalf:100 };
+    var animationTimers = [], activeFeature = "", reopenDetails = false;
+    function cancelAnimation() { animationSerial++; animationTimers.forEach(function (timer) { if ($.CancelScheduled) $.CancelScheduled(timer); }); animationTimers = []; }
+    function cardState(card, name, on) { if (card && (!card.IsValid || card.IsValid())) card.SetHasClass(name, on); }
+    function drawCost(selected, count) { var value = Number(count === 10 ? selected.ten_cost : selected.single_cost); return isFinite(value) && value >= 0 ? value : count; }
+
+    function label(parent, text, className) {
+        var node = $.CreatePanel("Label", parent, "");
+        node.text = String(text || "");
+        if (className) node.AddClass(className);
+        node.hittest = false;
+        return node;
+    }
+    function rootClass(name, on) { var root = panel("LotteryWindow"); if (root) root.SetHasClass(name, on); }
+    function closeInfo() { activeFeature = ""; var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery_info"); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); }
+    function updateButtons() {
+        var selected = state && (state.selected_pool || state);
+        var locked = pending || animating || switchingPool || !selected;
+        [["LotterySingleButton", 1], ["LotteryTenButton", 10], ["LotteryAgain", lastDrawCount]].forEach(function (entry) {
+            var button = panel(entry[0]);
+            if (!button) return;
+            var cost = selected ? drawCost(selected, entry[1]) : 0;
+            if (!isFinite(cost)) cost = entry[1];
+            button.enabled = !locked && Number(selected.tickets || 0) >= cost;
+            button.SetHasClass("Disabled", !button.enabled);
+        });
+        var confirm = panel("LotteryConfirm"); if (confirm) confirm.enabled = !pending && !animating;
+        var refresh = panel("LotteryRefreshButton"); if (refresh) refresh.enabled = !pending && !animating;
+        rootClass("LotteryWaiting", pending);
+        setText("LotterySingleText", pending && lastDrawCount === 1 ? "请求中…" : (selected && drawCost(selected,1) === 0 ? "免费开启1个" : "开启1个"));
+        setText("LotteryTenText", pending && lastDrawCount === 10 ? "请求中…" : "开启10个");
+    }
+    function finishReveal() {
+        cancelAnimation();
+        animating = false;
+        rootClass("LotteryAnimating", false);
+        rootClass("LotteryCharging", false);
+        resultCards.forEach(function (card) { ["LotteryCardCovered", "LotteryCardEntering", "LotteryCardNarrow"].forEach(function (name) { cardState(card, name, false); }); });
+        updateButtons();
+    }
+    function revealResults() {
+        if (skipAnimation || !opened || !visibleResults.length) return;
+        cancelAnimation();
+        var generation = animationSerial, ten = lastDrawCount === 10, timing = ten ? motion.ten : motion.single;
+        animating = true; rootClass("LotteryAnimating", true); rootClass("LotteryCharging", true);
+        resultCards.forEach(function (card) { cardState(card,"LotteryCardCovered",true); cardState(card,"LotteryCardEntering",true); });
+        updateButtons(); setText("LotteryRevealPhase", "星轨汇聚");
+        function later(ms, action) { animationTimers.push($.Schedule(ms / 1000, function () { if (generation === animationSerial && opened) action(); })); }
+        later(650, function () { rootClass("LotteryCharging",false); });
+        resultCards.forEach(function (card, i) {
+            later(timing.enter + (timing.enterStep || 0) * i, function () { cardState(card,"LotteryCardEntering",false); });
+            var flip = timing.flip + (timing.flipStep || 0) * i;
+            later(flip, function () { cardState(card,"LotteryCardNarrow",true); });
+            later(flip + motion.flipHalf, function () { cardState(card,"LotteryCardCovered",false); cardState(card,"LotteryCardNarrow",false); });
+        });
+        later(timing.ready, finishReveal);
+    }
 
     function panel(id) { return $("#" + id); }
     function setText(id, value) {
@@ -26,6 +86,13 @@
     function requestId() {
         requestSerial += 1;
         return "lottery_" + Date.now() + "_" + requestSerial;
+    }
+    function historyTime() {
+        // Avoid locale/Intl formatting in the embedded V8 runtime. A native
+        // failure cannot be recovered with JavaScript try/catch.
+        var time = new Date();
+        function two(value) { return value < 10 ? "0" + value : String(value); }
+        return two(time.getHours()) + ":" + two(time.getMinutes()) + ":" + two(time.getSeconds());
     }
     function qualityText(quality) {
         return String(quality || "n").toUpperCase();
@@ -79,6 +146,7 @@
         var iconHost = panel("LotteryTooltipIconHost");
         if (!tooltip || !iconHost || !item || !sourcePanel) return;
         activeTooltipItem = item;
+        tooltip.style.zIndex = "100010";
         iconHost.RemoveAndDeleteChildren();
         createIconFrame(iconHost, item, "LotteryTooltipIconFrame");
         setText("LotteryTooltipName", item.name || item.id || "未命名道具");
@@ -105,33 +173,29 @@
         if (!list) return;
         hideTooltip();
         list.RemoveAndDeleteChildren();
+        resultCards = [];
+        rootClass("LotteryResultsShown", false);
         list.SetHasClass("LotterySingleResult", false);
         list.SetHasClass("LotteryTenResults", false);
         list.SetHasClass("LotteryChestMode", true);
-        var stage = $.CreatePanel("Panel", list, "");
-        stage.AddClass("LotteryChestStage");
-        var aura = $.CreatePanel("Panel", stage, "");
-        aura.AddClass("LotteryChestAura");
-        var chestFrame = $.CreatePanel("Panel", stage, "");
-        chestFrame.AddClass("LotteryChestFrame");
-        var chest = $.CreatePanel("DOTAItemImage", chestFrame, "");
-        chest.AddClass("LotteryChestIcon");
-        chest.itemname = "item_treasure_chest";
-        chest.hittest = false;
-        chest.hittestchildren = false;
-        var prompt = $.CreatePanel("Label", stage, "");
-        prompt.AddClass("LotteryChestPrompt");
-        prompt.text = "选择下方单抽或十连，开启本次宝箱";
+        // The main scene already contains the illustrated chest; no stock icon overlay.
     }
 
     function createResultCard(parent, item) {
         var card = $.CreatePanel("Panel", parent, "");
         card.AddClass("LotteryRewardCard");
         card.AddClass(qualityClass(item.quality));
+        card.style.borderColor = GameUI.CustomUIConfig().SurvivalRewardPresentation.NameColor(item.quality);
+        card.hittestchildren = false;
         var iconFrame = createIconFrame(card, item, "LotteryRewardIconFrame");
         var name = $.CreatePanel("Label", card, "");
         name.AddClass("LotteryRewardName");
         name.text = item.name || item.id || "物品";
+        label(card, item.description || "暂无效果说明", "LotteryRewardDescription");
+        label(card, item.duration_text || "永久", "LotteryRewardDuration");
+        var back = $.CreatePanel("Panel", card, "");
+        back.AddClass("LotteryCardBack");
+        label(card, "×" + Number(item.count || item.quantity || 1), "LotteryRewardQuantity");
         if (succeeded(item.duplicate)) {
             var duplicate = $.CreatePanel("Label", iconFrame, "");
             duplicate.AddClass("LotteryDuplicateBadge");
@@ -140,9 +204,11 @@
             duplicate.hittest = false;
         }
         card.SetPanelEvent("onmouseover", function () {
+            if (card.BHasClass("LotteryCardCovered")) return;
             showTooltip(item, card);
         });
         card.SetPanelEvent("onmouseout", hideTooltip);
+        card.SetPanelEvent("onactivate", function () { if (!card.BHasClass("LotteryCardCovered")) rewardDetails(item); });
         return card;
     }
 
@@ -151,13 +217,16 @@
         if (!list) return;
         hideTooltip();
         list.RemoveAndDeleteChildren();
+        rootClass("LotteryResultsShown", true);
+        setText("LotteryAgainText", lastDrawCount === 10 ? "再开十次" : "再开一次");
         list.SetHasClass("LotteryChestMode", false);
         list.SetHasClass("LotterySingleResult", items.length === 1);
         list.SetHasClass("LotteryTenResults", items.length > 1);
-        items.forEach(function (item) { createResultCard(list, item); });
+        resultCards = items.map(function (item) { return createResultCard(list, item); });
     }
 
     function renderDrawStage() {
+        if (animating) return;
         if (visibleResults.length > 0) renderResults(visibleResults);
         else renderChest();
     }
@@ -169,6 +238,8 @@
     }
 
     function resetDrawStage() {
+        if (pending) return;
+        finishReveal();
         visibleResults = [];
         renderChest();
         setText("LotteryStatus", "请选择开启数量");
@@ -177,10 +248,13 @@
     function open() {
         var root = panel("LotteryWindow");
         if (!root) return;
-        visibleResults = [];
+        opened = true;
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers;
+        if (layers) layers.Open("lottery", root, close);
         root.SetHasClass("LotteryOpen", true);
         root.SetHasClass("LotteryClosed", false);
-        renderChest();
+        renderDrawStage();
+        updateButtons();
         requestSnapshot();
     }
 
@@ -191,6 +265,9 @@
     }
 
     function close() {
+        opened = false;
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery");
+        finishReveal(); closeInfo();
         hideTooltip();
         var root = panel("LotteryWindow");
         if (!root) return;
@@ -204,16 +281,21 @@
     }
 
     function selectPool(poolId) {
-        if (pending) return;
+        if (pending || animating || switchingPool) return;
         selectedPoolId = String(poolId || "map");
+        switchingPool = true;
+        reopenDetails = activeFeature === "details";
+        state = null; closeInfo();
+        ["LotteryTitle","LotterySubtitle","LotteryGuaranteeValue","LotteryTicketValue","LotterySingleCost","LotteryTenCost"].forEach(function (id) { setText(id,"正在读取…"); });
         visibleResults = [];
         renderChest();
         setText("LotteryStatus", "正在切换奖池……");
         requestSnapshot();
+        updateButtons();
     }
 
-    function renderPoolTabs(pools) {
-        var host = panel("LotteryPoolTabs");
+    function renderPoolTabs(pools, hostId) {
+        var host = panel(hostId || "LotteryPoolTabs");
         if (!host) return;
         host.RemoveAndDeleteChildren();
         rows(pools).forEach(function (pool) {
@@ -222,6 +304,12 @@
             button.SetHasClass("Selected", String(pool.id) === selectedPoolId);
             var label = $.CreatePanel("Label", button, "");
             label.text = pool.display_name || pool.id;
+            label.AddClass("LotteryPoolTabName");
+            if (String(pool.id) === "map") label.text = "地图宝箱";
+            var badge = $.CreatePanel("Label", button, "");
+            badge.AddClass("LotteryPoolBadge");
+            var guarantees = rows(pool.pity);
+            badge.text = guarantees.length ? String(guarantees[0].label || "十连保底") : "";
             button.SetPanelEvent("onactivate", function () {
                 selectPool(pool.id);
             });
@@ -240,15 +328,18 @@
     function render(snapshot) {
         if (!snapshot) return;
         if (snapshot.error) {
+            state = null; switchingPool = false; updateButtons();
             setText("LotteryStatus", "抽奖数据加载失败："
                 + errorText(snapshot.error));
             return;
         }
+        if (snapshot.selected_pool_id && String(snapshot.selected_pool_id) !== selectedPoolId) return;
         state = snapshot;
+        switchingPool = false;
         selectedPoolId = String(snapshot.selected_pool_id || selectedPoolId);
         var selected = snapshot.selected_pool || snapshot;
         renderPoolTabs(snapshot.pools);
-        setText("LotteryTitle", selected.display_name || "星悦抽奖");
+        setText("LotteryTitle", selectedPoolId === "map" ? "地图宝箱" : (selected.display_name || "星悦抽奖"));
         setText("LotterySubtitle", selected.description
             || "重复物品自动兑换为星悦积分");
         setText("LotteryTicketValue", String(selected.ticket_name || "抽奖券")
@@ -260,58 +351,81 @@
             ? "特殊奖池" : "地图奖池");
         var ten = panel("LotteryTenButton");
         var single = panel("LotterySingleButton");
-        var singleCost = Number(selected.single_cost || 1);
-        var tenCost = Number(selected.ten_cost || 10);
+        var singleCost = drawCost(selected, 1);
+        var tenCost = drawCost(selected, 10);
         if (ten) ten.SetHasClass("Disabled",
             Number(selected.tickets || 0) < tenCost);
         if (single) single.SetHasClass("Disabled",
             Number(selected.tickets || 0) < singleCost);
+        setText("LotterySingleText", singleCost === 0 ? "免费开启1个" : "开启1个");
         setText("LotterySingleCost", "使用 " + singleCost
             + " 张" + String(selected.ticket_name || "抽奖券"));
         setText("LotteryTenCost", "使用 " + tenCost
             + " 张" + String(selected.ticket_name || "抽奖券"));
         renderDrawStage();
+        updateButtons();
+        if (reopenDetails) { reopenDetails = false; feature("details"); }
     }
 
     function draw(count) {
-        if (pending || !state) return;
+        if (pending || animating || switchingPool || !state) return;
+        if (count !== 1 && count !== 10) return;
         var selected = state.selected_pool || state;
-        var cost = Number(count === 10
-            ? (selected.ten_cost || 10) : (selected.single_cost || 1));
+        var cost = drawCost(selected, count);
         if (Number(selected.tickets || 0) < cost) {
             setText("LotteryStatus",
                 String(selected.ticket_name || "抽奖券") + "不足");
             return;
         }
         pending = true;
+        lastDrawCount = count;
+        closeInfo();
+        updateButtons();
         hideTooltip();
         setText("LotteryStatus", count === 10
             ? "十连抽进行中……" : "单抽进行中……");
+        activeRequest = requestId();
         GameEvents.SendCustomGameEventToServer("ui_lottery_draw_request", {
-            request_id: requestId(),
+            request_id: activeRequest,
             pool_id: selectedPoolId,
             count: count
         });
     }
 
     function renderResult(payload) {
+        if (payload && payload.request_id && seenResults[payload.request_id]) return;
+        if (payload && payload.request_id && activeRequest && payload.request_id !== activeRequest) return;
+        $.Msg("[SURVIVAL_LOTTERY_UI] stage=result_received request="
+            + String(payload && payload.request_id || "none"));
         pending = false;
+        activeRequest = null;
         if (!payload || !succeeded(payload.ok)) {
             setText("LotteryStatus", "抽奖失败："
                 + errorText(payload && payload.error));
             if (payload && payload.snapshot) render(payload.snapshot);
             else requestSnapshot();
+            updateButtons();
             return;
         }
+        if (payload.request_id) seenResults[payload.request_id] = true;
+        finishReveal();
         visibleResults = rows(payload.results);
+        lastDrawCount = visibleResults.length > 1 ? 10 : 1;
+        if (payload.pool_id) selectedPoolId = String(payload.pool_id);
+        history.unshift({ time: historyTime(), pool: selectedPoolId, items: visibleResults.slice(0) });
+        if (history.length > 30) history.pop();
         $.Msg("[SURVIVAL_LOTTERY_UI] result_count=" + visibleResults.length
             + " server_count=" + Number(payload.count || 0)
             + " guarantee=" + String(payload.guarantee_quality || "none")
             + " satisfied=" + String(payload.guarantee_satisfied));
         if (payload.snapshot) render(payload.snapshot);
         else renderDrawStage();
+        $.Msg("[SURVIVAL_LOTTERY_UI] stage=cards_ready count=" + resultCards.length);
         setText("LotteryStatus", "本次获得 "
             + Number(payload.count || visibleResults.length) + " 件物品");
+        updateButtons();
+        revealResults();
+        $.Msg("[SURVIVAL_LOTTERY_UI] stage=reveal_ready animated=" + animating);
     }
 
     function renderExchangeResult(payload) {
@@ -322,9 +436,63 @@
             return;
         }
         visibleResults = [payload.item];
+        lastDrawCount = 1;
         if (payload.snapshot) render(payload.snapshot);
         else renderDrawStage();
         setText("LotteryStatus", "兑换成功");
+        updateButtons();
+    }
+
+    function rewardDetails(item) {
+        feature("reward");
+        setText("LotteryInfoTitle", item.name || item.id);
+        setText("LotteryInfoNote", qualityText(item.quality) + " · " + (item.duration_text || "永久"));
+        var host = panel("LotteryInfoList"); host.RemoveAndDeleteChildren();
+        createIconFrame(host, item, "LotteryDetailIcon");
+        label(host, item.description || "暂无效果说明", "LotteryDetailDescription");
+    }
+
+    function feature(name) {
+        var host = panel("LotteryInfoList"), overlay = panel("LotteryInfoOverlay");
+        if (!host || !overlay) return;
+        hideTooltip(); host.RemoveAndDeleteChildren();
+        host.SetHasClass("LotteryPoolGrid", name === "details");
+        overlay.RemoveClass("LotteryInfoHidden");
+        activeFeature = name;
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Open("lottery_info", overlay, closeInfo);
+        var tabs = panel("LotteryInfoTabs"); if (tabs) tabs.visible = name === "details";
+        if (name === "details") renderPoolTabs(state && state.pools, "LotteryInfoTabs");
+        var selected = state && (state.selected_pool || state);
+        var titles = { details: "奖池详情", history: "抽奖记录", announcement: "开奖公告", purchase: "购买抽奖券", firstgift: "首充礼包 · 连领3天", privilege: "抽奖券礼包特权" };
+        setText("LotteryInfoTitle", titles[name] || "功能提示");
+        setText("LotteryInfoNote", "");
+        if (name === "details") {
+            setText("LotteryInfoNote", selected ? selected.description + " · " + rows(selected.pity).map(function (r) { return r.label; }).join("；") : "正在读取当前奖池…");
+            rows(state && state.items).forEach(function (item) {
+                var row = $.CreatePanel("Panel", host, ""); row.AddClass("LotteryDetailRow");
+                createIconFrame(row, item, "LotteryDetailIcon");
+                var copy = $.CreatePanel("Panel", row, ""); copy.AddClass("LotteryDetailCopy");
+                label(copy, qualityText(item.quality) + " · " + (item.name || item.id), "LotteryDetailName");
+                label(copy, item.description || "暂无效果说明", "LotteryDetailDescription");
+                label(copy, (item.duration_text || "永久") + " · 重复转化 " + Number(item.duplicate_points || 0) + " 积分", "LotteryDetailMeta");
+            });
+        } else if (name === "history") {
+            setText("LotteryInfoNote", "仅显示本次游戏中收到的最近30次抽奖结果；跨局记录暂未接入。");
+            if (!history.length) label(host, "暂无本局抽奖记录", "LotteryDetailDescription");
+            history.forEach(function (entry) {
+                label(host, entry.time + " · " + entry.items.length + "件", "LotteryHistoryHeading");
+                entry.items.forEach(function (item) { label(host, qualityText(item.quality) + "  " + (item.name || item.id) + (succeeded(item.duplicate) ? " · 已转化" + Number(item.converted_points || 0) + "积分" : ""), "LotteryHistoryItem"); });
+            });
+        } else if (name === "announcement") {
+            setText("LotteryInfoNote", "当前奖池规则");
+            label(host, selected ? selected.description : "奖池数据尚未就绪", "LotteryDetailDescription");
+            rows(selected && selected.pity).forEach(function (rule) { label(host, rule.label || "", "LotteryHistoryHeading"); });
+            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按服务端配置转为星悦积分。", "LotteryDetailDescription");
+            label(host, "活动公告内容暂未接入。", "LotteryDetailMeta");
+        } else {
+            label(host, "此入口暂未开放，后续补充。", "LotteryHistoryHeading");
+            label(host, name === "privilege" ? "免费单抽权益尚未接入；当前单抽按页面显示的抽奖券数量消耗。" : "当前不会扣款、扣券或发放礼包。", "LotteryDetailDescription");
+        }
     }
 
     GameEvents.Subscribe("ui_lottery_snapshot", render);
@@ -338,7 +506,12 @@
         Toggle: toggle,
         DrawSingle: function () { draw(1); },
         DrawTen: function () { draw(10); },
+        DrawAgain: function () { draw(lastDrawCount); },
+        Feature: feature,
+        CloseInfo: closeInfo,
+        SkipReveal: finishReveal,
+        SetSkipAnimation: function () { skipAnimation = !!panel("LotterySkipAnimation").checked; if (skipAnimation && animating) finishReveal(); },
         SelectPool: selectPool,
-        Refresh: requestSnapshot
+        Refresh: function () { if (!pending && !animating) requestSnapshot(); }
     };
 })();

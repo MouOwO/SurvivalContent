@@ -1,0 +1,194 @@
+/* Archive-only blue/silver skin. Coordinates align with the 1402 x 1122 background;
+   all labels, inventory counts and controls remain live Panorama panels. */
+#ArchiveWindow {
+    width: 1180px;
+    height: 960px;
+    padding: 0px 22px 48px;
+    background-image: url("file://{images}/custom_game/archive_moon/window.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    border: 0px solid transparent;
+    border-radius: 0px;
+    box-shadow: none;
+}
+#ArchiveHeader {
+    height: 132px;
+    border-bottom: 0px solid transparent;
+    flow-children: none;
+}
+#ArchiveTitleBlock { width: 430px; horizontal-align: center; padding: 0px; }
+#ArchiveTitle {
+    margin-top: 43px;
+    font-family: "Noto Serif CJK SC", "SimSun", serif;
+    font-size: 36px;
+    font-weight: bold;
+    letter-spacing: 6px;
+    color: #e0f3ff;
+    text-shadow: 0px 3px 3px 3 #000000;
+}
+#ArchiveSubtitle { visibility: collapse; }
+#ArchiveClose {
+    horizontal-align: right;
+    width: 36px; height: 36px; margin: 80px 22px 0px 0px;
+    border: 1px solid #9ebcd3;
+    border-radius: 50%;
+    background-color: gradient(radial, 50% 45%, 0% 0%, 70% 70%, from(#3b6480), to(#132636));
+    box-shadow: #000000aa 0px 2px 6px 1px;
+}
+#ArchiveClose Label { color: #dfedfa; font-size: 26px; }
+#ArchiveClose:hover { border-color: #bdefff; brightness: 1.5; }
+#ArchiveBody { padding-top: 0px; }
+#ArchiveTabs {
+    width: 216px;
+    padding: 4px 16px 10px 0px;
+    overflow: squish scroll;
+}
+.ArchiveTab {
+    width: 184px; height: 64px; margin: 0px 0px 5px; padding: 0px;
+    background-image: url("file://{images}/custom_game/archive_moon/tab.png");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    border: 0px solid transparent;
+    border-radius: 0px;
+    box-shadow: none;
+    transition-property: brightness;
+    transition-duration: 0.12s;
+}
+.ArchiveTab Label {
+    width: 146px;
+    margin-left: 8px;
+    font-family: "Noto Serif CJK SC", "SimSun", serif;
+    font-size: 22px;
+    text-align: center;
+    text-overflow: shrink;
+    color: #d3e6f6;
+    text-shadow: 0px 2px 2px 3 #000000;
+}
+.ArchiveTab:selected {
+    background-image: url("file://{images}/custom_game/archive_moon/tab_selected.png");
+    border: 0px solid transparent;
+    background-color: transparent;
+    box-shadow: none;
+    brightness: 1.1;
+}
+.ArchiveTab:selected Label { color: #ffcf79; }
+.ArchiveTab:hover { brightness: 1.25; }
+.ArchiveTab:selected:hover { brightness: 1.25; }
+#ArchiveContent {
+    padding: 16px 18px 0px;
+    background-color: transparent;
+    border: 0px solid transparent;
+}
+#ArchivePageHeader { height: 36px; border-bottom: 1px solid #94b6d344; }
+#ArchivePageTitle {
+    font-family: "Noto Serif CJK SC", "SimSun", serif;
+    font-size: 23px; color: #e0edfa;
+}
+#ArchiveSummary { font-size: 15px; color: #bbd3e5; }
+#ArchiveHint {
+    width: 100%; height: 40px; margin: 8px 0px 4px;
+    font-size: 14px; color: #b0c8db; white-space: normal;
+}
+#ArchiveGrid { padding: 5px 0px 0px; }
+.ArchiveCard {
+    width: 100px; height: 155px; margin: 0px 4px 14px;
+    transition-property: brightness;
+    transition-duration: 0.12s;
+}
+.ArchiveCard:hover { brightness: 1.3; }
+.ArchiveArt {
+    width: 92px; height: 112px;
+    border: 2px solid #8da9c0;
+    border-radius: 1px;
+    background-color: gradient(radial, 50% 40%, 0% 0%, 80% 85%, from(#365770), color-stop(0.6, #1e364b), to(#102438));
+    box-shadow: #000000cc 0px 3px 6px 1px;
+}
+.ArchiveGlyph {
+    width: 48px; height: 62px;
+    margin-top: -14px;
+    border-color: #adc7dd;
+    background-color: gradient(linear, 0% 0%, 100% 100%, from(#426887), to(#182d43));
+}
+.ArchiveRune { margin-top: -14px; font-size: 25px; color: #e2f2ff; }
+.ArchiveRewardIcon { width: 84px; height: 85px; align: center top; margin-top: 3px; }
+.ArchiveCount {
+    width: fit-children; min-width: 49px;
+    horizontal-align: right;
+    padding: 0px 5px;
+    font-family: "Noto Serif CJK SC", "SimSun", serif;
+    font-size: 21px;
+    color: #e5f1ff;
+    background-color: #152b40f5;
+    border-top: 1px solid #8da9c0;
+    border-left: 1px solid #8da9c0;
+    text-shadow: 0px 1px 2px 2 #000000;
+}
+.ArchiveItemName {
+    font-family: "Noto Serif CJK SC", "SimSun", serif;
+    font-size: 18px; color: #dcecff; margin-top: 7px;
+    text-shadow: 0px 2px 2px 2 #000000;
+}
+.ArchiveCompleted { saturation: 0.15; brightness: 0.55; }
+.ArchiveUnowned .ArchiveRewardIcon { saturation: 0.2; brightness: 0.5; }
+.ArchiveArt.ArchiveQuality_white, .ArchiveArt.ArchiveQuality_n { border-color: #9cb4ca; }
+.ArchiveArt.ArchiveQuality_blue, .ArchiveArt.ArchiveQuality_r { border-color: #4e9cd6; }
+.ArchiveArt.ArchiveQuality_purple, .ArchiveArt.ArchiveQuality_sr { border-color: #9c6fd7; }
+.ArchiveArt.ArchiveQuality_green { border-color: #5eb68d; }
+.ArchiveArt.ArchiveQuality_ssr { border-color: #e0ba65; }
+.ArchiveArt.ArchiveQuality_ur { border-color: #e48b65; }
+.ArchiveArt.ArchiveMaxed { border-color: #d9ad61; box-shadow: #b4863522 0px 0px 8px 1px; }
+.ArchiveMaxed .ArchiveCount { color: #ffd991; border-color: #c9a15e; }
+.ArchiveWorkCard { height: 177px; }
+.ArchiveWorkCost { font-size: 13px; color: #afc1d3; margin-top: 4px; }
+.ArchiveWorkAvailable { background-color: transparent; }
+.ArchiveWorkAvailable .ArchiveArt { border-color: #d2a15c; }
+.ArchiveWorkAvailable:hover { background-color: #bc8a2420; }
+.ArchiveWorkAvailable .ArchiveWorkCost { color: #e8bb73; }
+.ArchiveFragmentCard { height: 209px; }
+.ArchiveFragmentLevel { font-size: 14px; color: #cfad77; }
+.ArchivePromote { height: 28px; background-color: #24435e; border-color: #8eabc6; }
+.ArchivePromote:hover { brightness: 1.5; }
+#ArchiveEmpty { color: #c3d8eb; font-size: 20px; }
+#ArchiveFooter {
+    width: 100%; height: 56px; flow-children: right;
+    border-top: 1px solid #94b6d344;
+}
+#ArchiveStatus {
+    width: fill-parent-flow(1); height: fit-children;
+    margin: 0px 12px 0px 0px; vertical-align: center;
+    font-size: 13px; color: #b9cfdf; white-space: normal;
+}
+#ArchiveFaith {
+    vertical-align: center;
+    font-family: "Noto Serif CJK SC", "SimSun", serif;
+    font-size: 25px; color: #e9cf9f;
+    text-shadow: 0px 2px 2px 3 #000000;
+}
+#ArchiveDrawBar {
+    ignore-parent-flow: false; width: 100%; height: 50px;
+    margin: 4px 0px; padding: 5px 8px;
+    background-color: #172e43e8; border-top: 1px solid #8eabc6;
+}
+#ArchiveContent.ArchiveHasDraw #ArchiveGrid { margin-bottom: 0px; }
+#ArchiveDraw { background-color: #315778; border-color: #b2d3ed; }
+#ArchiveDraw:hover { brightness: 1.4; }
+#ArchiveTooltip {
+    background-color: gradient(linear, 0% 0%, 100% 100%, from(#29445cfc), to(#11263bfc));
+    border: 1px solid #a8c6e0; padding: 17px 20px;
+    box-shadow: #000000ee 0px 5px 20px 2px;
+}
+#ArchiveTooltipName { font-size: 21px; }
+#ArchiveTooltipEffect { color: #d6e6f5; font-size: 17px; line-height: 24px; }
+#ArchiveEntry {
+    background-image: url("file://{images}/custom_game/archive_moon/tab.png");
+    background-size: 100% 100%; background-position: center;
+    background-color: transparent; border: 0px solid transparent; box-shadow: none;
+}
+.ArchiveEntryText { color: #e0efff; }
+.ArchiveEntryScroll { background-color: #24445e; border-color: #a4c4df; }
+.ArchiveEntryScroll Label { color: #d6efff; }
+#ArchiveTabs VerticalScrollBar, #ArchiveGrid VerticalScrollBar { width: 5px; background-color: #080d0f99; }
+#ArchiveTabs VerticalScrollBar .ScrollThumb, #ArchiveGrid VerticalScrollBar .ScrollThumb { background-color: #8aabc6; border: 0px solid transparent; }

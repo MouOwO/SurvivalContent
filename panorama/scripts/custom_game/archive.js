@@ -2,12 +2,21 @@
     "use strict";
     var current = "clear", opened = false, latest = 0, assembly = null;
     var categories = [], tooltipVisible = false, requestGeneration = 0, tooltipGeneration = 0;
+    // Match the actual archive definitions, not the example names in the style reference.
+    var buildingIcons = {
+        building_01: "item_octarine_core", building_02: "item_rapier", building_03: "item_crimson_guard",
+        building_04: "item_claymore", building_05: "item_abyssal_blade", building_06: "item_platemail",
+        building_07: "item_arcane_boots", building_08: "item_bfury", building_09: "item_mjollnir"
+    };
     function isDrawPage() { return current === "friend" || current === "ex" || current === "beast"; }
     function showDrawBar() {
         var visible = isDrawPage();
         panel("ArchiveContent").SetHasClass("ArchiveHasDraw", visible);
         panel("ArchiveDrawBar").SetHasClass("ArchiveHidden", !visible);
         panel("ArchiveDrawBar").style.visibility = visible ? "visible" : "collapse";
+        panel("ArchiveContent").SetHasClass("ArchiveBuildingPage", current === "building");
+        panel("ArchiveFaith").AddClass("ArchiveHidden");
+        panel("ArchiveFaith").text = "";
     }
     function panel(id) { return $("#" + id); }
     function array(value) {
@@ -71,6 +80,8 @@
                 panel("ArchiveEmpty").text = "正在读取存档…";
                 panel("ArchivePageTitle").text = category.name;
                 panel("ArchiveSummary").text = "";
+                panel("ArchiveHint").text = "";
+                panel("ArchiveStatus").text = "正在同步档案…";
                 showDrawBar();
                 panel("ArchiveDraw").enabled = false;
                 panel("ArchiveTickets").text = "正在读取抽奖券…";
@@ -88,7 +99,10 @@
         art.AddClass("ArchiveArt_" + (item.icon_style || "seal"));
         art.AddClass("ArchiveQuality_" + (item.quality || "gold"));
         art.hittest = false;
-        if (current === "points" && item.icon_type !== "custom") {
+        if (current === "building" && buildingIcons[item.id]) {
+            GameUI.CustomUIConfig().SurvivalRewardPresentation.CreateIcon(art,
+                { icon_type: "item", icon: buildingIcons[item.id] }, "ArchiveRewardIcon");
+        } else if (current === "points" && item.icon_type !== "custom") {
             GameUI.CustomUIConfig().SurvivalRewardPresentation.CreateIcon(art, item, "ArchiveRewardIcon");
         } else {
         var shape = $.CreatePanel("Panel", art, "");
@@ -96,10 +110,16 @@
         shape.hittest = false;
         label(art, item.rune || String(item.name || "印").substring(0, 1), "ArchiveRune");
         }
-        if (Number(item.completed) === 1) art.AddClass("ArchiveCompleted");
+        if (Number(item.completed) === 1) art.AddClass(current === "building" ? "ArchiveMaxed" : "ArchiveCompleted");
+        if (current === "building" && !(Number(item.count) > 0)) art.AddClass("ArchiveUnowned");
         if (isDrawPage() && !(Number(item.count) > 0)) art.AddClass("ArchiveCompleted");
+        if (current === "fishing" && !(Number(item.count) > 0)) art.AddClass("ArchiveCompleted");
         var count = Math.max(0, Number(item.count) || 0), target = Number(item.target) || 1;
-        label(art, (current === "clear" || current === "endless" || current === "boss" ? Math.min(count, target) : count) + "/" + target, "ArchiveCount");
+        if (current === "fishing" && Number(item.count_known) !== 1) {
+            label(art, "待同步", "ArchiveCount");
+            return;
+        }
+        label(art, (current === "clear" || current === "endless" || current === "boss" || current === "map_level" ? Math.min(count, target) : count) + "/" + target + (current === "map_level" ? "分" : ""), "ArchiveCount");
     }
     function render(data) {
         if (data.category_id !== current) return;
@@ -132,6 +152,23 @@
             label(card, item.name, "ArchiveItemName");
             card.SetPanelEvent("onmouseover", function () { tooltip(item); });
             card.SetPanelEvent("onmouseout", hideTooltip);
+            if (current === "work" || current === "building") {
+                card.AddClass("ArchiveWorkCard");
+                var canUpgrade = Number(item.can_upgrade) === 1 && Number(data.pending) !== 1;
+                card.SetHasClass("ArchiveWorkAvailable", canUpgrade);
+                label(card, Number(item.completed) === 1 ? (current === "building" ? "已满级" : "已激活") : item.cost + (current === "building" ? "信仰值" : "软妹币"), "ArchiveWorkCost");
+                card.SetPanelEvent("onactivate", function () {
+                    if (!canUpgrade) return;
+                    canUpgrade = false;
+                    card.RemoveClass("ArchiveWorkAvailable");
+                    panel("ArchiveStatus").text = current === "building" ? "正在保存建筑升级…" : "正在激活福利…";
+                    hideTooltip();
+                    GameEvents.SendCustomGameEventToServer(current === "building" ? "survival_archive_building_upgrade" : "survival_archive_work_upgrade", {
+                        item_id: item.id, expected_level: Number(item.level) || 0
+                    });
+                    $.Schedule(0.5, request);
+                });
+            }
             if (current === "fragment") {
                 card.AddClass("ArchiveFragmentCard");
                 label(card, "Lv" + (Number(item.level) || 0), "ArchiveFragmentLevel");
@@ -175,10 +212,36 @@
             panel("ArchiveSummary").text = "已拥有 " + ownedTypes + " / " + rows.length + " 种 · 共 " + social.total + " 件";
             panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" : current === "friend" && Number(social.unlocked) === 1 ? "已集齐100件 · 我的大基巴已解锁（入口预留）" : "挑战3获取" + social.currency_name + " · 每项挑战每日最多10张 · 奖励效果按持有数量叠加";
         }
+        if (current === "building" && data.buildings) {
+            var buildings = data.buildings;
+            panel("ArchiveSummary").text = "信仰值：" + buildings.faith + " · 今日获取 " + buildings.earned_today + "/" + buildings.daily_cap;
+            panel("ArchiveFaith").text = "信仰值：" + buildings.faith;
+            panel("ArchiveFaith").RemoveClass("ArchiveHidden");
+            panel("ArchiveHint").text = "每次通关+" + buildings.per_clear + "信仰值 · 每日上限" + buildings.daily_cap + " · 余额累积 · 通行证不加成";
+            panel("ArchiveStatus").text = Number(data.pending) === 1 ? "正在保存建筑升级…" : "点击激活或升级 · 每项最多5级 · 通关后新增效果于下局生效";
+        }
         if (current === "boss") {
             panel("ArchiveSummary").text = "波次BOSS击杀 " + (rows.length ? rows[0].count : 0) + " 次 · 已激活 " + done + " / " + rows.length;
             panel("ArchiveHint").text = "只记录主线波次BOSS · 月卡有效时门槛减半，到期恢复原门槛";
             panel("ArchiveStatus").text = "按当前门槛激活效果 · 击杀记录永久保留";
+        }
+        if (current === "fishing") {
+            var fishing = data.fishing || {};
+            panel("ArchiveSummary").text = Number(fishing.ready) === 1 ? "已拥有 " + fishing.owned + " / " + fishing.types + " 种 · 共 " + fishing.total + " 件" : "库存待同步";
+            panel("ArchiveHint").text = "在线奖励获得 · 已拥有点亮，未拥有置灰 · 悬停查看单件效果";
+            panel("ArchiveStatus").text = Number(fishing.ready) === 1 ? "展示服务器钓鱼记录 · 数量随档案同步" : "服务器尚未返回钓鱼库存数量";
+        }
+        if ((current === "map_level" || current === "work") && data.online) {
+            var online = data.online;
+            if (current === "map_level") {
+                var minutes = Math.floor(Number(online.map_seconds) / 60);
+                panel("ArchiveSummary").text = "等级 " + online.level + " / " + online.max_level;
+                panel("ArchiveHint").text = "累计有效在线 " + Math.floor(minutes / 60) + "小时" + (minutes % 60) + "分钟 · " + (Number(data.has_pass) === 1 ? "通行证双倍计时" : "正常计时");
+            } else {
+                panel("ArchiveSummary").text = "软妹币：" + online.coins + " · 已激活 " + done + " / " + rows.length;
+                panel("ArchiveHint").text = "实际在线每分钟获得1软妹币 · 点击小格消耗软妹币激活 · 同名项目独立叠加";
+            }
+            panel("ArchiveStatus").text = Number(data.pending) === 1 ? "正在保存进度…" : "进度每分钟保存 · 奖励永久保留；通关后新增属性于下局生效";
         }
     }
     GameEvents.Subscribe("survival_archive_snapshot", function (data) {
