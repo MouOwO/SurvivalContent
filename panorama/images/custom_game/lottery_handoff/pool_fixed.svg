@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1045" height="600" viewBox="0 0 1045 600">
+<defs><linearGradient id="header" x2="0" y2="1"><stop stop-color="#37596a"/><stop offset="1" stop-color="#294553"/></linearGradient><linearGradient id="paper" x2="0" y2="1"><stop stop-color="#dce4e6"/><stop offset="1" stop-color="#edf0ed"/></linearGradient></defs>
+<path d="M20 4H1025L1042 21V579L1025 596H20L3 579V21Z" fill="url(#header)" stroke="#d3c39f" stroke-width="1.5"/>
+<path d="M24 9H1021L1037 25V575L1021 591H24L8 575V25Z" fill="none" stroke="#c6b991" stroke-width=".7"/>
+<path d="M30 77H1015L1024 87V569L1015 580H30L21 569V87Z" fill="url(#paper)" stroke="#e8e7d7" stroke-width="1"/>
+<path d="M30 77H1015L1024 87V128H21V87Z" fill="url(#header)" stroke="#a8b9be" stroke-width="1"/>
+<path d="M22 510H1023M701 146V503" stroke="#b4c1c5" stroke-width=".8"/>
+<g fill="none" stroke="#d3c39f" stroke-width="1"><path d="M12 31L12 12L31 12L18 25L12 31M17 16L30 5M1033 31V12H1014L1027 25L1033 31M1028 16L1015 5M12 569V588H31L18 575L12 569M17 584L30 595M1033 569V588H1014L1027 575L1033 569M1028 584L1015 595"/><path d="M315 42H360L370 36L380 42L370 48L360 42M730 42H685L675 36L665 42L675 48L685 42"/></g>
+</svg>
