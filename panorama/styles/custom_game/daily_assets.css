@@ -1,0 +1,89 @@
+/* Generated from supplied runtime assets; no exact/baked labels. */
+.DailyClaimSkin { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_normal.png"); background-size: 100% 100%; }
+.DailyClaimSkin:hover { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_hover.png"); }
+.DailyClaimSkin:active { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_pressed.png"); }
+.DailyClaimSkin:disabled { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_disabled.png"); }
+.DailyNormalCard { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty.png"); background-size: 100% 100%; }
+.DailyNormalCard:hover { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty_hover.png"); }
+.DailyNormalCard:active { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty_pressed.png"); }
+.DailyNormalCard:disabled { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty_disabled.png"); }
+.DailyWeekCard { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_body.png"); background-size: 100% 100%; }
+.DailyWeekCard:hover { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_hover.png"); }
+.DailyWeekCard:active { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_pressed.png"); }
+.DailyWeekCard:disabled { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_disabled.png"); }
+.DailyIcon_close_local .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_normal.png"); }
+.DailyIcon_close_local:hover .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_hover.png"); }
+.DailyIcon_close_local:active .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_pressed.png"); }
+.DailyIcon_close_local:disabled .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_disabled.png"); }
+.DailyIcon_rules_local .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_normal.png"); }
+.DailyIcon_rules_local:hover .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_hover.png"); }
+.DailyIcon_rules_local:active .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_pressed.png"); }
+.DailyIcon_rules_local:disabled .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_disabled.png"); }
+.DailyIcon_pass .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/pass_normal.png"); }
+.DailyIcon_pass:hover .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/pass_hover.png"); }
+.DailyIcon_pass:active .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/pass_pressed.png"); }
+.DailyIcon_pass:disabled .DailyIconArt { background-image: url("file://{images}/ui/daily_rewards/icons/pass_disabled.png"); }
+.DailyPreload_daily_item_coins { background-image: url("file://{images}/ui/daily_rewards/items/coins_medallion.png"); }
+.DailyPreload_daily_item_wood { background-image: url("file://{images}/ui/daily_rewards/items/wood_medallion.png"); }
+.DailyPreload_daily_item_book { background-image: url("file://{images}/ui/daily_rewards/items/book_medallion.png"); }
+.DailyPreload_daily_item_ticket { background-image: url("file://{images}/ui/daily_rewards/items/ticket_medallion.png"); }
+.DailyPreload_daily_item_crystals { background-image: url("file://{images}/ui/daily_rewards/items/crystals_medallion.png"); }
+.DailyPreload_daily_item_material { background-image: url("file://{images}/ui/daily_rewards/items/material_medallion.png"); }
+.DailyPreload_daily_card_body { background-image: url("file://{images}/ui/daily_rewards/cards/day_body.png"); }
+.DailyPreload_daily_card_week_end { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_body.png"); }
+.DailyPreload_daily_badge_pass_active { background-image: url("file://{images}/ui/daily_rewards/badges/pass_active.png"); }
+.DailyPreload_daily_badge_premium { background-image: url("file://{images}/ui/daily_rewards/badges/premium.png"); }
+.DailyPreload_daily_badge_today { background-image: url("file://{images}/ui/daily_rewards/badges/today.png"); }
+.DailyPreload_daily_button_claim_normal { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_normal.png"); }
+.DailyPreload_shared_candidate_daily_window { background-image: url("file://{images}/ui/daily_rewards/frame/empty_window_candidate.png"); }
+.DailyPreload_daily_icon_calendar_normal { background-image: url("file://{images}/ui/daily_rewards/icons/calendar_normal.png"); }
+.DailyPreload_daily_icon_close_local_normal { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_normal.png"); }
+.DailyPreload_daily_icon_info_normal { background-image: url("file://{images}/ui/daily_rewards/icons/info_normal.png"); }
+.DailyPreload_daily_icon_rules_local_normal { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_normal.png"); }
+.DailyPreload_daily_icon_pass_normal { background-image: url("file://{images}/ui/daily_rewards/icons/pass_normal.png"); }
+.DailyPreload_daily_icon_claimed { background-image: url("file://{images}/ui/daily_rewards/icons/check_claimed.png"); }
+.DailyPreload_daily_item_weapon { background-image: url("file://{images}/ui/daily_rewards/items/weapon_estimated_alpha.png"); }
+.DailyPreload_daily_item_ticket_small { background-image: url("file://{images}/ui/daily_rewards/items/ticket_small_estimated_alpha.png"); }
+.DailyPreload_daily_button_claim_hover { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_hover.png"); }
+.DailyPreload_daily_card_week_end_hover { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_hover.png"); }
+.DailyPreload_daily_card_hover { background-image: url("file://{images}/ui/daily_rewards/cards/day_hover.png"); }
+.DailyPreload_daily_button_claim_pressed { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_pressed.png"); }
+.DailyPreload_daily_card_week_end_pressed { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_pressed.png"); }
+.DailyPreload_daily_card_pressed { background-image: url("file://{images}/ui/daily_rewards/cards/day_pressed.png"); }
+.DailyPreload_daily_button_claim_disabled { background-image: url("file://{images}/ui/daily_rewards/buttons/claim_disabled.png"); }
+.DailyPreload_daily_card_week_end_disabled { background-image: url("file://{images}/ui/daily_rewards/cards/week_end_disabled.png"); }
+.DailyPreload_daily_card_disabled { background-image: url("file://{images}/ui/daily_rewards/cards/day_disabled.png"); }
+.DailyPreload_daily_icon_calendar_hover { background-image: url("file://{images}/ui/daily_rewards/icons/calendar_hover.png"); }
+.DailyPreload_daily_icon_calendar_pressed { background-image: url("file://{images}/ui/daily_rewards/icons/calendar_pressed.png"); }
+.DailyPreload_daily_icon_calendar_disabled { background-image: url("file://{images}/ui/daily_rewards/icons/calendar_disabled.png"); }
+.DailyPreload_daily_icon_close_local_hover { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_hover.png"); }
+.DailyPreload_daily_icon_close_local_pressed { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_pressed.png"); }
+.DailyPreload_daily_icon_close_local_disabled { background-image: url("file://{images}/ui/daily_rewards/icons/close_local_disabled.png"); }
+.DailyPreload_daily_icon_info_hover { background-image: url("file://{images}/ui/daily_rewards/icons/info_hover.png"); }
+.DailyPreload_daily_icon_info_pressed { background-image: url("file://{images}/ui/daily_rewards/icons/info_pressed.png"); }
+.DailyPreload_daily_icon_info_disabled { background-image: url("file://{images}/ui/daily_rewards/icons/info_disabled.png"); }
+.DailyPreload_daily_icon_rules_local_hover { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_hover.png"); }
+.DailyPreload_daily_icon_rules_local_pressed { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_pressed.png"); }
+.DailyPreload_daily_icon_rules_local_disabled { background-image: url("file://{images}/ui/daily_rewards/icons/rules_local_disabled.png"); }
+.DailyPreload_daily_icon_pass_hover { background-image: url("file://{images}/ui/daily_rewards/icons/pass_hover.png"); }
+.DailyPreload_daily_icon_pass_pressed { background-image: url("file://{images}/ui/daily_rewards/icons/pass_pressed.png"); }
+.DailyPreload_daily_icon_pass_disabled { background-image: url("file://{images}/ui/daily_rewards/icons/pass_disabled.png"); }
+.DailyPreload_daily_badge_pass_inactive { background-image: url("file://{images}/ui/daily_rewards/badges/pass_inactive.png"); }
+.DailyPreload_daily_card_border_today { background-image: url("file://{images}/ui/daily_rewards/cards/today_border.png"); }
+.DailyPreload_daily_card_empty { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty.png"); }
+.DailyPreload_daily_card_empty_hover { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty_hover.png"); }
+.DailyPreload_daily_card_empty_pressed { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty_pressed.png"); }
+.DailyPreload_daily_card_empty_disabled { background-image: url("file://{images}/ui/daily_rewards/cards/day_empty_disabled.png"); }
+.DailyPreload_daily_icon_lock { background-image: url("file://{images}/ui/daily_rewards/icons/lock.png"); }
+.DailyPreload_daily_icon_clock { background-image: url("file://{images}/ui/daily_rewards/icons/clock.png"); }
+.DailyPreload_daily_icon_spinner { background-image: url("file://{images}/ui/daily_rewards/icons/spinner.png"); }
+.DailyPreload_shared_candidate_daily_window_r0c0 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r0c0.png"); }
+.DailyPreload_shared_candidate_daily_window_r0c1 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r0c1.png"); }
+.DailyPreload_shared_candidate_daily_window_r0c2 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r0c2.png"); }
+.DailyPreload_shared_candidate_daily_window_r1c0 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r1c0.png"); }
+.DailyPreload_shared_candidate_daily_window_r1c1 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r1c1.png"); }
+.DailyPreload_shared_candidate_daily_window_r1c2 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r1c2.png"); }
+.DailyPreload_shared_candidate_daily_window_r2c0 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r2c0.png"); }
+.DailyPreload_shared_candidate_daily_window_r2c1 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r2c1.png"); }
+.DailyPreload_shared_candidate_daily_window_r2c2 { background-image: url("file://{images}/ui/daily_rewards/frame/nine/r2c2.png"); }
+.DailyPreload_shared_candidate_daily_window_layout { background-image: url("file://{images}/ui/daily_rewards/frame/window_layout_candidate.png"); }

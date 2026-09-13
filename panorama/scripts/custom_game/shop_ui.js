@@ -1,5 +1,7 @@
 (function () {
     "use strict";
+    // UI_REUSE_V1
+    var U=GameUI.CustomUIConfig().SurvivalUI;
 
     var snapshot = null;
     var latestSequence = 0;
@@ -118,6 +120,7 @@
     }
 
     function setOpenState(opened) {
+        if(shopShell){if(opened)shopShell.Open();else shopShell.Close();}
         var windowPanel = byId("CustomShopWindow");
         var backdrop = byId("ShopBackdrop");
         if (windowPanel) {
@@ -504,7 +507,7 @@
                 section.text = sectionText;
             }
             var card = $.CreatePanel("Panel", list, "");
-            card.AddClass("ShopShelfSlot");
+            card.AddClass("ShopShelfSlot"); U.CardShell.Adopt(card,{bodyVariant:"product"});
             card.SetHasClass("Unavailable", entry.purchasable !== 1);
             card.SetHasClass("Technology", entry.content_type === "technology");
             card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
@@ -826,6 +829,9 @@
         SetUnlocks: setUnlocks,
         Refresh: refresh
     };
+    var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:1208,height:806,onClose:close});
+    ["ShopModeShop","ShopModeChallenge","ShopModeLottery"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
+    U.ActionButton.Adopt(byId("ShopRefreshButton")); U.Tooltip.Adopt(byId("ShopEntryTooltip"));
     setUnlocks(GameUI.CustomUIConfig().SurvivalShopUnlocks || unlocks);
     setOpenState(false);
 })();

@@ -1,19 +1,15 @@
 <root>
-    <styles><include src="file://{resources}/styles/custom_game/rogue_reward_ui.css" /></styles>
-    <scripts><include src="file://{resources}/scripts/custom_game/rogue_reward_ui.js" /></scripts>
+    <styles><include src="file://{resources}/styles/custom_game/rogue_reward_ui.css" /><include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/rogue_art_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/rogue_remaining_5d5c1152eb.js"/></scripts>
     <Panel class="RogueRewardRoot" hittest="false">
         <Panel id="RogueRewardBackdrop" class="RogueRewardHidden" hittest="true">
-            <Panel class="RogueRewardSurface" hittest="true">
-                <Label class="RogueRewardTitle" text="命运馈赠" />
-                <Panel class="RogueRewardRuleLine">
-                    <Panel class="RogueRewardRuleDivider" />
-                    <Label text="选择一张卡牌" />
-                    <Panel class="RogueRewardRuleDivider" />
-                </Panel>
-                <Panel id="RogueRewardCards" class="RogueRewardCards" />
-                <Button id="RogueRewardReroll" class="RogueRewardReroll">
-                    <Label id="RogueRewardRerollText" text="免费重抽" />
-                </Button>
+            <Panel id="RogueRewardSurface" hittest="true">
+                <Label class="RogueRewardTitle" text="命运抉择" />
+                <Label class="RogueRewardSubtitle" text="选择一项强化 · 塑造本局成长" />
+                <Panel id="RogueRewardCards" />
+                <Label id="RogueRewardStatus" text="命运正在展开…" />
+                <Button id="RogueRewardReroll"><Label id="RogueRewardRerollText" text="免费重抽" /></Button>
+                <ToggleButton id="RogueReducedMotion"><Label text="减少动态效果" /></ToggleButton>
             </Panel>
         </Panel>
     </Panel>

@@ -1530,6 +1530,8 @@
     }
 
     function registerCalibrationCommands() {
+        // Acceptance build: optional legacy console calibration is disabled.
+        if (!GameUI.CustomUIConfig().SurvivalEnableLegacyDebugCommands) return;
         if (!Game.AddCommand) return;
         try {
             Game.AddCommand("survival_ability_calibration", function () {

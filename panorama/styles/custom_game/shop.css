@@ -131,7 +131,7 @@
     padding: 2px 4px;
     color: #f0b1a2;
     font-size: 12px;
-    font-weight: bold;
+    
     background-color: #241010e8;
     text-shadow: 1px 1px 2px 2.0 #000000;
 }
@@ -141,7 +141,7 @@
     margin: 5px 9px 0 9px;
     color: #e5cb83;
     font-size: 19px;
-    font-weight: bold;
+    
 }
 .ShopTechnologyLevel {
     horizontal-align: right;
@@ -150,7 +150,7 @@
     padding: 1px 4px;
     color: #fff1bd;
     font-size: 14px;
-    font-weight: bold;
+    
     background-color: #07101ddd;
     text-shadow: 1px 1px 2px 2.0 #000000;
 }
@@ -161,7 +161,7 @@
     padding: 1px 4px;
     color: #d9f4ff;
     font-size: 12px;
-    font-weight: bold;
+    
     background-color: #07101ddd;
     text-shadow: 1px 1px 2px 2.0 #000000;
 }

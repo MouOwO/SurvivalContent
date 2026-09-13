@@ -1,0 +1,22 @@
+/* Central roles. Family/weight tokens are generated from font_roles.json, not per widget. */
+@define ArchiveFontBody: "Source Han Sans SC";
+@define ArchiveFontControl: "Source Han Sans SC";
+@define ArchiveFontTitle: "Source Han Serif SC";
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff Label,
+.ArchiveRoot #ArchiveTooltip Label { font-family:ArchiveFontBody;font-weight:normal;font-style:normal;text-shadow:none; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTitle,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchivePageTitle,
+.ArchiveRoot #ArchiveTooltip #ArchiveTooltipName { font-family:ArchiveFontTitle;font-weight:bold; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff .ArchiveTab Label,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveFilters Label,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff .ArchiveItemName,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff .ArchiveUnlockBadge,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff .ArchiveCount,
+.ArchiveRoot #ArchiveTooltip .ArchiveDetailHeading { font-family:ArchiveFontControl;font-weight:medium; }
+/* No text-shrink on the title. Reserve real CJK ascenders/descenders inside the header. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTitle { font-size:38px;height:52px;text-overflow:clip; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTitleBlock { height:78px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff .ArchiveCount { font-size:13px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff .ArchiveUnlockBadge { font-size:14px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveHint,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveStatus { font-size:14px; }

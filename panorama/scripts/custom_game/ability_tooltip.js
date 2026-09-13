@@ -134,6 +134,8 @@
                 return applyTooltipFadeDuration(defaultTooltipFadeDuration, "api_reset");
             }
         };
+        // Acceptance build: optional legacy console calibration is disabled.
+        if (!GameUI.CustomUIConfig().SurvivalEnableLegacyDebugCommands) return;
         if (!Game.AddCommand) return;
         Game.AddCommand("survival_tooltip_fade", function (seconds) {
             if (seconds === undefined || seconds === null || String(seconds) === "") {
@@ -168,7 +170,8 @@
 
     function setText(id, value) {
         var target = byId(id);
-        if (target) target.text = String(value === undefined ? "" : value);
+        var typography = GameUI.CustomUIConfig().SurvivalTypography;
+        if (target) target.text = typography ? typography.ReadableText(value) : String(value === undefined ? "" : value);
     }
 
     function localize(key, fallback) {
@@ -364,8 +367,8 @@
         var icons = {
             "生命": { type: "item", name: "item_vitality_booster" },
             "护甲": { type: "item", name: "item_chainmail" },
-            "攻击提升": { type: "image", name: "file://{images}/custom_game/survival_native/icon_damage.png" },
-            "攻击速度": { type: "image", name: "file://{images}/custom_game/survival_native/icon_attack_speed.png" },
+            "攻击提升": { type: "image", name: GameUI.CustomUIConfig().SurvivalUI.Asset("project.custom_game.survival_native.icon_damage") },
+            "攻击速度": { type: "image", name: GameUI.CustomUIConfig().SurvivalUI.Asset("project.custom_game.survival_native.icon_attack_speed") },
             "人口上限": { type: "ability", name: "ability_train_population" },
             "每秒金币": { type: "item", name: "item_hand_of_midas" },
             "效率": { type: "ability", name: "ability_upgrade_gold_mine_efficiency" },

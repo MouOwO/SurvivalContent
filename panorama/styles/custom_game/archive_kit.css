@@ -1,0 +1,169 @@
+/* Archive kit V1; 1002 x 758 design shell, one parent scale. */
+#ArchiveScrim {width:100%;height:100%;background-color:#0000008c;z-index:10000;}
+#ArchiveWindow {width:1002px;height:758px;align:center center;flow-children:none;padding:0px;background-image:url("file://{images}/custom_game/archive_kit/background_tiles/shell_body.png");background-size:100% 100%;background-color:transparent;border:0px solid transparent;border-radius:0px;box-shadow:none;z-index:10001;}
+#ArchiveWindow Label {text-shadow:none;}
+#ArchiveHeader {position:0px 0px 0px;width:1002px;height:76px;flow-children:none;border:0px solid transparent;}
+#ArchiveTitleBlock {position:320px 0px 0px;width:362px;height:75px;flow-children:down;padding:0px;}
+#ArchiveWindow #ArchiveTitle {margin-top:4px;font-size:38px;letter-spacing:5px;color:#fff1ce;}
+#ArchiveSubtitle {visibility:visible;font-size:15px;color:#ebeee5;letter-spacing:2px;}
+#ArchiveBook {position:276px 13px 0px;width:42px;height:42px;}
+#ArchiveClose {position:925px 12px 0px;margin:0px;width:50px;height:50px;background-color:transparent;border:0px solid transparent;}
+#ArchiveClose .ArchiveKitIcon {width:42px;height:42px;align:center center;}
+#ArchiveBody {position:0px 76px 0px;width:1002px;height:682px;flow-children:none;padding:0px;}
+#ArchiveTabs {position:7px 12px 0px;width:232px;height:660px;flow-children:down;padding:0px;overflow:squish scroll;}
+.ArchiveTab {width:225px;height:70px;margin:0px 0px 3px 0px;padding:0px;background-image:url("file://{images}/ui/shared/nav/toggle/normal.png");background-size:100% 100%;background-color:transparent;border:0px solid transparent;border-radius:0px;transition-property:brightness;transition-duration:.1s;}
+.ArchiveTab:hover {background-image:url("file://{images}/ui/shared/nav/toggle/hover.png");}
+.ArchiveTab:selected,.ArchiveTab:selected:hover {background-image:url("file://{images}/ui/shared/nav/toggle/selected.png");border:0px solid transparent;background-color:transparent;}
+.ArchiveTab:selected:hover {brightness:1.06;}
+.ArchiveTab:disabled {opacity:.45;}
+.ArchiveKitIcon {width:38px;height:38px;background-size:100% 100%;}
+.ArchiveTab .ArchiveKitIcon {position:18px 16px 0px;}
+.ArchiveTab Label {position:64px 0px 0px;width:155px;height:70px;vertical-align:center;text-align:left;font-size:21px;color:#f3eedb;}
+.ArchiveTab:selected Label {color:#24424c;}
+#ArchiveContent {position:240px 0px 0px;width:762px;height:682px;flow-children:none;padding:0px;}
+#ArchivePageHeader {position:30px 19px 0px;width:702px;height:60px;flow-children:none;border:0px solid transparent;}
+#ArchivePageTitle {width:702px;font-size:30px;color:#1f4355;}
+#ArchiveSummary {position:0px 40px 0px;width:702px;font-size:16px;color:#536e79;}
+#ArchiveHint {position:30px 82px 0px;width:702px;height:26px;font-size:15px;color:#4e6672;white-space:normal;}
+#ArchiveFilters {position:30px 110px 0px;width:702px;height:37px;flow-children:right;}
+#ArchiveFilters RadioButton {width:126px;height:34px;margin-right:10px;background-image:url("file://{images}/custom_game/archive_kit/reusable/button_normal.png");background-size:100% 100%;}
+#ArchiveFilters .RadioBox {visibility:collapse;}
+#ArchiveFilters Label {align:center center;font-size:17px;color:#35535f;}
+#ArchiveFilters RadioButton:selected {background-image:url("file://{images}/ui/shared/nav/toggle/normal.png");}
+#ArchiveFilters RadioButton:selected Label {color:#fff0cf;}
+#ArchiveGrid {position:30px 154px 0px;width:710px;height:482px;flow-children:right-wrap;overflow:squish scroll;margin:0px;padding:0px;}
+.ArchiveCard {width:162px;height:154px;margin:0px 12px 10px 0px;padding:0px;flow-children:none;background-image:url("file://{images}/ui/shared/card/body/ivory.png");background-size:100% 100%;background-color:transparent;border:0px solid transparent;}
+.ArchiveCard:hover {background-image:url("file://{images}/custom_game/archive_kit/reusable/card_hover.png");}
+.ArchiveCard.ArchiveSelected {background-image:url("file://{images}/custom_game/archive_kit/reusable/card_selected.png");}
+.ArchiveArt {position:25px 8px 0px;width:112px;height:98px;border:0px solid transparent;background-color:transparent;background-size:contain;background-position:center;background-repeat:no-repeat;}
+.ArchiveCompleted {saturation:1;brightness:1;}
+.ArchiveCount {position:104px 6px 0px;width:52px;height:22px;horizontal-align:left;vertical-align:top;background-color:#294c5beF;border:1px solid #bdac82;border-radius:10px;padding:0px;text-align:center;font-size:15px;color:#f8f2e4;z-index:3;}
+.ArchiveItemName {position:8px 106px 0px;width:146px;height:24px;margin:0px;text-align:center;color:#264a5b;font-size:17px;text-overflow:ellipsis;}
+.ArchiveUnlockBadge {position:24px 130px 0px;width:114px;height:20px;text-align:center;font-size:14px;color:#fffaf0;background-size:100% 100%;}
+.ArchiveUnlockBadge.Unlocked {background-image:url("file://{images}/ui/shared/badge/unlocked.png");}
+.ArchiveUnlockBadge.Locked {background-image:url("file://{images}/ui/shared/badge/locked.png");}
+.ArchiveFragmentLevel {position:8px 132px 0px;font-size:13px;color:#35535f;}
+.ArchivePromote {position:56px 129px 0px;width:100px;height:23px;margin:0px;background-size:100% 100%;border:0px solid transparent;}
+.ArchivePromote Label {color:#24424c;font-size:13px;}
+.ArchiveWorkCost {position:8px 129px 0px;width:146px;height:22px;text-align:center;font-size:14px;color:#35535f;}
+#ArchiveFooter {position:30px 644px 0px;width:702px;height:32px;flow-children:none;}
+#ArchiveStatus {width:702px;height:30px;margin:0px;font-size:13px;white-space:normal;color:#546b74;}
+#ArchiveEmpty {align:center center;color:#44616d;font-size:20px;}
+#ArchiveDrawBar {position:30px 598px 0px;width:702px;height:44px;align:left top;margin:0px;padding:3px 8px;background-color:#e6e7df;border:0px solid transparent;}
+#ArchiveContent.ArchiveHasDraw #ArchiveGrid {height:430px;margin:0px;}
+#ArchiveTickets,#ArchiveDrawResult {color:#35535f;font-size:15px;}
+#ArchiveDraw {height:36px;width:108px;}
+#ArchiveDraw Label {color:#24424c;}
+#ArchiveTooltip {z-index:100010;background-color:#213b46f8;border:1px solid #c9b386;}
+#ArchiveTooltipName,#ArchiveTooltipEffect {text-shadow:none;}
+#ArchiveGrid VerticalScrollBar {width:6px;background-color:#c2cbd0;}
+#ArchiveGrid VerticalScrollBar .ScrollThumb {background-color:#b9a77e;}
+.KitIcon_clear {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/clear_normal.png");}
+Button:hover .KitIcon_clear,.ArchiveTab:hover .KitIcon_clear {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/clear_hover.png");}
+.ArchiveTab:selected .KitIcon_clear {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/clear_selected.png");}
+Button:disabled .KitIcon_clear,.ArchiveTab:disabled .KitIcon_clear {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/clear_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_clear {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/clear_selected.png");}
+.KitIcon_void {background-image:url("file://{images}/ui/shared/icon/archive/void.png");}
+Button:hover .KitIcon_void,.ArchiveTab:hover .KitIcon_void {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/void_hover.png");}
+.ArchiveTab:selected .KitIcon_void {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/void_selected.png");}
+Button:disabled .KitIcon_void,.ArchiveTab:disabled .KitIcon_void {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/void_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_void {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/void_selected.png");}
+.KitIcon_points {background-image:url("file://{images}/ui/shared/icon/archive/points.png");}
+Button:hover .KitIcon_points,.ArchiveTab:hover .KitIcon_points {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/points_hover.png");}
+.ArchiveTab:selected .KitIcon_points {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/points_selected.png");}
+Button:disabled .KitIcon_points,.ArchiveTab:disabled .KitIcon_points {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/points_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_points {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/points_selected.png");}
+.KitIcon_weapon {background-image:url("file://{images}/ui/shared/icon/archive/weapon.png");}
+Button:hover .KitIcon_weapon,.ArchiveTab:hover .KitIcon_weapon {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/weapon_hover.png");}
+.ArchiveTab:selected .KitIcon_weapon {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/weapon_selected.png");}
+Button:disabled .KitIcon_weapon,.ArchiveTab:disabled .KitIcon_weapon {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/weapon_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_weapon {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/weapon_selected.png");}
+.KitIcon_spell {background-image:url("file://{images}/ui/shared/icon/archive/spell.png");}
+Button:hover .KitIcon_spell,.ArchiveTab:hover .KitIcon_spell {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/spell_hover.png");}
+.ArchiveTab:selected .KitIcon_spell {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/spell_selected.png");}
+Button:disabled .KitIcon_spell,.ArchiveTab:disabled .KitIcon_spell {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/spell_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_spell {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/spell_selected.png");}
+.KitIcon_endless {background-image:url("file://{images}/ui/shared/icon/archive/endless.png");}
+Button:hover .KitIcon_endless,.ArchiveTab:hover .KitIcon_endless {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/endless_hover.png");}
+.ArchiveTab:selected .KitIcon_endless {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/endless_selected.png");}
+Button:disabled .KitIcon_endless,.ArchiveTab:disabled .KitIcon_endless {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/endless_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_endless {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/endless_selected.png");}
+.KitIcon_friends {background-image:url("file://{images}/ui/shared/icon/archive/friends.png");}
+Button:hover .KitIcon_friends,.ArchiveTab:hover .KitIcon_friends {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/friends_hover.png");}
+.ArchiveTab:selected .KitIcon_friends {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/friends_selected.png");}
+Button:disabled .KitIcon_friends,.ArchiveTab:disabled .KitIcon_friends {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/friends_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_friends {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/friends_selected.png");}
+.KitIcon_ex {background-image:url("file://{images}/ui/shared/icon/archive/ex.png");}
+Button:hover .KitIcon_ex,.ArchiveTab:hover .KitIcon_ex {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/ex_hover.png");}
+.ArchiveTab:selected .KitIcon_ex {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/ex_selected.png");}
+Button:disabled .KitIcon_ex,.ArchiveTab:disabled .KitIcon_ex {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/ex_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_ex {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/ex_selected.png");}
+.KitIcon_blessing {background-image:url("file://{images}/ui/shared/icon/archive/blessing.png");}
+Button:hover .KitIcon_blessing,.ArchiveTab:hover .KitIcon_blessing {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/blessing_hover.png");}
+.ArchiveTab:selected .KitIcon_blessing {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/blessing_selected.png");}
+Button:disabled .KitIcon_blessing,.ArchiveTab:disabled .KitIcon_blessing {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/blessing_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_blessing {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/blessing_selected.png");}
+.KitIcon_close {background-image:url("file://{images}/ui/shared/icon/close.png");}
+Button:hover .KitIcon_close,.ArchiveTab:hover .KitIcon_close {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/close_hover.png");}
+.ArchiveTab:selected .KitIcon_close {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/close_selected.png");}
+Button:disabled .KitIcon_close,.ArchiveTab:disabled .KitIcon_close {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/close_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_close {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/close_selected.png");}
+.KitIcon_book {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/book_normal.png");}
+Button:hover .KitIcon_book,.ArchiveTab:hover .KitIcon_book {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/book_hover.png");}
+.ArchiveTab:selected .KitIcon_book {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/book_selected.png");}
+Button:disabled .KitIcon_book,.ArchiveTab:disabled .KitIcon_book {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/book_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_book {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/book_selected.png");}
+.KitIcon_hint {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/hint_normal.png");}
+Button:hover .KitIcon_hint,.ArchiveTab:hover .KitIcon_hint {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/hint_hover.png");}
+.ArchiveTab:selected .KitIcon_hint {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/hint_selected.png");}
+Button:disabled .KitIcon_hint,.ArchiveTab:disabled .KitIcon_hint {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/hint_disabled.png");}
+.ArchiveTab:selected:hover .KitIcon_hint {background-image:url("file://{images}/custom_game/archive_kit/icons_rgba/hint_selected.png");}
+.KitArt_01 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_01.png");}
+.KitArt_02 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_02.png");}
+.KitArt_03 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_03.png");}
+.KitArt_04 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_04.png");}
+.KitArt_05 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_05.png");}
+.KitArt_06 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_06.png");}
+.KitArt_10 {background-image:url("file://{images}/custom_game/archive_kit/art_tiles/art_10.png");}
+#ArchiveDraw,.ArchivePromote {background-image:url("file://{images}/custom_game/archive_kit/reusable/button_normal.png");background-size:100% 100%;background-color:transparent;border:0px solid transparent;}
+#ArchiveDraw:hover,.ArchivePromote:hover {background-image:url("file://{images}/custom_game/archive_kit/reusable/button_hover.png");background-size:100% 100%;background-color:transparent;border:0px solid transparent;}
+#ArchiveDraw:active,.ArchivePromote:active {background-image:url("file://{images}/custom_game/archive_kit/reusable/button_pressed.png");background-size:100% 100%;background-color:transparent;border:0px solid transparent;}
+
+/* Fixed card edge slices; center and edge lengths alone resize. */
+.ArchiveCard,.ArchiveCard:hover {background-image:none;}
+.ArchiveCard:hover {brightness:1.04;}
+.ArchiveNineCard {width:100%;height:100%;ignore-parent-flow:true;position:0px 0px 0px;flow-children:down;z-index:0;}
+.ArchiveNineEdge {width:100%;height:12px;flow-children:right;}
+.ArchiveNineMiddle {width:100%;height:fill-parent-flow(1);flow-children:right;}
+.ArchiveNineCorner {width:12px;height:100%;background-size:100% 100%;}
+.ArchiveNineStretch {width:fill-parent-flow(1);height:100%;background-size:100% 100%;}
+.ArchiveArt,.ArchiveItemName,.ArchiveUnlockBadge,.ArchiveWorkCost,.ArchiveFragmentLevel,.ArchivePromote {z-index:2;}
+#ArchiveContent.ArchiveHasDraw #ArchivePageHeader {position:30px 6px 0px;height:44px;}
+#ArchiveContent.ArchiveHasDraw #ArchivePageTitle {font-size:24px;}
+#ArchiveContent.ArchiveHasDraw #ArchiveSummary {position:0px 28px 0px;}
+#ArchiveContent.ArchiveHasDraw #ArchiveHint {position:30px 56px 0px;height:22px;}
+#ArchiveContent.ArchiveHasDraw #ArchiveFilters {position:30px 80px 0px;height:27px;}
+#ArchiveContent.ArchiveHasDraw #ArchiveFilters RadioButton {height:26px;}
+#ArchiveContent.ArchiveHasDraw #ArchiveGrid {position:30px 110px 0px;height:482px;}
+.ArchiveSlice_00 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_00.png");}
+.ArchiveSlice_01 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_01.png");}
+.ArchiveSlice_02 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_02.png");}
+.ArchiveSlice_10 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_10.png");}
+.ArchiveSlice_11 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_11.png");}
+.ArchiveSlice_12 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_12.png");}
+.ArchiveSlice_20 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_20.png");}
+.ArchiveSlice_21 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_21.png");}
+.ArchiveSlice_22 {background-image:url("file://{images}/custom_game/archive_kit/clean_slices/card_22.png");}
+
+#ArchiveContent.ArchiveBuildingPage #ArchiveStatus {width:525px;}
+#ArchiveFaith {position:540px 0px 0px;width:162px;height:30px;color:#35535f;font-size:15px;text-align:right;}
+/* Clear inherited absolute-layout offsets and dark content fills from the old skin. */
+#ArchiveContent {background-color:transparent;border:0px solid transparent;}
+#ArchivePageTitle {width:702px;height:40px;}
+#ArchiveSummary {horizontal-align:left;vertical-align:top;}
+#ArchiveHint {margin:0px;}
+.ArchiveTab Label {position:64px 21px 0px;height:28px;horizontal-align:left;vertical-align:top;margin:0px;}
+.ArchiveArt,.ArchiveItemName,.ArchiveUnlockBadge,.ArchiveFragmentLevel,.ArchivePromote,.ArchiveWorkCost {horizontal-align:left;vertical-align:top;margin:0px;}
+#ArchiveStatus {horizontal-align:left;vertical-align:top;}
+
+#ArchiveEntry .ArchiveEntryScroll {width:34px;height:34px;border:0px solid transparent;border-radius:0px;background-color:transparent;transform:none;}

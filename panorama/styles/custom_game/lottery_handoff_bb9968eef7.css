@@ -1,0 +1,78 @@
+/* Approved 1672x941 design canvas. Only the main page is restyled. */
+#LotteryWindow { background-image:none; background-color:#122d3a; border:0px; padding:0px; overflow:clip; }
+#LotteryMainCanvas { width:1672px;height:941px;align:center center;flow-children:none;overflow:noclip;background-image:url("file://{images}/custom_game/lottery_handoff_v1/scene.png");background-size:100% 100%; }
+#LotteryMainCanvas #LotteryReadingMask { width:100%;height:100%;background-image:url("file://{images}/custom_game/lottery_handoff_v1/frame_reading_overlay.png");background-size:100% 100%;background-color:transparent; }
+#LotteryMainCanvas .LHControls Label { font-family:"Source Han Sans SC";font-weight:normal;font-size:25px;color:#f0e7d0;text-shadow:none;letter-spacing:0px; }
+#LotteryMainCanvas .LHControls Button { margin:0px;padding:0px;border:0px;background-color:transparent;box-shadow:none;flow-children:none;border-radius:0px;transition-property:brightness;transition-duration:.1s; }
+#LotteryMainCanvas .LHControls Button:active { transform:none; }
+#LotteryMainCanvas #LotteryCelestialHeader { width:100%;height:100px;padding:0px;margin:0px;flow-children:none;background-color:transparent;border:0px; }
+#LotteryMainCanvas .LHLogo { position:27px 5px 0px;width:80px;height:80px;background-image:url("file://{images}/custom_game/lottery_handoff_v1/logo.png");background-size:100% 100%; }
+#LotteryMainCanvas #LotteryBrand { position:117px 18px 0px;width:210px;height:60px;margin:0px;vertical-align:top;font-family:"Source Han Serif SC";font-weight:bold;font-size:34px; }
+#LotteryMainCanvas #LotteryPoolTabs { position:323px 0px 0px;width:628px;height:100px;margin:0px;flow-children:right;overflow:noclip; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab { width:157px;height:100px;min-width:0px;margin:0px;padding:0px;border:0px;background-image:none;background-color:transparent;box-shadow:none;overflow:noclip; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTabName { align:center top;margin:32px 0px 0px;font-size:25px;color:#f0e7d0;z-index:1; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolBadge { align:right top;margin:7px 4px 0px 0px;padding:1px 9px;width:110px;height:27px;font-size:13px;text-align:center;color:#594a31;background-image:url("file://{images}/custom_game/lottery_handoff_v1/badge_discount.png");background-size:100% 100%;background-color:transparent;border-radius:0px;z-index:2; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab:hover { background-image:none;background-color:transparent;brightness:1.12;z-index:3; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTab:first-child .LotteryPoolBadge { visibility:collapse; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryTabMark { visibility:collapse; }
+#LotteryMainCanvas .LHTabGlow { width:155px;height:46px;position:0px 54px 0px;background-image:url("file://{images}/custom_game/lottery_handoff_v1/tab_glow.png");background-size:100% 100%;visibility:collapse; }
+#LotteryMainCanvas .Selected .LHTabGlow { visibility:visible; }
+#LotteryMainCanvas #LotteryWallet { position:1308px 26px 0px;width:260px;height:44px;padding:0px;margin:0px;flow-children:none;vertical-align:top;background-color:#193949dd;border:0px;border-radius:8px; }
+#LotteryMainCanvas .LHTicket { position:1px -1px 0px;width:53px;height:47px;background-image:url("file://{images}/custom_game/lottery_handoff_v1/ticket_illustrated.png");background-size:contain;opacity-mask:url("file://{images}/custom_game/lottery_handoff_v1/ticket_silhouette.svg"); }
+#LotteryMainCanvas #LotteryTicketValue { position:55px 6px 0px;width:165px;height:36px;font-size:20px;text-overflow:shrink; }
+#LotteryMainCanvas #LotteryTicketPurchase { position:220px 2px 0px;width:32px;height:39px; }
+#LotteryMainCanvas .LHPlus { width:100%;height:100%;background-image:url("file://{images}/custom_game/lottery_handoff_v1/currency_plus_normal.png");background-size:100% 100%; }
+#LotteryMainCanvas #LotteryCloseButton { position:1602px 28px 0px;width:38px;height:38px;align:left top;margin:0px; }
+#LotteryMainCanvas .LHClose { width:100%;height:100%;background-image:url("file://{images}/custom_game/lottery_handoff_v1/close_normal.png");background-size:100% 100%; }
+#LotteryMainCanvas #LotteryHeroCopy { position:202px 230px 0px;width:690px;height:330px;margin:0px;flow-children:none; }
+#LotteryMainCanvas #LotteryAnnouncement { position:8px 0px 0px;height:38px;padding:0px;background-color:transparent; }
+#LotteryMainCanvas #LotteryAnnouncement Label { font-size:20px; }
+#LotteryMainCanvas #LotteryTitle { position:0px 15px 0px;width:690px;height:152px;margin:0px;font-family:"Source Han Serif SC";font-weight:bold;font-size:112px; }
+#LotteryMainCanvas #LotteryTagline { position:6px 166px 0px;margin:0px;font-size:34px; }
+#LotteryMainCanvas #LotteryGuaranteeRow { position:8px 234px 0px;width:350px;height:49px;flow-children:none;background-color:transparent;background-image:none;border:0px;border-radius:0px; }
+#LotteryMainCanvas #LotteryGuaranteeValue { align:left top;margin:0px;font-size:24px;color:#ece3cb; }
+#LotteryMainCanvas .LHGuaranteeText { flow-children:right; }
+#LotteryMainCanvas #LHGuaranteeQuality { margin-left:9px;font-size:24px;color:#e2b779; }
+#LotteryMainCanvas .LHGuaranteeLine { position:0px 47px 0px;width:180px;height:1px;background-color:gradient(linear,0% 0%,100% 0%,from(#cebb8800),color-stop(.3,#cebb88bb),color-stop(.7,#cebb88bb),to(#cebb8800)); }
+#LotteryMainCanvas #LotteryCelestialFooter { position:0px 815px 0px;align:left top;width:100%;height:126px;padding:0px;margin:0px;flow-children:none;background-color:transparent;border:0px; }
+#LotteryMainCanvas #LHDetails { position:55px 30px 0px;width:184px;height:60px;flow-children:right; }
+#LotteryMainCanvas #LHHistory { position:265px 30px 0px;width:190px;height:60px;flow-children:right; }
+#LotteryMainCanvas #LHDetails Label,#LotteryMainCanvas #LHHistory Label { vertical-align:center;margin-left:6px; }
+#LotteryMainCanvas .LHDetailsIcon { width:48px;height:55px;vertical-align:center;background-image:url("file://{images}/custom_game/lottery_handoff_v1/pool_details_icon_normal.png");background-size:100% 100%; }
+#LotteryMainCanvas .LHHistoryIcon { width:53px;height:59px;vertical-align:center;background-image:url("file://{images}/custom_game/lottery_handoff_v1/history_icon_normal.png");background-size:100% 100%; }
+#LotteryMainCanvas .LHUtilityDivider { position:240px 50px 0px;width:1px;height:27px;background-color:#d8c79c99; }
+#LotteryMainCanvas #LotterySkipAnimation { position:621px 36px 0px;width:220px;height:49px;vertical-align:top;flow-children:right;margin:0px;padding:0px; }
+#LotteryMainCanvas #LotterySkipAnimation .TickBox { visibility:visible;width:49px;height:49px;margin:0px;border:0px;box-shadow:none;background-image:url("file://{images}/custom_game/lottery_handoff_v1/skip_checkbox_normal.png");background-size:100% 100%;background-color:transparent; }
+#LotteryMainCanvas #LotterySkipAnimation .UICheckOff,#LotteryMainCanvas #LotterySkipAnimation .UICheckOn { visibility:collapse; }
+#LotteryMainCanvas #LotterySkipAnimation:selected .TickBox { background-image:url("file://{images}/custom_game/lottery_handoff_v1/checkbox_checked_normal.png");background-color:transparent; }
+#LotteryMainCanvas #LotterySkipAnimation Label { font-size:24px;margin:0px 0px 0px 7px;vertical-align:center; }
+/* Static Image bases never change source or opacity during pointer transitions.
+   The hit target stays fixed; only its non-interactive visual child responds. */
+#LotteryMainCanvas #LotterySingleButton,#LotteryMainCanvas #LotteryTenButton,
+#LotteryMainCanvas #LotterySingleButton:hover,#LotteryMainCanvas #LotteryTenButton:hover,
+#LotteryMainCanvas #LotterySingleButton:active,#LotteryMainCanvas #LotteryTenButton:active,
+#LotteryMainCanvas #LotterySingleButton:disabled,#LotteryMainCanvas #LotteryTenButton:disabled { width:312px;height:72px;background-image:none;border:0px;background-color:transparent;brightness:1;saturation:1;opacity:1;box-shadow:none;transition-duration:0s;transform:none; }
+#LotteryMainCanvas #LotterySingleButton { position:969px 35px 0px; }
+#LotteryMainCanvas #LotteryTenButton { position:1297px 35px 0px; }
+#LotteryMainCanvas .LHDrawVisual { width:312px;height:72px;flow-children:none;transform:none;brightness:1;saturation:1;transition-property:brightness,transform;transition-duration:.08s; }
+#LotteryMainCanvas .LHDrawBase { width:312px;height:72px;opacity:1;visibility:visible; }
+#LotteryMainCanvas .LHSingleHover,#LotteryMainCanvas .LHTenHover { width:312px;height:72px;opacity:0;transition-property:opacity;transition-duration:.08s; }
+#LotteryMainCanvas .LHSingleHover { background-color:#e8c780;opacity-mask:url("file://{images}/custom_game/lottery_handoff_v1/single_button.png"); }
+#LotteryMainCanvas #LotterySingleButton:enabled:hover .LHSingleHover { opacity:.3; }
+#LotteryMainCanvas #LotteryTenButton:enabled:hover .LHTenHover { opacity:1; }
+#LotteryMainCanvas #LotterySingleButton:enabled:hover .LHDrawVisual { brightness:1.12; }
+#LotteryMainCanvas #LotterySingleButton:enabled:active .LHDrawVisual,#LotteryMainCanvas #LotteryTenButton:enabled:active .LHDrawVisual { transform:translate3d(0px,2px,0px);brightness:.86;transition-duration:.025s; }
+#LotteryMainCanvas #LotterySingleButton:disabled .LHDrawVisual,#LotteryMainCanvas #LotteryTenButton:disabled .LHDrawVisual { transform:none;brightness:.72;saturation:.3;transition-duration:0s; }
+#LotteryMainCanvas #LotterySingleButton:disabled .LHSingleHover,#LotteryMainCanvas #LotteryTenButton:disabled .LHTenHover { opacity:0;transition-duration:0s; }
+#LotteryMainCanvas .LHDrawCaption { align:center center;flow-children:right;margin:0px 0px 6px 38px; }
+#LotteryMainCanvas #LotterySingleText,#LotteryMainCanvas #LotteryTenText,#LotteryMainCanvas #LHTenQuality { align:left center;margin:0px;padding:0px;font-size:27px;font-weight:medium;color:#365665; }
+#LotteryMainCanvas #LotteryTenText { color:#fff9e5;text-shadow:0px 1px 2px 2 #745326b0; }
+#LotteryMainCanvas #LHTenQuality { margin-left:9px;color:#855521; }
+#LotteryMainCanvas #LHTenQuality.LHQualitySR,#LotteryMainCanvas #LHGuaranteeQuality.LHQualitySR { color:#a16be0; }
+#LotteryMainCanvas #LHTenQuality.LHQualityUR { color:#9b435d; }
+#LotteryMainCanvas .LHDrawTicket { position:25px 8px 0px;width:53px;height:47px;background-image:url("file://{images}/custom_game/lottery_handoff_v1/ticket_illustrated.png");background-size:contain;opacity-mask:url("file://{images}/custom_game/lottery_handoff_v1/ticket_silhouette.svg"); }
+#LotteryMainCanvas #LotteryCelestialFooter .LHCost { align:left bottom;margin:0px 0px 8px 41px;font-size:14px;color:#263f49;text-shadow:0px 1px 1px 1 #eee2bbaa; }
+#LotteryMainCanvas #LotteryStatus { position:55px 810px 0px;align:left top;margin:0px;width:850px;height:26px;font-size:15px; }
+#LotteryMainCanvas #LotteryStatus.LHIdle { visibility:collapse; }
+.LotteryResultsShown #LotteryMainCanvas #LotteryHeroCopy,.LotteryResultsShown #LotteryMainCanvas #LotteryCelestialFooter,.LotteryResultsShown #LotteryMainCanvas .LHLogo { visibility:collapse; }
+.LotteryResultsShown #LotteryMainCanvas #LotteryStatus { position:0px 894px 0px;width:100%;text-align:center; }

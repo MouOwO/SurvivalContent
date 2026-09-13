@@ -53,7 +53,7 @@
     horizontal-align: center;
     color: #ffd15a;
     font-size: 38px;
-    font-weight: bold;
+    
     text-shadow: 0px 2px 4px 3 #000000dd;
 }
 #LotterySubtitle {
@@ -129,7 +129,7 @@
     border-bottom: 1px solid #4f4a3e;
 }
 #LotterySummary Label { color: #aaa69e; font-size: 14px; margin-right: 8px; }
-#LotteryTierValue { color: #e3c270; font-weight: bold; }
+#LotteryTierValue { color: #e3c270;  }
 
 #LotteryBody {
     width: 100%;
@@ -207,7 +207,7 @@
     margin: -8px 4px 0px 0px;
     color: white;
     font-size: 25px;
-    font-weight: bold;
+    
     text-shadow: 0px 1px 3px 3 #000000;
 }
 .LotteryRewardName {
@@ -231,7 +231,7 @@
     border-bottom: 1px solid #5c3a1688;
     color: #ffd778;
     font-size: 13px;
-    font-weight: semi-bold;
+    
     text-align: center;
     text-overflow: shrink;
     text-shadow: 0px 1px 2px 2 #000000;
@@ -260,7 +260,7 @@
     flow-children: right;
 }
 #LotteryGuaranteeRow Label { color: #d7c49e; font-size: 17px; margin: 0px 5px; }
-#LotteryGuaranteeValue { color: #ec7bff; font-size: 22px; font-weight: bold; }
+#LotteryGuaranteeValue { color: #ec7bff; font-size: 22px;  }
 #LotteryActions { height: 62px; horizontal-align: center; flow-children: right; }
 .LotteryActionBlock { width: 226px; height: 62px; flow-children: down; margin: 0px 10px; }
 #LotteryActions Button {
@@ -273,7 +273,7 @@
 #LotteryActions Button:hover { brightness: 1.2; }
 #LotteryActions Button:active { brightness: 0.85; }
 #LotteryActions Button.Disabled { brightness: 0.45; saturation: 0.25; }
-#LotteryActions Button Label { align: center center; color: #4b2200; font-size: 24px; font-weight: bold; }
+#LotteryActions Button Label { align: center center; color: #4b2200; font-size: 24px;  }
 .LotteryCostLabel { horizontal-align: center; color: #d4d6dc; font-size: 14px; }
 #LotteryStatus {
     width: 100%;
@@ -306,7 +306,7 @@
 .LotteryTooltipIconFrame .LotteryRewardIcon { width: 62px; height: 62px; }
 .LotteryTooltipIconFrame .LotteryRewardQuality { font-size: 14px; margin: -5px 1px 0px 0px; }
 #LotteryTooltipTitleBlock { width: fill-parent-flow(1); flow-children: down; }
-#LotteryTooltipName { color: #ffffff; font-size: 21px; font-weight: bold; }
+#LotteryTooltipName { color: #ffffff; font-size: 21px;  }
 #LotteryTooltipType, #LotteryTooltipDuration { color: #e7ca79; font-size: 15px; }
 #LotteryTooltipDescription {
     width: 100%;

@@ -18,7 +18,7 @@
 }
 #ArchiveHeader { width: 100%; height: 100px; flow-children: right; border-bottom: 1px solid #73644366; }
 #ArchiveTitleBlock { width: fill-parent-flow(1); height: 100%; flow-children: down; padding-left: 44px; }
-#ArchiveTitle { horizontal-align: center; margin-top: 15px; font-size: 36px; font-weight: bold; color: #eee0b6; letter-spacing: 10px; text-shadow: 0px 2px 3px 3 #000000; }
+#ArchiveTitle { horizontal-align: center; margin-top: 15px; font-size: 36px;  color: #eee0b6; letter-spacing: 10px; text-shadow: 0px 2px 3px 3 #000000; }
 #ArchiveSubtitle { horizontal-align: center; font-size: 14px; color: #849b9c; letter-spacing: 3px; }
 #ArchiveClose { width: 44px; height: 44px; margin-top: 18px; background-color: #162023; border: 1px solid #647170; }
 #ArchiveClose Label { align: center center; font-size: 32px; color: #b5b8ac; }
@@ -42,7 +42,7 @@
 .ArchiveGlyph { width: 42px; height: 53px; align: center center; margin-top: -7px; border: 3px solid #b7995f; border-radius: 4px; background-color: gradient(linear, 0% 0%, 100% 100%, from(#96543c), to(#40251e)); transform: rotateZ(8deg); box-shadow: #dba95b22 0px 0px 10px 1px; }
 .ArchiveArt_shard .ArchiveGlyph { width: 36px; height: 45px; border-radius: 2px; transform: rotateZ(45deg); background-color: gradient(linear, 0% 0%, 100% 100%, from(#c6e1df), color-stop(0.5, #526f78), to(#172e38)); border-color: #a0c0c5; }
 .ArchiveArt_seal .ArchiveGlyph { width: 46px; height: 46px; border-radius: 50%; transform: rotateZ(0deg); background-color: #343546; border-color: #aaa287; }
-.ArchiveRune { align: center center; margin-top: -10px; font-size: 19px; font-weight: bold; color: #f1e5b7; text-shadow: 0px 1px 2px 2 #000000; }
+.ArchiveRune { align: center center; margin-top: -10px; font-size: 19px;  color: #f1e5b7; text-shadow: 0px 1px 2px 2 #000000; }
 .ArchiveCount { horizontal-align: center; vertical-align: bottom; width: 100%; text-align: center; font-size: 15px; color: #f5eedb; background-color: #081012dd; padding: 2px 0px; }
 .ArchiveItemName { width: 100%; text-align: center; font-size: 15px; color: #bccac6; margin-top: 5px; text-overflow: shrink; }
 .ArchiveCompleted { saturation: 0; brightness: 0.38; }

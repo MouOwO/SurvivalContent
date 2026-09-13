@@ -1,0 +1,114 @@
+/* Approved 869 x 713 composition. Scope all changes to the archive only. */
+.ArchiveRoot #ArchiveWindow Label,.ArchiveRoot #ArchiveTooltip Label { font-family:"Source Han Sans SC";font-weight:normal; }
+.ArchiveRoot #ArchiveWindow { width:869px;height:713px;padding:0px;margin:0px;flow-children:none;border:0px;border-radius:0px;background-image:none;background-color:transparent;box-shadow:none; }
+.ArchiveRoot #ArchiveHeader { position:0px 0px 0px;width:869px;height:124px;padding:0px;flow-children:none;background-size:100% 100%;border:0px; }
+#ArchiveHeaderArt { position:0px 0px 0px;width:869px;height:124px;background-image:url("file://{images}/custom_game/archive_handoff_v1/header_alpha_v2.png");background-size:869px 290.334px;background-position:left 0px top -83px;background-repeat:no-repeat; }
+.ArchiveRoot #ArchiveTitleBlock { position:260px 50px 0px;width:349px;height:74px;padding:0px;flow-children:down; }
+.ArchiveRoot #ArchiveWindow #ArchiveTitle { width:100%;height:48px;margin:0px;letter-spacing:4px;text-align:center;font-family:"Source Han Serif SC";font-weight:bold;font-size:38px;color:#eee5c5; }
+.ArchiveRoot #ArchiveSubtitle { width:100%;height:22px;text-align:center;font-size:14px;letter-spacing:0px;color:#cededb; }
+.ArchiveRoot #ArchiveBook { visibility:collapse; }
+.ArchiveRoot #ArchiveClose { position:808px 74px 0px;width:29px;height:29px;margin:0px;padding:0px;flow-children:none;box-shadow:none;background-image:none;border:0px; }
+.ArchiveCloseImage { width:29px;height:29px; }
+.ArchiveRoot #ArchiveBody { position:0px 124px 0px;width:869px;height:589px;padding:0px;flow-children:none; }
+#ArchiveSidebarBacking { position:0px 0px 0px;width:214px;height:589px; }
+#ArchiveContentBacking { position:214px 0px 0px;width:655px;height:589px; }
+.ArchiveRoot #ArchiveTabs { position:3px 15px 0px;width:209px;height:558px;padding:0px;flow-children:down;overflow:squish scroll; }
+.ArchiveRoot #ArchiveTabs .ArchiveTab { width:209px;height:54px;min-height:54px;margin:0px 0px 9.5px 0px;padding:0px;flow-children:none;background-color:transparent;background-image:none;border:0px;box-shadow:none; }
+.ArchiveRoot #ArchiveTabs .ArchiveTab:selected { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_toggle_selected.png");background-size:100% 100%; }
+.ArchiveRoot #ArchiveTabs .ArchiveTab .RadioBox { visibility:collapse; }
+.ArchiveRoot #ArchiveTabs .ArchiveTab Label { position:73px 13px 0px;width:133px;height:31px;margin:0px;font-size:20px;align:left top;text-align:left;color:#e8ede4; }
+.ArchiveRoot #ArchiveTabs .ArchiveTab:selected Label { color:#214957; }
+.ArchiveNavIcon { position:30px 8px 0px;width:31px;height:31px; }
+.ArchiveRoot #ArchiveContent { position:214px 0px 0px;width:655px;height:589px;margin:0px;padding:0px;background-image:none;background-color:transparent;border:0px;flow-children:none; }
+.ArchiveRoot #ArchiveContent #ArchivePageHeader { position:58px 17px 0px;width:540px;height:45px;flow-children:none; }
+.ArchiveRoot #ArchiveContent #ArchivePageTitle { width:540px;height:40px;font-size:30px;font-family:"Source Han Serif SC";font-weight:bold;color:#20495a; }
+.ArchiveRoot #ArchiveContent #ArchiveSummary { position:0px 42px 0px;width:325px;height:23px;font-size:15px;color:#28546a;text-overflow:ellipsis; }
+.ArchiveRoot #ArchiveContent #ArchiveHint { position:400px 68px 0px;width:215px;height:21px;margin:0px;font-size:12px;color:#496471;white-space:nowrap;text-overflow:ellipsis; }
+.ArchiveRoot #ArchiveContent #ArchiveFilters { position:24px 91px 0px;width:584px;height:31px;flow-children:right; }
+.ArchiveRoot #ArchiveFilters RadioButton { width:111px;height:31px;margin:0px 7px 0px 0px;background-image:url("file://{images}/custom_game/archive_handoff_v1/filter_normal.png");background-size:100% 100%;background-color:transparent;border:0px; }
+.ArchiveRoot #ArchiveFilters #ArchiveFilter_all { width:130px;margin-right:10px; }
+.ArchiveRoot #ArchiveFilters RadioButton:selected { background-image:url("file://{images}/custom_game/archive_handoff_v1/filter_selected.png"); }
+.ArchiveRoot #ArchiveFilters Label { align:center center;font-size:14px;color:#285064;margin:0px; }
+.ArchiveRoot #ArchiveFilters RadioButton:selected Label { color:#eee8ce; }
+.ArchiveRoot #ArchiveContent #ArchiveGrid { position:22px 129px 0px;width:617px;height:420px;margin:0px;padding:0px;flow-children:right-wrap;overflow:squish scroll; }
+.ArchiveRoot #ArchiveContent.ArchiveHasDraw #ArchiveGrid { height:368px;margin:0px; }
+.ArchiveRoot #ArchiveGrid .ArchiveCard { width:143px;height:138px;margin:0px 7px 2px 0px;padding:0px;flow-children:none;background-image:url("file://{images}/custom_game/archive_handoff_v1/interaction_components_v2_card_normal.png");background-size:100% 100%;border:0px;background-color:transparent; }
+.ArchiveRoot #ArchiveGrid .ArchiveCard:hover,.ArchiveRoot #ArchiveGrid .ArchiveHovered { background-image:url("file://{images}/custom_game/archive_handoff_v1/interaction_components_v2_card_selected.png");brightness:1; }
+.ArchiveRoot #ArchiveGrid .ArchiveArt { position:25px 18px 0px;width:93px;height:74px;align:left top;border:0px;background-image:none;background-color:transparent;border-radius:0px;margin:0px; }
+.ArchiveRoot #ArchiveGrid .ArchiveRewardIcon { width:100%;height:100%; }
+.ArchiveRoot #ArchiveGrid .ArchiveItemName { position:7px 92px 0px;width:129px;height:23px;margin:0px;color:#204957;text-align:center;font-size:14px;text-overflow:shrink;white-space:nowrap; }
+.ArchiveRoot #ArchiveGrid .ArchiveNameHost { position:7px 92px 0px;width:129px;height:23px; }
+.ArchiveRoot #ArchiveGrid .ArchiveNameHost .ArchiveItemName { position:0px 0px 0px;width:fit-children;max-width:129px;height:fit-children;align:center center; }
+.ArchiveRoot #ArchiveGrid .ArchiveCount { position:83px 7px 0px;width:53px;height:18px;padding:0px;margin:0px;align:left top;background-image:url("file://{images}/custom_game/archive_handoff_v1/detail_controls_v1_badge_counter.png");background-size:100% 100%;background-color:transparent;color:#eff6ec;font-size:11px;text-align:center;z-index:4; }
+.ArchiveRoot #ArchiveGrid .ArchiveUnlockBadge { position:24px 110px 0px;width:96px;height:23px;margin:0px;font-size:12px;color:#f4f4e6;text-align:center;background-size:100% 100%; }
+.ArchiveRoot #ArchiveGrid .ArchiveUnlockBadge.Unlocked { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_badge_unlocked.png"); }
+.ArchiveRoot #ArchiveGrid .ArchiveUnlockBadge.Locked { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_badge_locked.png"); }
+.ArchiveRoot #ArchiveGrid .ArchiveFragmentCard { height:171px; }
+.ArchiveRoot #ArchiveGrid .ArchiveFragmentLevel { position:8px 137px 0px;font-size:12px;color:#285064; }
+.ArchiveRoot #ArchiveGrid .ArchivePromote { position:49px 136px 0px;width:88px;height:29px; }
+.ArchiveRoot #ArchiveGrid .ArchiveWorkCard { height:161px; }
+.ArchiveRoot #ArchiveGrid .ArchiveWorkCost { position:7px 135px 0px;width:129px;height:23px;color:#285064;font-size:13px;text-align:center; }
+.ArchiveRoot #ArchiveFooter { position:25px 551px 0px;width:590px;height:32px;flow-children:none; }
+.ArchiveRoot #ArchiveStatus { position:0px 0px 0px;width:590px;height:30px;margin:0px;text-align:center;font-size:12px;color:#285064;white-space:normal; }
+.ArchiveRoot #ArchiveContent.ArchiveBuildingPage #ArchiveStatus { width:440px; }
+.ArchiveRoot #ArchiveFaith { position:442px 0px 0px;width:148px;height:30px; }
+.ArchiveRoot #ArchiveEmpty { position:36px 270px 0px;width:570px;height:70px;margin:0px;align:left top;text-align:center;color:#496471;font-size:18px; }
+.ArchiveRoot #ArchiveDrawBar { position:25px 500px 0px;align:left top;width:590px;height:45px;margin:0px;padding:4px; }
+.ArchiveRoot #ArchiveTabs VerticalScrollBar { width:4px;background-color:#a8936630; }
+.ArchiveRoot #ArchiveGrid VerticalScrollBar { width:16px;background-image:url("file://{images}/custom_game/archive_handoff_v1/detail_controls_v1_scroll_track.png");background-size:100% 100%;background-color:transparent; }
+.ArchiveRoot #ArchiveGrid VerticalScrollBar .ScrollThumb { background-image:url("file://{images}/custom_game/archive_handoff_v1/detail_controls_v1_scroll_thumb_normal.png");background-size:100% 100%;background-color:transparent;border:0px; }
+.ArchiveRoot #ArchiveTooltip { width:300px;height:fit-children;max-height:900px;padding:0px;margin:0px;flow-children:none;background-color:transparent;background-image:none;border:0px;box-shadow:none;z-index:100002;transform-origin:0% 0%;overflow:noclip; }
+#ArchiveTooltipFrame { width:100%;height:100%;flow-children:none;border:12px solid transparent;border-image-source:url("file://{images}/custom_game/archive_handoff_v1/tooltip_panel.png");border-image-slice:12px fill;border-image-width:1;border-image-repeat:stretch;border-image-outset:0px; }
+#ArchiveTooltipBody { width:100%;height:fit-children;padding:15px 20px 20px;flow-children:down;overflow:squish scroll; }
+.ArchiveRoot #ArchiveTooltipName { width:100%;height:fit-children;font-size:23px;font-family:"Source Han Serif SC";font-weight:bold;color:#eee0b6;margin:0px 0px 9px;white-space:normal; }
+#ArchiveTooltipState { width:100%;height:22px;flow-children:right; }
+#ArchiveTooltipStateIcon { width:14px;height:14px;margin:2px 8px 0px 0px; }
+#ArchiveTooltipStateText { color:#adc3c6;font-size:14px; }
+#ArchiveTooltipDivider { width:100%;height:1px;margin:8px 0px 12px; }
+.ArchiveDetailHeading { color:#ede3bf;font-size:15px;margin-bottom:6px; }
+.ArchiveRoot #ArchiveTooltipEffect,#ArchiveTooltipCondition { width:100%;height:fit-children;white-space:normal;color:#e4eeea;font-size:16px;margin:0px 0px 15px; }
+#ArchiveTooltipProgressRow { width:100%;height:24px;flow-children:right;margin-top:3px; }
+#ArchiveTooltipProgressRow Label { color:#adc3c6;font-size:14px; }
+#ArchiveTooltipProgressRow #ArchiveTooltipProgress { width:fill-parent-flow(1);text-align:right;color:#eee0b6; }
+.ArchiveMissingArtText { width:100%;align:center center;text-align:center;color:#285064;font-size:12px; }
+
+.ArchiveAssetCompile_0 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_badge_locked.png"); }
+.ArchiveAssetCompile_1 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_badge_unlocked.png"); }
+.ArchiveAssetCompile_2 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_blessing_normal.png"); }
+.ArchiveAssetCompile_3 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_clear_selected.png"); }
+.ArchiveAssetCompile_4 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_endless_normal.png"); }
+.ArchiveAssetCompile_5 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_ex_normal.png"); }
+.ArchiveAssetCompile_6 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_friends_normal.png"); }
+.ArchiveAssetCompile_7 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_points_normal.png"); }
+.ArchiveAssetCompile_8 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_spell_normal.png"); }
+.ArchiveAssetCompile_9 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_toggle_selected.png"); }
+.ArchiveAssetCompile_10 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_void_normal.png"); }
+.ArchiveAssetCompile_11 { background-image:url("file://{images}/custom_game/archive_handoff_v1/archive_ui_kit_v1_weapon_normal.png"); }
+.ArchiveAssetCompile_12 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_01.png"); }
+.ArchiveAssetCompile_13 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_02.png"); }
+.ArchiveAssetCompile_14 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_03.png"); }
+.ArchiveAssetCompile_15 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_04.png"); }
+.ArchiveAssetCompile_16 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_05.png"); }
+.ArchiveAssetCompile_17 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_06.png"); }
+.ArchiveAssetCompile_18 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_07.png"); }
+.ArchiveAssetCompile_19 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_08.png"); }
+.ArchiveAssetCompile_20 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_09.png"); }
+.ArchiveAssetCompile_21 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_10.png"); }
+.ArchiveAssetCompile_22 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_11.png"); }
+.ArchiveAssetCompile_23 { background-image:url("file://{images}/custom_game/archive_handoff_v1/art_12.png"); }
+.ArchiveAssetCompile_24 { background-image:url("file://{images}/custom_game/archive_handoff_v1/content_background.png"); }
+.ArchiveAssetCompile_25 { background-image:url("file://{images}/custom_game/archive_handoff_v1/detail_controls_v1_badge_counter.png"); }
+.ArchiveAssetCompile_26 { background-image:url("file://{images}/custom_game/archive_handoff_v1/detail_controls_v1_scroll_thumb_normal.png"); }
+.ArchiveAssetCompile_27 { background-image:url("file://{images}/custom_game/archive_handoff_v1/detail_controls_v1_scroll_track.png"); }
+.ArchiveAssetCompile_28 { background-image:url("file://{images}/custom_game/archive_handoff_v1/filter_normal.png"); }
+.ArchiveAssetCompile_29 { background-image:url("file://{images}/custom_game/archive_handoff_v1/filter_selected.png"); }
+.ArchiveAssetCompile_30 { background-image:url("file://{images}/custom_game/archive_handoff_v1/header_background.png"); }
+.ArchiveAssetCompile_31 { background-image:url("file://{images}/custom_game/archive_handoff_v1/interaction_components_v2_card_normal.png"); }
+.ArchiveAssetCompile_32 { background-image:url("file://{images}/custom_game/archive_handoff_v1/interaction_components_v2_card_selected.png"); }
+.ArchiveAssetCompile_33 { background-image:url("file://{images}/custom_game/archive_handoff_v1/sidebar_background.png"); }
+.ArchiveAssetCompile_34 { background-image:url("file://{images}/custom_game/archive_handoff_v1/window_foundation_v1_close_normal.png"); }
+.ArchiveAssetCompile_35 { background-image:url("file://{images}/custom_game/archive_handoff_v1/icon_check_light.png"); }
+.ArchiveAssetCompile_36 { background-image:url("file://{images}/custom_game/archive_handoff_v1/icon_lock_light.png"); }
+.ArchiveAssetCompile_37 { background-image:url("file://{images}/custom_game/archive_handoff_v1/tooltip_divider.png"); }
+.ArchiveAssetCompile_38 { background-image:url("file://{images}/custom_game/archive_handoff_v1/tooltip_panel.png"); }
+.ArchiveAssetCompile_39 { background-image:url("file://{images}/custom_game/archive_handoff_v1/header_alpha_v2.png"); }

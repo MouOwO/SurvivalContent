@@ -113,12 +113,22 @@
     function setVisible(visible) {
         state.visible = !!visible;
         var editor = panel("SurvivalPortraitCameraEditor");
-        if (editor) editor.SetHasClass("Hidden", !state.visible);
+        if (editor) {
+            editor.visible = state.visible;
+            editor.SetHasClass("Hidden", !state.visible);
+        }
+        // This is the standalone calibration preview, not the live HUD portrait.
+        var preview = panel("SurvivalJuggernautPortraitOverlay");
+        if (preview) preview.visible = state.visible;
+        var previewScene = scene();
+        if (previewScene) previewScene.visible = state.visible;
         updatePanel(state.visible ? "校准器已打开" : "已关闭");
         if (state.visible) applyCamera("open");
     }
 
     function registerCommands() {
+        // Acceptance build: optional legacy console calibration is disabled.
+        if (!GameUI.CustomUIConfig().SurvivalEnableLegacyDebugCommands) return;
         if (!Game.AddCommand) return;
         try {
             Game.AddCommand("survival_portrait_camera", function () {
@@ -147,5 +157,6 @@
     };
 
     registerCommands();
+    setVisible(false);
     updatePanel("准备就绪；输入 survival_portrait_camera 打开");
 })();

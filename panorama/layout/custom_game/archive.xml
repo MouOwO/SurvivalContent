@@ -1,9 +1,9 @@
 <root>
-    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /><include src="file://{resources}/styles/custom_game/archive_gothic.css" /></styles>
-    <scripts><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/archive.js" /><include src="file://{resources}/scripts/custom_game/daily_rewards.js" /><include src="file://{resources}/scripts/custom_game/treasure_history.js" /></scripts>
+    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /><include src="file://{resources}/styles/custom_game/archive_kit.css" /><include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/daily_assets.css"/><include src="file://{resources}/styles/custom_game/archive_handoff_180de7e38b.css" /><include src="file://{resources}/styles/custom_game/archive_typography_180de7e38b.css" /><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/daily_resources.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/archive_handoff_assets.js" /><include src="file://{resources}/scripts/custom_game/archive_handoff_180de7e38b.js" /><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/navigation_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/icons_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/archive_180de7e38b.js" /><include src="file://{resources}/scripts/custom_game/daily_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/treasure_history.js" /></scripts>
     <Panel class="ArchiveRoot" hittest="false">
         <Button id="ArchiveEntry" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Toggle()">
-            <Panel class="ArchiveEntryScroll"><Label text="卷" /></Panel>
+            <Panel class="ArchiveEntryScroll ArchiveKitIcon KitIcon_book" hittest="false" />
             <Label class="ArchiveEntryText" text="存档" />
         </Button>
         <Label id="EndlessStatus" class="ArchiveHidden" hittest="false" />
@@ -18,33 +18,38 @@
             <Panel id="DailyChest"><Panel class="ChestLid" /><Panel class="ChestBase" /><Panel class="ChestLock" /></Panel><Label text="每日奖励" />
         </Button>
         <Button id="PassEntry" onactivate="GameUI.CustomUIConfig().SurvivalDaily.Open(true)"><Label text="月卡" /></Button>
+        <Button id="DailyScrim" class="ArchiveHidden" />
         <Panel id="DailyWindow" class="ArchiveHidden">
-            <Panel class="DailyHeader"><Label id="DailyHeading" text="每日奖励" /><Button onactivate="GameUI.CustomUIConfig().SurvivalDaily.Close()"><Label text="×" /></Button></Panel>
-            <Label id="DailySubtitle" text="每日零点刷新 · 七日奖励循环 · 断签不重置累计进度" />
-            <Panel id="DailyClaimPage">
-                <Panel id="DailyCards" />
-                <Label class="DailySection" text="月卡专享 · 累计签到礼" />
-                <Panel id="DailySpecials" />
-                <Panel class="DailyActions"><Label id="DailyCount" /><Button id="DailyMakeup"><Label text="补签最早漏签日" /></Button><Button id="DailyClaim"><Label text="领取今日奖励" /></Button></Panel>
+            <Panel id="DailyFrame" hittest="false" hittestchildren="false" />
+            <Panel id="DailyHeader" hittest="false" class="DailyHeader"><Label id="DailyHeading" text="每日奖励" /><Button id="DailyClose" /></Panel>
+            <Panel id="DailyClaimPage" hittest="false">
+                <Label id="DailySubtitle" /><Button id="DailyPassStatus"><Label id="DailyPassStatusText" /></Button><Label id="DailyCount" />
+                <Panel id="DailyCards" hittest="false" />
+                <Label id="DailyRuleLine" /><Button id="DailyRules"><Label text="奖励说明" /></Button>
+                <Button id="DailyMakeup"><Label text="补签最早漏签日" /></Button>
+                <Button id="DailyClaim"><Label id="DailyClaimText" text="领取今日奖励" /></Button>
             </Panel>
             <Panel id="DailyPassPage" class="ArchiveHidden">
-                <Panel class="PassIllustration"><Label class="PassMoon" text="月" /><Label text="星月通行证" /><Label class="PassTagline" text="每一次归来，都有一份馈赠" /></Panel>
-                <Panel class="PassDetails"><Label class="DailySection" text="月卡权益" /><Label text="BOSS存档激活门槛减半\n有效期内可补签最近30天漏签\n累计7 / 14 / 21次签到专属珍藏\n享有存档挑战的现有通行证权益" /><Label id="PassValidity" /><Label id="PassPrice" /><Button id="PassPurchase"><Label id="PassPurchaseText" text="购买暂未开放" /></Button><Label class="PassFinePrint" text="购买成功后由服务端确认开通；到期恢复普通门槛。" /></Panel>
+                <Label class="DailySection" text="通行证权益" /><Label id="PassValidity" /><Label id="PassPrice" />
+                <Panel id="DailySpecials" /><Button id="PassPurchase"><Label id="PassPurchaseText" /></Button>
+                <Button id="DailyBack"><Label text="返回每日奖励" /></Button>
             </Panel>
             <Label id="DailyNotice" text="正在读取签到档案…" />
-            <Panel id="DailyTooltip" class="ArchiveHidden" hittest="false"><Label id="DailyTooltipName" /><Label id="DailyTooltipEffect" /></Panel>
+            <Panel id="DailyRulesText" class="ArchiveHidden"><Label id="DailyRulesBody" /></Panel>
+            <Panel id="DailyTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false"><Label id="DailyTooltipName" /><Label id="DailyTooltipEffect" /></Panel>
         </Panel>
-        <Panel id="ArchiveWindow" class="ArchiveHidden">
-            <Panel id="ArchiveHeader">
-                <Panel id="ArchiveTitleBlock"><Label id="ArchiveTitle" text="存 档" /><Label id="ArchiveSubtitle" text="征途留痕 · 永久成长" /></Panel>
-                <Button id="ArchiveClose" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()"><Label text="×" /></Button>
+        <Button id="ArchiveScrim" class="ArchiveHidden" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()" />
+        <Panel id="ArchiveWindow" class="ArchiveHidden ArchiveHandoff">
+            <Panel id="ArchiveHeader"><Panel id="ArchiveHeaderArt" hittest="false" />
+                <Panel id="ArchiveBook" class="ArchiveKitIcon KitIcon_book" hittest="false" /><Panel id="ArchiveTitleBlock"><Label id="ArchiveTitle" text="存 档" /><Label id="ArchiveSubtitle" text="征途留痕 · 永久成长" /></Panel>
+                <Button id="ArchiveClose" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()"><Panel class="ArchiveKitIcon KitIcon_close" hittest="false" /></Button>
             </Panel>
-            <Panel id="ArchiveBody">
+            <Panel id="ArchiveBody"><Image id="ArchiveSidebarBacking" hittest="false" /><Image id="ArchiveContentBacking" hittest="false" />
                 <Panel id="ArchiveTabs" />
                 <Panel id="ArchiveContent">
                     <Panel id="ArchivePageHeader"><Label id="ArchivePageTitle" text="通关存档" /><Label id="ArchiveSummary" text="" /></Panel>
                     <Label id="ArchiveHint" text="" />
-                    <Panel id="ArchiveGrid" />
+                    <Panel id="ArchiveFilters"><RadioButton id="ArchiveFilter_all" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('all')"><Label text="全部" /></RadioButton><RadioButton id="ArchiveFilter_unlocked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('unlocked')"><Label text="已解锁" /></RadioButton><RadioButton id="ArchiveFilter_locked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('locked')"><Label text="未解锁" /></RadioButton></Panel><Panel id="ArchiveGrid" />
                     <Label id="ArchiveEmpty" text="正在读取存档…" />
                     <Panel id="ArchiveDrawBar" class="ArchiveHidden">
                         <Label id="ArchiveDrawResult" text="" />
@@ -59,8 +64,7 @@
             </Panel>
         </Panel>
         <Panel id="ArchiveTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false">
-            <Label id="ArchiveTooltipName" text="" />
-            <Label id="ArchiveTooltipEffect" text="" />
+            <Panel id="ArchiveTooltipFrame" hittest="false" /><Panel id="ArchiveTooltipBody"><Label id="ArchiveTooltipName" /><Panel id="ArchiveTooltipState"><Image id="ArchiveTooltipStateIcon" /><Label id="ArchiveTooltipStateText" /></Panel><Image id="ArchiveTooltipDivider" /><Label class="ArchiveDetailHeading" text="存档效果" /><Label id="ArchiveTooltipEffect" /><Label class="ArchiveDetailHeading" text="解锁条件" /><Label id="ArchiveTooltipCondition" /><Panel id="ArchiveTooltipProgressRow"><Label text="当前进度" /><Label id="ArchiveTooltipProgress" /></Panel></Panel>
         </Panel>
     </Panel>
 </root>

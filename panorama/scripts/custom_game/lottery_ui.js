@@ -1,6 +1,13 @@
 (function () {
     "use strict";
+    // UI_REUSE_V1
+    var U=GameUI.CustomUIConfig().SurvivalUI;
 
+    var drawSequence=U.DrawResultSequence();
+    var infoShell=U.ModalShell.Adopt({id:"lottery_info",panel:$("#LotteryInfoDialog"),root:$.GetContextPanel(),scrim:$("#LotteryInfoOverlay"),header:$("#LotteryInfoHeader"),titlePanel:$("#LotteryInfoTitle"),closeButton:$("#LotteryInfoClose"),width:1045,height:760,fit:{widthFraction:.682,heightFraction:.80},onClose:closeInfo});
+    U.FullscreenShell.Adopt({panel:$("#LotteryWindow"),sceneId:"scene.treasure"});
+    ["LotterySingleButton","LotteryTenButton","LotteryAgain","LotteryConfirm","LotteryInfoConfirm"].forEach(function(id){U.ActionButton.Adopt($("#"+id),{variant:id==="LotteryTenButton"||id==="LotteryAgain"?"gold":"ivory"});});
+    U.Checkbox.Adopt($("#LotterySkipAnimation")); U.CloseButton($("#LotteryCloseButton"),close);
     var state = null;
     var pending = false;
     var requestSerial = 0;
@@ -13,30 +20,7 @@
     var motion = { single: {enter:650, flip:1250, ready:2000}, ten: {enter:800, enterStep:40, flip:1350, flipStep:110, ready:2800}, flipHalf:100 };
     var detailPoolId = null, detailState = null, detailRequestSerial = 0;
     var animationTimers = [], activeFeature = "", reopenDetails = false, knownPools = [], selectedRewardId = null, poolCards = [];
-    var fitGeneration = 0;
-    function fitDetails() {
-        var overlay = panel("LotteryInfoOverlay"), dialog = panel("LotteryInfoDialog");
-        if (!overlay || !dialog) return;
-        if (activeFeature !== "details") { dialog.style.transform = "scale3d(1,1,1)"; return; }
-        // Layout sizes are physical pixels; convert to logical units once.
-        // Panorama applies its own UI scale after our single uniform transform.
-        var width = Number(overlay.actuallayoutwidth) / (Number(overlay.actualuiscale_x) || 1);
-        var height = Number(overlay.actuallayoutheight) / (Number(overlay.actualuiscale_y) || 1);
-        if (!(width > 0 && height > 0)) return;
-        var scale = Math.min(width * 0.682 / 1045, height * 0.80 / 760);
-        dialog.style.transform = "scale3d(" + scale + "," + scale + ",1)";
-    }
-    function watchDetailsSize() {
-        var generation = ++fitGeneration;
-        fitDetails();
-        if (activeFeature !== "details") return;
-        function tick() {
-            if (generation !== fitGeneration || activeFeature !== "details") return;
-            fitDetails(); $.Schedule(0.25, tick);
-        }
-        $.Schedule(0.0, tick);
-    }
-    function cancelAnimation() { animationSerial++; animationTimers.forEach(function (timer) { if ($.CancelScheduled) $.CancelScheduled(timer); }); animationTimers = []; }
+    function cancelAnimation() { animationSerial++; drawSequence.Cancel(); animationTimers = []; }
     function cardState(card, name, on) { if (card && (!card.IsValid || card.IsValid())) card.SetHasClass(name, on); }
     function drawCost(selected, count) { var value = Number(count === 10 ? selected.ten_cost : selected.single_cost); return isFinite(value) && value >= 0 ? value : count; }
 
@@ -48,7 +32,7 @@
         return node;
     }
     function rootClass(name, on) { var root = panel("LotteryWindow"); if (root) root.SetHasClass(name, on); }
-    function closeInfo() { detailRequestSerial++; activeFeature = ""; fitGeneration++; var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery_info"); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); }
+    function closeInfo() { detailRequestSerial++; activeFeature = ""; infoShell.Close(); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); }
     function updateButtons() {
         var selected = state && (state.selected_pool || state);
         var locked = pending || animating || switchingPool || !selected || !!activeFeature;
@@ -81,15 +65,7 @@
         animating = true; rootClass("LotteryAnimating", true); rootClass("LotteryCharging", true);
         resultCards.forEach(function (card) { cardState(card,"LotteryCardCovered",true); cardState(card,"LotteryCardEntering",true); });
         updateButtons(); setText("LotteryRevealPhase", "星轨汇聚");
-        function later(ms, action) { animationTimers.push($.Schedule(ms / 1000, function () { if (generation === animationSerial && opened) action(); })); }
-        later(650, function () { rootClass("LotteryCharging",false); });
-        resultCards.forEach(function (card, i) {
-            later(timing.enter + (timing.enterStep || 0) * i, function () { cardState(card,"LotteryCardEntering",false); });
-            var flip = timing.flip + (timing.flipStep || 0) * i;
-            later(flip, function () { cardState(card,"LotteryCardNarrow",true); });
-            later(flip + motion.flipHalf, function () { cardState(card,"LotteryCardCovered",false); cardState(card,"LotteryCardNarrow",false); });
-        });
-        later(timing.ready, finishReveal);
+        drawSequence.Play(visibleResults,{timing:timing,flipHalf:motion.flipHalf,onCharged:function(){rootClass("LotteryCharging",false);},onEnter:function(i){cardState(resultCards[i],"LotteryCardEntering",false);},onFlip:function(i){cardState(resultCards[i],"LotteryCardNarrow",true);},onReveal:function(i){cardState(resultCards[i],"LotteryCardCovered",false);cardState(resultCards[i],"LotteryCardNarrow",false);},onReady:finishReveal});
     }
 
     function panel(id) { return $("#" + id); }
@@ -141,14 +117,8 @@
         return messages[String(code || "")] || String(code || "未知错误");
     }
 
-    function createRewardIcon(parent, item, className) {
-        // User-approved visual trial: all lottery item views share this artwork.
-        // Reward IDs, descriptions, quantities and server grants remain untouched.
-        var icon = $.CreatePanel("Image", parent, "");
-        icon.SetImage("file://{images}/custom_game/lottery_handoff/test_art/astrolabe-372x284.png");
-        icon.AddClass(className || "LotteryRewardIcon");
-        icon.hittest = false; icon.hittestchildren = false;
-        return icon;
+    function createRewardIcon(parent,item,className) {
+        return GameUI.CustomUIConfig().SurvivalRewardPresentation.CreateIcon(parent,item,className||"LotteryRewardIcon");
     }
 
     function createIconFrame(parent, item, className) {
@@ -340,7 +310,7 @@
         host.RemoveAndDeleteChildren();
         rows(pools).forEach(function (pool) {
             var button = $.CreatePanel("Button", host, "");
-            button.AddClass("LotteryPoolTab");
+            button.AddClass("LotteryPoolTab"); U.TabBar.Adopt(button);
             var mark = $.CreatePanel("Image", button, ""); mark.AddClass("LotteryTabMark");  mark.hittest = false;
             button.SetHasClass("Selected", String(pool.id) === (hostId === "LotteryInfoTabs" ? detailPoolId : selectedPoolId));
             var label = $.CreatePanel("Label", button, "");
@@ -520,22 +490,7 @@
         // Do not expose server weights or manufacture percentages.
     }
 
-    function ensureDetailSlices() {
-        var dialog = panel("LotteryInfoDialog");
-        if (!dialog || panel("LotteryNineSlice")) return;
-        ["left","right"].forEach(function(side){var ornament=$.CreatePanel("Panel",dialog,"");ornament.AddClass("LotteryV3Ornament_"+side);ornament.hittest=false;});
-        var frame = $.CreatePanel("Panel", dialog, "LotteryNineSlice"); frame.hittest = false; frame.hittestchildren = false;
-        [["tl","t","tr"],["l","c","r"],["bl","b","br"]].forEach(function(parts,rowIndex){
-            var row = $.CreatePanel("Panel",frame,""); row.AddClass("LotterySliceRow"); row.AddClass(rowIndex === 1 ? "LotterySliceMiddle" : "LotterySliceEdge"); row.hittest=false;
-            parts.forEach(function(part,column){var image = $.CreatePanel("Image",row,""); image.AddClass("LotterySlice_"+part); image.AddClass(column === 1 ? "LotterySliceStretch" : "LotterySliceCorner"); image.SetImage("file://{images}/custom_game/lottery_handoff/slices/panel_"+part+".png");image.hittest=false;});
-        });
-    }
-
-    function createV3CardBorder(parent) {
-        var border=$.CreatePanel("Panel",parent,"");border.AddClass("LotteryV3CardBorder");border.hittest=false;border.hittestchildren=false;
-        [["tl","top","tr"],["left","center","right"],["bl","bottom","br"]].forEach(function(parts,index){var row=$.CreatePanel("Panel",border,"");row.AddClass(index===1?"V3CardMiddle":"V3CardEdge");parts.forEach(function(part,col){var cell=$.CreatePanel("Panel",row,"");cell.AddClass(col===1?"V3CardStretch":"V3CardCorner");cell.AddClass("V3Card_"+part);});});
-    }
-
+    function createV3CardBorder(parent) { U.CardShell.Adopt(parent,{bodyVariant:"square"}); }
     function setHeaderIcon(icon, path) {
         var mappings = {pool:"pool_details_icon",history:"history_icon",plus:"currency_plus"}, match = /icons\/([a-z_]+)\.svg$/.exec(path);
         Object.keys(mappings).forEach(function(key){icon.RemoveClass("LotteryV3_"+mappings[key]);});
@@ -552,11 +507,10 @@
         if (name === "details" && activeFeature !== "details") { detailPoolId = selectedPoolId; detailState = state; }
         activeFeature = name; updateButtons();
         overlay.SetHasClass("LotteryPoolDetails", name === "details");
-        ensureDetailSlices();
-        watchDetailsSize();
+        // Shared shell owns frame and the only modal scale.
         var headerIcon = panel("LotteryInfoIcon");
-        if (headerIcon) setHeaderIcon(headerIcon, "file://{images}/custom_game/lottery_handoff/icons/" + ({details:"pool",history:"history",announcement:"announcement",purchase:"plus",firstgift:"gift",privilege:"gift"}[name] || "info") + ".svg");
-        var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Open("lottery_info", overlay, closeInfo);
+        if (headerIcon) setHeaderIcon(headerIcon, U.Asset(({details:"icon.pool_details",history:"icon.history",purchase:"icon.add",announcement:"icon.nav.social",firstgift:"icon.nav.benefit",privilege:"icon.nav.benefit"}[name]||"icon.pool_details")));
+        infoShell.Open();
         var tabs = panel("LotteryInfoTabs"); if (tabs) tabs.visible = name === "details";
         if (name === "details") renderPoolTabs(knownPools, "LotteryInfoTabs");
         var viewState = name === "details" ? detailState : state;

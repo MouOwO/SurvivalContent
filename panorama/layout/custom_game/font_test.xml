@@ -1,0 +1,26 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/common/font_test.css" />
+        <include src="file://{resources}/styles/custom_game/common/ui_typography.css" />
+    </styles>
+    <Panel class="SurvivalFontTestRoot" hittest="true">
+        <Panel class="FontTestWindow">
+            <Label class="UIFontTitle FontTestHeading" text="奖池详情 · 字体验证" />
+            <Label class="FontTestNote" text="本页用于核对实机字形、真实字重与裁切。仅指定字体名称不能证明加载成功。" />
+            <Panel class="FontTestDark">
+                <Label class="FontTestCaption UIFontBody" text="宋体 Bold · 38 px（窗口标题）" />
+                <Label class="UIFontTitle FontTestHeading" text="奖池详情　抽奖记录　解锁条件" />
+                <Label class="FontTestCaption UIFontBody" text="黑体 Medium · 20 px（按钮 / 分类）" />
+                <Panel class="FontTestButtons"><Button><Label class="UIFontMedium" text="确认" /></Button><Button><Label class="UIFontMedium" text="取消" /></Button><Button><Label class="UIFontMedium" text="地图宝箱" /></Button></Panel>
+            </Panel>
+            <Panel class="FontTestLight">
+                <Label class="UIFontBody FontTestBody" text="黑体 Regular · 18 px：奖池详情、抽奖记录、解锁条件、确认、取消" />
+                <Label class="UIFontNumber FontTestNumbers" text="0/10　100%　×10　1,234,567　Lv.99　N / R / SR / SSR / UR" />
+                <Label class="UIFontBody FontTestSmall" text="小字 14 px：力量 +10　攻击速度 +12.5%　冷却时间 -0.25 秒　获得：七禽扇" />
+                <Label class="UIFontMedium FontTestLong" text="长名称换行测试：远古秘境守护者的无尽祝福与星辰结晶" />
+                <Label class="UIFontBody FontTestBody" text="属性说明换行测试：装备提供的属性由实际配置读取。重复获得时按原有规则累计，达到数量上限后的处理保持原逻辑。" />
+            </Panel>
+            <Button class="FontTestClose" onactivate="GameUI.CustomUIConfig().SurvivalTypography.CloseTest()"><Label text="关闭字体测试" /></Button>
+        </Panel>
+    </Panel>
+</root>

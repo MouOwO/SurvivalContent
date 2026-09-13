@@ -1,65 +1,45 @@
-(function () {
-    "use strict";
-    var data = null, opened = false, buying = false, waiting = false;
-    function p(id) { return $("#" + id); }
-    function array(value) { return Array.isArray(value) ? value : Object.keys(value || {}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return value[k];}); }
-    function label(parent,text,style) { var l=$.CreatePanel("Label",parent,"");l.text=String(text);l.hittest=false;if(style)l.AddClass(style);return l; }
-    function hideTip() { p("DailyTooltip").AddClass("ArchiveHidden"); }
-    function tooltip(panel,name,effect) {
-        panel.SetPanelEvent("onmouseover",function(){p("DailyTooltipName").text=name;p("DailyTooltipEffect").text=effect;p("DailyTooltip").RemoveClass("ArchiveHidden");});
-        panel.SetPanelEvent("onmouseout",hideTip);
-    }
-    function request() { GameEvents.SendCustomGameEventToServer("survival_daily_request",{}); }
-    function render() {
-        if (!data) return;
-        var claimed=Number(data.claimed)===1, pass=Number(data.has_pass)===1, pending=waiting || Number(data.pending)===1;
-        p("DailyEntry").SetHasClass("DailyCanClaim",!claimed);
-        p("DailyEntry").SetHasClass("DailyClaimed",claimed);
-        if (!opened) return;
-        p("DailyHeading").text=buying ? "星月通行证" : "每日奖励";
-        p("DailyClaimPage").SetHasClass("ArchiveHidden",buying);
-        p("DailyPassPage").SetHasClass("ArchiveHidden",!buying);
-        p("DailyCards").RemoveAndDeleteChildren();
-        array(data.cycle).forEach(function(day){
-            var card=$.CreatePanel("Panel",p("DailyCards"),"");card.AddClass("DailyCard");
-            card.SetHasClass("DailyCardNext",Number(day.day)===Number(data.next_day));
-            label(card,"第"+day.day+"天","DailyDay");
-            var names=[],effects=[];
-            array(day.rewards).forEach(function(item){label(card,item.name+" ×"+item.count);names.push(item.name);effects.push(item.name+"："+item.description+"（每件）");});
-            tooltip(card,names.join(" / "),effects.join("\n"));
-        });
-        p("DailySpecials").RemoveAndDeleteChildren();
-        array(data.specials).forEach(function(item){
-            var card=$.CreatePanel("Panel",p("DailySpecials"),"");card.AddClass("DailySpecial");
-            label(card,"累计"+item.day+"次 · "+(Number(item.owned)>0?"已领取":"月卡专享"));label(card,item.name);
-            tooltip(card,item.name,item.description+"\n签到专属，不进入抽奖池，不重复叠加。");
-        });
-        var missed=array(data.missed);
-        p("DailyCount").text="累计签到 "+data.count+" 次 · 漏签 "+missed.length+" 天";
-        p("DailyClaim").enabled=!claimed&&!pending;
-        p("DailyMakeup").enabled=pass&&missed.length>0&&!pending;
-        p("PassValidity").text=pass ? "已开通 · "+(Number(data.expires_at)>0?"剩余 "+Math.max(0,Math.ceil((Number(data.expires_at)*1000-Date.now())/86400000))+" 天":"有效") : "尚未开通或已到期";
-        p("PassPrice").text=data.duration_days+"天 / "+data.price;
-        p("PassPurchase").enabled=Number(data.purchase_enabled)===1;
-        p("PassPurchaseText").text=Number(data.purchase_enabled)===1 ? (pass?"续费月卡":"购买月卡") : "购买暂未开放";
-        p("DailyNotice").text=pending?"奖励正在保存…":claimed?"今日已领取，明日0点刷新。月卡补签仅限最近30天。":"今日奖励可领取 · 七日循环，累计进度不会因断签清零。";
-    }
-    function claim(day) {
-        if(!data||waiting)return;
-        waiting=true;render();
-        GameEvents.SendCustomGameEventToServer("survival_daily_claim",{target_day:day});
-        $.Schedule(2,function(){waiting=false;request();});
-    }
-    p("DailyClaim").SetPanelEvent("onactivate",function(){if(p("DailyClaim").enabled)claim(Number(data.today));});
-    p("DailyMakeup").SetPanelEvent("onactivate",function(){if(p("DailyMakeup").enabled)claim(Number(array(data.missed)[0]));});
-    p("PassPurchase").SetPanelEvent("onactivate",function(){if(p("PassPurchase").enabled){p("PassPurchase").enabled=false;GameEvents.SendCustomGameEventToServer("survival_pass_purchase",{});}});
-    GameEvents.Subscribe("survival_daily_snapshot",function(next){
-        if(!(next.ok===true||Number(next.ok)===1)){p("DailyNotice").text=next.error||"正在读取档案";$.Schedule(3,request);return;}
-        data=next;waiting=false;render();
-    });
-    GameUI.CustomUIConfig().SurvivalDaily={
-        Open:function(pass){opened=true;buying=pass===true;hideTip();p("DailyWindow").RemoveClass("ArchiveHidden");render();request();},
-        Close:function(){opened=false;p("DailyWindow").AddClass("ArchiveHidden");hideTip();}
-    };
-    $.Schedule(1,request);
+(function(){
+"use strict";
+var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,data=null,waiting=null,errorText='',buying=false,sequence=0,active=true,life=U.Lifecycle(),shell;
+var dailyRoot=$.GetContextPanel();if(!viewValid()){active=false;return;}
+if(cfg.SurvivalDaily&&cfg.SurvivalDaily.Dispose)cfg.SurvivalDaily.Dispose();
+function valid(panel){return panel&&(!panel.IsValid||panel.IsValid());}function p(id){return valid(dailyRoot)?dailyRoot.FindChildTraverse(id):null;}function viewValid(){return valid(p('DailyWindow'));}function stopIfInvalid(){if(!active)return true;if(viewValid())return false;active=false;life.Dispose();if(typeof viewLife!=='undefined')viewLife.Dispose();if(shell)shell.Dispose();return true;}function array(v){return Array.isArray(v)?v:Object.keys(v||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return v[k];});}
+function label(parent,text,cls){var l=$.CreatePanel('Label',parent,'');l.text=String(text||'');l.hittest=false;l.AddClass(cls||'DailyText');return l;}
+function rect(p,x,y,w,h){p.style.position=x+'px '+y+'px 0px';p.style.width=w+'px';p.style.height=h+'px';}
+function image(parent,id,cls){return U.Image(parent,id,cls);}function tip(p,title,body){U.Tooltip.Bind(p,{title:title,body:body});}
+function iconButton(p,name,action){p.AddClass('DailyIcon_'+name);var a=$.CreatePanel('Panel',p,'');a.AddClass('DailyIconArt');a.hittest=false;p.hittestchildren=false;U.State.Bind(p,action);}
+function close(){if(!active)return;shell.Close();if(valid(p('DailyWindow')))p('DailyWindow').AddClass('ArchiveHidden');if(valid(p('DailyScrim')))p('DailyScrim').AddClass('ArchiveHidden');if(valid(p('DailyRulesText')))p('DailyRulesText').AddClass('ArchiveHidden');$.DispatchEvent('DOTAHideTextTooltip');}
+shell=U.ModalShell.Adopt({id:'daily_rewards',panel:p('DailyWindow'),root:$.GetContextPanel(),scrim:p('DailyScrim'),width:1348,height:758,fit:{reference:[1672,941]},onClose:close});
+p('DailyWindow').style.backgroundColor='transparent';p('DailyWindow').style.border='0px';p('DailyWindow').style.boxShadow='none';p('DailyScrim').style.backgroundColor='#0000008c';
+for(var r=0;r<3;r++)for(var c=0;c<3;c++){var part=image(p('DailyFrame'),'shared.candidate.daily_window.r'+r+'c'+c,'DailyFramePart');rect(part,[0,32,1316][c],[0,32,726][r],[32,1284,32][c],[32,694,32][r]);part.SetScaling('stretch-to-fit');}
+rect(image(p('DailyHeader'),'daily.icon.calendar.normal','DailyCalendar'),536,14,72,72);
+iconButton(p('DailyClose'),'close_local',shell.RequestClose);
+iconButton(p('DailyRules'),'rules_local',function(){p('DailyRulesText').ToggleClass('ArchiveHidden');});
+iconButton(p('DailyPassStatus'),'pass',function(){buying=true;render();});
+U.ActionButton.Adopt(p('DailyClaim'),{action:function(){claim(data&&data.today);}});p('DailyClaim').AddClass('DailyClaimSkin');
+U.ActionButton.Adopt(p('DailyMakeup'),{action:function(){claim(array(data&&data.missed)[0]);}});
+U.ActionButton.Adopt(p('PassPurchase'),{action:function(){if(!data||Number(data.purchase_enabled)!==1)return;U.State.Set(p('PassPurchase'),{enabled:false});GameEvents.SendCustomGameEventToServer('survival_pass_purchase',{});}});
+U.ActionButton.Adopt(p('DailyBack'),{action:function(){buying=false;render();}});
+var spinner=image(p('DailyClaim'),'daily.icon.spinner','DailySpinner');
+function request(){if(stopIfInvalid())return;if(!active)return;if(active)GameEvents.SendCustomGameEventToServer('survival_daily_request',{});}
+// Existing stat gems/fragments use crystal category art; names/counts/effects remain authoritative.
+function artId(item){return item.art_id&&U.ResourceInfo(item.art_id).runtime?item.art_id:'daily.item.crystals';}
+function reward(parent,item,cls){var slot=$.CreatePanel('Panel',parent,'');slot.AddClass(cls);image(slot,artId(item),'DailyItemArt').SetScaling('scale-to-fit');label(slot,item.name+' ×'+item.count,'DailyRewardName');tip(slot,item.name,item.description||'属性待接入');return slot;}
+function stateIcon(parent,s){return image(parent,s==='claimed'?'daily.icon.claimed':s==='requires_pass'||s==='unconfigured'?'daily.icon.lock':'daily.icon.clock','DailyStateIcon');}
+function stateText(s){return {claimed:'已领取',claimable:'今日可领',not_open:'尚未开放',requires_pass:'通行证专属',unconfigured:'待配置'}[s]||'待接入';}
+function renderCards(){p('DailyCards').RemoveAndDeleteChildren();array(data.cycle).slice(0,7).forEach(function(day,i){
+var last=i===6,card=U.CardShell(p('DailyCards'),{});card.RemoveClass('UICardSquare');card.AddClass(last?'DailyWeekCard':'DailyNormalCard');rect(card,last?996:43+i*159,last?187:194,last?320:153,last?405:385);
+var s=day.status||'not_open',today=Number(day.is_today)===1;if(today&&!last)image(card,'daily.card.border.today','DailyTodayBorder');card.SetHasClass('DailyToday',today);card.SetHasClass('DailyFuture',s==='not_open');label(card,'第'+day.day+'天','DailyDay');
+var rewards=array(day.rewards);
+if(!last){var items=$.CreatePanel('Panel',card,'');items.AddClass('DailyItems');items.SetHasClass('DailyMultiItem',rewards.length>1);rewards.forEach(function(item){reward(items,item,'DailyReward');});stateIcon(card,s);label(card,stateText(s),'DailyCardStatus');}
+else{var base=$.CreatePanel('Panel',card,'');base.AddClass('DailyBaseReward');rewards.forEach(function(item){reward(base,item,'DailyReward');});label(base,stateText(s),'DailyBaseStatus');var premium=data.premium||{status:'unconfigured',name:'周末高级装备'},extra=$.CreatePanel('Panel',card,'');extra.AddClass('DailyPremiumReward');image(extra,'daily.badge.premium','DailyPremiumBadge');label(extra,'通行证专属','DailyPremiumTag');if(premium.status!=='unconfigured')image(extra,premium.art_id||'daily.item.weapon','DailyPremiumArt').SetScaling('scale-to-fit');label(extra,premium.name||'高级装备','DailyPremiumName');stateIcon(extra,premium.status);label(extra,stateText(premium.status),'DailyPremiumState');tip(extra,premium.name||'通行证奖励',premium.description||'奖励配置待接入');}
+});}
+function availability(){var base=data&&data.ordinary_status==='claimable',bonus=data&&data.premium&&data.premium.status==='claimable';return {enabled:!!(base||bonus),text:base?'领取今日奖励':bonus?'领取通行证奖励':data&&data.ordinary_status==='claimed'?'今日已领取':'尚未开放'};}
+function render(){if(stopIfInvalid())return;if(!data)return;var ready=availability(),busy=!!waiting||Number(data.pending)===1;p('DailyEntry').SetHasClass('DailyCanClaim',ready.enabled);p('DailyEntry').SetHasClass('DailyClaimed',!ready.enabled&&data.ordinary_status==='claimed');if(!shell.IsOpen())return;
+p('DailyHeading').text=buying?'星月通行证':'每日奖励';p('DailyClaimPage').SetHasClass('ArchiveHidden',buying);p('DailyPassPage').SetHasClass('ArchiveHidden',!buying);p('DailySubtitle').text=data.subtitle||'每日领取';p('DailyCount').text=data.cycle_mode==='claim_count'?'累计签到 '+data.count+' 次':'本周已领取 '+data.count+'/7 天';p('DailyPassStatusText').text=Number(data.has_pass)===1?'通行证已生效':'通行证未生效';p('DailyPassStatus').style.backgroundImage='url("'+U.Asset(Number(data.has_pass)===1?'daily.badge.pass.active':'daily.badge.pass.inactive')+'")';p('DailyRuleLine').text=data.rule_text||'奖励以服务端配置为准';p('DailyRulesBody').text=(data.rule_text||'')+'\n补签范围：最近'+(data.makeup_days||30)+'天，需有效通行证。\n'+array(data.specials).map(function(s){return '累计'+s.day+'次：'+s.name+'；'+s.description;}).join('\n');
+p('DailyClaimText').text=busy?'领取中…':errorText&&ready.enabled?'重试领取':ready.text;U.State.Set(p('DailyClaim'),{enabled:ready.enabled&&!busy,busy:busy});spinner.visible=busy;U.State.Set(p('DailyMakeup'),{enabled:Number(data.has_pass)===1&&array(data.missed).length>0&&!busy});p('DailyNotice').text=errorText||(busy?'正在等待服务端保存，请勿重复提交。':'');p('PassValidity').text=Number(data.has_pass)===1?'通行证有效':'通行证未开通或已到期';p('PassPrice').text=data.duration_days+'天 / '+data.price;p('PassPurchaseText').text=Number(data.purchase_enabled)===1?'购买 / 续费通行证':'购买暂未开放';U.State.Set(p('PassPurchase'),{enabled:Number(data.purchase_enabled)===1&&!busy});p('DailySpecials').RemoveAndDeleteChildren();array(data.specials).forEach(function(item){var card=U.CardShell(p('DailySpecials'),{title:item.name});card.AddClass('DailySpecial');label(card,'累计'+item.day+'次 · '+(Number(item.owned)>0?'已领取':'未领取'));tip(card,item.name,item.description);});renderCards();}
+function claim(target){if(!data||waiting||Number(data.pending)===1||target===undefined)return;waiting={target:Number(target),day:Number(data.today),period:String(data.period_id),count:Number(data.count)};errorText='';render();GameEvents.SendCustomGameEventToServer('survival_daily_claim',{target_day:Number(target)});}
+life.Subscribe('survival_daily_snapshot',function(next){if(!active)return;if(!(next.ok===true||Number(next.ok)===1)){errorText=next.error||'正在读取档案';render();return;}if(Number(next.sequence)>0&&Number(next.sequence)<=sequence)return;if(data&&Number(next.today)<Number(data.today))return;sequence=Number(next.sequence)||sequence;var result=next.claim_result;if(waiting){if(Number(next.today)!==waiting.day||String(next.period_id)!==waiting.period){waiting=null;errorText='';}else if(Number(next.count)>waiting.count||(waiting.target===Number(next.today)&&next.ordinary_status==='claimed')){waiting=null;errorText='';}else if(result&&Number(result.target_day)===waiting.target&&Number(next.pending)!==1&&!result.pending){waiting=null;errorText=result.ok?'':result.error||'领取失败，请重试';}}data=next;render();});
+function poll(){if(stopIfInvalid()||!active)return;if(shell.IsOpen())request();life.Later(3,poll);}life.Later(3,poll);
+cfg.SurvivalDaily={Open:function(pass){if(!active||!viewValid())return;buying=pass===true;p('DailyWindow').RemoveClass('ArchiveHidden');p('DailyScrim').RemoveClass('ArchiveHidden');shell.Open();render();request();},Close:close,Dispose:function(){active=false;life.Dispose();shell.Dispose();}};life.Later(1,request);
 })();

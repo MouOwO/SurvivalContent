@@ -1,0 +1,18 @@
+#HandoffHUD {width:100%;height:100%;flow-children:none;}
+.HandoffCanvas {flow-children:none;transform-origin:0% 0%;overflow:noclip;transition-property:none;transition-duration:0s;animation-name:none;}
+.HandoffCanvas Label {font-family:"Source Han Sans SC";color:#f3ebd4;font-size:23px;text-shadow:0px 1px 2px 2 #000000cc;white-space:nowrap;text-overflow:shrink;}
+#HandoffName {font-family:"Source Han Serif SC";font-weight:bold;font-size:27px;text-align:center;}
+.HandoffCanvas .HandoffNumber {text-align:center;}
+.HandoffNav {background-color:transparent;border:0px;}
+.HandoffNav:hover {brightness:1.3;}
+.HandoffNav:active {brightness:.8;}
+.HandoffNav:disabled {opacity:.45;}
+.HandoffSocial {background-color:#102b37f5;border:1px solid #8b9280;padding:8px;flow-children:down;}
+.HandoffSocial Button {width:176px;height:36px;}
+.HandoffSocial Button:hover {brightness:1.2;}
+.HandoffSocial Label {font-size:16px;}
+#HandoffNotice {background-color:#102b37ed;font-size:17px;padding:10px;}
+/* Old bound controls remain alive, but not rendered by the new HUD. */
+#TopBar,#WaveBar {opacity:0;}
+#ArchiveEntry,#TreasureEntry,#LotteryButton,#DailyEntry,#PassEntry,#HeroCombatDebugPanel {visibility:collapse;}
+.HandoffBoot #HandoffHUD,.HandoffBoot #SurvivalTowerPortraitOverlay {opacity:0;}

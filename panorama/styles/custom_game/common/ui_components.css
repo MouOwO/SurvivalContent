@@ -1,0 +1,128 @@
+/* Shared candidate theme. frame.window is a programmatic fallback pending clean approved art. */
+.UIClosed {visibility:collapse;}
+.UIModal {background-color:#EFEADF;border:1px solid #C7B88F;}
+.UIModalHeader {background-color:#173743;}
+.UIModalScrim {width:100%;height:100%;background-color:#0000008c;}
+.UIModal Label,.UIFullscreen Label,.UIHUDShell Label {text-shadow:none;}
+.UIIcon {width:28px;height:28px;align:center center;overflow:noclip;}
+.UIIconButton {width:56px;height:64px;background-color:transparent;border:0px;}
+.UIIconButton .UIIcon {vertical-align:top;margin-top:5px;}
+.UIIconButton .UIIconLabel {width:100%;vertical-align:bottom;text-align:center;font-size:16px;color:#D0D6D5;}
+.UIIconButton:hover,.UICloseButton:hover {brightness:1.12;}
+.UIIconButton:active,.UICloseButton:active {brightness:.9;}
+.UICloseButton {width:44px;height:44px;}
+.UIDisabled,.UIIconButton:disabled {opacity:.45;}
+.UIBusy {brightness:.65;}
+.UIActionButton {width:240px;height:56px;background-size:100% 100%;background-color:transparent;border:0px;transition-property:brightness;transition-duration:.1s;}
+.UIActionButton Label {align:center center;color:#203E4A;font-size:18px;}
+.UIActionButton .UIIcon {horizontal-align:left;margin-left:20px;}
+.UIActionButton.UIIvory {background-image:url("file://{images}/ui/shared/button/ivory/normal.png");}
+.UIActionButton.UIIvory:hover {background-image:url("file://{images}/ui/shared/button/ivory/hover.png");}
+.UIActionButton.UIIvory:active {background-image:url("file://{images}/ui/shared/button/ivory/pressed.png");}
+.UIActionButton.UIIvory:disabled,.UIActionButton.UIIvory.UIDisabled,.UIActionButton.UIIvory.UIBusy {background-image:url("file://{images}/ui/shared/button/ivory/disabled.png");}
+.UIActionButton.UIGold {background-image:url("file://{images}/ui/shared/button/gold/normal.png");}
+.UIActionButton.UIGold:hover {background-image:url("file://{images}/ui/shared/button/gold/hover.png");}
+.UIActionButton.UIGold:active {background-image:url("file://{images}/ui/shared/button/gold/pressed.png");}
+.UIActionButton.UIGold:disabled,.UIActionButton.UIGold.UIDisabled,.UIActionButton.UIGold.UIBusy {background-image:url("file://{images}/ui/shared/button/gold/disabled.png");}
+.UINavToggle {width:225px;height:70px;background-image:url("file://{images}/ui/shared/nav/toggle/normal.png");background-size:100% 100%;border:0px;}
+.UINavToggle:hover {background-image:url("file://{images}/ui/shared/nav/toggle/hover.png");}
+.UINavToggle:active {brightness:.9;}
+.UINavToggle:selected,.UINavToggle.UISelected,.UINavToggle:selected:hover,.UINavToggle.UISelected:hover {background-image:url("file://{images}/ui/shared/nav/toggle/selected.png");}
+.UINavToggle:disabled {opacity:.45;}
+.UINavToggle .RadioBox {visibility:collapse;}
+.UINavToggle Label {vertical-align:center;margin-left:58px;color:#D0D6D5;font-size:20px;}
+.UINavToggle:selected Label,.UINavToggle.UISelected Label {color:#203E4A;}
+.UINavToggle .UIIcon {horizontal-align:left;margin-left:20px;}
+.UITabBar {width:100%;height:56px;flow-children:right;}
+.UITab {width:200px;height:56px;background-color:#173743;background-position:bottom;background-repeat:no-repeat;background-size:100% 24px;}
+.UITab Label {align:center center;font-size:20px;color:#D0D6D5;}
+.UITab:hover {background-image:url("file://{images}/ui/shared/overlay/tab_hover_overlay.png");}
+.UITab:active {brightness:.9;}
+.UITab:disabled {opacity:.45;}
+.UITab.UISelected,.UITab.Selected,.UITab.UISelected:hover,.UITab.Selected:hover {background-image:url("file://{images}/ui/shared/overlay/tab_selected_overlay.png");}
+.UITab.UISelected Label,.UITab.Selected Label {color:#fff0c8;}
+.UICard {flow-children:none;}
+.UICardSquare {width:167px;height:157px;background-image:url("file://{images}/ui/shared/card/body/ivory.png");background-size:100% 100%;background-color:#EFEADF;border:0px;}
+.UICardSquare:hover {brightness:1.04;}
+.UICardSquare.UISelected,.UICardSquare.UISelected:hover {wash-color:#fff1d0;}
+.UICardProduct {width:280px;height:170px;background-color:#EFEADF;border:1px solid #c7b88f66;flow-children:down;}
+.UICardProduct:hover {border-color:#C7B88F;}
+.UICardAugment:hover {transform:translateY(-4px) scale3d(1.035,1.035,1);}
+.UICardArt {width:96px;height:96px;align:center top;margin-top:8px;}
+.UICardTitle {width:100%;vertical-align:bottom;color:#203E4A;text-align:center;font-size:18px;}
+.UIProgressBadge {horizontal-align:right;vertical-align:top;color:#D0D6D5;background-image:url("file://{images}/ui/shared/badge/progress.png");background-size:100% 100%;width:70px;height:22px;text-align:center;font-size:15px;}
+.UIUnlockLabel {vertical-align:bottom;font-size:14px;color:#203E4A;}
+.UIPriceLabel {flow-children:right;}
+.UIPrice,.UIPriceMode,.UIOriginalPrice,.UICaption {color:#203E4A;font-size:16px;margin-right:8px;}
+.UIOriginalPrice {text-decoration:line-through;opacity:.65;}
+.UIBundleItem {flow-children:right;height:36px;}
+.UIBundleArt {width:32px;height:32px;}
+.UIProgressBar {width:260px;height:20px;background-color:#173743;}
+.UIProgressFill {height:100%;background-color:#83B8AC;}
+.UIProgressLabel {width:100%;text-align:center;color:#D0D6D5;}
+.UICheckbox {width:200px;height:38px;}
+.UICheckbox .TickBox {visibility:collapse;}
+.UICheckOff,.UICheckOn {horizontal-align:left;vertical-align:center;}
+.UICheckbox .UICheckOn {visibility:collapse;}
+.UICheckbox:selected .UICheckOn {visibility:visible;}
+.UICheckbox:selected .UICheckOff {visibility:collapse;}
+.UICheckbox Label {margin-left:34px;vertical-align:center;font-size:16px;color:#D0D6D5;}
+.UICheckbox:disabled {opacity:.5;}
+.UICheckbox:hover {brightness:1.12;}
+.UICheckbox:active {brightness:.9;}
+.UICheckOn {background-position:center;background-repeat:no-repeat;background-size:122.2222% 122.2222%;}
+.UICheckbox:selected:hover .UICheckOn {background-image:url("file://{images}/ui/shared/checkbox/on/hover.png");}
+.UICheckbox:selected:active .UICheckOn {background-image:url("file://{images}/ui/shared/checkbox/on/pressed.png");}
+.UICheckbox:selected:disabled .UICheckOn,.UICheckbox.checked.UIDisabled .UICheckOn {background-image:url("file://{images}/ui/shared/checkbox/on/disabled.png");}
+.UICheckbox:selected:hover .UICheckOn .UIIconImage,.UICheckbox:selected:active .UICheckOn .UIIconImage,.UICheckbox:selected:disabled .UICheckOn .UIIconImage,.UICheckbox.checked.UIDisabled .UICheckOn .UIIconImage {visibility:collapse;}
+/* Outline skin uses the packaged state frames without a second baked-in border. */
+.UICardSquare.UIOutlineCard {background-image:none;border:0px;}
+.UICardSquare.UIOutlineCard:hover {background-image:url("file://{images}/ui/shared/card/border/hover.png");}
+.UICardSquare.UIOutlineCard.UISelected,.UICardSquare.UIOutlineCard.UISelected:hover {background-image:url("file://{images}/ui/shared/card/border/selected.png");border:0px;}
+.UITooltip {background-color:#173743;border:1px solid #C7B88F;}
+.UIFilterBar {width:100%;height:42px;flow-children:right;}
+.UISearch {width:220px;height:36px;}
+.UIRewardGrid {width:100%;height:100%;flow-children:right-wrap;overflow:squish scroll;}
+.UIReadingGradient {width:100%;height:100%;background-color:gradient(linear,0% 0%,100% 0%,from(#10232a55),to(#10232a00));z-index:-1;}
+/* Existing layouts keep their data slots; the shell chrome is shared. */
+#ArchiveWindow.UIModal,#CustomShopWindow.UIModal,#LotteryInfoDialog.UIModal {background-image:none;background-color:#EFEADF;border:1px solid #C7B88F;border-radius:6px;}
+#ArchiveHeader.UIModalHeader,#ShopHeader.UIModalHeader,#LotteryInfoHeader.UIModalHeader {background-image:none;background-color:#173743;border-bottom:1px solid #C7B88F;}
+#ArchiveWindow.UIModal #ArchiveHeader {width:100%;}
+#ArchiveWindow.UIModal #ArchiveTabs {background-color:#173743;}
+#ArchiveWindow.UIModal .ArchiveNineCard {visibility:collapse;}
+#ArchiveWindow.UIModal .ArchiveCard.UICardSquare {background-image:url("file://{images}/ui/shared/card/body/ivory.png");border:0px;}
+#ArchiveWindow.UIModal .ArchiveCard.UICardSquare:hover {border-color:#C7B88F;}
+#ArchiveWindow.UIModal .ArchiveTab.UINavToggle {background-image:url("file://{images}/ui/shared/nav/toggle/normal.png");}
+#ArchiveWindow.UIModal .ArchiveTab.UINavToggle:hover {background-image:url("file://{images}/ui/shared/nav/toggle/hover.png");}
+#ArchiveWindow.UIModal .ArchiveTab.UINavToggle:selected,#ArchiveWindow.UIModal .ArchiveTab.UINavToggle:selected:hover {background-image:url("file://{images}/ui/shared/nav/toggle/selected.png");}
+#CustomShopWindow.UIModal {width:1208px;height:806px;align:center center;position:0px 0px 0px;margin:0px;padding:0px;flow-children:down;opacity:1;transition-duration:0s;}
+#CustomShopWindow.UIModal #ShopHeader {height:94px;width:100%;padding:14px 18px;}
+#CustomShopWindow.UIModal #ShopModeToggles {width:300px;}
+#CustomShopWindow.UIModal .ShopModeToggle {width:96px;}
+#CustomShopWindow.UIModal #ShopBody {width:100%;height:fill-parent-flow(1);margin:0px;}
+#CustomShopWindow.UIModal #ShopShelfArea {background-color:#EFEADF;border:0px;}
+#CustomShopWindow.UIModal #ShopFooter {height:62px;background-color:#173743;}
+#CustomShopWindow.UIModal .ShopShelfSlot.UICardProduct {width:96px;height:76px;flow-children:none;}
+#CustomShopWindow.UIModal #ShopTitle {color:#D0D6D5;}
+#LotteryInfoDialog.UIModal .LotteryModalSurface,#LotteryInfoDialog.UIModal .LotteryV3ModalFrame,#LotteryInfoDialog.UIModal .LotteryNineFrame {visibility:collapse;}
+#LotteryInfoDialog.UIModal #LotteryInfoHeader {width:100%;height:88px;padding:8px 26px;}
+#LotteryInfoDialog.UIModal #LotteryInfoBody {background-color:#EFEADF;}
+#LotteryInfoDialog.UIModal #LotteryInfoTitle {color:#D0D6D5;}
+.MainHudIconButton.UIIconButton .UIIcon {horizontal-align:center;vertical-align:top;position:0px 0px 0px;}
+.MainHudIconButton.UIIconButton .UIIconImage {horizontal-align:left;vertical-align:top;}
+#LotteryInfoDialog.UIModal #LotteryNineSlice {visibility:collapse;}
+#LotteryWindow .UITab .LotteryTabMark {visibility:collapse;}
+#LotteryWindow .LotteryPoolTab.UITab {background-size:100% 24px;background-position:bottom;background-color:#173743;}
+#LotteryWindow .LotteryPoolTab.UITab:hover {background-image:url("file://{images}/ui/shared/overlay/tab_hover_overlay.png");}
+#LotteryWindow .LotteryPoolTab.UITab.Selected,#LotteryWindow .LotteryPoolTab.UITab.Selected:hover {background-image:url("file://{images}/ui/shared/overlay/tab_selected_overlay.png");}
+#LotteryInfoDialog.UIModal .LotteryDetailRow.UICardSquare {background-image:url("file://{images}/ui/shared/card/body/ivory.png");background-color:#EFEADF;border:0px;}
+#LotteryInfoDialog.UIModal .LotteryDetailRow.UICardSquare.Selected {wash-color:#fff1d0;}
+#ArchiveWindow.UIModal #ArchiveDraw {background-image:url("file://{images}/ui/shared/button/gold/normal.png");}
+#ArchiveWindow.UIModal #ArchiveDraw:hover {background-image:url("file://{images}/ui/shared/button/gold/hover.png");}
+#ArchiveWindow.UIModal #ArchiveDraw:active {background-image:url("file://{images}/ui/shared/button/gold/pressed.png");}
+#ArchiveWindow.UIModal #ArchiveDraw:disabled {background-image:url("file://{images}/ui/shared/button/gold/disabled.png");}
+#CustomShopWindow.UIModal #ShopRefreshButton {background-color:transparent;border:0px;}
+#CustomShopWindow.UIModal #ShopRefreshButton Label {color:#203E4A;}
+#CustomShopWindow.UIModal .ShopSectionTitle,#CustomShopWindow.UIModal #ShopLoading Label {color:#203E4A;}
+#ArchiveWindow.UIModal .ArchivePromote.UIActionButton {width:100px;height:23px;}
+#ArchiveWindow.UIModal .ArchivePromote.UIActionButton Label {font-size:13px;}
