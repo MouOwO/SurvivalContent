@@ -1129,12 +1129,10 @@
                 : (passive ? "被动生效"
                     : (lacksResources ? "当前资源不足 · 由服务器最终校验" : "可施法"))));
         tooltip.SetHasClass("Unavailable", unavailable);
+        var positioner = config.SurvivalTooltipPosition;
+        if (positioner) positioner.PlaceAbilityAbove(tooltip, panel, 337);
+        tooltip.RemoveClass("FadingOut");
         tooltip.RemoveClass("Hidden");
-        $.Schedule(0.0, function () {
-            if (Number(activeAbility) !== Number(entry.ability) || activePanel !== panel) return;
-            var positioner = config.SurvivalTooltipPosition;
-            if (positioner) positioner.PlaceAbove(tooltip, panel, 337, 220);
-        });
     }
 
     function activate(entry) {

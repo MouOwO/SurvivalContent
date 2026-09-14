@@ -84,7 +84,7 @@
     var externalHoverExitSerial = 0;
     var selectiveTooltipOwner = "selective_proxy";
     var tooltipAnimationSerial = 0;
-    var defaultTooltipFadeDuration = 0.08;
+    var defaultTooltipFadeDuration = 0.1;
     var tooltipFadeDuration = defaultTooltipFadeDuration;
     var tooltipAnimationFrame = 0.016;
     // Entities.GetAbility() addresses sparse engine slots, not Valve's compact
@@ -120,10 +120,9 @@
 
     function registerTooltipFadeDebug() {
         var config = GameUI.CustomUIConfig();
-        var stored = normalizeTooltipFadeDuration(config.SurvivalTooltipFadeDuration);
         applyTooltipFadeDuration(
-            stored === null ? defaultTooltipFadeDuration : stored,
-            stored === null ? "default" : "restored"
+            defaultTooltipFadeDuration,
+            "default"
         );
         config.SurvivalTooltipDebug = {
             SetFadeDuration: function (seconds) {
@@ -336,8 +335,8 @@
             return;
         }
         tooltip.AddClass("FadingOut");
-        // Keep the fully transparent panel alive for one render frame so
-        // Panorama presents the final alpha sample before collapsing it.
+        // Hidden is an alpha-zero state, not a collapsed layout. Keep the
+        // panel and its measured content alive for the next skill hover.
         scheduleActive(tooltipFadeDuration + tooltipAnimationFrame, function () {
             if (animationSerial !== tooltipAnimationSerial) return;
             var currentOwner = String(tooltip.__survivalTooltipOwner || "");
@@ -433,24 +432,32 @@
 
     function addField(container, label, value) {
         if (value === undefined || value === null || value === "") return;
-        var row = $.CreatePanel("Panel", container, "");
-        row.AddClass("AbilityFieldRow");
+        var rows=container.__fieldRows||(container.__fieldRows=[]);
+        var index=container.__fieldCursor||0;container.__fieldCursor=index+1;
+        var row=rows[index];
+        if(!row){
+            row=$.CreatePanel("Panel",container,"");row.AddClass("AbilityFieldRow");rows.push(row);
+            row.__icons={};row.__iconHost=$.CreatePanel("Panel",row,"");row.__iconHost.AddClass("AbilityFieldIcon");
+            row.__left=$.CreatePanel("Label",row,"");row.__left.AddClass("AbilityFieldLabel");
+            row.__right=$.CreatePanel("Label",row,"");row.__right.AddClass("AbilityFieldValue");
+        }
+        row.visible=true;
+        Object.keys(row.__icons).forEach(function(key){row.__icons[key].visible=false;});
         var iconDefinition = propertyIcon(label);
+        row.__iconHost.visible=!!iconDefinition;
         if (iconDefinition) {
             var panelType = iconDefinition.type === "item" ? "DOTAItemImage"
                 : (iconDefinition.type === "ability" ? "DOTAAbilityImage" : "Image");
-            var icon = $.CreatePanel(panelType, row, "");
-            icon.AddClass("AbilityFieldIcon");
-            icon.hittest = false;
+            var icon=row.__icons[panelType];
+            if(!icon){icon=$.CreatePanel(panelType,row.__iconHost,"");row.__icons[panelType]=icon;icon.style.width="100%";icon.style.height="100%";icon.hittest=false;}
+            icon.visible=true;
             if (iconDefinition.type === "item") icon.itemname = iconDefinition.name;
             else if (iconDefinition.type === "ability") icon.abilityname = iconDefinition.name;
             else icon.SetImage(iconDefinition.name);
         }
-        var left = $.CreatePanel("Label", row, "");
-        left.AddClass("AbilityFieldLabel");
+        var left = row.__left;
         left.text = localizedFieldLabel(label);
-        var right = $.CreatePanel("Label", row, "");
-        right.AddClass("AbilityFieldValue");
+        var right = row.__right;
         right.text = String(localizedFieldValue(label, value));
     }
 
@@ -526,7 +533,8 @@
         setText("CustomAbilityGoldCost", goldCost);
         setText("CustomAbilityWoodCost", woodCost);
 
-        fields.RemoveAndDeleteChildren();
+        fields.__fieldCursor = 0;
+        (fields.__fieldRows || []).forEach(function(row){row.visible=false;});
         if (researchMode) {
             asArray(runtime.fields).forEach(function (field) {
                 if (field) addField(fields, field.label, field.value);
@@ -567,46 +575,12 @@
         tooltip.hittest = false;
         tooltip.hittestchildren = false;
         tooltipAnimationSerial += 1;
-        var animateIn = tooltip.BHasClass("Hidden") || tooltip.BHasClass("FadingOut");
-        if (animateIn) tooltip.AddClass("FadingOut");
+        var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
+        if (positioner) positioner.PlaceAbilityAbove(tooltip, sourcePanel, 337);
+        // The panel stays laid out at alpha zero. Position before revealing it;
+        // reversing an in-flight fade needs no frame delay or reconstruction.
         tooltip.RemoveClass("Hidden");
-        if (animateIn) {
-            var animationSerial = tooltipAnimationSerial;
-            // Hidden and FadingOut establish a rendered alpha-zero start.
-            // Waiting one frame prevents Panorama from coalescing the class
-            // removal with visibility restoration and skipping the fade-in.
-            scheduleActive(tooltipAnimationFrame, function () {
-                if (animationSerial !== tooltipAnimationSerial
-                    || String(tooltip.__survivalTooltipOwner || "")
-                        !== selectiveTooltipOwner) return;
-                tooltip.RemoveClass("FadingOut");
-            });
-        }
-        $.Msg("[SURVIVAL_TOOLTIP_SHOW] phase=visible unit=", String(selectedUnit()),
-            " ability=", String(abilityIndex),
-            " source=", panelIdentity(sourcePanel),
-            " hidden=", String(tooltip.BHasClass("Hidden")));
-
-        scheduleActive(0.0, function () {
-            if (activeAbilityIndex !== abilityIndex
-                || activeSourcePanel !== sourcePanel) return;
-            try {
-                var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-                if (positioner) positioner.PlaceAbove(tooltip, sourcePanel, 337, 220);
-                var tooltipState = proxyCursorState(tooltip);
-                $.Msg("[SURVIVAL_TOOLTIP_SHOW] phase=positioned unit=", String(selectedUnit()),
-                    " ability=", String(abilityIndex),
-                    " hidden=", String(tooltip.BHasClass("Hidden")),
-                    " cursor=", Math.round(tooltipState.cursorX), ",",
-                    Math.round(tooltipState.cursorY),
-                    " rect=", Math.round(tooltipState.left), ",",
-                    Math.round(tooltipState.top), ",",
-                    Math.round(tooltipState.width), ",",
-                    Math.round(tooltipState.height));
-            } catch (error) {
-                tooltipError("position", error, sourcePanel);
-            }
-        });
+        tooltip.RemoveClass("FadingOut");
         return true;
     }
 
@@ -836,6 +810,7 @@
             || /^ability_upgrade_tower/.test(abilityName)
             || /^ability_tower_class_[1-7]$/.test(abilityName)
             || abilityName === "ability_upgrade_wall"
+            || abilityName === "ability_upgrade_wall_9_1"
             || abilityName === "ability_upgrade_city"
             || abilityName === "ability_upgrade_farm"
             || abilityName === "ability_upgrade_gold_mine"
@@ -1173,14 +1148,14 @@
             var anchorRect = {
                 x: Number(anchorPosition.x || 0),
                 y: Number(anchorPosition.y || 0),
-                width: anchor ? Number(anchor.actuallayoutwidth || 0) : binding.windowWidth,
-                height: anchor ? Number(anchor.actuallayoutheight || 0) : binding.windowHeight
+                width: anchor ? visualWindowSize(anchor, 'width') : binding.windowWidth,
+                height: anchor ? visualWindowSize(anchor, 'height') : binding.windowHeight
             };
             var proxyRect = {
                 x: Number(proxyPosition.x || 0),
                 y: Number(proxyPosition.y || 0),
-                width: Number(proxy.actuallayoutwidth || 0),
-                height: Number(proxy.actuallayoutheight || 0)
+                width: visualWindowSize(proxy, 'width'),
+                height: visualWindowSize(proxy, 'height')
             };
             var delta = {
                 x: proxyRect.x - anchorRect.x,
@@ -1224,6 +1199,13 @@
         try { return String(panel.style[name] || ""); } catch (error) { return ""; }
     }
 
+    function visualWindowSize(panel, axis) {
+        // The handoff HUD applies a CSS scale3d to the native row. Layout
+        // dimensions omit that transform, but window positions include it.
+        var measured=Number(panel && panel[axis === 'width' ? '__survivalWindowWidth' : '__survivalWindowHeight']);
+        return isFinite(measured) && measured > 0 ? measured
+            : Number(panel && panel[axis === 'width' ? 'actuallayoutwidth' : 'actuallayoutheight'] || 0);
+    }
     function officialAbilityAnchor(panel) {
         if (!panel || !panel.FindChildTraverse) return panel;
         return panel.FindChildTraverse("AbilityButton")
@@ -1246,8 +1228,8 @@
             if (panel.visible === false || anchor.visible === false) continue;
             if (panelStyle(panel, "visibility") === "collapse"
                 || panelStyle(anchor, "visibility") === "collapse") continue;
-            var width = Number(anchor.actuallayoutwidth || 0);
-            var height = Number(anchor.actuallayoutheight || 0);
+            var width = visualWindowSize(anchor, 'width');
+            var height = visualWindowSize(anchor, 'height');
             if (!isFinite(width) || !isFinite(height)
                 || width <= 0 || height <= 0) continue;
             var position = anchor.GetPositionWithinWindow();
@@ -1349,8 +1331,8 @@
         // GetPositionWithinWindow(), GetCursorPosition(), and actuallayoutwidth/
         // height are already in window coordinates. Multiplying the actual
         // dimensions by actualuiscale again shrinks the hit rectangle twice.
-        var width = Number(proxy && proxy.actuallayoutwidth || 0);
-        var height = Number(proxy && proxy.actuallayoutheight || 0);
+        var width = visualWindowSize(proxy, 'width');
+        var height = visualWindowSize(proxy, 'height');
         var x = Number(cursor && cursor[0]);
         var y = Number(cursor && cursor[1]);
         var inside = isFinite(x) && isFinite(y) && width > 0 && height > 0
@@ -1746,9 +1728,9 @@
         var scaleX = Math.max(0.001, Number(layer.actualuiscale_x || 1));
         var scaleY = Math.max(0.001, Number(layer.actualuiscale_y || 1));
         var windowWidth = anchor
-            ? Number(anchor.actuallayoutwidth || 0) : Number(explicitRect.width || 0);
+            ? visualWindowSize(anchor, 'width') : Number(explicitRect.width || 0);
         var windowHeight = anchor
-            ? Number(anchor.actuallayoutheight || 0) : Number(explicitRect.height || 0);
+            ? visualWindowSize(anchor, 'height') : Number(explicitRect.height || 0);
         var width = windowWidth / scaleX;
         var height = windowHeight / scaleY;
         var x = (Number(anchorPosition.x || 0)
@@ -1802,6 +1784,8 @@
         // Reacquire AbilityImage even when Valve preserves AbilityButton but
         // replaces its visual child during a HUD refresh.
         setExternalProxyHighlight(proxy, activeSourcePanel === proxy);
+        proxy.__survivalWindowWidth = binding.windowWidth;
+        proxy.__survivalWindowHeight = binding.windowHeight;
         if (proxy.__survivalBindingKey !== binding.key) {
             proxy.__survivalAbilityIndex = binding.abilityIndex;
             proxy.__survivalAbilityName = binding.abilityName;

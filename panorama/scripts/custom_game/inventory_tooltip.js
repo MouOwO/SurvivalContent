@@ -70,14 +70,22 @@
 
     function addField(container, label, value) {
         if (!container || value === undefined || value === null || value === "") return;
-        var row = $.CreatePanel("Panel", container, "");
-        row.AddClass("InventoryItemFieldRow");
-        var left = $.CreatePanel("Label", row, "");
-        left.AddClass("InventoryItemFieldLabel");
-        left.text = String(label || "");
-        var right = $.CreatePanel("Label", row, "");
-        right.AddClass("InventoryItemFieldValue");
-        right.text = String(value);
+        var rows = container.__fieldRows || (container.__fieldRows = []);
+        var index = container.__fieldCursor || 0;
+        container.__fieldCursor = index + 1;
+        var row = rows[index];
+        if (!row) {
+            row = $.CreatePanel("Panel", container, "");
+            row.AddClass("InventoryItemFieldRow");
+            row.__left = $.CreatePanel("Label", row, "");
+            row.__left.AddClass("InventoryItemFieldLabel");
+            row.__right = $.CreatePanel("Label", row, "");
+            row.__right.AddClass("InventoryItemFieldValue");
+            rows[index] = row;
+        }
+        row.visible = true;
+        row.__left.text = String(label || "");
+        row.__right.text = String(value);
     }
 
     function itemView(contentId) {
@@ -89,6 +97,28 @@
         return items[contentId] || {};
     }
 
+    function updateItemIcon(icon, contentId, itemName) {
+        if(!icon)return;
+        icon.itemname=itemName;
+        var art=GameUI.CustomUIConfig().SurvivalItemArt;
+        var resolved=art&&art.ResolveOriginal&&(art.ResolveOriginal(contentId)||art.ResolveOriginal(itemName));
+        var fitted=icon.FindChildTraverse("InventoryTooltipFittedIcon");
+        if(resolved&&!fitted){
+            fitted=$.CreatePanel("Image",icon,"InventoryTooltipFittedIcon");
+            fitted.hittest=false;fitted.hittestchildren=false;
+            fitted.style.width="100%";fitted.style.height="100%";
+            fitted.style.position="0px 0px 0px";fitted.style.zIndex="1";
+            fitted.SetScaling("stretch-to-fit-preserve-aspect");
+        }
+        if(fitted){
+            fitted.visible=!!resolved;
+            if(resolved)fitted.SetImage("file://{images}/items/survival_shop_v2/"+resolved[0]+"_"+("0"+resolved[1]).slice(-2)+".png");
+        }
+    }
+    function equipmentLevelText(contentId, fallback) {
+        var match=String(contentId||"").match(/^equipment_(?:attack_gloves|burning_blade|iron_armor)_(\d+|max)$/);
+        return match?(match[1]==="max"?"MAX":"Lv."+Number(match[1])):(fallback||"");
+    }
     function render(slot, panel) {
         if (!panel || (panel.IsValid && !panel.IsValid())) {
             hide();
@@ -134,16 +164,17 @@
                 }
             });
         });
-        if (icon) icon.itemname = itemName;
+        updateItemIcon(icon, contentId, itemName);
         setText("CustomInventoryItemTitle", definition.displayname
             || definition.name
             || localize("DOTA_Tooltip_ability_" + itemName, itemName));
         setText("CustomInventoryItemType", definition.item_type || "物品");
-        setText("CustomInventoryItemLevel", definition.level_text || "");
+        setText("CustomInventoryItemLevel", equipmentLevelText(contentId, definition.level_text));
         setText("CustomInventoryItemDescription", definition.description
             || localize("DOTA_Tooltip_ability_" + itemName + "_Description", ""));
 
-        fields.RemoveAndDeleteChildren();
+        fields.__fieldCursor = 0;
+        (fields.__fieldRows || []).forEach(function(row) { row.visible = false; });
         asArray(definition.fields).forEach(function (field) {
             if (field) addField(fields, field.label, field.value);
         });
@@ -155,14 +186,14 @@
             ? ("持有数量：" + String(quantity))
             : (contentId !== itemName ? "项目物品 · 实例数据已同步" : "背包物品"));
 
+        var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
+        if (positioner && positioner.PlaceInventoryAbove) {
+            var inventory = inventoryRoot();
+            var upperRow = findSlot(inventory, 0) || findSlot(inventory, 1)
+                || findSlot(inventory, 2) || panel;
+            positioner.PlaceInventoryAbove(tooltip, panel, upperRow);
+        }
         tooltip.RemoveClass("Hidden");
-        $.Schedule(0.0, function () {
-            if (activeSlot !== slot || activePanel !== panel || activeItem !== item) return;
-            var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-            if (positioner && positioner.PlaceAbove) {
-                positioner.PlaceAbove(tooltip, panel, 350, 240);
-            }
-        });
     }
 
     function inventoryRoot() {
@@ -208,7 +239,7 @@
         var inventory = inventoryRoot();
         if (!inventory) return;
         for (var slot = 0; slot < 6; slot++) bindSlot(findSlot(inventory, slot), slot);
-        $.Msg("[SURVIVAL_INVENTORY_TOOLTIP] bindings recovered reason=",
+        if (GameUI.CustomUIConfig().SurvivalStatsDebug === true) $.Msg("[SURVIVAL_INVENTORY_TOOLTIP] bindings recovered reason=",
             String(reason || "unknown"));
     }
 

@@ -166,7 +166,7 @@
 #RogueRewardSurface .RogueArt_growth {background-image:url("file://{images}/custom_game/remaining_handoff_ready/rogue_growth.png");}
 #RogueRewardSurface .RogueArt_defense {background-image:url("file://{images}/custom_game/remaining_handoff_ready/rogue_defense.png");}
 #RogueRewardSurface .RogueBack {background-image:url("file://{images}/custom_game/remaining_handoff_ready/rogue_back.png");}
-#RogueRewardSurface .RogueCopy {position:27px 429px 0px;width:236px;height:210px;}
+#RogueRewardSurface .RogueCopy {position:27px 454px 0px;width:236px;height:168px;z-index:2;}
 #RogueRewardSurface .RogueCardName {font-family:"Source Han Serif SC";font-weight:bold;font-size:26px;color:#254755;}
 #RogueRewardSurface .RogueCardDescription {font-family:"Source Han Sans SC";font-size:18px;line-height:24px;color:#3e5962;}
 #RogueRewardSurface .RogueRewardTitle {font-family:"Source Han Serif SC";font-weight:bold;}
@@ -400,20 +400,23 @@ RadioButton:selected .ArchiveFilter_selected {visibility:visible;}
 
 /* Shared confirmed storefront presentation; transaction and unlock logic stay in SurvivalShop. */
 #CustomShopWindow.UIModal.RHSurvivalShop {flow-children:none;background-color:transparent;border:0px;border-radius:0px;}
-#CustomShopWindow.RHSurvivalShop #ShopHeader {position:0px 0px 0px;width:1208px;height:84px;flow-children:none;padding:0px;z-index:3;}
-#CustomShopWindow.RHSurvivalShop #ShopTitleBlock {position:390px 10px 0px;width:440px;height:64px;}
+#CustomShopWindow.RHSurvivalShop .RHFrame {z-index:0;ignore-parent-flow:true;}
+#CustomShopWindow.RHSurvivalShop #ShopHeader {position:0px 0px 0px;width:1208px;height:164px;flow-children:none;padding:0px;border:0px;z-index:3;overflow:noclip;}
+#CustomShopWindow.RHSurvivalShop #ShopTitleBlock {position:384px 15px 0px;width:440px;height:54px;align:left top;margin:0px;}
+#CustomShopWindow.RHSurvivalShop #ShopHeader .RHTitleOrnamentLeft {position:310px 27px 0px;align:left top;}
+#CustomShopWindow.RHSurvivalShop #ShopHeader .RHTitleOrnamentRight {position:834px 27px 0px;align:left top;}
 #CustomShopWindow.RHSurvivalShop #ShopTitle {width:440px;text-align:center;color:#f4e8cc;font-size:36px;}
 #CustomShopWindow.RHSurvivalShop #ShopSubtitle {visibility:collapse;}
-#CustomShopWindow.RHSurvivalShop #ShopModeToggles {position:44px 105px 0px;width:597px;height:59px;margin:0px;overflow:noclip;}
+#CustomShopWindow.RHSurvivalShop #ShopModeToggles {position:44px 105px 0px;width:597px;height:59px;margin:0px;align:left top;overflow:noclip;}
 #CustomShopWindow.RHSurvivalShop .ShopModeToggle {width:199px;height:59px;margin:0px;border:0px;background-color:transparent;flow-children:none;}
 #CustomShopWindow.RHSurvivalShop .ShopModeToggle Label {z-index:3;font-size:23px;color:#eee3c8;}
 #CustomShopWindow.RHSurvivalShop .ShopModeToggle.Selected {brightness:1.25;border-bottom:2px solid #e8c679;}
-#CustomShopWindow.RHSurvivalShop #ShopRefreshButton {position:1008px 22px 0px;width:100px;height:42px;margin:0px;}
-#CustomShopWindow.RHSurvivalShop #ShopCloseButton {position:1142px 22px 0px;width:38px;height:38px;margin:0px;}
-#CustomShopWindow.RHSurvivalShop #ShopBody {position:40px 175px 0px;width:1128px;height:555px;margin:0px;}
+#CustomShopWindow.RHSurvivalShop #ShopRefreshButton {position:1008px 21px 0px;width:100px;height:42px;margin:0px;align:left top;}
+#CustomShopWindow.RHSurvivalShop #ShopCloseButton {position:1142px 23px 0px;width:38px;height:38px;margin:0px;align:left top;}
+#CustomShopWindow.RHSurvivalShop #ShopBody {position:40px 175px 0px;width:1128px;height:555px;margin:0px;align:left top;z-index:1;}
 #CustomShopWindow.RHSurvivalShop #ShopShelfArea {background-color:transparent;background-image:none;border:0px;}
 #CustomShopWindow.RHSurvivalShop #ShopItemList {padding:0px 10px;}
-#CustomShopWindow.RHSurvivalShop #ShopFooter {position:44px 746px 0px;width:1120px;height:40px;background-color:transparent;}
+#CustomShopWindow.RHSurvivalShop #ShopFooter {position:44px 746px 0px;width:1120px;height:40px;margin:0px;align:left top;background-color:transparent;z-index:1;}
 #CustomShopWindow.RHSurvivalShop #ShopFooter Label {color:#375462;}
 #CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct {width:205px;height:249px;margin:8px 14px 14px 0px;padding:0px;background-color:transparent;background-image:none;border:0px;box-shadow:none;flow-children:none;}
 #CustomShopWindow.RHSurvivalShop .ShopItemFrame {position:20px 15px 0px;width:165px;height:165px;z-index:2;}
@@ -436,3 +439,79 @@ RadioButton:selected .ArchiveFilter_selected {visibility:visible;}
 #CustomShopWindow.RHSurvivalShop .ShopCardName {visibility:collapse;}
 
 .RCWindow .RCBundles .RCProduct .UIPriceLabel {position:28px 210px 0px;width:270px;height:40px;}
+
+/* Lottery actions: crisp rarity outline; ticket cost duplicates the action caption. */
+#LotteryMainCanvas #LHTenQuality {font-weight:bold;text-shadow:0px 0px 1px 2 #211329;}
+#LotteryMainCanvas #LotteryCelestialFooter .LHCost {visibility:collapse;}
+
+/* Archive and pool-item tooltips share the effect section vocabulary and typography. */
+#LotteryItemTooltip #LotteryTooltipEffectHeading {visibility:collapse;}
+#LotteryItemTooltip.LotterySimpleTooltip #LotteryTooltipEffectHeading {visibility:visible;color:#ede3bf;font-size:15px;font-weight:medium;margin-top:12px;margin-bottom:6px;text-shadow:none;}
+#LotteryItemTooltip.LotterySimpleTooltip #LotteryTooltipDescription {margin-top:0px;}
+
+/* Independent pool updates: announcement + unread details. */
+.LotteryUpdateDot { width: 12px; height: 12px; border-radius: 50%; background-color: #ff4141; border: 1px solid #ffd4b0; horizontal-align: right; vertical-align: top; margin: 4px; box-shadow: #ff302080 0px 0px 5px 0px; }
+.LotteryUpdateAnnouncement #LotteryInfoTitle { color: #ffba48; font-size: 28px; }
+.LotteryUpdateAnnouncement #LotteryInfoDialog { background-color: #403545; }
+.LotteryUpdateAnnouncement #LotteryInfoList { width: 100%; flow-children: right-wrap; overflow: squish scroll; }
+.LotteryUpdateAnnouncement #LotteryPoolSelection, .LotteryUpdateAnnouncement #LotteryPoolGuarantee { visibility: collapse; }
+.LotteryUpdateAnnouncement #LotteryInfoDialog.RHWindow #LotteryInfoNote { visibility: visible; color: #efcb78; }
+
+/* Compact survival shop: 604px window, 90px icons, details in tooltip. */
+#CustomShopButton { visibility: collapse; }
+#CustomShopWindow.UIModal.RHSurvivalShop { width:604px; height:806px; }
+#CustomShopWindow.RHSurvivalShop #ShopHeader { width:604px;height:176px; }
+#CustomShopWindow.RHSurvivalShop #ShopTitleBlock { position:152px 18px 0px;width:300px;height:48px; }
+#CustomShopWindow.RHSurvivalShop #ShopTitle { width:300px;font-size:30px; }
+#CustomShopWindow.RHSurvivalShop #ShopHeader .RHTitleOrnamentLeft { position:104px 27px 0px;width:48px;height:24px; }
+#CustomShopWindow.RHSurvivalShop #ShopHeader .RHTitleOrnamentRight { position:452px 27px 0px;width:48px;height:24px; }
+#CustomShopWindow.RHSurvivalShop #ShopCloseButton { position:548px 23px 0px;width:32px;height:32px; }
+#CustomShopWindow.RHSurvivalShop #ShopModeToggles { position:40px 97px 0px;width:314px;height:76px; }
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle,
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle.Selected,
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle:hover,
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle:active { width:157px;height:76px;background-image:none;background-color:transparent;border:0px;brightness:1;transform:none;box-shadow:none;padding:0px; }
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle Label { align:center top;margin-top:10px;font-size:23px;color:#365562; }
+.RHShopTabGlow { position:0px 30px 0px;width:155px;height:46px;visibility:collapse;background-image:url("file://{images}/custom_game/lottery_handoff_v1/tab_glow.png");background-size:100% 100%; }
+.Selected .RHShopTabGlow { visibility:visible; }
+#CustomShopWindow.RHSurvivalShop #ShopBody { position:40px 181px 0px;width:524px;height:553px; }
+#CustomShopWindow.RHSurvivalShop #ShopItemList { padding:0px; }
+#CustomShopWindow.RHSurvivalShop #ShopFooter { position:40px 753px 0px;width:524px;height:38px; }
+#CustomShopWindow.RHSurvivalShop #ShopResourceSummary { width:240px;font-size:14px; }
+#CustomShopWindow.RHSurvivalShop #ShopStatus { font-size:14px; }
+#CustomShopWindow.RHSurvivalShop .ShopSectionTitle { width:100%;height:28px;margin:3px 0px 8px 0px;font-size:18px;color:#365562; }
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct,
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct:hover { width:90px;height:130px;min-width:0px;min-height:0px;margin:4px 12px 8px 0px;padding:0px;border:0px;box-shadow:none;background-color:transparent;background-image:none;brightness:1;transform:none; }
+#CustomShopWindow.RHSurvivalShop .ShopItemFrame { position:0px 0px 0px;width:90px;height:90px;padding:0px;border:0px;background-color:#000000;flow-children:none; }
+#CustomShopWindow.RHSurvivalShop .ShopItemIcon { width:90px;height:90px; }
+#CustomShopWindow.RHSurvivalShop .ShopStockLabel { color:#171717;font-size:13px;background-color:transparent;background-image:none;padding:0px;margin:1px;text-shadow:0px 0px 1px 1 #ffffffaa;z-index:4; }
+.RHShopPrices { position:0px 93px 0px;width:90px;height:36px;flow-children:down; }
+.RHShopCost { width:90px;height:18px;flow-children:right; }
+.RHShopCostIcon { width:16px;height:16px;vertical-align:center;margin-right:3px; }
+#CustomShopWindow.RHSurvivalShop .RHShopCostValue { color:#29251f;font-size:13px;vertical-align:center; }
+#CustomShopWindow.RHSurvivalShop .RHShopHover,
+#CustomShopWindow.RHSurvivalShop .RHShopCardBase,
+#CustomShopWindow.RHSurvivalShop .RHShopName,
+#CustomShopWindow.RHSurvivalShop .RHShopPrice { visibility:collapse; }
+
+/* Approved original-icon drawer, scoped to survival shop only. */
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.Unavailable,
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.Unavailable:hover { wash-color:none; saturation:1; brightness:1; }
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.StockEmpty .ShopItemIcon { saturation:0; brightness:0.55; }
+#CustomShopWindow.UIModal.RHSurvivalShop,
+#CustomShopWindow.UIModal.RHSurvivalShop.UIClosed { visibility:visible; opacity:1; transition-property:position; transition-duration:0.28s; transition-timing-function:ease-out; }
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct,
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct:hover { width:90px; height:90px; margin:6px 14px 18px 0px; }
+#CustomShopWindow.RHSurvivalShop .ShopStockLabel { align:right bottom; position:0px 0px 0px; color:#ffffff; font-size:15px; font-weight:bold; background-color:transparent; background-image:none; padding:0px; margin:0px 3px 2px 0px; text-shadow:0px 0px 2px 3 #000000; z-index:10; }
+#CustomShopWindow.RHSurvivalShop .RHShopPrices,
+#CustomShopWindow.RHSurvivalShop .ShopCardName { visibility:collapse; }
+#ShopEntryTooltip.UITooltip { width:300px; min-height:0px; padding:14px; background-color:#19262dfc; wash-color:none; }
+#ShopTooltipHeader { height:50px; }
+#ShopTooltipIconHost,.ShopTooltipMainIcon { width:48px; height:48px; }
+#ShopTooltipTitle { font-size:19px; max-width:210px; white-space:normal; }
+#ShopTooltipCostRow { height:30px; margin-top:10px; }
+#ShopEntryTooltip .TooltipCostBlock { width:130px; height:28px; }
+#ShopEntryTooltip .TooltipCostIcon { width:21px; height:21px; vertical-align:center; }
+#ShopTooltipType,#ShopTooltipCondition,#ShopTooltipOwned,#ShopTooltipFields,#ShopTooltipStatus { visibility:collapse; }
+
+#ShopEntryTooltip #ShopTooltipDescription { visibility:visible; width:100%; height:fit-children; white-space:normal; font-size:16px; line-height:22px; color:#dce3e6; margin-top:10px; }

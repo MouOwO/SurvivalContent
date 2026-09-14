@@ -36,26 +36,15 @@
         });
     }
     function changeCategory(step){var i=categories.indexOf(category);category=categories[(i+step+categories.length)%categories.length];page=0;renderTrial();}
-    function foregroundCorner(card){
-        // Use the exact same UV grid as the card frame. A separately clipped
-        // background duplicates the star at a different native sampling boundary.
-        var corner=cfg.SurvivalNineSlice.Create(card,
-            'file://{images}/custom_game/archive_handoff_v1/interaction_components_v2_card_selected.png',
-            143,138,[29,33,12,12],'ArchiveHoverCorner');
-        corner.Children().forEach(function(row,y){row.Children().forEach(function(tile,x){
-            // Keep layout space: collapsing unused tiles would move the UV grid.
-            if(x!==0||y!==0)tile.style.opacity='0';
-        });});
-    }
     view.Icon=function(parent,item,category,buildings){
         var row=index[category+':'+item.id];
-        if(!row){var result=originalIcon.call(view,parent,item,category,buildings);foregroundCorner(parent);return result;}
+        if(!row){var result=originalIcon.call(view,parent,item,category,buildings);return result;}
         var art=$.CreatePanel('Panel',parent,'');art.AddClass('ArchiveArt');art.hittest=false;
         art.style.width=row.display_width+'px';art.style.height=row.display_height+'px';
         image(art,row);
         // Retain the real server count / target and the existing badge formatter.
         label(parent,view.Progress(item),'ArchiveCount');
-        foregroundCorner(parent);
+
     };
     view.Observe=function(data){
         originalObserve.call(view,data);

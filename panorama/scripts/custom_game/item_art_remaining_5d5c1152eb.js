@@ -11,7 +11,38 @@
         for(var i=0;i<keys.length;i++)if(keys[i]&&index[keys[i]])return index[keys[i]];
         return null;
     }
+    // Approved original atlases; every upgrade resolves through its family.
+    function shopArt(value){
+        var id=String(value||'').replace(/_shell$/,'').replace(/^shop_proxy_/,'equipment_').replace(/^shop_/,''),m;
+        var aliases={item_survival_attack_gloves:1,item_survival_burning_blade:2,item_survival_iron_armor:3,item_survival_death_mask:4,item_survival_small_polar_crystal:6,item_survival_large_polar_crystal:6};
+        if(Object.prototype.hasOwnProperty.call(aliases,id))return ['shop',aliases[id]];
+        if(/synthesis_gem|molten_upgrade_gem/.test(id))return ['shop',11];
+        if(/ice_soul_ember/.test(id))return ['shop',14];
+        if(id==='item_survival_infernal_armor')return ['shop',12];
+        var items={item_death_mask:4,item_forging_hammer:5,item_small_polar_crystal:6,item_large_polar_crystal:6,item_knowledge_book:7,item_super_knowledge_book:8,service_early_final_boss:9,item_synthesis_gem:11};
+        if(Object.prototype.hasOwnProperty.call(items,id))return ['shop',items[id]];
+        m=id.match(/^(?:weapon_|item_survival_)(growth_sword|frost_blade|ice_blade|epic_icefire|legend_abyss)_(\d+|max)$/);
+        if(m){var rows={growth_sword:0,frost_blade:1,ice_blade:2,epic_icefire:3,legend_abyss:4},row=rows[m[1]],tier=m[2]==='max'?4:Number(m[2]);
+            tier=m[2]==='max'?4:row<3?Math.max(0,tier-1):Math.round(tier*4/(row===3?6:10));
+            return ['swords',row*5+Math.min(4,tier)];}
+        m=id.match(/^(?:equipment_|item_survival_)(attack_gloves|burning_blade|iron_armor|infernal_armor|lava_armor|molten_armor)_(?:\d+|max)$/);
+        if(m)return ['shop',({attack_gloves:1,burning_blade:2,iron_armor:3})[m[1]]||12];
+        if(/(?:ember|molten|lava)_core/.test(id))return ['shop',10];
+        m=id.match(/^challenge_(\d+)$/);if(m){var challenges=[0,1,4,5,5,3,2,7,9,8,10];if(challenges[Number(m[1])-1]!==undefined)return ['challenges',challenges[Number(m[1])-1]];}
+        m=id.match(/^rebirth_challenge_(\d+)$/);if(m&&Number(m[1])>=1&&Number(m[1])<=10)return ['challenges',10+Number(m[1])];
+        return null;
+    }
     function create(parent,item,className){
+        var keys=item?[item.content_id,item.item_id,item.id,item.entry_id,item.shop_entry_id,item.icon]:[];
+        var selected=null;
+        for(var k=0;k<keys.length&&!selected;k++)selected=shopArt(keys[k]);
+        if(selected){
+            var custom=$.CreatePanel('Image',parent,'');
+            if(className)custom.AddClass(className);
+            custom.SetImage('file://{images}/items/survival_shop_v2/'+selected[0]+'_'+('0'+selected[1]).slice(-2)+'.png');
+            custom.SetScaling('stretch-to-fit-preserve-aspect');
+            custom.hittest=false;custom.hittestchildren=false;return custom;
+        }
         var row=lookup(item);if(!row)return null;
         var icon=$.CreatePanel('Image',parent,'');
         icon.SetImage(row.runtime_uri||'file://{images}/'+row.icon_path);
@@ -20,7 +51,7 @@
         icon.hittest=false;icon.hittestchildren=false;
         return icon;
     }
-    cfg.SurvivalItemArt={Lookup:lookup,Create:create};
+    cfg.SurvivalItemArt={Lookup:lookup,Create:create,ResolveOriginal:shopArt};
     var presentation=cfg.SurvivalRewardPresentation;
     if(presentation){
         var colors={n:'#398754',r:'#3283c5',sr:'#a052c8',ssr:'#bd8b25',ur:'#66338f'};

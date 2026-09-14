@@ -28,7 +28,13 @@
         originalCard.call(view,card);
         var base='file://{images}/custom_game/archive_handoff_v1/interaction_components_v2_card_';
         cfg.SurvivalNineSlice.Create(card,base+'normal.png',143,138,[29,33,12,12],'ArchiveNormalFrame');
-        cfg.SurvivalNineSlice.Create(card,base+'selected.png',143,138,[29,33,12,12],'ArchiveSelectedFrame');
+        var selectedFrame=cfg.SurvivalNineSlice.Create(card,base+'selected.png',143,138,[29,33,12,12],'ArchiveSelectedFrame');
+        // Mirror the star-free upper-right texture region into the upper-left tile.
+        // Keep its original 29 x 33 UV size so both gold edges remain continuous.
+        var upperLeft=selectedFrame.Children()[0].Children()[0];
+        upperLeft.style.backgroundPosition='right top';
+        upperLeft.style.transformOrigin='50% 50%';
+        upperLeft.style.transform='scale3d(-1,1,1)';
         // Promotion controls are added after Card() by the existing renderer.
         $.Schedule(0,function(){if(card.IsValid&&!card.IsValid())return;card.Children().forEach(function(c){if(c.BHasClass('ArchivePromote'))cfg.RemainingHandoff.Action(c,false,[88,29,12,10]);});});
     };

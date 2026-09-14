@@ -119,9 +119,12 @@
 .ShopItemFrame { width: 100%; height: 100%; }
 .ShopItemIcon { width: 100%; height: 100%; }
 .ShopTechnologyCooldownMask {
+    position: 0px 0px 0px;
+    ignore-parent-flow: true;
+    z-index: 5;
     width: 100%;
     height: 100%;
-    background-color: #02070bd9;
+    background-color: #000000cc;
     clip: radial(50% 50%, 0deg, 360deg);
 }
 .ShopTechnologyLockBadge {

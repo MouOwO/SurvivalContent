@@ -1424,7 +1424,7 @@
         }
         if (acceptedSnapshotVersion > 0
             && (snapshotVersion <= 0 || snapshotVersion < acceptedSnapshotVersion)) {
-            $.Msg("[SURVIVAL_STATS][CLIENT] STALE_SNAPSHOT_IGNORED unit=",
+            if (GameUI.CustomUIConfig().SurvivalStatsDebug === true) $.Msg("[SURVIVAL_STATS][CLIENT] STALE_SNAPSHOT_IGNORED unit=",
                 String(snapshotUnit), " version=", String(snapshotVersion),
                 " accepted=", String(acceptedSnapshotVersion));
             return;
@@ -2503,7 +2503,10 @@
                 " name=", name, " behavior=", String(behavior));
             return false;
         }
-        if (!managed) {
+        // Pickup uses the engine's point/AOE targeting cursor, including its
+        // radius preview and left-click confirmation, rather than building mode.
+        if (!managed || name === "ability_survival_pickup_materials") {
+            if (name === "ability_survival_pickup_materials") cancelPointTarget("native_area_pickup");
             if (!Abilities.ExecuteAbility) {
                 $.Warning("[SURVIVAL_CAST][CLIENT] native ExecuteAbility unavailable");
                 return false;

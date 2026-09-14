@@ -69,9 +69,9 @@
     function notice(value) {var serial=++noticeSerial;text("HandoffNotice",value);nodes.HandoffNotice.visible=true;$.Schedule(4,function(){if(valid(host)&&serial===noticeSerial)nodes.HandoffNotice.visible=false;});}
     function blocked() {return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top();}
     function forward(id) {var p=native(id);if(!valid(p))return false;$.DispatchEvent("Activated",p,"mouse");return true;}
-    var actions={shop:["SurvivalCommerceView","Open"],treasure:["SurvivalTreasure","Toggle"],archive:["SurvivalArchive","Toggle"],equipment:["SurvivalEquipment","Toggle"],
+    var actions={survival_shop:["SurvivalShop","ToggleShop"],shop:["SurvivalCommerceView","Open"],treasure:["SurvivalTreasure","Toggle"],archive:["SurvivalArchive","Toggle"],equipment:["SurvivalEquipment","Toggle"],
         lottery:["SurvivalLottery","Open"],benefit:["SurvivalDaily","Open"],appearance:["SurvivalAppearance","Toggle"]};
-    function available(id) {if(id==="return")return valid(native("DashboardButton"));if(id==="settings")return valid(native("SettingsRebornButton"))||valid(native("SettingsButton"));if(id==="social")return true;var a=actions[id];return !!(a&&cfg[a[0]]&&typeof cfg[a[0]][a[1]]==="function");}
+    function available(id) {if(id==="survival_shop"&&!(cfg.SurvivalShopUnlocks&&cfg.SurvivalShopUnlocks.shop))return false;if(id==="return")return valid(native("DashboardButton"));if(id==="settings")return valid(native("SettingsRebornButton"))||valid(native("SettingsButton"));if(id==="social")return true;var a=actions[id];return !!(a&&cfg[a[0]]&&typeof cfg[a[0]][a[1]]==="function");}
     function activate(id) {
         if(blocked())return;
         // Native dota_hud_menu_buttons uses this engine event. Its hidden MenuButtons
@@ -82,10 +82,12 @@
         if(id==="social"){nodes.HandoffSocial.visible=!nodes.HandoffSocial.visible;return;}
         var a=actions[id];if(available(id)){nodes.HandoffSocial.visible=false;cfg[a[0]][a[1]]();}else notice("该入口尚未接入");
     }
+    // Screen-width decoration, separate from the centered/scaled navigation canvas.
+    var topBackdrop=create("Panel",host,"HandoffTopBackdrop",false);
+    style(topBackdrop,{backgroundImage:'url("file://{images}/'+assets.top_top_soft_black_backdrop.file+'")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",maxWidth:"10000px",maxHeight:"10000px",minWidth:"0px",overflow:"noclip"});
     var top=create("Panel",host,"HandoffTop",true);top.hittest=false;top.AddClass("HandoffCanvas");
-    place(art(top,"HandoffTopBackdrop","top_top_soft_black_backdrop"),0,0,1672,941);
-    var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"],["shop","商城"]];
-    nav.forEach(function(a,i){var b=create("Button",top,"HandoffNav_"+a[0],true);b.AddClass("HandoffNav");place(b,10+i*58,3,64,64);place(art(b,"","top_"+a[0]+"_64"),0,0,64,64);b.style.height="88px";var caption=create("Label",b,"",false);caption.text=a[1];place(caption,0,62,64,24);caption.style.horizontalAlign="center";caption.style.width="fit-children";caption.style.minWidth="0px";caption.style.fontFamily="Source Han Sans SC";caption.style.fontSize="18px";caption.style.fontWeight="medium";caption.style.color="#f3ecdb";caption.style.textAlign="center";caption.style.textShadow="0px 1px 2px 2.0 #00000090";/* Top navigation tooltips temporarily disabled. */b.SetPanelEvent("onactivate",function(){activate(a[0]);});topButtons[a[0]]=b;});
+    var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"],["shop","商城"],["survival_shop","生存商店"]];
+    nav.forEach(function(a,i){var b=create("Button",top,"HandoffNav_"+a[0],true);b.AddClass("HandoffNav");place(b,10+i*58,3,64,64);place(art(b,"",a[0]==="survival_shop"?"top_shop_64":"top_"+a[0]+"_64"),0,0,64,64);b.style.height="88px";var caption=create("Label",b,"",false);caption.text=a[1];place(caption,0,62,64,24);caption.style.horizontalAlign="center";caption.style.width="fit-children";caption.style.minWidth="0px";caption.style.fontFamily="Source Han Sans SC";caption.style.fontSize="18px";caption.style.fontWeight="medium";caption.style.color="#f3ecdb";caption.style.textAlign="center";caption.style.textShadow="0px 1px 2px 2.0 #00000090";/* Top navigation tooltips temporarily disabled. */b.SetPanelEvent("onactivate",function(){activate(a[0]);});topButtons[a[0]]=b;});
     function topMetric(id,key,x,textX,textWidth){
         var row=create("Panel",top,id+"Row",false);place(row,x,14,textX-x+textWidth,44);
         var icon=art(row,id+"Icon",key);place(icon,0,0,32,32);style(icon,{verticalAlign:"center"});
@@ -93,6 +95,8 @@
         style(value,{height:"fit-children",verticalAlign:"center"});
         if(id.indexOf("HandoffResource_")===0)style(value,{transform:"translateY(4px)"});
     }
+    topButtons.survival_shop.enabled=available("survival_shop");
+    style(topButtons.survival_shop,{saturation:available("survival_shop")?"1":"0",opacity:available("survival_shop")?"1":"0.4"});
     topMetric("HandoffWave","top_wave",734,779,218);
     [["gold",1194,1234],["wood",1339,1379],["population",1484,1524]].forEach(function(a){topMetric("HandoffResource_"+a[0],"top_"+a[0],a[1],a[2],105);});
     var social=create("Panel",top,"HandoffSocial",true);social.AddClass("HandoffSocial");place(social,474,94,192,130);social.visible=false;
@@ -131,7 +135,9 @@
     function abilityCount() {
         currentEntries=abilityEntries();return currentEntries.length;
     }
-    function fitNativeSkills(){
+    function fitNativeSkills(g){
+        g=g||geometry;
+        if(!g||!isFinite(Number(g.scale))||Number(g.scale)<=0)return;
         var list=native("abilities");if(!valid(list))return;
         var candidates=[];
         for(var i=0;i<list.GetChildCount();i++){var p=list.GetChild(i);if(!/^Ability\d+$/.test(p.id))continue;
@@ -140,6 +146,13 @@
         }
         skillPanels=candidates.slice(0,currentEntries.length);
         candidates.forEach(function(p,index){if(index>=currentEntries.length){style(p,{visibility:"collapse",width:"0px",marginRight:"0px"});p.__handoffOverflow=true;}else{if(p.__handoffOverflow){style(p,{visibility:"visible"});p.__handoffOverflow=false;}square(p);style(p,{marginRight:"4px"});}});
+        skillPanels.forEach(function(p){
+            [p,p.FindChildTraverse("AbilityButton"),p.FindChildTraverse("ButtonWell")].forEach(function(anchor){
+                if(!valid(anchor))return;
+                anchor.__survivalWindowWidth=116*g.scale*(ctx.actualuiscale_x||1);
+                anchor.__survivalWindowHeight=116*g.scale*(ctx.actualuiscale_y||1);
+            });
+        });
     }
     function canvas(p,g) {style(p,{transitionProperty:"none",transitionDuration:"0s",animationName:"none"});place(p,g.x,g.y,g.width,g.height);style(p,{transformOrigin:"0% 0%",transform:"scale3d("+g.scale+","+g.scale+",1)",overflow:"noclip",maxWidth:"10000px"});p.hittest=false;p.hittestchildren=true;}
     // Called synchronously by the existing hotkey writer, not by the HUD polling loop.
@@ -164,7 +177,9 @@
         // Style only: no SetParent, new descendants, event replacement or key rebinding in native slots.
         style(slot,{width:"116px",height:"116px",minWidth:"0px",minHeight:"0px",margin:"0px",padding:"0px",transform:"none"});
         ["ButtonAndLevel","ButtonWithLevelUpTab","ButtonWell","ButtonSize","AbilityButton"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p)){place(p,0,0,116,116);style(p,{transform:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",minWidth:"0px",minHeight:"0px",maxWidth:"116px",maxHeight:"116px",overflow:"noclip"});}});
-        ["AbilityImage","ItemImage"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p)){place(p,6,6,104,104);style(p,{transform:"none"});}});
+        ["AbilityImage","ItemImage"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p)){place(p,6,6,104,104);style(p,{transform:"none"});
+            if(id==="ItemImage")style(p,{backgroundSize:"100% 100%",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
+        }});
         ["Cooldown","CooldownOverlay"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p))place(p,6,6,104,104);});
         var keyContainer=slot.FindChildTraverse("HotkeyContainer"),key=slot.FindChildTraverse("Hotkey");
         if(valid(keyContainer)){place(keyContainer,3,85,43,31);style(keyContainer,{backgroundImage:"none",border:"0px",minWidth:"0px",minHeight:"0px"});}
@@ -173,6 +188,58 @@
         if(String(slot.id||"").indexOf("inventory_slot_")===0)["ButtonSize","ButtonWell"].forEach(function(id){child(slot,id,{boxShadow:"none"});});
         // These are decorative only. Keep active/cooldown/disabled/drag overlays intact.
         ["AbilityBevel","ShineContainer","PassiveAbilityBorder"].forEach(function(id){child(slot,id,{opacity:"0"});});
+    }
+    function refreshInventoryPresentation() {
+        var inv=native("inventory"),unit=selectedUnit();
+        if(!valid(inv)||unit<0||!Entities.GetItemInSlot)return;
+        for(var slotIndex=0;slotIndex<9;slotIndex++){
+            var slot=inv.FindChildTraverse("inventory_slot_"+slotIndex);
+            if(!valid(slot))continue;
+            var itemIndex=Entities.GetItemInSlot(unit,slotIndex);
+            var name=itemIndex>=0?Abilities.GetAbilityName(itemIndex):"";
+            var hideCounter=/^item_survival_(attack_gloves|burning_blade|iron_armor)(?:_shell|_\d+|_max)?$/.test(String(name||""));
+            var identity=itemIndex>=0?CustomNetTables.GetTableValue("survival_inventory_item_identity",String(itemIndex)):null;
+            var equipmentMax=!!(identity&&identity.removed!==1
+                &&/^equipment_(attack_gloves|burning_blade|iron_armor)_max$/.test(String(identity.content_id||"")))
+                ||/^item_survival_(attack_gloves|burning_blade|iron_armor)_max$/.test(String(name||""));
+            var maxLabel=slot.FindChildTraverse("SurvivalInventoryArmorMax");
+            if(equipmentMax&&!valid(maxLabel)){
+                maxLabel=$.CreatePanel("Label",slot,"SurvivalInventoryArmorMax");
+                maxLabel.text="MAX";
+                maxLabel.hittest=false;maxLabel.hittestchildren=false;
+                style(maxLabel,{horizontalAlign:"right",verticalAlign:"bottom",margin:"0px 6px 6px 0px",fontSize:"26px",fontWeight:"bold",color:"#ffffff",textShadow:"0px 0px 2px 3 #000000",zIndex:"10"});
+            }
+            if(valid(maxLabel))maxLabel.visible=equipmentMax;
+            var imageHost=slot.FindChildTraverse("ItemImage");
+            if(valid(imageHost)){
+                // DOTAItemImage renders its texture internally. background-size
+                // on its wrapper does not resize that texture. Use a real Image
+                // inside the same visual layer, below native cooldown overlays.
+                var art=cfg.SurvivalItemArt;
+                var resolved=art&&art.ResolveOriginal&&(
+                    identity&&identity.removed!==1&&art.ResolveOriginal(identity.content_id)
+                    ||art.ResolveOriginal(name));
+                var fitted=imageHost.FindChildTraverse("SurvivalInventoryFittedIcon");
+                if(resolved&&!valid(fitted)){
+                    fitted=$.CreatePanel("Image",imageHost,"SurvivalInventoryFittedIcon");
+                    fitted.hittest=false;fitted.hittestchildren=false;
+                    style(fitted,{width:"100%",height:"100%",position:"0px 0px 0px",margin:"0px",padding:"0px",horizontalAlign:"center",verticalAlign:"center",zIndex:"1"});
+                    fitted.SetScaling("stretch-to-fit-preserve-aspect");
+                }
+                if(valid(fitted)){
+                    fitted.visible=!!resolved;
+                    if(resolved){
+                        var uri="file://{images}/items/survival_shop_v2/"+resolved[0]+"_"+("0"+resolved[1]).slice(-2)+".png";
+                        if(fitted.__survivalImageUri!==uri){fitted.SetImage(uri);fitted.__survivalImageUri=uri;}
+                    }
+                }
+            }
+            ["ItemCharges","ItemAltCharges"].forEach(function(id){
+                var count=slot.FindChildTraverse(id);
+                if(valid(count)){count.style.fontSize="26px";count.style.opacity=hideCounter?"0":"1";}
+            });
+            child(slot,"ItemChargesContainer",{opacity:hideCounter?"0":"1"});
+        }
     }
     function nativeLayout(g) {
         var required=["lower_hud","center_with_stats","center_block","PortraitGroup","AbilitiesAndStatBranch","abilities","inventory","minimap"];
@@ -217,7 +284,7 @@
             if(innate.paneltype==="DOTAInnateDisplay"){style(innate,{visibility:"collapse"});break;}
         }
         place(list,0,0,g.centerWidth-20,116);style(list,{flowChildren:"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
-        fitNativeSkills();
+        fitNativeSkills(g);
         var inv=native("inventory");place(inv,g.inventoryX+15,55,358,242);style(inv,{overflow:"noclip",transform:"none",boxShadow:"none",backgroundImage:"none",backgroundColor:"transparent"});
         // Clear native inventory separators; the shared skin owns all framing.
         [inv,inv.FindChildTraverse("inventory_items"),inv.FindChildTraverse("inventory_list_container"),inv.FindChildTraverse("inventory_list"),inv.FindChildTraverse("inventory_list2")].forEach(function(p){
@@ -249,8 +316,8 @@
     function layout() {
         var w=(ctx.actuallayoutwidth||1672)/(ctx.actualuiscale_x||1),h=(ctx.actuallayoutheight||941)/(ctx.actualuiscale_y||1);
         var topScale=Math.min(w/1672,h/941);place(top,(w-1672*topScale)/2,0,1672,941);style(top,{transform:"scale3d("+topScale+","+topScale+",1)"});
-        var backdropBleed=(w-1672*topScale)/(2*topScale)+24;
-        place(nodes.HandoffTopBackdrop,-backdropBleed-4,0,1672+backdropBleed,941);
+        // Both screen edges lie inside the texture; no Image aspect-fit gutters.
+        place(topBackdrop,-24,0,w+48,941*topScale);
         var count=abilityCount(),g=cfg.HandoffGeometry(w,h,count);
         var signature=[w,h,count,selectedUnit(),currentEntries.map(function(e){return e.ability;}).join(",")].join(":");
         // Reapply when the engine rebuilds its native HUD, even without a selection event.
@@ -286,7 +353,7 @@
         [["HandoffName","SurvivalHeroName"],["HandoffLevel","SurvivalHeroLevel"],["Handoff_hp_value","SurvivalHeroHealthText"],["Handoff_mp_value","SurvivalHeroManaText"]].forEach(function(a){var source=ctx.FindChildTraverse(a[1]);if(source)text(a[0],source.text);});
         [["hp","Health"],["mp","Mana"]].forEach(function(a){var source=ctx.FindChildTraverse("SurvivalHero"+a[1]+"Fill");if(source){var fraction=Math.max(0,Math.min(100,parseFloat(source.style.width)||0));style(nodes["Handoff_"+a[0]+"_fill"],{clip:"rect(0%, "+fraction+"%, 100%, 0%)"});}});
         stats.forEach(function(a){var source=ctx.FindChildTraverse(a[1]);if(source)text("HandoffStat_"+a[0],source.text);});
-        Object.keys(topButtons).forEach(function(id){topButtons[id].enabled=!!available(id);});
+        Object.keys(topButtons).forEach(function(id){topButtons[id].enabled=!!available(id);if(id==="survival_shop")style(topButtons[id],{saturation:available(id)?"1":"0",opacity:available(id)?"1":"0.4"});});
         // Both daily and monthly-pass views are reachable inside the existing welfare window.
         if(available("benefit"))["DailyEntry","PassEntry"].forEach(function(id){style(root.FindChildTraverse(id),{visibility:"collapse"});});
         style(root.FindChildTraverse("HeroCombatDebugPanel"),{visibility:cfg.HandoffShowCombatDebug?"visible":"collapse"});
@@ -298,9 +365,9 @@
         text("HandoffResource_gold",compact(r.gold));text("HandoffResource_wood",compact(r.wood));text("HandoffResource_population",compact(r.population)+" / "+compact(r.max_population));
         var n=Number(wave.current_wave||0),m=Math.floor(t/60);text("HandoffWave",(n<10?"0":"")+n+" · "+(m<10?"0":"")+m+":"+(t%60<10?"0":"")+t%60);
     }
-    function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{layout();
+    function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{layout();refreshInventoryPresentation();
         // Native images can be created one frame AFTER the slot parent. Reacquire them.
-        if(ready){fitNativeSkills();var inv=native("inventory");if(valid(inv))for(var j=0;j<6;j++){var item=inv.FindChildTraverse("inventory_slot_"+j);if(valid(item)){square(item);style(item,{marginRight:"5px"});}}}
+        if(ready){fitNativeSkills(geometry);var inv=native("inventory");if(valid(inv))for(var j=0;j<6;j++){var item=inv.FindChildTraverse("inventory_slot_"+j);if(valid(item)){square(item);style(item,{marginRight:"5px"});}}}
         mirror();mirrorKeys();revealWhenStable();}catch(e){$.Warning("[HANDOFF_HUD] "+e);}}
     function tick(){if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;refreshNow();$.Schedule(.1,tick);}
     cfg.HandoffBoundValuesChanged=function(){if(cfg.HandoffGeneration===generation&&valid(ctx))mirror();};

@@ -18,13 +18,29 @@
     }
     function fit(){
         var root=p("LotteryWindow"),canvas=p("LotteryMainCanvas");
-        if(!valid(root)||!valid(canvas))return;
-        var w=(root.actuallayoutwidth||1920)/(root.actualuiscale_x||1);
-        var h=(root.actuallayoutheight||1080)/(root.actualuiscale_y||1);
+        if(!valid(root)||!valid(canvas))return false;
+        // Hidden lottery panels have no layout on their first open. Use the
+        // already laid-out HUD ancestor for both initial and subsequent fits.
+        var viewport=null,node=$.GetContextPanel();
+        while(valid(node)){
+            if(node.actuallayoutwidth>0&&node.actuallayoutheight>0)viewport=node;
+            node=node.GetParent?node.GetParent():null;
+        }
+        if(!viewport&&root.actuallayoutwidth>0&&root.actuallayoutheight>0)viewport=root;
+        if(!viewport)return false;
+        var w=viewport.actuallayoutwidth/(viewport.actualuiscale_x||1);
+        var h=viewport.actuallayoutheight/(viewport.actualuiscale_y||1);
         var scale=Math.min(w/1672,h/941);
         canvas.style.transform="scale3d("+scale+","+scale+",1)";
+        canvas.style.opacity="1";
+        return true;
     }
     cfg.LotteryHandoff={
+        Prepare:function(){p("LotteryMainCanvas").style.opacity="0";fit();},
+        Background:function(poolId){
+            var themes={map:"lottery_handoff_v1/scene.png",cultivation:"lottery_pool_scenes_v1/cultivation.png",dragon_knight:"lottery_pool_scenes_v1/dragon_knight.png",summer:"lottery_pool_scenes_v1/summer.png"};
+            p("LotteryMainCanvas").style.backgroundImage='url("file://{images}/custom_game/'+(themes[poolId]||themes.map)+'")';
+        },
         Name:function(id,fallback){return id==="map"?"地图宝箱":id==="dragon_knight"?"龙脊尖兵":fallback;},
         Buttons:function(selected,waiting){
             p("LotterySingleText").style.color="#365665";
@@ -37,7 +53,7 @@
         },
         Open:function(){
             if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);
-            function tick(){timer=null;if(!valid(p("LotteryWindow"))||p("LotteryWindow").BHasClass("LotteryClosed"))return;fit();timer=$.Schedule(.25,tick);}
+            function tick(){timer=null;if(!valid(p("LotteryWindow"))||p("LotteryWindow").BHasClass("LotteryClosed"))return;var ready=fit();timer=$.Schedule(ready?.25:0,tick);}
             tick();
         },
         Close:function(){if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);timer=null;},

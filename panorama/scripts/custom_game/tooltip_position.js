@@ -104,8 +104,36 @@
         $.Schedule(0.03, applyPosition);
     }
 
+    function placeAbilityAbove(tooltip, source, width, verticalSource, heightLimit) {
+        if (!tooltip || !source || !source.GetPositionWithinWindow) return;
+        var parent=tooltip.GetParent(),root=rootPanel(source);
+        if(!parent||!parent.GetPositionWithinWindow)return;
+        var pp=parent.GetPositionWithinWindow(),rp=root.GetPositionWithinWindow(),sp=source.GetPositionWithinWindow();
+        var sx=Math.max(.001,numberOr(parent.actualuiscale_x,1)),sy=Math.max(.001,numberOr(parent.actualuiscale_y,1));
+        var w=numberOr(width,337)*sx;
+        var sw=numberOr(source.__survivalWindowWidth,numberOr(source.actuallayoutwidth,64));
+        var x=numberOr(sp.x,0)+(sw-w)*.5;
+        x=Math.max(numberOr(rp.x,0)+12,Math.min(x,numberOr(rp.x,0)+numberOr(root.actuallayoutwidth,1920)-w-12));
+        var anchor=verticalSource&&verticalSource.GetPositionWithinWindow
+            ?verticalSource.GetPositionWithinWindow():sp;
+        var bottom=numberOr(anchor.y,0)-5;
+        var parentBottom=numberOr(pp.y,0)+numberOr(parent.actuallayoutheight,1080);
+        tooltip.style.horizontalAlign="left";
+        tooltip.style.verticalAlign="bottom";
+        tooltip.style.marginTop="0px";
+        tooltip.style.marginBottom=((parentBottom-bottom)/sy)+"px";
+        tooltip.style.position=((x-numberOr(pp.x,0))/sx)+"px 0px 0px";
+        tooltip.style.width=numberOr(width,337)+"px";
+        tooltip.style.maxHeight=Math.max(32,Math.min(heightLimit||360,(bottom-numberOr(rp.y,0)-12)/sy))+"px";
+        // Bottom alignment follows content height in the same layout pass.
+        // No measurements of the previous skill and no delayed repositioning.
+    }
     GameUI.CustomUIConfig().SurvivalTooltipPosition = {
         PlaceRight: placeRight,
-        PlaceAbove: placeAbove
+        PlaceAbove: placeAbove,
+        PlaceAbilityAbove: placeAbilityAbove,
+        PlaceInventoryAbove: function(tooltip, source, upperRow) {
+            placeAbilityAbove(tooltip, source, 350, upperRow, 390);
+        }
     };
 })();

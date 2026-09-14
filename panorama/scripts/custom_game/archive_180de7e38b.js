@@ -6,6 +6,8 @@
     var filterMode = "all", lastData = null, fitGeneration = 0;
     var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",beast:"blessing"};
     var categories = [], tooltipVisible = false, requestGeneration = 0, tooltipGeneration = 0;
+    var pageCache = {}, pageAssemblies = {}, pageVersions = {};
+    var rowCards = {};
     // Match the actual archive definitions, not the example names in the style reference.
     var buildingIcons = {
         building_01: "item_octarine_core", building_02: "item_rapier", building_03: "item_crimson_guard",
@@ -43,8 +45,8 @@
         panel("ArchiveTooltip").AddClass("ArchiveHidden");
     }
     function tooltip(item, card) { A.Show(item, current, card); }
-    function request() {
-        GameEvents.SendCustomGameEventToServer("survival_archive_request", { category_id: current });
+    function request(prefetch) {
+        GameEvents.SendCustomGameEventToServer("survival_archive_request", { category_id: current, prefetch:prefetch===true?1:0 });
     }
     function tabs() {
         panel("ArchiveTabs").RemoveAndDeleteChildren();
@@ -58,9 +60,10 @@
             label(toggle, category.name);
             toggle.SetPanelEvent("onactivate", function () {
                 if (Number(category.disabled) === 1 || current === category.id) return;
-                current = category.id; filterMode="all"; lastData=null;
+                current = category.id; filterMode="all"; lastData=pageCache[current]||null;
+                if(lastData){tabs();render(lastData);return;}
                 hideTooltip();
-                panel("ArchiveGrid").RemoveAndDeleteChildren();
+                Object.keys(rowCards).forEach(function(key){rowCards[key].panel.visible=false;});
                 panel("ArchiveEmpty").RemoveClass("ArchiveHidden");
                 panel("ArchiveEmpty").text = "正在读取存档…";
                 panel("ArchivePageTitle").text = category.name;
@@ -74,7 +77,7 @@
                 tabs();
                 // Coalesce fast toggle changes and respect the server throttle.
                 var generation = ++requestGeneration;
-                $.Schedule(0.18, function () { if (generation === requestGeneration) request(); });
+                request(true);
             });
         });
     }
@@ -104,12 +107,17 @@
             });
         }
         var rows = array(data.rows), done = 0, ownedTypes = 0, visibleCount=0;
-        panel("ArchiveGrid").RemoveAndDeleteChildren();
-        rows.forEach(function (item) {
+        Object.keys(rowCards).forEach(function(key){rowCards[key].panel.visible=false;});
+        rows.forEach(function (item,index) {
             var unlocked = A.Unlocked(item,current);
             if (filterMode !== "all" && (unlocked === null || unlocked !== (filterMode === "unlocked"))) return;
             visibleCount++;
-            var card = $.CreatePanel("Panel", panel("ArchiveGrid"), "");
+            var key=current+":"+index, fingerprint=JSON.stringify([item,data.pending]);
+            var cached=rowCards[key];
+            if(cached&&cached.fingerprint===fingerprint){cached.panel.visible=true;return;}
+            var card = cached?cached.panel:$.CreatePanel("Panel", panel("ArchiveGrid"), "");
+            if(cached)card.RemoveAndDeleteChildren();
+            card.visible=true;rowCards[key]={panel:card,fingerprint:fingerprint};
             card.AddClass("ArchiveCard");
             card.hittestchildren = false;
             icon(card, item);
@@ -215,22 +223,34 @@
     }
     GameEvents.Subscribe("survival_archive_snapshot", function (data) {
         var sequence = Number(data.sequence) || 0;
-        if (sequence < latest) return;
+        var category = data.category_id;
+        if(sequence <= (pageVersions[category]||0))return;
         if (!(data.ok === true || Number(data.ok) === 1)) {
             panel("ArchiveStatus").text = "存档尚未就绪，正在等待玩家档案";
             if (opened) $.Schedule(2, function () { if (opened) request(); });
             return;
         }
-        if (!assembly || sequence > latest) {
-            latest = sequence;
-            assembly = { header: data, chunks: {}, count: Number(data.chunks) || 1 };
+        var assembly=pageAssemblies[category];
+        if (!assembly || sequence > Number(assembly.header.sequence)) {
+            assembly = pageAssemblies[category] = { header: data, chunks: {}, count: Number(data.chunks) || 1 };
         }
+        if(sequence!==Number(assembly.header.sequence))return;
         assembly.chunks[Number(data.chunk) || 1] = array(data.rows);
         if (Object.keys(assembly.chunks).length !== assembly.count) return;
         var complete = assembly.header;
         complete.rows = [];
         for (var i = 1; i <= assembly.count; i++) complete.rows = complete.rows.concat(assembly.chunks[i]);
-        assembly = null;
+        delete pageAssemblies[category];
+        if(Number(complete.delta)===1){
+            if(!pageCache[category]||pageVersions[category]!==Number(complete.base_sequence)){request(true);return;}
+            complete=GameUI.CustomUIConfig().SurvivalSnapshotCache.Apply(pageCache[category],complete.rows);
+        }
+        pageVersions[category]=sequence;
+        pageCache[category]=complete;
+        array(complete.rows).forEach(function(item){
+            if(!item)return;
+            GameUI.CustomUIConfig().SurvivalSnapshotCache.Warm("archive:"+category+":"+(item.id||item.name)+":"+(item.icon||item.icon_path||""),function(host){A.Icon(host,item,category,buildingIcons);});
+        });
         render(complete);
     });
     GameEvents.Subscribe("survival_endless_state", function (data) {
@@ -257,11 +277,12 @@
             panel("ArchiveScrim").RemoveClass("ArchiveHidden");
             archiveShell.Open();
             panel("ArchiveWindow").RemoveClass("ArchiveHidden");
-            request();
+            if(pageCache[current])render(pageCache[current]);else request(true);
         },
         Filter: function(mode){if(["all","unlocked","locked"].indexOf(mode)<0)return;filterMode=mode;if(lastData)render(lastData);},
         Close: close,
         Refresh: request
     };
     $.RegisterEventHandler("Cancelled", panel("ArchiveWindow"), close);
+    $.Schedule(0.2,function(){request(true);});
 })();

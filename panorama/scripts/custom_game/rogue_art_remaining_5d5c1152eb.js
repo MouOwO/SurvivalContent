@@ -13,11 +13,15 @@
         var entry=entries[String(data.card_id)];if(!entry)return false;
         front.style.backgroundImage='none';front.style.backgroundColor='transparent';
         var skin=make('Panel',front,'RogueArtSkin');rect(skin,0,0,290,672);
-        // Full clean card with real alpha. No rectangular fill behind its corners.
-        var paperImage=make('Image',skin,'RogueArtPaperImage');
-        rect(paperImage,0,0,290,672);
-        paperImage.SetImage(cleanBase);paperImage.SetScaling('stretch-to-fit');
-        var art=make('Image',front,'RogueOptionIllustration');rect(art,29,56,232,348);
+        // Layer 1: complete parchment base; explicit background sizing avoids Image native-size cropping.
+        skin.style.backgroundImage='url("'+cleanBase+'")';
+        skin.style.backgroundSize='100% 100%';skin.style.backgroundRepeat='no-repeat';
+        skin.style.zIndex='0';
+        // Preserve the approved frame and footer, with no baked sword illustration.
+        framePart(skin,0,0,290,38);framePart(skin,0,38,14,376);
+        framePart(skin,276,38,14,376);framePart(skin,0,414,290,258);
+        // Layer 2: illustration only, confined above the text compartment.
+        var art=make('Image',front,'RogueOptionIllustration');rect(art,29,50,232,348);art.style.zIndex='1';
         art.SetImage(entry.uri);art.SetScaling('stretch-to-fit-preserve-aspect');
         return true;
     }};

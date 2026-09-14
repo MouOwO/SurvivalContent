@@ -1,0 +1,7 @@
+<root>
+    <Panel hittest="false" hittestchildren="false">
+        <Image src="file://{images}/custom_game/lottery_pool_scenes_v1/cultivation.png" />
+        <Image src="file://{images}/custom_game/lottery_pool_scenes_v1/dragon_knight.png" />
+        <Image src="file://{images}/custom_game/lottery_pool_scenes_v1/summer.png" />
+    </Panel>
+</root>

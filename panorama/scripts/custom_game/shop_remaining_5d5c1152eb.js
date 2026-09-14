@@ -119,20 +119,52 @@
         if (challengeToggle) challengeToggle.SetHasClass("Selected", challenge);
     }
 
+    var drawerCloseJob = null;
+    var drawerTransition = 0;
     function setOpenState(opened) {
-        if(shopShell){if(opened)shopShell.Open();else shopShell.Close();}
         var windowPanel = byId("CustomShopWindow");
+        var wasOpen = windowPanel && windowPanel.BHasClass("ShopOpen");
+        var wasClosing = drawerCloseJob !== null;
+        var transition = ++drawerTransition;
+        if (drawerCloseJob !== null) {
+            $.CancelScheduled(drawerCloseJob);
+            drawerCloseJob = null;
+        }
+        if(shopShell){if(opened)shopShell.Open();else shopShell.Close();}
         var backdrop = byId("ShopBackdrop");
         if (windowPanel) {
             windowPanel.SetHasClass("ShopOpen", opened);
             windowPanel.SetHasClass("Closed", !opened);
             windowPanel.SetHasClass("Hidden", false);
+            // Keep the panel rendered only until the slide-out completes.
+            // UIClosed is deliberately visible in CSS to permit this animation.
+            windowPanel.visible = opened || wasOpen || wasClosing;
             windowPanel.hittest = opened;
+            windowPanel.hittestchildren = opened;
+            windowPanel.style.horizontalAlign = 'left';
+            windowPanel.style.transformOrigin = '0% 50%';
+            var scaleMatch=String(windowPanel.style.transform||'').match(/scale3d\(([0-9.]+)/);
+            var parent=windowPanel.GetParent ? windowPanel.GetParent() : null;
+            var measuredWidth=Number(windowPanel.actuallayoutwidth||0)/Math.max(0.001,Number(parent&&parent.actualuiscale_x)||1);
+            var drawerWidth=Math.max(640*Math.max(1,scaleMatch?Number(scaleMatch[1]):1),measuredWidth+80);
+            windowPanel.style.position = opened ? '0px 0px 0px' : '-'+Math.ceil(drawerWidth)+'px 0px 0px';
+            if (!opened && (wasOpen || wasClosing)) {
+                drawerCloseJob = $.Schedule(0.32, function () {
+                    if (transition !== drawerTransition) return;
+                    drawerCloseJob = null;
+                    if (windowPanel && (!windowPanel.IsValid || windowPanel.IsValid())
+                        && !windowPanel.BHasClass("ShopOpen")) {
+                        windowPanel.visible = false;
+                    }
+                });
+            }
         }
         if (backdrop) {
             backdrop.SetHasClass("ShopOpen", opened);
             backdrop.SetHasClass("Hidden", false);
-            backdrop.hittest = opened;
+            backdrop.hittest = false;
+            backdrop.hittestchildren = false;
+            backdrop.visible = false;
         }
     }
 
@@ -174,6 +206,7 @@
     }
 
     function close() {
+        cooldownAnimationSerial++;
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (tooltip) tooltip.Hide();
         setOpenState(false);
@@ -205,6 +238,7 @@
 
     function setUnlocks(value) {
         unlocks = value || unlocks;
+        GameUI.CustomUIConfig().SurvivalShopUnlocks = unlocks;
         updateModeText();
         var shopButton = byId("CustomShopButton");
         if (shopButton) shopButton.SetHasClass("Locked", !unlocks.shop);
@@ -240,6 +274,7 @@
     }
 
     function purchase(entry) {
+        if (earlyFinalCooldownRemaining(entry) > 0) return;
         if (!entry || entry.purchasable !== 1) {
             setStatus(
                 "当前不可购买：" + ((entry && entry.disabled_reason) || "条件不满足"),
@@ -293,6 +328,14 @@
         return null;
     }
 
+    function earlyFinalCooldownRemaining(entry) {
+        if (!entry || entry.content_id !== "service_early_final_boss") return 0;
+        var until = Number(entry.early_final_cooldown_until || 0);
+        return Math.max(0, until > 0
+            ? until - Number(Game.GetGameTime())
+            : Number(entry.early_final_cooldown_remaining || 0));
+    }
+
     function technologyCooldownRemaining() {
         var remaining = Number(snapshot && snapshot.technology_cooldown_remaining || 0);
         var until = Number(snapshot && snapshot.technology_cooldown_until || 0);
@@ -321,6 +364,16 @@
 
     function updateCooldownOverlay(card, entry, remaining, total, source) {
         if (!card || !card.__survivalCooldownMask) return;
+        if (entry.content_id === "service_early_final_boss") {
+            remaining = earlyFinalCooldownRemaining(entry);
+            total = Number(entry.early_final_cooldown_total || 60);
+            source = entry.entry_id;
+            if (remaining <= 0 && Number(entry.early_final_cooldown_remaining) > 0
+                && !entry.__cooldownRefreshRequested) {
+                entry.__cooldownRefreshRequested = true;
+                requestSnapshot();
+            }
+        }
         var mask = card.__survivalCooldownMask;
         var isSource = !!source && (String(entry.entry_id) === source
             || String(entry.technology_group || "") === source);
@@ -334,16 +387,18 @@
     }
 
     function updateAllCooldownOverlays() {
+        var serial = ++cooldownAnimationSerial;
         var remaining = technologyCooldownRemaining();
+        var animationRemaining = remaining;
         var source = technologyCooldownSource();
         var total = Number(snapshot && snapshot.technology_cooldown_total || 2);
         Object.keys(entryCardsById).forEach(function (entryId) {
             var card = entryCardsById[entryId];
             var entry = entryById(entryId);
             if (card && entry) updateCooldownOverlay(card, entry, remaining, total, source);
+            if (entry) animationRemaining = Math.max(animationRemaining, earlyFinalCooldownRemaining(entry));
         });
-        if (remaining <= 0) return;
-        var serial = ++cooldownAnimationSerial;
+        if (animationRemaining <= 0) return;
         $.Schedule(0.05, function tick() {
             if (serial !== cooldownAnimationSerial) return;
             updateAllCooldownOverlays();
@@ -351,7 +406,7 @@
     }
 
     function updateEntryCard(card, entry) {
-        if(card && card.__rhShopBuy)U.State.Set(card.__rhShopBuy,{enabled:entry.purchasable===1});
+        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R&&card)R.UpdateShopPrices(card,entry);
         if (!card || !entry) return;
         card.SetHasClass("Unavailable", entry.purchasable !== 1);
         card.SetHasClass("Technology", entry.content_type === "technology");
@@ -371,9 +426,14 @@
             card.__survivalLockBadge.text = lockBadgeText(entry);
             card.__survivalLockBadge.visible = card.__survivalLockBadge.text !== "";
         }
+        var stock=GameUI.CustomUIConfig().RemainingHandoff.ShopStock(entry);
+        var purchaseLimitReached = entry.disabled_reason_code === "purchase_limit_reached"
+            || (entry.purchasable !== 1 && Number(entry.purchase_limit || 0) > 0
+                && Number(entry.owned_count || 0) >= Number(entry.purchase_limit));
+        card.SetHasClass("StockEmpty", (!!stock && stock.count <= 0) || purchaseLimitReached);
         if (card.__survivalStockLabel) {
-            card.__survivalStockLabel.text = "库存 " + Number(entry.stock || 0)
-                + "/" + Number(entry.stock_max || 0);
+            card.__survivalStockLabel.visible=!!stock;
+            card.__survivalStockLabel.text=stock?stock.count+"/"+stock.max:"";
         }
         updateCooldownOverlay(card, entry, technologyCooldownRemaining(),
             Number(snapshot && snapshot.technology_cooldown_total || 2),
@@ -435,6 +495,8 @@
                 entry.level_text,
                 entry.name,
                 entry.stock,
+                entry.stock_max,
+                entry.purchase_limit,
                 entry.refresh_remaining
             ].join(":");
         }).join("|");
@@ -479,7 +541,15 @@
         if (!list || !snapshot) return;
         var entries = visibleEntries();
         var nextSignature = structureSignature(entries);
-        if (nextSignature === renderedStructureSignature) return;
+        if (nextSignature === renderedStructureSignature) {
+            // A category refresh can leave the layout unchanged after a purchase.
+            // Still apply availability/stock updates to the existing cards.
+            entries.forEach(function(entry) {
+                updateEntryCard(entryCardsById[entry.entry_id], entry);
+            });
+            updateAllCooldownOverlays();
+            return;
+        }
         renderedStructureSignature = nextSignature;
         entryCardsById = {};
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
@@ -523,12 +593,21 @@
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
             createEntryIcon(frame, entry, "ShopItemIcon");
-            if (entry.content_type === "technology") {
+            if (entry.content_type === "technology" || entry.content_id === "service_early_final_boss") {
                 var cooldownMask = $.CreatePanel("Panel", frame, "");
                 cooldownMask.AddClass("ShopTechnologyCooldownMask");
                 cooldownMask.hittest = false;
+                cooldownMask.hittestchildren = false;
+                // Explicit overlay geometry also survives a cached base stylesheet.
+                cooldownMask.style.position = "0px 0px 0px";
+                cooldownMask.style.width = "100%";
+                cooldownMask.style.height = "100%";
+                cooldownMask.style.zIndex = "5";
+                cooldownMask.style.backgroundColor = "#000000cc";
                 cooldownMask.visible = false;
                 card.__survivalCooldownMask = cooldownMask;
+            }
+            if (entry.content_type === "technology") {
                 var lockBadge = $.CreatePanel("Label", frame, "");
                 lockBadge.AddClass("ShopTechnologyLockBadge");
                 lockBadge.hittest = false;
@@ -547,11 +626,10 @@
                 name.AddClass("ShopCardName");
                 name.text = entry.name || "";
             }
-            if (Number(entry.stock_max || 0) > 0) {
+            if (GameUI.CustomUIConfig().RemainingHandoff.ShopStock(entry)) {
                 var stockLabel = $.CreatePanel("Label", frame, "");
                 stockLabel.AddClass("ShopStockLabel");
-                stockLabel.text = "库存 " + Number(entry.stock || 0)
-                    + "/" + Number(entry.stock_max);
+                stockLabel.hittest=false;
                 card.__survivalStockLabel = stockLabel;
             }
 
@@ -837,9 +915,10 @@
         SetUnlocks: setUnlocks,
         Refresh: refresh
     };
-    var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:1208,height:806,onClose:close});
-    ["ShopModeShop","ShopModeChallenge","ShopModeLottery"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
-    U.ActionButton.Adopt(byId("ShopRefreshButton")); U.Tooltip.Adopt(byId("ShopEntryTooltip"));
+    var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:604,height:806,onClose:close});
+    ["ShopModeShop","ShopModeChallenge"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
+    U.Tooltip.Adopt(byId("ShopEntryTooltip"));
+    GameUI.CustomUIConfig().RemainingHandoff.SurvivalShopWindow();
     setUnlocks(GameUI.CustomUIConfig().SurvivalShopUnlocks || unlocks);
     setOpenState(false);
 })();

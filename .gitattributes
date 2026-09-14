@@ -1,0 +1,8 @@
+*.vmap binary -text
+*.vmap_c binary -text
+*.vpk binary -text
+*.vmat_c binary -text
+*.vtex_c binary -text
+*.tga binary -text
+*.tif binary -text
+*.psd binary -text

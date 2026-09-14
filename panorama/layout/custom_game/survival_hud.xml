@@ -7,7 +7,6 @@
         <include src="file://{resources}/styles/custom_game/inventory_tooltip.css" />
         <include src="file://{resources}/styles/custom_game/shop.css" />
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
-        <include src="file://{resources}/styles/custom_game/weapon_growth_hud.css" />
         <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
         <include src="file://{resources}/styles/custom_game/gold_mine_income_numbers.css" />
         <include src="file://{resources}/styles/custom_game/lottery.css" />
@@ -16,7 +15,7 @@
         <include src="file://{resources}/styles/custom_game/handoff_v1.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
     <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/></styles>
-    <scripts><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
+    <scripts><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" />
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
@@ -35,7 +34,6 @@
         <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
 
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
-        <include src="file://{resources}/scripts/custom_game/weapon_growth_hud.js" />
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
         <include src="file://{resources}/scripts/custom_game/handoff_assets.js" />
         <include src="file://{resources}/scripts/custom_game/geometry_remaining_5d5c1152eb.js" />
@@ -179,7 +177,7 @@
                     <Label id="LotteryTooltipDuration" text="期限：永久" />
                 </Panel>
             </Panel>
-            <Label id="LotteryTooltipDescription" text="简介：" />
+            <Label id="LotteryTooltipEffectHeading" text="效果" /><Label id="LotteryTooltipDescription" text="简介：" />
         </Panel>
         <Panel id="HeroCombatDebugPanel" hittest="false">
             <Label id="HeroCombatDebugTitle" text="英雄伤害 / 科技状态" />
@@ -210,15 +208,11 @@
                 <Panel id="ShopModeToggles">
                     <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.Open()"><Label text="商店" /></Button>
                     <Button id="ShopModeChallenge" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenChallenge()"><Label text="挑战" /></Button>
-                    <Button id="ShopModeLottery" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalLottery.OpenFromShop()"><Label text="积分兑换" /></Button>
                 </Panel>
                 <Panel id="ShopTitleBlock">
                     <Label id="ShopTitle" text="生存商店" />
                     <Label id="ShopSubtitle" text="右键购买 · 每次打开均从服务器同步" />
                 </Panel>
-                <Button id="ShopRefreshButton" onactivate="GameUI.CustomUIConfig().SurvivalShop.Refresh()">
-                    <Label text="刷新" />
-                </Button>
                 <Button id="ShopCloseButton" onactivate="GameUI.CustomUIConfig().SurvivalShop.Close()">
                     <Label text="×" />
                 </Button>
@@ -248,11 +242,11 @@
             <Label id="ShopTooltipDescription" text="" />
             <Panel id="ShopTooltipCostRow">
                 <Panel class="TooltipCostBlock">
-                    <DOTAItemImage class="TooltipCostIcon" itemname="item_ironwood_tree" />
+                    <Image class="TooltipCostIcon" src="file://{images}/custom_game/handoff_v1/top/wood.png" />
                     <Label id="ShopTooltipWoodCost" class="TooltipCostValue" text="0" />
                 </Panel>
                 <Panel class="TooltipCostBlock">
-                    <DOTAItemImage class="TooltipCostIcon" itemname="item_hand_of_midas" />
+                    <Image class="TooltipCostIcon" src="file://{images}/custom_game/handoff_v1/top/gold.png" />
                     <Label id="ShopTooltipGoldCost" class="TooltipCostValue" text="0" />
                 </Panel>
             </Panel>
@@ -373,20 +367,6 @@
             </Panel>
         </Panel>
 
-        <!-- Read-only growth status. It never overlaps or receives input from
-             Valve inventory slots, so drag/use/swap behavior stays native. -->
-        <Panel id="WeaponGrowthHUD" class="Hidden" hittest="false" hittestchildren="false">
-            <Panel id="WeaponGrowthHeader">
-                <Label id="WeaponGrowthName" text="成长装备" />
-                <Label id="WeaponGrowthStage" text="" />
-            </Panel>
-            <Panel id="WeaponGrowthProgressTrack">
-                <Panel id="WeaponGrowthProgressFill" />
-                <Label id="WeaponGrowthProgressText" class="MonoNumbersFont" text="0 / 0" />
-            </Panel>
-            <Label id="WeaponGrowthDetails" text="" />
-        </Panel>
-
         <Panel id="GameInfoPanel" class="GameInfoClosed" hittest="false" hittestchildren="false">
             <Panel id="GameInfoHeader">
                 <Label id="GameInfoTitle" text="游戏信息" />
@@ -454,8 +434,6 @@
       <Panel id="NotificationContainer" />
     </Panel>
 </root>
-
-
 
 
 

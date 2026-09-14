@@ -113,64 +113,18 @@
         iconHost.RemoveAndDeleteChildren();
         fields.RemoveAndDeleteChildren();
         createIcon(iconHost, entry);
-        var isTechnology = entry.content_type === "technology";
-        var typeText = "商品";
-        if (isTechnology) typeText = "科技";
-        else if (entry.content_type === "challenge") typeText = "普通挑战";
-        else if (entry.content_type === "rebirth") typeText = "转职挑战";
-        else if (entry.content_id === "service_early_final_boss") typeText = "提前通关服务";
-        setText("ShopTooltipTitle", isTechnology
-            ? (entry.name || entry.content_id)
-            : (tooltipDefinition.name || entry.name || entry.content_id));
-        setText(
-            "ShopTooltipType",
-            typeText
-        );
-        setText("ShopTooltipDescription", isTechnology
-            ? (entry.description || "")
-            : (tooltipDefinition.desc || entry.description || ""));
-        setText("ShopTooltipWoodCost", formatNumber(
-            entry.wood_cost !== undefined
-                ? entry.wood_cost : tooltipDefinition.needwood
-        ));
-        setText("ShopTooltipGoldCost", formatNumber(
-            entry.gold_cost !== undefined
-                ? entry.gold_cost : tooltipDefinition.needgold
-        ));
-        setText(
-            "ShopTooltipCondition",
-            "购买条件：" + (entry.purchase_condition_text || "无")
-        );
-
-        var limitText = entry.purchase_limit > 0
-            ? (entry.owned_count + " / " + entry.purchase_limit)
-            : (entry.owned_count + " / 不限");
-        setText("ShopTooltipOwned", "已购买：" + limitText);
-        if (entry.stock !== undefined && entry.stock !== null) {
-            var stockText = "库存：" + Number(entry.stock)
-                + " / " + Number(entry.stock_max || 0);
-            var replenishRemaining = Number(entry.stock_replenish_remaining || 0);
-            if (replenishRemaining > 0) {
-                stockText += " · " + replenishRemaining.toFixed(1) + "秒后补货";
-            }
-            setText("ShopTooltipOwned", stockText);
-        }
-        if (isTechnology) {
-            setText("ShopTooltipOwned", "科技等级：Lv."
-                + Number(entry.technology_level || 0) + " / Lv."
-                + Number(entry.technology_max_level || 0));
-        }
-        setText(
-            "ShopTooltipStatus",
-            entry.purchasable === 1
-                ? "可购买 · 右键图标购买"
-                : ("不可购买 · " + (entry.disabled_reason || "条件不满足"))
-        );
-
-        asArray(entry.fields).forEach(function (field) {
-            if (field) addField(fields, field.label, field.value);
+        setText('ShopTooltipTitle',entry.name||tooltipDefinition.name||entry.content_id);
+        var description = entry.content_type === 'technology'
+            ? (entry.description || tooltipDefinition.desc || '')
+            : (tooltipDefinition.desc || entry.description || '');
+        setText('ShopTooltipDescription', description);
+        byId('ShopTooltipDescription').visible = String(description).trim().length > 0;
+        ['Wood','Gold'].forEach(function(currency){
+            var key=currency.toLowerCase(),value=entry[key+'_cost']!==undefined?entry[key+'_cost']:tooltipDefinition['need'+key];
+            var label=byId('ShopTooltip'+currency+'Cost');
+            label.text=formatNumber(value);label.GetParent().visible=Number(value)>0;
         });
-
+        ['Type','Condition','Owned','Fields','Status'].forEach(function(suffix){var p=byId('ShopTooltip'+suffix);if(p)p.visible=false;});
         tooltip.SetHasClass("Unavailable", entry.purchasable !== 1);
         tooltip.RemoveClass("Hidden");
         $.Schedule(0.0, function () {

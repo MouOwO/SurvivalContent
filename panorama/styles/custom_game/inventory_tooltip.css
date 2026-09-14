@@ -8,9 +8,13 @@
     border: 1px solid #8799a8;
     box-shadow: #000000cc 0px 0px 12px 0px;
     z-index: 2103;
+    opacity: 1;
+    transition-property: opacity;
+    transition-duration: 0.1s;
+    transition-timing-function: ease-in-out;
 }
 
-#CustomInventoryItemTooltip.Hidden { visibility: collapse; }
+#CustomInventoryItemTooltip.Hidden { visibility: visible; opacity: 0; }
 
 #CustomInventoryItemCategory {
     width: 100%;

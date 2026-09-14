@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    var cfg=GameUI.CustomUIConfig(),assets=cfg.ArchiveHandoffAssets,root=$.GetContextPanel(),generation=0,anchor=null;
+    var cfg=GameUI.CustomUIConfig(),assets=cfg.ArchiveHandoffAssets,root=$.GetContextPanel(),generation=0,anchor=null,effectOnly=false,raisedTooltipParents=[];
     function p(id){return root.FindChildTraverse(id);}
     function style(el,s){Object.keys(s).forEach(function(k){el.style[k]=s[k];});}
     function img(parent,name,cls){var el=$.CreatePanel('Image',parent,'');el.AddClass(cls);el.SetImage(assets[name]);el.hittest=false;return el;}
@@ -28,7 +28,8 @@
         if(x+tip.w>w-pad){x=rect.x-gap-tip.w;side='left';}
         return {x:Math.max(pad,Math.min(x,w-tip.w-pad)),y:Math.max(pad,Math.min(rect.y+16,h-tip.h-pad)),side:side};
     }
-    function hide(){generation++;if(anchor&&anchor.IsValid())anchor.RemoveClass('ArchiveHovered');anchor=null;var tip=p('ArchiveTooltip');if(tip&&tip.IsValid())tip.AddClass('ArchiveHidden');}
+    function hide(){generation++;
+        raisedTooltipParents.forEach(function(e){if(e.panel.IsValid()&&String(e.panel.style.zIndex)==='100012')e.panel.style.zIndex=e.z;});raisedTooltipParents=[];if(anchor&&anchor.IsValid())anchor.RemoveClass('ArchiveHovered');anchor=null;var tip=p('ArchiveTooltip');if(tip&&tip.IsValid())tip.AddClass('ArchiveHidden');}
     function position(g){
         if(g!==generation||!anchor||!anchor.IsValid())return;
         var tip=p('ArchiveTooltip'),sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1;
@@ -40,28 +41,57 @@
         p('ArchiveTooltipBody').style.maxHeight=tip.style.maxHeight;
         var pos=anchor.GetPositionWithinWindow(),r={x:pos.x,y:pos.y,w:anchor.actuallayoutwidth,h:anchor.actuallayoutheight};
         // actual layout dimensions exclude CSS transforms; the archive's own UI scale includes its ancestor transform.
-        r.w=143*sx*fit;r.h=138*sy*fit;
+        if(!effectOnly){r.w=143*sx*fit;r.h=138*sy*fit;}
         var t={w:300*sx*fit,h:(tip.actuallayoutheight||274*sy)*fit};
         var windowPos=p('ArchiveWindow').GetPositionWithinWindow();
         // Prefer staying inside the modal, as in the approved rightmost-card example.
-        var at=place(r,t,Math.min(w,windowPos.x+869*sx*fit),h,12*sx*fit,12*sx);
+        var at=place(r,t,effectOnly?w:Math.min(w,windowPos.x+869*sx*fit),h,12*sx*fit,12*sx);
         tip.style.position=Math.round(at.x/sx)+'px '+Math.round(at.y/sy)+'px 0px';
         tip.SetAttributeString('expand_side',at.side);
-        tip.style.zIndex=String((Number(p('ArchiveWindow').style.zIndex)||100000)+2);
+        tip.style.zIndex=effectOnly?'100012':String((Number(p('ArchiveWindow').style.zIndex)||100000)+2);
         $.Schedule(.05,function(){position(g);});
     }
-    function show(item,category,card){
-        hide();anchor=card;
+function formatArchiveEffects(value) {
+    var source=String(value||'').replace(/\r\n?/g,'\n'),depth=0,out='';
+    for(var i=0;i<source.length;i++){
+        var c=source.charAt(i);
+        if(c==='('||c==='（'||c==='['||c==='【')depth++;
+        if(c===')'||c==='）'||c===']'||c==='】')depth=Math.max(0,depth-1);
+        // Preserve numeric grouping (1,000), decimals and parenthetical qualifiers.
+        if(!depth&&(c==='；'||c===';'||c==='|'||c==='\n')){out+='\n';continue;}
+        if(!depth&&(c==='，'||c===',')&&!(c===','&&/\d/.test(source.charAt(i-1))&&/\d/.test(source.charAt(i+1)))){out+='\n';continue;}
+        if(!depth&&/[ \t]/.test(c)&&/[0-9%％）)]/.test(out.slice(-1))){
+            var next=i;while(/[ \t]/.test(source.charAt(next))&&next<source.length)next++;
+            if(/[\u3400-\u9fffA-Za-z]/.test(source.charAt(next))){out+='\n';i=next-1;continue;}
+        }
+        out+=c;
+    }
+    return out.split('\n').map(function(line){return line.replace(/^\s+|\s+$/g,'');}).filter(function(line){return !!line;}).join('\n');
+}
+
+    function show(item,category,card,onlyEffect){
+        hide();anchor=card;effectOnly=!!onlyEffect;
         // Auxiliary promotion help uses its actual button when no card argument is provided.
         if(!anchor)return;
         anchor.AddClass('ArchiveHovered');
         var state=unlocked(item,category);
+        p('ArchiveTooltipState').visible=!effectOnly;
+        p('ArchiveTooltipProgressRow').visible=!effectOnly;
         p('ArchiveTooltipName').text=item.name||'';
         p('ArchiveTooltipStateText').text=state===null?'状态待同步':state?'已解锁':'未解锁';
         p('ArchiveTooltipStateIcon').SetImage(assets[state?'icon_check_light.png':'icon_lock_light.png']);
-        p('ArchiveTooltipEffect').text=item.description||'服务端未提供效果说明';
-        p('ArchiveTooltipCondition').text=condition(item,category);
+        p('ArchiveTooltipEffect').text=formatArchiveEffects(item.description||'服务端未提供效果说明');
+        p('ArchiveTooltipCondition').text='';p('ArchiveTooltipCondition').visible=false;p('ArchiveTooltipCondition').style.visibility='collapse';
         p('ArchiveTooltipProgress').text=progress(item);
+        if(effectOnly){
+            var ancestors=[],source=card;
+            while(source){ancestors.push(source);source=source.GetParent();}
+            var parent=root;
+            while(parent&&ancestors.indexOf(parent)<0){
+                raisedTooltipParents.push({panel:parent,z:String(Number(parent.style.zIndex)||0)});
+                parent.style.zIndex='100012';parent=parent.GetParent();
+            }
+        }
         p('ArchiveTooltip').RemoveClass('ArchiveHidden');position(generation);
     }
     function icon(parent,item,category,buildings){
@@ -78,7 +108,7 @@
     }
     cfg.ArchiveHandoff={
         Observe:function(data){this.snapshot=data;},
-        Unlocked:unlocked,Progress:progress,Condition:condition,Place:place,Hide:hide,Show:show,Icon:icon,
+        Unlocked:unlocked,Progress:progress,Condition:condition,Place:place,Hide:hide,Show:show,ShowEffectOnly:function(item,card){show(item,'',card,true);},Icon:icon,
         NavIcon:function(toggle,id,key){var name='archive_ui_kit_v1_'+(id==='clear'?'clear_selected':(key||'clear')+'_normal')+'.png';if(!assets[name])name='archive_ui_kit_v1_clear_selected.png';img(toggle,name,'ArchiveNavIcon');},
         Card:function(card){card.AddClass('ArchiveHandoffCard');
             card.Children().forEach(function(c){if(!c.BHasClass('ArchiveItemName'))return;

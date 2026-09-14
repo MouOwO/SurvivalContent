@@ -1,0 +1,6 @@
+<root>
+    <Panel hittest="false" hittestchildren="false">
+        <Image src="file://{images}/custom_game/shop_compact_v1/knowledge_red.png" />
+        <Image src="file://{images}/custom_game/shop_compact_v1/knowledge_blue.png" />
+    </Panel>
+</root>

@@ -1,5 +1,8 @@
 (function(){
     'use strict';
+    // HTTP integration: disable the local catalog, fake orders and payment simulator.
+    delete GameUI.CustomUIConfig().SurvivalCommercePreviewData;
+    return;
     var catalog={
   "categories": [
     {
@@ -1137,6 +1140,16 @@
         catalog:catalog,
         methods:[{id:'preview_scan_a',name:'微信（模拟）'},{id:'preview_scan_b',name:'支付宝（模拟）'}],
         qr:'file://{images}/custom_game/shop_preview_v1/preview_qr.png',
+        // Explicit preview-only pricing, independent of gameplay ticket balances.
+        ticketPreview:{unit_price:1,currency_name:'U币',max_quantity:99},
+        ticketProduct:function(pool){
+            if(!pool||!pool.id)return null;
+            var price=this.ticketPreview;
+            return {id:'preview_ticket_'+String(pool.id),name:String(pool.ticket_name||'抽奖券'),
+                pool_id:String(pool.id),image:'file://{images}/custom_game/lottery_handoff_v1/ticket_illustrated.png',
+                effect:'所属奖池：'+String(pool.display_name||pool.id)+'。每份演示商品为 1 张抽奖券。价格仅供界面演示，模拟完成不会增加抽奖券。',
+                prices:[{amount:price.unit_price,currencyName:price.currency_name}],max_quantity:price.max_quantity,purchasable:true};
+        },
         createOrder:function(product,quantity,method){
             return {id:'UI-DEMO-'+(++serial),product_id:product.id,name:product.name,quantity:quantity,
                 amount:product.prices[0].amount*quantity,currency:product.prices[0].currencyName,
@@ -1149,12 +1162,13 @@
     'use strict';
     var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,R=cfg.RemainingHandoff,D=cfg.SurvivalCommercePreviewData,root=$.GetContextPanel();
     if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Dispose();
-    var category=D.catalog.categories[0].id,product=null,quantity=1,method=null,order=null,pending=false,disposed=false,timer=null,serial=0,remaining=180;
+    if(!D){delete cfg.SurvivalCommerceView;return;}
+    var category=D.catalog.categories[0].id,product=null,quantity=1,method=null,order=null,pending=false,disposed=false,timer=null,serial=0,remaining=180,returnLabel='返回商城';
     function p(type,parent,cls){var n=$.CreatePanel(type,parent,'');if(cls)n.AddClass(cls);return n;}
     function text(parent,value,cls){var n=p('Label',parent,cls);n.text=String(value);n.hittest=false;return n;}
     function button(parent,label,fn,cls,primary){var n=U.ActionButton(parent,{label:label,action:fn});R.Action(n,primary);if(cls)n.AddClass(cls);return n;}
     function cancelTimer(){serial++;if(timer!==null){$.CancelScheduled(timer);timer=null;}}
-    function reset(){cancelTimer();product=null;order=null;pending=false;quantity=1;method=null;}
+    function reset(){cancelTimer();product=null;order=null;pending=false;quantity=1;method=null;returnLabel='返回商城';}
     function closePurchase(){reset();purchase.shell.Close();}
     function close(){closePurchase();store.shell.Close();}
     function modal(id,title,w,h,onClose){
@@ -1166,7 +1180,7 @@
     var tabs=p('Panel',store.panel,'RCTabs'),grid=p('Panel',store.panel,'RCGrid');
     text(store.panel,'演示模式，不可付款 · 商品价格与状态均为模拟','RCNotice');
     D.catalog.categories.forEach(function(c,i){var b=p('Button',tabs,'RCTab');R.Tab(b,i===0?0:i===D.catalog.categories.length-1?3:1);R.Image(b,'tab_glow','RCNavGlow');text(b,c.label,'RCTabText');b.SetPanelEvent('onactivate',function(){if(category===c.id)return;category=c.id;renderCatalog();});b._category=c.id;});
-    function art(parent,item,cls){var mapped=cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(parent,item.items?item.items[0]:item,cls);if(mapped)return mapped;var n=p('Image',parent,cls);n.SetImage(item.image);n.SetScaling('stretch-to-fit-preserve-aspect');n.hittest=false;return n;}
+    function art(parent,item,cls){var mapped=cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(parent,item.items?item.items[0]:item,cls);if(mapped)return mapped;var n=p('Image',parent,cls);n.SetImage(item.image);n.SetScaling('stretch-to-fit-preserve-aspect');if(item.pool_id){n.style.height='124px';n.style.opacityMask='url("file://{images}/custom_game/lottery_handoff_v1/ticket_silhouette.svg")';}n.hittest=false;return n;}
     function renderCatalog(){
         tabs.Children().forEach(function(b){b.SetHasClass('UISelected',b._category===category);});
         grid.RemoveAndDeleteChildren();var bundle=category==='bundles';grid.SetHasClass('RCBundles',bundle);
@@ -1180,7 +1194,7 @@
     var body=p('Panel',purchase.panel,'RCOrderBody'),status=text(purchase.panel,'','RCOrderStatus'),controls=p('Panel',purchase.panel,'RCPreviewControls');
     var labels={loading:'加载中',waiting:'等待扫码',qr_failed:'二维码加载失败',expired:'二维码已过期',complete:'模拟支付成功',failed:'模拟支付失败'};
     Object.keys(labels).forEach(function(s){var b=button(controls,labels[s],function(){setState(s);},'RCPreviewState');b._state=s;});
-    function openPurchase(item){if(product||pending||!item.purchasable)return;reset();product=item;quantity=1;method=D.methods[0];renderPurchase();purchase.shell.Open();}
+    function openPurchase(item,origin){if(product||pending||!item||!item.purchasable)return false;reset();returnLabel=origin==='lottery'?'返回抽奖':'返回商城';product=item;quantity=1;method=D.methods[0];renderPurchase();purchase.shell.Open();return true;}
     function createOrder(){if(pending||order||!product)return;pending=true;renderPurchase();var token=++serial;timer=$.Schedule(.4,function(){timer=null;if(disposed||token!==serial||!product)return;order=D.createOrder(product,quantity,method);pending=false;remaining=order.expires;renderPurchase();tick();});}
     function tick(){var token=serial;if(!order||order.state!=='waiting')return;timer=$.Schedule(1,function(){timer=null;if(disposed||token!==serial||!order)return;remaining--;if(remaining<=0){order.state='expired';renderPurchase();return;}var expiry=body.FindChildTraverse('RCExpiryValue');if(expiry)expiry.text='模拟有效期 '+remaining+' 秒 · 测试码无支付含义';tick();});}
     function setState(s){if(!order)return;cancelTimer();order.state=s;remaining=180;renderPurchase();if(s==='waiting')tick();}
@@ -1192,17 +1206,17 @@
             text(body,'模拟合计：'+product.prices[0].amount*quantity+' '+product.prices[0].currencyName,'RCActualAmount');
             var q=p('Panel',body,'RCQuantity');var minus=button(q,'−',function(){if(pending||quantity<=1)return;quantity--;renderPurchase();});text(q,quantity,'RCQuantityText');var plus=button(q,'+',function(){if(pending||quantity>=product.max_quantity)return;quantity++;renderPurchase();});U.State.Set(minus,{enabled:!pending&&quantity>1});U.State.Set(plus,{enabled:!pending&&quantity<product.max_quantity});
             var methods=p('Panel',body,'RCMethods');D.methods.forEach(function(m){var b=p('Button',methods,'RCMethod');R.Image(b,m.id===method.id?'shop_payment_selected':'shop_payment_normal','RCMethodSelected');text(b,m.name,'RCMethodText');b.SetPanelEvent('onactivate',function(){if(pending)return;method=m;renderPurchase();});});
-            button(body,'返回商城',closePurchase,'RCOrderBack');var buy=button(body,pending?'生成模拟订单…':'确认模拟订单',createOrder,'RCOrderConfirm',true);U.State.Set(buy,{enabled:!pending});status.text='演示模式，不可付款 · 不扣款、不发放权益';
+            button(body,returnLabel,closePurchase,'RCOrderBack');var buy=button(body,pending?'生成模拟订单…':'确认模拟订单',createOrder,'RCOrderConfirm',true);U.State.Set(buy,{enabled:!pending});status.text='演示模式，不可付款 · 不扣款、不发放权益';
         }else{
             text(body,'模拟应付：'+order.amount+' '+order.currency+'  ·  数量 '+order.quantity,'RCActualAmount');text(body,order.payment_name+' · 演示模式，不可付款','RCQRHint');
             var qr=p('Panel',body,'RCQR');
             if(order.state==='waiting'){var image=p('Image',qr,'RCQRCode');image.SetImage(D.qr);image.SetScaling('stretch-to-fit-preserve-aspect');image.hittest=false;}
             else {text(qr,labels[order.state],'RCQRState');if(order.state==='qr_failed'||order.state==='expired'||order.state==='failed')button(body,'重新演示',function(){setState('waiting');},'RCQRRetry');}
             var expiry=$.CreatePanel('Label',body,'RCExpiryValue');expiry.AddClass('RCExpiry');expiry.text=order.state==='waiting'?'模拟有效期 '+remaining+' 秒 · 测试码无支付含义':'此状态仅供界面验收';
-            button(body,'返回商城',closePurchase,'RCQRBack');status.text=labels[order.state]+' · '+order.id+' · 无真实交易';
+            button(body,returnLabel,closePurchase,'RCQRBack');status.text=labels[order.state]+' · '+order.id+' · 无真实交易';
         }
         controls.Children().forEach(function(b){b.SetHasClass('RCStateSelected',!!order&&b._state===order.state);});
     }
-    cfg.SurvivalCommerceView={Open:function(){if(disposed)return;renderCatalog();store.shell.Open();},Close:close,Dispose:function(){if(disposed)return;disposed=true;reset();purchase.shell.Dispose();store.shell.Dispose();[purchase.panel,purchase.scrim,store.panel,store.scrim].forEach(function(n){if(n.IsValid())n.DeleteAsync(0);});},PreviewState:setState,Inspect:function(){return {category:category,product:product&&product.id,quantity:quantity,order:order,pending:pending,timer:timer!==null};}};
+    cfg.SurvivalCommerceView={OpenTicketPurchase:function(pool){if(disposed)return false;return openPurchase(D.ticketProduct(pool),'lottery');},Open:function(){if(disposed)return;renderCatalog();store.shell.Open();},Close:close,Dispose:function(){if(disposed)return;disposed=true;reset();purchase.shell.Dispose();store.shell.Dispose();[purchase.panel,purchase.scrim,store.panel,store.scrim].forEach(function(n){if(n.IsValid())n.DeleteAsync(0);});},PreviewState:setState,Inspect:function(){return {category:category,product:product&&product.id,quantity:quantity,order:order,pending:pending,timer:timer!==null};}};
     if(typeof Game!=='undefined'&&Game.AddCommand)Game.AddCommand('shop_ui_preview_open',function(){cfg.SurvivalCommerceView.Open();},'Open local-only commerce UI preview',0);
 })();

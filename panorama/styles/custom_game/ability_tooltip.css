@@ -10,12 +10,12 @@
     z-index: 2101;
     opacity: 1;
     transition-property: opacity;
-    transition-duration: 0.08s;
+    transition-duration: 0.1s;
     transition-timing-function: linear;
 }
 
 #CustomAbilityTooltip.FadingOut { opacity: 0; }
-#CustomAbilityTooltip.Hidden { visibility: collapse; opacity: 0; }
+#CustomAbilityTooltip.Hidden { visibility: visible; opacity: 0; }
 #CustomAbilityTooltip.Unavailable { wash-color: #8b8b8b; }
 #CustomAbilityTooltip.ResourceLow { border-color: #d49b58; }
 #CustomAbilityExtensionLabel {
