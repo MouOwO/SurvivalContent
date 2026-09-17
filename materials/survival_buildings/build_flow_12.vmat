@@ -1,0 +1,28 @@
+"Layer0"
+{
+    "shader" "hero.vfx"
+    "F_TRANSLUCENT" "1"
+    "F_SEPARATE_ALPHA_TRANSFORM" "1"
+    "TextureColor" "materials/survival_buildings/build_flow_color.png"
+    "TextureNormal" "materials/survival_buildings/build_flow_normal.png"
+    "TextureTranslucency" "materials/survival_buildings/build_flow_mask.png"
+    "g_flAmbientScale" "1.25"
+    "g_flDiffuseModulationAmount" "1.0"
+    "g_flSelfIllumBlendToFull" "0.22"
+    "g_flSpecularBlendToFull" "1.0"
+    "g_flSpecularScale" "2.5"
+    "g_flSpecularExponent" "96.0"
+    "g_vSpecularColor" "[0.85 0.95 1.0 0.0]"
+    "g_flRimLightScale" "2.5"
+    "g_vRimLightColor" "[0.35 0.72 1.0 0.0]"
+    "g_flBloomScale" "0.3"
+    "g_flBloomShift" "0.0"
+    "g_vBloomColor" "[0.7 0.9 1.0 0.0]"
+    "g_vTexCoordScale" "[1.0 3.0 1.0 1.0]"
+    "g_vAlphaTexCoordScale" "[1.0 1.0 1.0 1.0]"
+    "g_vAlphaTexCoordOffset" "[0.0 0.120000 0.0 0.0]"
+    "DynamicParams"
+    {
+        "g_vTexCoordOffset" "return float2(time()*0.085, -time()*0.19);"
+    }
+}

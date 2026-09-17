@@ -1,0 +1,9 @@
+"Layer0"
+{
+"shader" "global_lit_simple.vfx"
+"F_FULLBRIGHT" "1"
+"F_SPECULAR" "0"
+"TextureColor" "materials/survival_buildings/build_white_glow_color.png"
+"g_vColorTint" "[0.09 0.32 0.6 1]"
+"g_flOverbrightFactor" "1.4"
+}

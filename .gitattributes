@@ -1,0 +1,5 @@
+# Source 2 editor-generated resources.
+*.vmap binary -text
+*.vpcf -whitespace
+*.vmdl -whitespace
+maps/survival_world_v2.vmap filter=lfs diff=lfs merge=lfs -text

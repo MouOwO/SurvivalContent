@@ -1,0 +1,1 @@
+"Layer0" { "shader" "global_lit_simple.vfx" "F_FULLBRIGHT" "1" "F_DO_NOT_CAST_SHADOWS" "1" "TextureColor" "[.14 .33 .39 1]" "Attributes" { "mapbuilder.nonsolid" "1" } }

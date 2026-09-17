@@ -1,0 +1,29 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+ _class = "CParticleSystemDefinition"
+ m_nMaxParticles = 5
+ m_nInitialParticles = 5
+ m_flConstantRadius = 1300.0
+ m_ConstantColor = [ 210, 229, 245, 255 ]
+ m_BoundingBoxMin = [ -1680.0, -1680.0, -1300.0 ]
+ m_BoundingBoxMax = [ 1680.0, 1680.0, 1300.0 ]
+ m_flMaxDrawDistance = 90000.0
+ m_bShouldSort = true
+ m_Renderers = [ { _class = "C_OP_RenderSprites"
+   m_nOrientationType = "PARTICLE_ORIENTATION_SCREEN_ALIGNED"
+   m_flStartFadeSize = 4.0 m_flEndFadeSize = 5.0
+   m_nFeatheringMode = "PARTICLE_DEPTH_FEATHERING_ON_OPTIONAL"
+   m_flFeatheringMaxDist = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 160.0 }
+   m_vecTexturesInput = [ { m_hTexture = resource:"models/items/vengefulspirit/vengeful_spirit_arcana/debut/materials/crownfall_debut_cloud_1.vtex" } ]
+ } ]
+ m_Initializers = [
+   { _class = "C_INIT_CreateWithinSphere" m_fRadiusMax = 380.0 m_vecDistanceBias = [ 1.0, 0.8, 0.8 ] },
+   { _class = "C_INIT_InitFloat" m_nOutputField = 1 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 70.0 } },
+   { _class = "C_INIT_InitFloat" m_nOutputField = 3 m_InputValue = { m_nType = "PF_TYPE_RANDOM_UNIFORM" m_flRandomMin = 936 m_flRandomMax = 1300 m_nRandomMode = "PF_RANDOM_MODE_CONSTANT" } },
+   { _class = "C_INIT_InitFloat" m_nOutputField = 7 m_InputValue = { m_nType = "PF_TYPE_RANDOM_UNIFORM" m_flRandomMin = 0.612 m_flRandomMax = 0.85 m_nRandomMode = "PF_RANDOM_MODE_CONSTANT" } },
+   { _class = "C_INIT_InitFloat" m_nOutputField = 4 m_InputValue = { m_nType = "PF_TYPE_RANDOM_UNIFORM" m_flRandomMin = -25 m_flRandomMax = 25 m_nRandomMode = "PF_RANDOM_MODE_CONSTANT" } }
+ ]
+ m_Operators = [ { _class = "C_OP_Decay" }, { _class = "C_OP_FadeIn" m_flFadeInTimeMin = 0.02 m_flFadeInTimeMax = 0.05 }, { _class = "C_OP_FadeOut" m_flFadeOutTimeMin = 0.9 m_flFadeOutTimeMax = 1.0 } ]
+ m_Emitters = [ { _class = "C_OP_ContinuousEmitter" m_flEmitRate = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 0.08333333333333333 } } ]
+ m_nBehaviorVersion = 5
+}

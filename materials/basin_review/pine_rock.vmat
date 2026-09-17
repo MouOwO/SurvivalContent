@@ -1,0 +1,8 @@
+"Layer0"
+{
+ "shader" "global_lit_simple.vfx"
+ "F_NORMAL_MAP" "1"
+ "TextureColor" "materials/survival_world_v2/mountain_stone001_color.png"
+ "TextureNormal" "materials/survival_world_v2/mountain_stone001_normal.png"
+ "g_vColorTint" "[.50 .56 .49 0]"
+}

@@ -1,0 +1,10 @@
+"Layer0"
+{
+ "shader" "global_lit_simple.vfx"
+ "F_NORMAL_MAP" "1"
+ "F_SPECULAR" "1"
+ "TextureColor" "materials/survival_buildings/brass_color.png"
+ "TextureNormal" "materials/survival_buildings/brass_normal.png"
+ "TextureReflectance" "materials/survival_buildings/brass_reflectance.png"
+ "g_vColorTint" "[1 1 1 0]"
+}

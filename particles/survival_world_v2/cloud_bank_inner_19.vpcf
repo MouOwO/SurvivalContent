@@ -1,0 +1,12 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+ _class = "CParticleSystemDefinition" m_nMaxParticles = 1 m_nInitialParticles = 1 m_flConstantRadius = 2330.0
+ m_ConstantColor = [ 224, 234, 239, 255 ] m_flMaxDrawDistance = 100000.0 m_bShouldSort = true
+ m_BoundingBoxMin = [ -2330.0, -2330.0, -2330.0 ] m_BoundingBoxMax = [ 2330.0, 2330.0, 2330.0 ]
+ m_Renderers = [ { _class = "C_OP_RenderSprites" m_nOrientationType = "PARTICLE_ORIENTATION_WORLD_Z_ALIGNED"
+ m_flStartFadeSize = 4.0 m_flEndFadeSize = 5.0 m_nFeatheringMode = "PARTICLE_DEPTH_FEATHERING_ON_OPTIONAL"
+ m_flFeatheringMaxDist = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 100.0 }
+ m_vecTexturesInput = [ { m_hTexture = resource:"materials/survival_world_v2/cloud_native_b.vtex" } ] } ]
+ m_Initializers = [ { _class = "C_INIT_CreateWithinSphere" m_fRadiusMin = 0.0 m_fRadiusMax = 0.0 }, { _class = "C_INIT_InitFloat" m_nOutputField = 1 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 100000.00000 } }, { _class = "C_INIT_InitFloat" m_nOutputField = 3 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 2330.00000 } }, { _class = "C_INIT_InitFloat" m_nOutputField = 7 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 0.84000 } }, { _class = "C_INIT_InitFloat" m_nOutputField = 4 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.55334 } } ]
+ m_nBehaviorVersion = 5
+}

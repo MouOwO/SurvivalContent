@@ -1,0 +1,7 @@
+"Layer0"
+{
+ "shader" "global_lit_simple.vfx"
+ "F_SPECULAR" "0"
+ "TextureColor" "[0.87 0.91 0.95 1]"
+ "g_vColorTint" "[1 1 1 0]"
+}

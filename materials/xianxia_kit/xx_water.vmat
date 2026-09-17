@@ -1,0 +1,22 @@
+"Layer0"
+{
+ "shader" "water_dota.vfx"
+ "F_FLOW_NORMALS" "1"
+ "TextureNormal" "materials/xianxia_kit/xx_water_normal.png"
+ "TextureNoise" "materials/xianxia_kit/xx_water_height.png"
+ "TextureFlow" "[0.04 0.08 0 0]"
+ "g_flNormalUvScale" "500"
+ "g_flNormalFlowTimeIntervalInSeconds" "1.6"
+ "g_flNormalFlowUvScrollDistance" "0.08"
+ "g_flBumpStrength" "0.18"
+ "g_flNoiseStrength" "0.1"
+ "g_flWaterDepth" "90"
+ "g_flReflectance" "0.18"
+ "g_flReflectionAmount" "0.15"
+ "g_flRefractionAmount" "0.04"
+ "g_vWaterFogColor" "[0.06 0.24 0.29 1]"
+ "g_vRefractionTint" "[0.35 0.72 0.76 0]"
+ "g_vLowEndSurfaceColor" "[0.12 0.34 0.38 1]"
+ "g_flBaseBloom" "0"
+ "Attributes" { "mapbuilder.water" "1" "mapbuilder.nonsolid" "1" }
+}

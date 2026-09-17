@@ -1,0 +1,7 @@
+"Layer0"
+{
+ "shader" "global_lit_simple.vfx"
+ "g_vColorTint" "[1 1 1 0]"
+ "TextureColor" "[0.45 0.58 0.40 1]"
+ "F_RENDER_BACKFACES" "1"
+}

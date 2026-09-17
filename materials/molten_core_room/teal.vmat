@@ -1,0 +1,11 @@
+"Layer0"
+{
+"shader" "global_lit_simple.vfx"
+"F_NORMAL_MAP" "1"
+"F_SPECULAR" "1"
+"F_RENDER_BACKFACES" "1"
+"TextureColor" "materials/molten_core_room/teal_color.png"
+"TextureNormal" "materials/molten_core_room/teal_normal.png"
+"TextureReflectance" "materials/molten_core_room/teal_reflectance.png"
+"g_vColorTint" "[1 1 1 0]"
+}
