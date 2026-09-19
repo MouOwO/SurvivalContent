@@ -1,8 +1,12 @@
+> 2026-09-19：美术快捷方式、离线网页和文件总表是含本机路径的生成文件，不提交 Git；需要时按下方“更新与跨机器使用”步骤生成。原图和交接素材保留。
+>
+> 已修正：Source 2 的 content 图片目录必须使用实体文件，不能用目录联接。美术原图仍在 art/ui/sources；每次修改后运行 tools/art_assets/sync_content_images.ps1 同步到 content，再编译。工程内 panorama/src/images 可保留兼容联接。以下旧联接说明以本条为准。
+
 # Survival 美术唯一工作入口
 
 实际图片源已迁入 `art/ui/sources`，UI 开发、测试及交接源已迁入 `art/ui/development`。根目录 ui 已删除。分类快捷方式与缩略图仍用于快速检索。
 
-`panorama/src/images` 和正式 content 的 `panorama/images` 现在是 Windows 目录联接，共用 `art/ui/sources` 的同一份文件；它们不是两份副本。游戏已编译纹理仍放在引擎规定的 panorama/images。移动工程或换机器后，用 tools/art_assets/setup_source_links.ps1 检查／建立联接；如已有真实目录，脚本会停止，避免覆盖未核对的素材。
+`panorama/src/images` 是指向美术原图的兼容联接；正式 content 的 `panorama/images` 使用同步后的实体编译输入，不使用目录联接。游戏已编译纹理仍放在引擎规定的 panorama/images。移动工程或换机器后，用 tools/art_assets/setup_source_links.ps1 检查／建立联接；如已有真实目录，脚本会停止，避免覆盖未核对的素材。
 
 先打开 `index.html`：可按中文名称、业务编号、原文件名搜索，筛选分类并查看缩略图、像素尺寸，以及原图和 content 对应文件。此页面是美术索引，不是游戏运行预览。
 
@@ -27,12 +31,12 @@
 ## 原图、content 和运行文件
 
 1. `art/ui/sources`：实际图片源，优先从这里精修；`panorama/src/images` 是兼容入口。
-2. `content/dota_addons/Survival/panorama/images`：Source 2 编译输入联接，直接指向同一份 art/ui/sources。
+2. `content/dota_addons/Survival/panorama/images`：Source 2 实体编译输入，由同步工具从 art/ui/sources 更新。
 3. `game/dota_addons/survival/panorama/images`：编译后的游戏纹理，不作为美术绘图源。
 
 `UI素材总表.csv`/`catalog.json` 记录各路径、尺寸、颜色模式、内容哈希、配置编号和 content 一致性。运行文件列只列出确实存在的同名编译纹理，不把所有源图都宣称为当前活动资源；缩小纹理配方及动态路径仍以发布清单和配置为准。
 
-精修时打开快捷方式指向的源图，保持透明边缘、画布尺寸和九宫格边角；保存后 content 已通过联接读取同一文件；仍需重新编译，再做游戏内验收。单改源图不会自动修改已编译的游戏纹理。
+精修时打开快捷方式指向的源图，保持透明边缘、画布尺寸和九宫格边角；保存后运行 sync_content_images.ps1 同步，再重新编译并做游戏内验收。单改源图不会自动修改已编译的游戏纹理。
 
 content 根目录下也有 `美术索引`：UI 分类链接指向 content 内的原图，`非UI资源` 分类链接指向地图、材质、粒子和其他资源。`Content文件总表.csv` 是全部 2,693 个现有 content 文件的只读分类清单；本轮没有移动地图、材质等引擎文件。
 

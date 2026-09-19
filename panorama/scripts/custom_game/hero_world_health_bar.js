@@ -90,10 +90,15 @@
 
     function updatePositions() {
         if (!container) return;
+        // Schedule before touching entities: a unit can disappear between an
+        // IsValidEntity check and a native API call during hero replacement.
+        // Such an exception must never freeze every overhead bar on screen.
+        $.Schedule(0.0, updatePositions);
         var scaleX = Number(container.actualuiscale_x) || 1;
         var scaleY = Number(container.actualuiscale_y) || 1;
         var containerPosition = windowPosition(container);
         Object.keys(states).forEach(function (key) {
+            try {
             var state = states[key];
             var entindex = Number(state.entindex);
             if (!isFinite(entindex) || entindex < 0 || !Entities.IsValidEntity(entindex)) {
@@ -145,11 +150,13 @@
             bar.style.position = localX.toFixed(2) + "px "
                 + localY.toFixed(2) + "px 0px";
             bar.style.visibility = "visible";
+            } catch (error) {
+                hide(key);
+            }
         });
         // Run once per Panorama frame. The previous fixed 30 Hz layout update
         // visibly lagged behind the engine's native overhead bars while units
         // or the camera were moving.
-        $.Schedule(0.0, updatePositions);
     }
 
     var initialValues = CustomNetTables.GetAllTableValues(TABLE) || {};

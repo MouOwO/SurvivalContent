@@ -80,7 +80,16 @@
 			]
 		},
 		{
-			_class = "C_INIT_RandomRotation"
+			_class = "C_INIT_InitFloat"
+			m_nOutputField = 4
+			m_InputValue =
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.0
+				m_flRandomMax = 360.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_bHasRandomSignFlip = true
+			}
 		},
 		{
 			_class = "C_INIT_RandomYawFlip"
@@ -96,9 +105,15 @@
 			m_nAlphaMax = 80
 		},
 		{
-			_class = "C_INIT_RandomLifeTime"
-			m_fLifetimeMin = 0.180000
-			m_fLifetimeMax = 0.240000
+			_class = "C_INIT_InitFloat"
+			m_nOutputField = 1
+			m_InputValue =
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.180000
+				m_flRandomMax = 0.240000
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			}
 		},
 	]
 	m_Emitters =

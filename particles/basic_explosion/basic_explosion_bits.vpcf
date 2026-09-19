@@ -72,9 +72,15 @@
 			]
 		},
 		{
-			_class = "C_INIT_RandomLifeTime"
-			m_fLifetimeMin = 0.800000
-			m_fLifetimeMax = 1.600000
+			_class = "C_INIT_InitFloat"
+			m_nOutputField = 1
+			m_InputValue =
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.800000
+				m_flRandomMax = 1.600000
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			}
 		},
 		{
 			_class = "C_INIT_RandomTrailLength"

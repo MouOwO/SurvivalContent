@@ -20,9 +20,13 @@
 			_class = "C_INIT_CreateWithinSphereTransform"
 		},
 		{
-			_class = "C_INIT_RandomLifeTime"
-			m_fLifetimeMin = 0.28
-			m_fLifetimeMax = 0.28
+			_class = "C_INIT_InitFloat"
+			m_nOutputField = 1
+			m_InputValue =
+			{
+				m_nType = "PF_TYPE_LITERAL"
+				m_flLiteralValue = 0.28
+			}
 		},
 		{
 			_class = "C_INIT_VelocityFromCP"
@@ -47,10 +51,14 @@
 			m_nControlPointNumber = 1
 		},
 		{
-			_class = "C_INIT_RandomRotation"
-			m_flDegreesMin = -90.0
-			m_flDegreesMax = -90.0
-			m_bRandomlyFlipDirection = false
+			_class = "C_INIT_InitFloat"
+			m_nOutputField = 4
+			m_InputValue =
+			{
+				m_nType = "PF_TYPE_LITERAL"
+				m_flLiteralValue = -90.0
+				m_bHasRandomSignFlip = false
+			}
 		},
 		{
 			_class = "C_INIT_RandomModelSequence"

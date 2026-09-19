@@ -61,9 +61,15 @@
 			m_fSpeedMax = 96.000000
 		},
 		{
-			_class = "C_INIT_RandomLifeTime"
-			m_fLifetimeMin = 0.250000
-			m_fLifetimeMax = 0.500000
+			_class = "C_INIT_InitFloat"
+			m_nOutputField = 1
+			m_InputValue =
+			{
+				m_nType = "PF_TYPE_RANDOM_UNIFORM"
+				m_flRandomMin = 0.250000
+				m_flRandomMax = 0.500000
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			}
 		},
 		{
 			_class = "C_INIT_RandomRadius"

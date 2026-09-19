@@ -36,3 +36,9 @@ __pycache__/
 *.REMOTE.*
 tools_asset_info.bin
 tools_thumbnail_cache.sqlite3*
+
+# Machine-specific asset browser history and regenerated art navigation.
+/AssetBrowserSavedSearches.kv3
+/美术索引/**/*.lnk
+/美术索引/index.html
+/美术索引/Content文件总表.csv

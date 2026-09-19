@@ -252,6 +252,31 @@
     }
 
     var readsPending = {};
+    // Keep local reads through panel reloads; cloud acknowledgements retain them across games.
+    var localReads = GameUI.CustomUIConfig().SurvivalLotteryDetailReads;
+    if (!localReads) localReads = GameUI.CustomUIConfig().SurvivalLotteryDetailReads = {};
+    function readKey(pool) {
+        var player = typeof Game !== "undefined" && Game.GetLocalPlayerInfo ? Game.GetLocalPlayerInfo() : null;
+        return String(player && player.player_steamid || "local") + ":" + String(pool.id);
+    }
+    function poolUpdatedAt(pool) {
+        var value = Number(pool.updated_at || (pool.update_notice && pool.update_notice.updated_at) || 0);
+        return isFinite(value) && value > 0 ? value : 0;
+    }
+    function detailsUnread(pool) {
+        var read = localReads[readKey(pool)], updated = poolUpdatedAt(pool);
+        if (read) return updated > 0 ? read.opened_at < updated : read.revision !== String(pool.revision || "");
+        return succeeded(pool.update_unread);
+    }
+    function recordDetailsRead(pool) {
+        if (!pool || !pool.id) return;
+        localReads[readKey(pool)] = {
+            opened_at: Math.max(Date.now() / 1000, poolUpdatedAt(pool)),
+            revision: String(pool.revision || "")
+        };
+        updateDots();
+        markRead(pool, "details");
+    }
     function sortedRewards(value) {
         var rank = {UR:0, SSR:1, SR:2, R:3, N:4};
         return rows(value).slice().sort(function(a,b) {
@@ -273,7 +298,7 @@
         if (!button) return;
         var dot = panel("LotteryUpdateDot");
         if (!dot) { dot = $.CreatePanel("Panel",button,"LotteryUpdateDot"); dot.AddClass("LotteryUpdateDot"); dot.hittest=false; }
-        dot.visible = knownPools.some(function(p){return String(p.id) === selectedPoolId && succeeded(p.update_unread);});
+        dot.visible = knownPools.some(function(p){return String(p.id) === selectedPoolId && detailsUnread(p);});
     }
     function requestSnapshot(visit) {
         GameEvents.SendCustomGameEventToServer("ui_lottery_snapshot_request", {
@@ -629,7 +654,7 @@
                 card.SetPanelEvent("onmouseout",hideTooltip);
             });
         } else if (name === "details") {
-            if (selected && succeeded(selected.update_unread)) markRead(selected,"details");
+            if (selected) recordDetailsRead(selected);
             setText("LotteryInfoRules", selected ? selected.description + " · " + rows(selected.pity).map(function (r) { return r.label; }).join("；") + " · 单抽 " + drawCost(selected,1) + " / 十连 " + drawCost(selected,10) + " 张" + String(selected.ticket_name || "抽奖券") : "正在读取当前奖池…");
             setText("LotteryPoolGuarantee", selected ? rows(selected.pity).map(function (r) { return r.label; }).join("；") || "本奖池无批量保底" : "正在读取…");
             var rewards = sortedRewards(viewState && viewState.items);

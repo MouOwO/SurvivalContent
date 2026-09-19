@@ -1,0 +1,14 @@
+// Addon compatibility fallback; see tools/build_compatible_cosmetic_materials.py.
+"Layer0"
+{
+	"Shader" "hero.vfx"
+	"F_MORPH_SUPPORTED" "1"
+	"F_USE_HERO_EFFECTS_PROXY" "1"
+	"F_USE_STATUS_EFFECTS_PROXY" "1"
+	"TextureColor" "materials/models/items/winter_wyvern/spring2021_frost_thorn_back/compat_color.tga"
+	"TextureNormal" "materials/models/items/winter_wyvern/spring2021_frost_thorn_back/compat_normal.tga"
+	"TextureTranslucency" "materials/models/items/winter_wyvern/spring2021_frost_thorn_back/compat_alpha.tga"
+	"F_ALPHA_TEST" "1"
+	"g_flAlphaTestReference" "0.528"
+	"g_flSelfIllumBlendToFull" "0.2"
+}
