@@ -1,0 +1,13 @@
+"Layer0"
+{
+    "shader" "global_lit_simple.vfx"
+    "F_NORMAL_MAP" "1"
+    "F_SPECULAR" "1"
+    "g_flSpecularIntensity" "1.500000"
+    "g_flBumpStrength" "1.000000"
+    "g_flSpecularBloom" "0.000000"
+    "g_vColorTint" "[1 1 1 0]"
+    "TextureColor" "materials/ascension_arenas/jade_color.png"
+    "TextureNormal" "materials/ascension_arenas/jade_normal.png"
+    "TextureReflectance" "materials/ascension_arenas/jade_reflectance.png"
+}
