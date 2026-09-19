@@ -1,0 +1,13 @@
+"Layer0"
+{
+    "shader" "global_lit_simple.vfx"
+    "F_FULLBRIGHT" "1"
+    "F_TRANSLUCENT" "1"
+    "F_ADDITIVE_BLEND" "0"
+    "F_SPECULAR" "0"
+    "F_NORMAL_MAP" "0"
+    "TextureColor" "materials/survival_buildings/build_white_glow_color.png"
+    "g_vColorTint" "[1 1 1 1]"
+    "g_flOverbrightFactor" "3.0"
+    "g_flOpacityScale" "1.0"
+}

@@ -1,0 +1,10 @@
+"Layer0"
+{
+"shader" "global_lit_simple.vfx"
+"F_NORMAL_MAP" "1"
+"F_SPECULAR" "1"
+"TextureColor" "materials/main_island/stone_light_color.png"
+"TextureNormal" "materials/main_island/stone_light_normal.png"
+"TextureReflectance" "materials/main_island/stone_light_reflectance.png"
+"g_vColorTint" "[1 1 1 0]"
+}

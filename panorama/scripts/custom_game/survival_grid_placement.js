@@ -256,8 +256,10 @@
 
     function approximateAnchor(world) {
         return [
-            Math.floor(Number(world[0]) / gridCellSize + 0.5),
-            Math.floor(Number(world[1]) / gridCellSize + 0.5)
+            Math.floor(Number(world[0]) / gridCellSize + 0.5
+                - (Number(activeProfile.grid_footprint_x || 2) % 2) * 0.5),
+            Math.floor(Number(world[1]) / gridCellSize + 0.5
+                - (Number(activeProfile.grid_footprint_y || 2) % 2) * 0.5)
         ];
     }
 

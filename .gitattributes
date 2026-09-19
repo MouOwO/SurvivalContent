@@ -6,3 +6,7 @@
 *.tga binary -text
 *.tif binary -text
 *.psd binary -text
+# Source 2 editor-generated resources.
+*.vpcf -whitespace
+*.vmdl -whitespace
+maps/survival_world_v2.vmap filter=lfs diff=lfs merge=lfs -text

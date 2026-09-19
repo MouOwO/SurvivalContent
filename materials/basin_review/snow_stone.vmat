@@ -1,0 +1,11 @@
+"Layer0"
+{
+ "shader" "global_lit_simple.vfx"
+ "g_vColorTint" "[.57 .64 .69 0]"
+ "F_NORMAL_MAP" "1"
+ "F_SPECULAR" "1"
+ "TextureColor" "materials/xianxia_kit/xx_stone_color.png"
+ "TextureNormal" "materials/xianxia_kit/xx_stone_normal.png"
+ "TextureReflectance" "materials/xianxia_kit/xx_stone_reflectance.png"
+ "Attributes" { "dota.nav.walkable" "1" }
+}
