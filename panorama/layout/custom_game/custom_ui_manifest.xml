@@ -6,5 +6,9 @@
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/hero_skill_ui.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/rogue_reward_ui.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/archive.xml" />
+    <CustomUIElement type="GameSetup" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
+    <CustomUIElement type="HeroSelection" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
+    <CustomUIElement type="PregameStrategy" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
+    <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
   </Panel>
 </root>

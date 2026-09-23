@@ -658,7 +658,13 @@
             && Number(selectedUnitSnapshot.entindex) === unit;
     }
 
+    function multiSelectionPortraitActive() {
+        var controller = GameUI.CustomUIConfig().SurvivalMultiSelectionPortraits;
+        return !!(controller && controller.IsActive && controller.IsActive());
+    }
+
     function holdTowerPortraitTransition(reason) {
+        if (multiSelectionPortraitActive()) return false;
         var unit = Number(displayUnit());
         if (!unitUsesTowerPortrait(unit)) return false;
         var overlay = towerPortraitOverlayPanel();
@@ -683,6 +689,10 @@
     }
 
     function transitionCosmeticPortrait(reason) {
+        if (multiSelectionPortraitActive()) {
+            hideCosmeticPortrait("multi_selection");
+            return;
+        }
         // Repeated selection events for the same entity must not collapse or
         // restart the custom Scene. The sentinel independently repairs Valve
         // anchor/opacity changes without entering the black transition mask.
@@ -778,6 +788,10 @@
     }
 
     function updateCosmeticPortrait(snapshot) {
+        if (multiSelectionPortraitActive()) {
+            hideCosmeticPortrait("multi_selection");
+            return false;
+        }
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");

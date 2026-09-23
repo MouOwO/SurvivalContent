@@ -30,6 +30,7 @@
         <include src="file://{resources}/scripts/custom_game/shop_tooltip_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/shop_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
+        <include src="file://{resources}/scripts/custom_game/multiselect_portraits.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
 
@@ -84,13 +85,24 @@
         </Panel>
 
         <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden" hittest="true">
-            <Panel id="DifficultySelectionDialog" hittest="true">
-                <Label id="DifficultySelectionTitle" text="选择游戏难度" />
-                <Label id="DifficultySelectionHint" text="难度选定后，本局将无法更改" />
-                <Panel id="DifficultySelectionButtons" hittest="true">
-                    <Label id="DifficultySelectionLoading" text="正在读取难度配置……" />
+            <Panel id="DifficultySelectionDialog" class="UIModal" hittest="true" hittestchildren="true">
+                <Panel id="DifficultySelectionHeader" class="UIModalHeader" hittest="false">
+                    <Label id="DifficultySelectionTitle" class="UIFontTitle" text="难度选择" />
+                    <Label id="DifficultySelectionMode" text="模式已确认  ·  请选择难度" />
                 </Panel>
-                <Label id="DifficultySelectionError" text="" />
+                <Panel id="DifficultySelectionBody">
+                    <Label id="DifficultySelectionHint" text="选中难度后点击确认，本局将无法更改" />
+                    <Panel id="MatchModeOptions" visible="false" hittest="true" />
+                    <Panel id="DifficultySelectionButtons" hittest="true">
+                        <Label id="DifficultySelectionLoading" text="正在读取难度配置……" />
+                    </Panel>
+                    <Label id="DifficultySelectionError" text="" />
+                    <Panel id="MatchSetupRetryHost" visible="false" />
+                </Panel>
+                <Panel id="DifficultySelectionFooter">
+                    <Label id="DifficultySelectionCurrent" text="当前选择：尚未选择" />
+                    <Panel id="DifficultySelectionConfirmHost" />
+                </Panel>
             </Panel>
         </Panel>
 
@@ -434,6 +446,4 @@
       <Panel id="NotificationContainer" />
     </Panel>
 </root>
-
-
 

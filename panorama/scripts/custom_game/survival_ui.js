@@ -8,6 +8,11 @@
     var lastSnapshotAt = 0;
     var difficultyRequestPending = false;
     var difficultyOptionsSignature = "";
+    var difficultyWave = null, difficultyChoice = "", difficultyRows = {};
+    var difficultyModal = null, difficultyConfirm = null, difficultyRequestSerial = 0;
+    var startupState = null, setupSession = "", modeChoice = "", modeAcknowledged = "";
+    var modePending = false, modeError = "", modeRequestSerial = 0, modeSignature = "", modeRows = {};
+    var profileRetry = null, profileRetryPending = false, profileRetrySerial = 0, profileErrorShown = false;
     var initialBuilderSelectionFinished = false;
     var initialBuilderSelectionSerial = 0;
 
@@ -65,14 +70,179 @@
         }).map(function (key) { return options[key]; });
     }
 
-    function selectDifficulty(difficultyId) {
-        if (difficultyRequestPending || !difficultyId) return;
+    function yes(value) { return value === true || value === 1; }
+    function setup() { return startupState && startupState.setup; }
+    function admissionComplete() {
+        if (!startupState) return !setupSession; // Old HUD snapshots have no admission state.
+        return startupState.admission_complete !== undefined ? yes(startupState.admission_complete) : yes(startupState.all_ready);
+    }
+    function confirmedMode() {
+        if (setup()) return yes(setup().mode_selected) ? setup().mode_id : modeAcknowledged;
+        return difficultyWave && (difficultyWave.mode_selected === undefined || yes(difficultyWave.mode_selected))
+            ? difficultyWave.game_mode || "standard" : "";
+    }
+    function needsMode() { return !!setup() && !confirmedMode(); }
+    function modeSelector() {
+        return !!setup() && Game.GetLocalPlayerID() >= 0 && Game.GetLocalPlayerID() === Number(setup().selector_player_id);
+    }
+    function modeOptions() {
+        var seen = {};
+        return optionArray(setup() && setup().mode_options).filter(function (option) {
+            if (!option || (option.mode_id !== "pure" && option.mode_id !== "standard") || seen[option.mode_id]) return false;
+            seen[option.mode_id] = true; return true;
+        });
+    }
+    function acceptStartup(next) {
+        if (!next || typeof next.session_id !== "string" || !next.session_id) return;
+        if (setupSession !== next.session_id) {
+            setupSession = next.session_id; modeChoice = ""; modeAcknowledged = "";
+            modePending = false; modeError = ""; modeRequestSerial++;
+            difficultyChoice = ""; difficultyRequestPending = false; difficultyRequestSerial++;
+            profileRetryPending = false; profileRetrySerial++;
+        }
+        startupState = next;
+        renderDifficultySelection(difficultyWave);
+    }
+    function readStartup() { acceptStartup(CustomNetTables.GetTableValue("survival_loading", "state")); }
+    function confirmMode() {
+        if (!admissionComplete() || !needsMode() || !modeSelector() || modePending || !setupSession
+            || !modeOptions().some(function (option) { return option.mode_id === modeChoice; })) return;
+        modePending = true; modeError = "正在确认模式……";
+        var serial = ++modeRequestSerial, requestedSession = setupSession;
+        GameEvents.SendCustomGameEventToServer("survival_loading_mode_select", {session_id: setupSession, mode_id: modeChoice});
+        renderDifficultySelection(difficultyWave);
+        $.Schedule(12, function () {
+            if (serial !== modeRequestSerial || requestedSession !== setupSession || !modePending || !needsMode()) return;
+            modePending = false; modeError = "确认尚未完成，请检查连接后重试。";
+            renderDifficultySelection(difficultyWave);
+        });
+    }
+    function handleModeResult(payload) {
+        if (!modePending || !needsMode() || payload && payload.session_id && payload.session_id !== setupSession) return;
+        if (payload && yes(payload.success) && payload.mode_id === modeChoice) {
+            // A successful server acknowledgement moves this same dialog to
+            // difficulty immediately; it never asserts profile readiness.
+            modeAcknowledged = payload.mode_id; modePending = false; modeError = ""; modeRequestSerial++;
+            renderDifficultySelection(difficultyWave); readStartup(); requestSnapshot(); return;
+        }
+        modePending = false; modeRequestSerial++;
+        var messages = {selection_not_host: "由房主统一选择本局模式。", mode_selector_required: "由房主统一选择本局模式。",
+            mode_locked: "本局模式已经确认，正在刷新状态。", invalid_mode: "该模式不可用，请重新选择。",
+            mode_not_found: "该模式不可用，请重新选择。", match_session_mismatch: "游戏状态已更新，请等待刷新后重试。",
+            session_mismatch: "游戏状态已更新，请等待刷新后重试。", startup_not_ready: "入场准备尚未完成，请稍候。"};
+        modeError = messages[payload && payload.error] || "模式确认失败，请重试。";
+        readStartup(); renderDifficultySelection(difficultyWave);
+    }
+    function renderModeChoice(ui) {
+        var options = modeOptions(), selector = modeSelector();
+        if (!options.some(function (option) { return option.mode_id === modeChoice; })) modeChoice = "";
+        var signature = JSON.stringify(options);
+        if (signature !== modeSignature) {
+            modeSignature = signature; modeRows = {}; panel("MatchModeOptions").RemoveAndDeleteChildren();
+            options.forEach(function (option) {
+                var button = $.CreatePanel("Button", panel("MatchModeOptions"), ""); button.AddClass("MatchModeOption"); button.hittestchildren = false;
+                var name = $.CreatePanel("Label", button, ""); name.AddClass("MatchModeOptionName"); name.html = false;
+                name.text = option.display_name || (option.mode_id === "pure" ? "纯净模式" : "常规模式");
+                var description = $.CreatePanel("Label", button, ""); description.AddClass("MatchModeOptionDescription"); description.html = false;
+                description.text = option.description || "";
+                ui.State.Bind(button, function () {
+                    if (!needsMode() || !modeSelector() || modePending) return;
+                    modeChoice = option.mode_id; modeError = ""; renderDifficultySelection(difficultyWave);
+                });
+                modeRows[option.mode_id] = button;
+            });
+        }
+        options.forEach(function (option) { ui.State.Set(modeRows[option.mode_id], {selected: option.mode_id === modeChoice, enabled: selector && !modePending}); });
+        var selected = options.filter(function (option) { return option.mode_id === modeChoice; })[0];
+        setText("DifficultySelectionTitle", "模式选择");
+        setText("DifficultySelectionMode", "选择模式  ·  选择难度");
+        setText("DifficultySelectionHint", selector ? "请选择本局模式，确认后立即选择难度" : "等待房主统一选择本局模式");
+        setText("DifficultySelectionCurrent", "当前选择：" + (selected ? selected.display_name || selected.mode_id : "尚未选择"));
+        setText("DifficultySelectionError", modeError);
+        ui.State.Set(difficultyConfirm, {enabled: selector && !!selected && !modePending, busy: modePending});
+    }
+    function difficultyUnlocked(option) { return !!option && (option.unlocked === true || Number(option.unlocked) === 1); }
+    function difficultySelector() {
+        var id = Game.GetLocalPlayerID();
+        var selector = setup() ? setup().selector_player_id : difficultyWave && difficultyWave.selector_player_id;
+        return id >= 0 && selector !== undefined && id === Number(selector);
+    }
+    function difficultyAvailable() {
+        return admissionComplete() && !!confirmedMode() && (!difficultyWave || !isDifficultySelected(difficultyWave))
+            && (!!setup() || difficultyWave && difficultyWave.status === "selecting_difficulty");
+    }
+    function canConfirmDifficulty() {
+        if (startupState && startupState.profiles_ready !== undefined) return yes(startupState.profiles_ready);
+        if (difficultyWave && difficultyWave.can_confirm_difficulty !== undefined) return yes(difficultyWave.can_confirm_difficulty);
+        if (difficultyWave && difficultyWave.profile_ready !== undefined) return yes(difficultyWave.profile_ready);
+        return true;
+    }
+    function renderProfileError(ui) {
+        var code = setup() && setup().error;
+        var messages = {backend_authentication_failed: "服务端认证失败，请检查测试连接后重试。",
+            profile_load_failed: "玩家档案读取失败，请重试。", profile_load_timeout: "玩家档案读取超时，请重试。",
+            player_disconnected: "等待其他玩家重新连接后完成准备。", player_identity_changed: "玩家身份发生变化，请重新加入本局。"};
+        var text = !canConfirmDifficulty() && code ? messages[code] || "玩家档案暂未准备完成，请重试。" : "";
+        var retryable = !!text && code !== "player_disconnected" && code !== "player_identity_changed";
+        panel("MatchSetupRetryHost").visible = retryable;
+        if (text) setText("DifficultySelectionError", text);
+        else if (profileErrorShown && !difficultyRequestPending) setText("DifficultySelectionError", "");
+        profileErrorShown = !!text;
+        if (!profileRetry && retryable) profileRetry = ui.ActionButton(panel("MatchSetupRetryHost"), {
+            id: "MatchSetupRetry", label: "重试读取档案", enabled: true, action: function () {
+                if (profileRetryPending || !setupSession || !setup() || !setup().error || canConfirmDifficulty()) return;
+                profileRetryPending = true; var serial = ++profileRetrySerial;
+                GameEvents.SendCustomGameEventToServer("survival_loading_retry", {session_id: setupSession});
+                renderProfileError(ui);
+                $.Schedule(5, function () {
+                    if (serial !== profileRetrySerial) return;
+                    profileRetryPending = false; renderDifficultySelection(difficultyWave);
+                });
+            }});
+        if (profileRetry) ui.State.Set(profileRetry, {enabled: retryable && !profileRetryPending, busy: profileRetryPending});
+    }
+    function selectedDifficulty() {
+        return difficultyOptions().filter(function (option) {
+            return option && String(option.difficulty_id) === difficultyChoice && difficultyUnlocked(option);
+        })[0];
+    }
+    function difficultyOptions() {
+        var source = setup() && setup().difficulty_options;
+        return optionArray(source || difficultyWave && difficultyWave.difficulty_options);
+    }
+    function refreshDifficultyChoice() {
+        var ui = GameUI.CustomUIConfig().SurvivalUI;
+        var selected = selectedDifficulty();
+        if (!selected) difficultyChoice = "";
+        Object.keys(difficultyRows).forEach(function (id) {
+            var row = difficultyRows[id];
+            ui.State.Set(row.button, {selected: id === difficultyChoice,
+                enabled: difficultySelector() && difficultyUnlocked(row.option) && !difficultyRequestPending});
+            row.availability.text = !difficultyUnlocked(row.option) ? row.option.unlock_hint || "通关前一级难度解锁"
+                : (id === difficultyChoice ? "已选择" : "可选择");
+        });
+        setText("DifficultySelectionCurrent", "当前选择：" + (selected ? selected.difficulty_id : "尚未选择"));
+        if (difficultyConfirm) ui.State.Set(difficultyConfirm, {enabled: difficultyAvailable()
+            && canConfirmDifficulty() && difficultySelector() && !!selected && !difficultyRequestPending, busy: difficultyRequestPending});
+    }
+    function selectDifficulty() {
+        var selected = selectedDifficulty();
+        if (!difficultyAvailable() || !canConfirmDifficulty() || !difficultySelector() || difficultyRequestPending || !selected) return;
         difficultyRequestPending = true;
+        var serial = ++difficultyRequestSerial;
         var overlay = panel("DifficultySelectionOverlay");
         if (overlay) overlay.SetHasClass("DifficultyPending", true);
         setText("DifficultySelectionError", "正在确认难度……");
         GameEvents.SendCustomGameEventToServer("ui_difficulty_select_request", {
-            difficulty_id: difficultyId
+            difficulty_id: String(selected.difficulty_id)
+        });
+        refreshDifficultyChoice();
+        $.Schedule(12, function () {
+            if (serial !== difficultyRequestSerial || !difficultyRequestPending || !difficultyAvailable()) return;
+            difficultyRequestPending = false;
+            overlay.SetHasClass("DifficultyPending", false);
+            setText("DifficultySelectionError", "确认尚未完成，请检查连接后重试。");
+            refreshDifficultyChoice(); requestSnapshot();
         });
     }
 
@@ -80,46 +250,66 @@
         var overlay = panel("DifficultySelectionOverlay");
         var container = panel("DifficultySelectionButtons");
         if (!overlay || !container) return;
-        var selected = isDifficultySelected(wave);
-        var shouldShow = !selected && wave.status === "selecting_difficulty";
+        difficultyWave = wave;
+        var choosingMode = needsMode(), shouldShow = admissionComplete() && (choosingMode || difficultyAvailable());
         overlay.SetHasClass("DifficultySelectionHidden", !shouldShow);
         if (!shouldShow) {
             difficultyRequestPending = false;
             overlay.SetHasClass("DifficultyPending", false);
+            if (difficultyModal && difficultyModal.IsOpen()) difficultyModal.Close();
             return;
         }
-
-        var options = optionArray(wave.difficulty_options);
-        var signature = options.map(function (option) {
-            return [
-                option.difficulty_id,
-                option.display_name,
-                option.subtitle,
-                option.total_waves
-            ].join("|");
-        }).join(";");
-        if (signature === difficultyOptionsSignature) return;
-        difficultyOptionsSignature = signature;
-        container.RemoveAndDeleteChildren();
-        options.forEach(function (option) {
+        var ui = GameUI.CustomUIConfig().SurvivalUI;
+        if (!ui) { setText("DifficultySelectionError", "正在准备选择界面……"); return; }
+        if (!difficultyModal) {
+            difficultyModal = ui.ModalShell.Adopt({id: "survival_difficulty", panel: panel("DifficultySelectionDialog"),
+                header: panel("DifficultySelectionHeader"), titlePanel: panel("DifficultySelectionTitle"),
+                scrim: overlay, root: $.GetContextPanel(), width: 1100, height: 820, closePolicy: "mandatory"});
+            difficultyConfirm = ui.ActionButton(panel("DifficultySelectionConfirmHost"), {
+                id: "DifficultySelectionConfirm", variant: "gold", label: "确认选择", enabled: false,
+                action: function () { if (needsMode()) confirmMode(); else selectDifficulty(); }});
+        }
+        if (!difficultyModal.IsOpen()) difficultyModal.Open();
+        var wasChoosingMode = panel("MatchModeOptions").visible;
+        panel("MatchModeOptions").visible = choosingMode;
+        container.visible = !choosingMode;
+        if (choosingMode) { panel("MatchSetupRetryHost").visible = false; renderModeChoice(ui); return; }
+        setText("DifficultySelectionTitle", "难度选择");
+        setText("DifficultySelectionMode", (confirmedMode() === "pure" ? "纯净模式" : "常规模式") + "  ·  请选择难度");
+        setText("DifficultySelectionHint", !difficultySelector() ? "等待房主统一选择本局难度" :
+            (canConfirmDifficulty() ? "选中难度后点击确认，本局将无法更改" : "可以先选择难度，玩家档案准备完成后即可确认"));
+        if (wasChoosingMode) setText("DifficultySelectionError", "");
+        var options = difficultyOptions().filter(function (option) {
+            return option && /^N(?:[1-9]|10)$/.test(String(option.difficulty_id));
+        }).sort(function (a, b) { return Number(a.difficulty_id.slice(1)) - Number(b.difficulty_id.slice(1)); });
+        var signature = JSON.stringify(options);
+        if (signature !== difficultyOptionsSignature) {
+            difficultyOptionsSignature = signature; difficultyRows = {};
+            container.RemoveAndDeleteChildren();
+            options.forEach(function (option) {
             var button = $.CreatePanel("Button", container, "");
-            button.AddClass("DifficultyOptionButton");
+            button.AddClass("DifficultyOptionButton"); button.hittestchildren = false;
+            button.SetHasClass("DifficultyOptionLocked", !difficultyUnlocked(option));
             var header = $.CreatePanel("Panel", button, "");
             header.AddClass("DifficultyOptionHeader");
-            var name = $.CreatePanel("Label", header, "");
-            name.AddClass("DifficultyOptionName");
-            name.text = option.display_name || option.difficulty_id || "";
-            var subtitle = $.CreatePanel("Label", header, "");
-            subtitle.AddClass("DifficultyOptionSubtitle");
-            subtitle.text = option.subtitle || (String(option.total_waves || 0) + " 波");
-            button.SetPanelEvent("onactivate", function () {
-                selectDifficulty(String(option.difficulty_id || ""));
+            var diamond = $.CreatePanel("Panel", header, ""); diamond.AddClass("DifficultyOptionDiamond");
+            var code = $.CreatePanel("Label", header, ""); code.AddClass("DifficultyOptionCode"); code.html = false;
+            code.text = String(option.difficulty_id);
+            var availability = $.CreatePanel("Label", header, ""); availability.AddClass("DifficultyOptionAvailability"); availability.html = false;
+            difficultyRows[option.difficulty_id] = {button: button, option: option, availability: availability};
+            ui.State.Bind(button, function () {
+                if (!difficultyAvailable() || !difficultySelector() || difficultyRequestPending || !difficultyUnlocked(option)) return;
+                difficultyChoice = String(option.difficulty_id);
+                setText("DifficultySelectionError", ""); refreshDifficultyChoice();
             });
-        });
-        if (options.length === 0) {
-            var loading = $.CreatePanel("Label", container, "");
-            loading.text = "正在读取难度配置……";
+            });
+            if (options.length === 0) {
+                var loading = $.CreatePanel("Label", container, "DifficultySelectionLoading");
+                loading.text = "正在读取难度配置……";
+            }
         }
+        refreshDifficultyChoice();
+        renderProfileError(ui);
     }
 
     function update(snapshot) {
@@ -186,12 +376,25 @@
             return;
         }
         difficultyRequestPending = false;
+        difficultyRequestSerial++;
         var overlay = panel("DifficultySelectionOverlay");
         if (overlay) overlay.SetHasClass("DifficultyPending", false);
-        var errorText = payload && payload.error === "difficulty_locked"
-            ? "本局难度已经锁定"
-            : "难度选择失败，请重试";
+        var messages = {
+            difficulty_locked: "本局难度已经锁定，正在刷新状态。",
+            difficulty_selector_required: "由房主统一选择本局难度。",
+            selection_not_host: "由房主统一选择本局难度。",
+            difficulty_not_unlocked: "尚未解锁该难度，请先通关前一级。",
+            difficulty_progress_locked: "尚未解锁该难度，请先通关前一级。",
+            player_not_ready: "游戏准备尚未完成，请稍候再试。",
+            startup_not_ready: "游戏准备尚未完成，请稍候再试。",
+            profile_not_loaded: "玩家档案尚未就绪，请稍候再试。",
+            mode_not_selected: "请先确认本局游戏模式。",
+            difficulty_not_found: "该难度不可用，请重新选择。"
+        };
+        var errorText = messages[payload && payload.error] || "难度选择失败，请重试";
         setText("DifficultySelectionError", errorText);
+        if (GameUI.CustomUIConfig().SurvivalUI) refreshDifficultyChoice();
+        requestSnapshot();
     }
 
     function readSnapshot() {
@@ -205,6 +408,7 @@
     }
 
     function pollSnapshot() {
+        readStartup();
         readSnapshot();
         if (Game.GetGameTime() - lastSnapshotAt > 2.0) requestSnapshot();
         $.Schedule(0.25, pollSnapshot);
@@ -349,6 +553,9 @@
     CustomNetTables.SubscribeNetTableListener(tableName, function (name, key, value) {
         if (key === tableKey) update(value);
     });
+    CustomNetTables.SubscribeNetTableListener("survival_loading", function (name, key, value) {
+        if (key === "state") acceptStartup(value);
+    });
     CustomNetTables.SubscribeNetTableListener(
         "survival_builder_identity", function (name, key) {
             if (key === "player_" + String(playerId)) {
@@ -361,6 +568,7 @@
 
     GameEvents.Subscribe("ui_notification", showNotification);
     GameEvents.Subscribe("ui_difficulty_select_result", handleDifficultyResult);
+    GameEvents.Subscribe("survival_loading_mode_result", handleModeResult);
     GameEvents.Subscribe("ui_camera_follow_hero", focusHeroWithoutLock);
     GameEvents.Subscribe("survival_select_unit", function (data) {
         var entindex = Number(data && data.entindex);
@@ -382,6 +590,7 @@
     $.Msg("[SurvivalUI] realtime HUD listener ready.");
     scheduleInitialBuilderSelection("hud_ready");
     $.Schedule(0.10, function () {
+        readStartup();
         readSnapshot();
         requestSnapshot();
         pollSnapshot();

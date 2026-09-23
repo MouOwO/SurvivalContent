@@ -260,6 +260,10 @@
         place(background,0,0,g.width,g.height);style(background,{zIndex:"-100"});
         place(portrait,29,49,g.portraitSize,g.portraitSize);style(portrait,{overflow:"clip",transform:"none",transitionProperty:"none",animationName:"none"});
         place(native("PortraitContainer"),0,0,g.portraitSize,g.portraitSize);
+        // Establish the visible container baseline on HUD construction/reflow.
+        // The multi-selection controller applies its temporary mask afterwards;
+        // cosmetic single-unit portraits continue to own only the visual leaf.
+        style(native("PortraitContainer"),{opacity:"1"});
         // Remove the previous corner cover, including panels surviving a HUD reload.
         var legacyCorner=portrait.FindChildTraverse("HandoffPortraitCornerCover");
         if(valid(legacyCorner)&&!legacyCorner._removing){
@@ -351,6 +355,9 @@
     }
     function mirror() {
         [["HandoffName","SurvivalHeroName"],["HandoffLevel","SurvivalHeroLevel"],["Handoff_hp_value","SurvivalHeroHealthText"],["Handoff_mp_value","SurvivalHeroManaText"]].forEach(function(a){var source=ctx.FindChildTraverse(a[1]);if(source)text(a[0],source.text);});
+        var selectionPortraits=cfg.SurvivalMultiSelectionPortraits;
+        var multi=!!(selectionPortraits&&selectionPortraits.IsActive());
+        ["HandoffLevelPlate","HandoffLevelBounds"].forEach(function(id){if(valid(nodes[id]))nodes[id].visible=!multi;});
         [["hp","Health"],["mp","Mana"]].forEach(function(a){var source=ctx.FindChildTraverse("SurvivalHero"+a[1]+"Fill");if(source){var fraction=Math.max(0,Math.min(100,parseFloat(source.style.width)||0));style(nodes["Handoff_"+a[0]+"_fill"],{clip:"rect(0%, "+fraction+"%, 100%, 0%)"});}});
         stats.forEach(function(a){var source=ctx.FindChildTraverse(a[1]);if(source)text("HandoffStat_"+a[0],source.text);});
         Object.keys(topButtons).forEach(function(id){topButtons[id].enabled=!!available(id);if(id==="survival_shop")style(topButtons[id],{saturation:available(id)?"1":"0",opacity:available(id)?"1":"0.4"});});
@@ -366,6 +373,7 @@
         var n=Number(wave.current_wave||0),m=Math.floor(t/60);text("HandoffWave",(n<10?"0":"")+n+" · "+(m<10?"0":"")+m+":"+(t%60<10?"0":"")+t%60);
     }
     function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{layout();refreshInventoryPresentation();
+        if(ready&&cfg.SurvivalMultiSelectionPortraits)cfg.SurvivalMultiSelectionPortraits.Apply(native("PortraitGroup"),geometry.portraitSize);
         // Native images can be created one frame AFTER the slot parent. Reacquire them.
         if(ready){fitNativeSkills(geometry);var inv=native("inventory");if(valid(inv))for(var j=0;j<6;j++){var item=inv.FindChildTraverse("inventory_slot_"+j);if(valid(item)){square(item);style(item,{marginRight:"5px"});}}}
         mirror();mirrorKeys();revealWhenStable();}catch(e){$.Warning("[HANDOFF_HUD] "+e);}}

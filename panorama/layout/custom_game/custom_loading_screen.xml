@@ -1,0 +1,41 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/startup_loading.css" />
+    </styles>
+    <scripts>
+        <include src="file://{resources}/scripts/custom_game/startup_loading.js" />
+    </scripts>
+    <Panel class="SurvivalStartupLoading StartupLoadingHidden" visible="false" hittest="true" hittestchildren="true">
+        <Panel id="StartupLoadingSurface" class="StartupLoadingSurface" visible="false" hittest="false" hittestchildren="false">
+            <Image id="StartupLoadingBackground" class="StartupLoadingBackground" scaling="stretch-to-cover-preserve-aspect" hittest="false" />
+            <!-- Static dependency packages the image; the visible image registers its load event before SetImage. -->
+            <Image class="StartupLoadingHidden" src="file://{images}/custom_game/loading/server_loading_background.png" hittest="false" />
+            <Panel class="StartupLoadingShade" hittest="false" />
+            <Panel class="StartupLoadingHeading" hittest="false">
+                <Label class="StartupLoadingEyebrow" text="SURVIVAL" />
+                <Label class="StartupLoadingTitle" text="苟发育" />
+                <Panel class="StartupLoadingTitleRule" />
+            </Panel>
+            <Panel id="StartupLoadingFooter" class="StartupLoadingFooter">
+                <Panel class="StartupLoadingProgressTrack" hittest="false">
+                    <Panel id="StartupLoadingProgressFill" class="StartupLoadingProgressFill" />
+                    <Panel class="StartupLoadingProgressRim" />
+                    <!-- Text overlays the entire track, independently of the fill width. -->
+                    <Panel class="StartupLoadingStatusLine" hittest="false">
+                        <Label id="StartupLoadingStatus" class="StartupLoadingStatus" text="加载中……" />
+                        <Label id="StartupLoadingPercent" class="StartupLoadingPercent" text="0%" />
+                    </Panel>
+                </Panel>
+                <Panel class="StartupLoadingDetailLine" hittest="false">
+                    <Label id="StartupLoadingDetail" class="StartupLoadingDetail" text="正在准备游戏" />
+                    <Label id="StartupLoadingReadyCount" class="StartupLoadingReadyCount" text="等待玩家连接" />
+                </Panel>
+                <Panel id="StartupLoadingPlayers" class="StartupLoadingPlayers" hittest="false" />
+                <Panel id="StartupLoadingErrorBox" class="StartupLoadingErrorBox StartupLoadingHidden">
+                    <Label id="StartupLoadingError" class="StartupLoadingError" text="准备尚未完成，请重试。" />
+                    <Button id="StartupLoadingRetry" class="StartupLoadingRetry"><Label text="重试" /></Button>
+                </Panel>
+            </Panel>
+        </Panel>
+    </Panel>
+</root>

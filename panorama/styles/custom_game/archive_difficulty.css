@@ -1,9 +1,58 @@
-#DifficultySelectionButtons
+/* Mandatory match setup: shared ivory / teal / champagne UI palette. */
+#DifficultySelectionOverlay { background-color: #061218bd; }
+#DifficultySelectionDialog.UIModal
 {
-    flow-children: right-wrap;
+    width: 1100px; height: 820px; min-height: 0px; padding: 0px;
+    flow-children: down; background-image: none; background-color: #efeadf;
+    border: 1px solid #c7b88f;
 }
-
-.DifficultyOptionButton
+#DifficultySelectionHeader
 {
-    margin-bottom: 12px;
+    width: 100%; height: 86px; padding: 15px 28px;
+    flow-children: down; background-color: #173743; border-bottom: 2px solid #c7b88f;
 }
+#DifficultySelectionTitle { horizontal-align: center; font-size: 29px; letter-spacing: 4px; color: #f4eddb; text-shadow: none; }
+#DifficultySelectionMode { horizontal-align: center; margin-top: 5px; font-size: 16px; color: #baccc8; }
+#DifficultySelectionBody
+{
+    width: 100%; height: fill-parent-flow(1); padding: 16px 28px 10px 28px; flow-children: down;
+    background-color: #efeadf; background-image: url("file://{images}/ui/shared/texture/ivory.png"); background-size: 256px 256px;
+}
+#DifficultySelectionHint { width: 100%; height: 24px; horizontal-align: center; text-align: center; margin: 0px 0px 8px 0px; color: #53645f; font-size: 17px; }
+#DifficultySelectionButtons { width: 100%; height: fill-parent-flow(1); flow-children: down; overflow: squish scroll; }
+#MatchModeOptions { width: 100%; height: fill-parent-flow(1); padding: 110px 0px; flow-children: right; }
+.MatchModeOption { width: fill-parent-flow(1); height: 230px; margin: 0px 8px; padding: 30px 24px; border: 1px solid #b6aa8a; background-color: #f5f0e6; flow-children: down; }
+.MatchModeOption:hover { border-color: #8f7848; brightness: 1.04; }
+.MatchModeOption.UISelected { background-color: #173743; border: 2px solid #bca570; }
+.MatchModeOptionName { width: 100%; text-align: center; font-size: 29px; color: #203e4a; margin-bottom: 20px; }
+.MatchModeOptionDescription { width: 100%; font-size: 19px; color: #52615f; white-space: normal; text-align: center; }
+.MatchModeOption.UISelected .MatchModeOptionName { color: #f4e7c7; }
+.MatchModeOption.UISelected .MatchModeOptionDescription { color: #c5d6d3; }
+.MatchModeOption:disabled { opacity: 0.65; }
+#DifficultySelectionDialog .DifficultyOptionButton
+{
+    width: 100%; height: 46px; min-height: 46px; margin: 0px 0px 6px 0px; padding: 0px 18px;
+    flow-children: none; border: 1px solid #beb294; background-color: #f5f0e5;
+    transition-property: background-color, border; transition-duration: 0.1s;
+    transform: none; brightness: 1; saturation: 1; wash-color: #ffffff;
+}
+#DifficultySelectionDialog .DifficultyOptionButton:hover { background-color: #e8e3d5; border-color: #947c4a; transform: none; brightness: 1; }
+#DifficultySelectionDialog .DifficultyOptionButton:active { transform: none; brightness: 0.95; }
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected { background-color: #173743; border: 2px solid #bda575; }
+#DifficultySelectionDialog .DifficultyOptionButton.DifficultyOptionLocked { background-color: #e5e0d5; border-color: #cbc1aa; }
+#DifficultySelectionDialog .DifficultyOptionHeader { width: 100%; height: 100%; flow-children: none; }
+#DifficultySelectionDialog .DifficultyOptionDiamond { width: 9px; height: 9px; vertical-align: center; margin-left: 8px; transform: rotateZ(45deg); background-color: #ad9c72; }
+#DifficultySelectionDialog .DifficultyOptionCode { align: center center; text-align: center; font-size: 24px; letter-spacing: 2px; color: #274852; }
+#DifficultySelectionDialog .DifficultyOptionAvailability { width: 235px; horizontal-align: right; vertical-align: center; text-align: right; font-size: 15px; color: #68776f; }
+#DifficultySelectionDialog .DifficultyOptionLocked .DifficultyOptionCode { color: #99998d; }
+#DifficultySelectionDialog .DifficultyOptionLocked .DifficultyOptionAvailability { color: #887959; }
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected .DifficultyOptionCode { color: #f7edd4; }
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected .DifficultyOptionDiamond { background-color: #ead09a; }
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected .DifficultyOptionAvailability { color: #c7d8d0; }
+#DifficultySelectionDialog .DifficultyOptionButton:disabled { opacity: 1; }
+#DifficultySelectionLoading { color: #53645f; margin-top: 45px; font-size: 20px; }
+#DifficultySelectionError { width: 100%; min-height: 26px; margin-top: 4px; horizontal-align: left; font-size: 17px; color: #9b4e36; }
+#MatchSetupRetryHost { width: 240px; height: 40px; horizontal-align: center; margin-top: 4px; }
+#DifficultySelectionFooter { width: 100%; height: 112px; padding: 10px 28px; flow-children: down; border-top: 1px solid #c7b88f; background-color: #e5dfd0; }
+#DifficultySelectionCurrent { max-width: 80%; height: 28px; horizontal-align: center; text-align: center; color: #203e4a; font-size: 21px; }
+#DifficultySelectionConfirmHost { width: 240px; height: 56px; margin-top: 7px; horizontal-align: center; }
