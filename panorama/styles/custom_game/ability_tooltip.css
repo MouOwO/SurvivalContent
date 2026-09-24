@@ -1,3 +1,21 @@
+.SurvivalHeroSkillUpgrade {
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#b99b4f), to(#655020));
+    border: 1px solid #ddbd6c;
+    border-radius: 2px;
+    box-shadow: #000000aa 0px 1px 3px 0px;
+    z-index: 4;
+}
+.SurvivalHeroSkillUpgrade:hover { brightness: 1.5; }
+.SurvivalHeroSkillUpgrade.Pending { saturation: 0.3; brightness: 0.7; }
+.SurvivalHeroSkillUpgrade Label {
+    horizontal-align: center;
+    vertical-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff0b7;
+    text-shadow: 0px 1px 2px 2 #000000;
+}
+
 #CustomAbilityTooltip {
     width: 337px;
     min-height: 0px;

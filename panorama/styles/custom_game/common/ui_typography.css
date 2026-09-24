@@ -26,7 +26,7 @@ Button Label, RadioButton Label, ToggleButton Label,
 
 .UIFontTitle, #ArchiveTitle, #ShopTitle, #LotteryBrand, #LotteryTitle,
 #LotteryResultHeading, #LotteryInfoTitle, .RogueRewardTitle, #DailyHeading,
-.HeroSkillWindowTitle, .HeroSkillChoiceTitle, #DifficultySelectionTitle,
+.HeroSkillChoiceTitle, #DifficultySelectionTitle,
 #CombatStatsTitle, #HeroCombatDebugTitle, #GameInfoTitle {
     font-family: UIFontHeading;
     font-weight: bold;

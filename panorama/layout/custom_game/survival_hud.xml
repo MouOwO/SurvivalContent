@@ -25,6 +25,7 @@
         <include src="file://{resources}/scripts/custom_game/survival_ui.js" />
         <include src="file://{resources}/scripts/custom_game/building_move.js" />
         <include src="file://{resources}/scripts/custom_game/tooltip_position.js" />
+        <include src="file://{resources}/scripts/custom_game/hero_skill_upgrade.js" />
         <include src="file://{resources}/scripts/custom_game/ability_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/inventory_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/shop_tooltip_remaining_5d5c1152eb.js" />

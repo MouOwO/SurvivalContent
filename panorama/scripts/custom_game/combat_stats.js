@@ -98,6 +98,7 @@
     var officialHudCache = {};
     var officialUnitNameOverlay = null;
     var unitNameTransitionSerial = 0;
+    var unitNameTransition = null;
     var unitNameRetryDelays = [0.0, 0.016, 0.05, 0.10, 0.20];
     var observedSelectedUnit = -1;
     var activePortraitMode = "";
@@ -1670,18 +1671,27 @@
     }
 
     function beginUnitNameTransition(reason) {
+        var transitionUnit = Number(displayUnit());
+        // Coalesce notifications queued for the same first check. A later
+        // event still gets its full retry window for an asynchronous HUD rebuild.
+        if (unitNameTransition && unitNameTransition.pending
+            && unitNameTransition.unit === transitionUnit) return;
         unitNameTransitionSerial += 1;
         transitionCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
+        unitNameTransition = { unit: transitionUnit, pending: true };
         unitNameRetryDelays.forEach(function (delay, retryIndex) {
             scheduleActive(delay, function () {
                 if (serial !== unitNameTransitionSerial) return;
+                unitNameTransition.pending = false;
+                if (retryIndex === unitNameRetryDelays.length - 1) unitNameTransition = null;
                 var currentUnit = Number(displayUnit());
+                // Keep every late native-HUD check, but only rewrite shortcuts
+                // when their binding or native suppression has actually changed.
+                refreshAbilityHotkeysIfChanged(false);
                 if (currentUnit < 0) {
-                    refreshAbilityHotkeysIfChanged(true);
                     return;
                 }
-                refreshAbilityHotkeysIfChanged(true);
                 if (currentUnit !== observedSelectedUnit) {
                     observedSelectedUnit = currentUnit;
                     refreshHeroPanel();
@@ -1866,14 +1876,19 @@
 
     function officialAbilityHotkeysMatch(mappings) {
         if (!mappings) return false;
-        var standardIndex = 0;
+        var unitName = "";
+        try { unitName = Entities.GetUnitName(selectedUnit()) || ""; } catch (error) {}
         for (var index = 0; index < mappings.length; index++) {
             var mapping = mappings[index];
-            var key = utilityHotkeys[mapping.entry.name]
-                || standardAbilityHotkeys[standardIndex++];
-            if (!key) continue;
+            var key = hotkeyForAbilityEntry(mapping.entry, unitName);
             var label = mapping.panel && mapping.panel.FindChildTraverse
                 ? mapping.panel.FindChildTraverse("SurvivalAbilityHotkey") : null;
+            if (!key) {
+                if ((label && String(label.text || "")
+                    && abilityPanelStyleValue(label, "visibility") !== "collapse")
+                    || nativeAbilityHotkeySuppressed(mapping.panel)) return false;
+                continue;
+            }
             if (!label || String(label.text || "") !== key
                 || abilityPanelStyleValue(label, "visibility") === "collapse"
                 || (label.GetParent && label.GetParent() !== mapping.anchor)
@@ -1951,7 +1966,7 @@
         // after a selection change. Reapply the authoritative runtime state for
         // the currently selected unit instead of relying only on NetTable events.
         refreshOfficialAbilityRuntime(mappings);
-        var hotkeysRefreshed = refreshOfficialUtilityHotkeys(seen);
+        var hotkeysRefreshed = refreshOfficialUtilityHotkeys(seen, mappings);
         if (hotkeysRefreshed) {
             refreshAbilities.signature = visibleAbilitySignature(unit, seen)
                 + "#" + officialAbilityMappingSignature(mappings);
@@ -2058,7 +2073,7 @@
         }
         return key;
     }
-    function refreshOfficialUtilityHotkeys(visibleAbilities) {
+    function refreshOfficialUtilityHotkeys(visibleAbilities, mappings) {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return false;
         var abilities = officialPanel("abilities")
@@ -2073,7 +2088,9 @@
         if (visibleAbilities.length === 0) return true;
         var unitName = "";
         try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
-        var mappings = resolveOfficialAbilityMappings(visibleAbilities);
+        // A null mapping means the caller already checked an incomplete native
+        // HUD. Do not rescan it until the next scheduled recovery attempt.
+        if (mappings === undefined) mappings = resolveOfficialAbilityMappings(visibleAbilities);
         if (!mappings || mappings.length !== visibleAbilities.length) return false;
 
         var complete = true;
@@ -2155,8 +2172,11 @@
             ? "invalid" : visibleAbilitySignature(unit, visibleAbilities)
                 + "#" + officialAbilityMappingSignature(mappings);
         if (!force && refreshAbilities.signature === signature
-            && officialAbilityHotkeysMatch(mappings)) return;
-        if (refreshOfficialUtilityHotkeys(visibleAbilities)) {
+            && officialAbilityHotkeysMatch(mappings)) {
+            refreshOfficialAbilityRuntime(mappings);
+            return;
+        }
+        if (refreshOfficialUtilityHotkeys(visibleAbilities, mappings)) {
             refreshAbilities.signature = signature;
         } else {
             // Retry while Valve is rebuilding AbilityN descendants.
@@ -2801,7 +2821,7 @@
     });
     GameUI.CustomUIConfig().HandoffCombat = {
         Entries: visibleAbilityEntries,
-        RefreshSelection: function(){refreshHeroPanel();refreshAbilityHotkeysIfChanged(true);}
+        RefreshSelection: function(){refreshHeroPanel();refreshAbilityHotkeysIfChanged(false);}
     };
     bindHeroPortrait();
     bindHotkeys();
