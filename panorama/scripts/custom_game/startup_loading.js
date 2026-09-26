@@ -16,6 +16,29 @@
     var lastReportedVisible = false;
     var artworkRetired = false;
 
+    // A joining Tools client may recompile an older content layout over its
+    // game layout. Do not let a missing optional button abort the entire
+    // loading script before nettable subscription and the image handshake.
+    function ensureButton(id, parent, css, textId, text) {
+        var button = $("#" + id), created = false;
+        if (!button || !button.IsValid()) {
+            button = $.CreatePanel("Button", parent || surface, id);
+            button.AddClass(css);
+            created = true;
+            if ($.Msg) $.Msg("[STARTUP_LAYOUT_COMPAT] created=" + id);
+        }
+        var label = textId ? $("#" + textId) : null;
+        if ((textId && (!label || !label.IsValid())) || (!textId && created)) {
+            label = $.CreatePanel("Label", button, textId || "");
+            label.text = text;
+        }
+        return {button: button, label: label};
+    }
+    var partyControl = ensureButton("StartupPartyStart", $("#StartupLoadingFooter"),
+        "StartupPartyStart", "StartupPartyStartText", "等待房主开始");
+    var retryControl = ensureButton("StartupLoadingRetry", $("#StartupLoadingErrorBox"),
+        "StartupLoadingRetry", null, "重试");
+
     function setVisible(visible) {
         [root, layoutRoot, surface].forEach(function (panel) {
             if (!panel || !panel.IsValid()) return;
@@ -29,11 +52,9 @@
         });
         if (visible !== lastReportedVisible) {
             lastReportedVisible = visible;
-            var engineState = null;
-            try { if (typeof Game !== "undefined" && typeof Game.GetState === "function") engineState = Game.GetState(); } catch (ignored) {}
             if ($.Msg) $.Msg("[STARTUP_VISIBILITY] " + JSON.stringify({visible: visible,
                 admission_complete: state && state.admission_complete !== undefined ? yes(state.admission_complete) : null,
-                engine_state: engineState, has_state: !!state, session_id: session,
+                has_state: !!state, session_id: session,
                 surface_visible: surface.visible, surface_opacity: surface.style.opacity, artwork_retired: artworkRetired,
                 phase: state && state.phase || "", context: String(root.id || "(anonymous)"),
                 parent: root.GetParent && root.GetParent() ? String(root.GetParent().id || "(anonymous)") : ""}));
@@ -88,25 +109,13 @@
     function number(value) { return typeof value === "number" && isFinite(value); }
     function percent(value) { return number(value) ? Math.max(0, Math.min(100, value)) : 0; }
     function validSession(value) { return typeof value === "string" && value.length > 0 && value.length <= 200; }
-    function enteredGamePhase() {
-        // The server leaves CustomGameSetup only after admission. This engine
-        // signal controls presentation during cross-context nettable gaps; it
-        // never supplies authentication, progress, or a client-ready message.
-        try {
-            if (typeof Game === "undefined" || typeof DOTA_GameState === "undefined") return false;
-            var threshold = DOTA_GameState.DOTA_GAMERULES_STATE_HERO_SELECTION;
-            if (typeof Game.GetState === "function" && number(threshold)) return Game.GetState() >= threshold;
-            if (typeof Game.GameStateIsAfter === "function" && number(DOTA_GameState.DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP))
-                return Game.GameStateIsAfter(DOTA_GameState.DOTA_GAMERULES_STATE_CUSTOM_GAME_SETUP);
-        } catch (ignored) {}
-        return false;
-    }
     function playerId() {
         try {
             var id = typeof Game !== "undefined" && Game.GetLocalPlayerID ? Game.GetLocalPlayerID() : -1;
             if (number(id) && id >= 0) return id;
-            var info = typeof Game !== "undefined" && Game.GetLocalPlayerInfo ? Game.GetLocalPlayerInfo() : null;
-            return info && number(info.player_id) && info.player_id >= 0 ? info.player_id : -1;
+            // No full player-info fallback: its native implementation can
+            // dereference the missing client PlayerResource during LAN signon.
+            return -1;
         } catch (ignored) { return -1; }
     }
     function players() {
@@ -120,14 +129,12 @@
         result.sort(function (a, b) { return a.player_id - b.player_id; });
         return result;
     }
-    function nickname(id) {
-        try {
-            var info = typeof Game !== "undefined" && Game.GetPlayerInfo ? Game.GetPlayerInfo(id) : null;
-            if (info && typeof info.player_name === "string" && info.player_name.length) {
-                return info.player_name.replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 64);
-            }
-        } catch (ignored) {}
-        return "玩家 " + (id + 1);
+    function nickname(player) {
+        // The server already owns the roster. Loading panels must not query
+        // native client player records before their replication has completed.
+        if (typeof player.player_name === "string" && player.player_name.length)
+            return player.player_name.replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 64);
+        return "玩家 " + (player.player_id + 1);
     }
     function assetsReady() {
         var assets = state && state.assets;
@@ -148,6 +155,8 @@
         return resourceProgress * 0.6 + authentication + client;
     }
     function statusText(row) {
+        if (row.status === "party_waiting") return "已加入";
+        if (row.status === "connecting_backend") return "连接测试后端中";
         if (row.status === "disconnected") return "等待重新连接";
         if (row.status === "auth_error") return "需要重试";
         return playerReady(row) ? "已就绪" : "加载中……";
@@ -166,7 +175,7 @@
         }
         roster.forEach(function (p) {
             var row = rows[p.player_id];
-            row.name.text = nickname(p.player_id) + (p.player_id === local ? "（你）" : "");
+            row.name.text = nickname(p) + (p.player_id === local ? "（你）" : "");
             row.status.text = statusText(p);
             row.line.SetHasClass("StartupLoadingPlayerReady", playerReady(p));
             row.line.SetHasClass("StartupLoadingPlayerLocal", p.player_id === local);
@@ -252,11 +261,12 @@
         // A valid new session immediately overrides either presentation memo.
         var memo = completionMemo(localId);
         var awaitingSnapshot = !state && !validSession(session) && !!memo && (memo.admission_complete || clock < 1);
-        var explicitDenial = late || !!(state && state.admission_complete !== undefined && !yes(state.admission_complete)
-            && (state.error || local && local.status === "auth_error"));
-        var phasePresentation = enteredGamePhase() && !explicitDenial;
-        var hidden = released() || awaitingSnapshot || phasePresentation;
-        if (hidden && (released() || phasePresentation)) retireArtwork();
+        // Native GameRules state queries are unsafe while a remote map creates
+        // or tears down its client rules object. A JS catch cannot intercept a
+        // native access violation. The authoritative snapshot and completion
+        // memo already cover phase gaps without querying engine rule state.
+        var hidden = released() || awaitingSnapshot;
+        if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
         setVisible(!hidden);
         root.SetHasClass("StartupLoadingImageReady", imageReady && !hidden && !artworkRetired);
@@ -265,25 +275,33 @@
         background.style.opacity = !hidden && !artworkRetired && imageReady && !imageError ? "1" : "0";
         nativeSetupVisibility(!released());
         // Neither timers nor image events assert authenticated / server-ready.
-        var progress = personalProgress(local);
+        var party = !!state && state.phase === "party_waiting";
+        var host = party && localId >= 0 && state.selector_player_id === localId;
+        partyControl.button.SetHasClass("StartupLoadingHidden", !party);
+        partyControl.button.enabled = host && !imageError && roster.length > 0;
+        partyControl.label.text = host ? "队友到齐，开始加载" : "等待房主开始";
+        var progress = party ? 0 : personalProgress(local);
         $("#StartupLoadingProgressFill").style.width = progress.toFixed(1) + "%";
         $("#StartupLoadingPercent").text = Math.floor(progress) + "%";
-        $("#StartupLoadingStatus").text = late ? "本局已开始" :
+        $("#StartupLoadingStatus").text = party ? "组队等待 · 等待玩家加入" : late ? "本局已开始" :
             (reload ? "需要重新载入地图" : (mineReady && !failed ? "等待其他玩家" : "加载中……"));
         var detail = "正在准备游戏";
-        if (late) detail = "本局不支持中途加入";
+        if (party) detail = host ? "请先让队友连接本局，到齐后点击开始；单人也可直接开始。" : "已加入房间，等待房主开始加载。";
+        else if (late) detail = "本局不支持中途加入";
         else if (reload) detail = "部分初始资源加载失败";
         else if (imageError) detail = "加载画面尚未准备完成";
+        else if (state && state.phase === "connecting_backend") detail = "正在连接测试后端，请保持主机认证助手运行。";
         else if (failed) detail = "游戏准备暂时遇到问题";
         else if (mineReady) detail = "你的准备已完成，请稍候";
         else if (state && !assetsReady()) detail = "正在准备场景资源";
         else if (local && !yes(local.authenticated)) detail = "正在验证玩家身份";
         else if (state) detail = "正在完成准备";
         $("#StartupLoadingDetail").text = detail;
-        $("#StartupLoadingReadyCount").text = roster.length ? count + " / " + roster.length + " 已就绪" : "等待玩家连接";
+        $("#StartupLoadingReadyCount").text = party ? roster.length + " 人已加入" : roster.length ? count + " / " + roster.length + " 已就绪" : "等待玩家连接";
         var showError = late || reload || imageError || failed || stateTimeout;
         $("#StartupLoadingErrorBox").SetHasClass("StartupLoadingHidden", !showError);
         var errorMessages = {
+            backend_connection_pending: "测试后端连接尚未就绪。主机请运行 setup_hammer_backend.cmd，检查助手状态后等待重试。",
             backend_authentication_failed: "服务端认证失败，请检查测试连接后重试。",
             profile_load_failed: "玩家档案读取失败，请检查连接后重试。",
             profile_load_timeout: "玩家档案读取超时，请重试。"
@@ -293,8 +311,8 @@
             (reload ? "部分初始资源加载失败，请重新启动测试地图。" :
                 (imageError ? "画面加载失败，请重试。" :
                     (stateTimeout && !failed ? "仍在等待游戏准备，请检查连接后重试。" : preparationError)));
-        $("#StartupLoadingRetry").SetHasClass("StartupLoadingHidden", late || reload);
-        $("#StartupLoadingRetry").enabled = !late && !reload && clock - lastRetry >= 2;
+        retryControl.button.SetHasClass("StartupLoadingHidden", late || reload);
+        retryControl.button.enabled = !late && !reload && clock - lastRetry >= 2;
         renderPlayers(roster, localId);
         maybeHandshake(local);
     }
@@ -361,7 +379,11 @@
         // GameSetup and HUD contexts. No countdown or synthetic percent exists.
         readState(); render(); $.Schedule(0.5, poll);
     }
-    $("#StartupLoadingRetry").SetPanelEvent("onactivate", retry);
+    retryControl.button.SetPanelEvent("onactivate", retry);
+    partyControl.button.SetPanelEvent("onactivate", function () {
+        if (state && state.phase === "party_waiting" && state.selector_player_id === playerId())
+            send("survival_party_start");
+    });
     $.RegisterEventHandler("ImageLoaded", background, imageLoaded);
     $.RegisterEventHandler("ImageFailedLoad", background, imageFailed);
     try {

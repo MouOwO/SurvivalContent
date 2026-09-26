@@ -30,6 +30,7 @@
                     <Label id="StartupLoadingDetail" class="StartupLoadingDetail" text="正在准备游戏" />
                     <Label id="StartupLoadingReadyCount" class="StartupLoadingReadyCount" text="等待玩家连接" />
                 </Panel>
+                <Button id="StartupPartyStart" class="StartupPartyStart StartupLoadingHidden"><Label id="StartupPartyStartText" text="队友到齐，开始加载" /></Button>
                 <Panel id="StartupLoadingPlayers" class="StartupLoadingPlayers" hittest="false" />
                 <Panel id="StartupLoadingErrorBox" class="StartupLoadingErrorBox StartupLoadingHidden">
                     <Label id="StartupLoadingError" class="StartupLoadingError" text="准备尚未完成，请重试。" />
