@@ -1136,6 +1136,11 @@
     }
 
     function activate(entry) {
+        if (/^ability_research_/.test(entry.name)) {
+            var production = config.SurvivalProductionHUD;
+            if (production && production.QueueResearch) production.QueueResearch(entry.ability, selectedUnit());
+            return;
+        }
         if (entry.name === "ability_building_blink"
             || entry.name === "ability_destroy_arrow_tower") {
             var tools = config.SurvivalArrowTowerTools;
@@ -1200,10 +1205,10 @@
             if (slot.entry) activate(slot.entry);
         });
         panel.SetPanelEvent("oncontextmenu", function () {
-            if (!slot.entry || !advancedResearchSelected()
-                || !/^ability_research_/.test(slot.entry.name)) return;
-            var shop = config.SurvivalShop;
-            if (shop && shop.OpenResearch) shop.OpenResearch(selectedUnit());
+            if (!slot.entry || !/^ability_research_/.test(slot.entry.name)) return false;
+            var production = config.SurvivalProductionHUD;
+            return !!(production && production.ToggleResearch
+                && production.ToggleResearch(slot.entry.ability, selectedUnit()));
         });
         slots[displayIndex] = slot;
         return slot;

@@ -2,7 +2,7 @@
     "use strict";
 
     var LOG_PREFIX = "[SurvivalUIBootstrap]";
-    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260804_camera_target_position_v3");
+    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260926_minimap_shortcuts_f1_v2");
     // Phase 0 rollback boundary. Keep inventory native until the separate item
     // interaction controller (use/drag/swap/drop/sell) is complete.
     GameUI.CustomUIConfig().SurvivalHudTakeover = {
@@ -84,6 +84,7 @@
         var identity = CustomNetTables.GetTableValue(
             "survival_builder_identity", "player_" + String(playerId)
         ) || {};
+        if (identity.entindex === undefined || identity.entindex === null) return -1;
         var builder = Number(identity.entindex);
         return validUnit(builder) ? builder : -1;
     }
@@ -173,39 +174,139 @@
         }
     };
 
-    function selectPlayableUnitOnSpace(key, down) {
-        if (String(key).toUpperCase() !== "SPACE" || down === false) return false;
-        var playerId = Game.GetLocalPlayerID();
-        var hero = Number(Players.GetPlayerHeroEntityIndex(playerId));
-        var heroName = validUnit(hero) ? (Entities.GetUnitName(hero) || "") : "";
-        var builder = builderEntity(playerId);
-        var target = heroName === "npc_dota_hero_undying" ? builder : hero;
-        var targetOrigin = validUnit(target) ? Entities.GetAbsOrigin(target) : null;
-        var cameraResult = "target_unavailable";
-        if (validUnit(target)) {
-            GameUI.SelectUnit(target, false);
-            cameraResult = focusCameraOnUnit(target, targetOrigin);
+    // Native chat lives above the custom HUD. Follow only the focused branch;
+    // never assume that a visible chat history means the user is typing.
+    function textInputActive() {
+        var root = $.GetContextPanel();
+        while (root && root.GetParent && root.GetParent()) root = root.GetParent();
+        function focusedText(panel) {
+            if (!panel || (panel.IsValid && !panel.IsValid())) return false;
+            var selfFocus = panel.BHasKeyFocus && panel.BHasKeyFocus();
+            var childFocus = panel.BHasDescendantKeyFocus && panel.BHasDescendantKeyFocus();
+            if (!selfFocus && !childFocus) return false;
+            if (/textentry/i.test(String(panel.paneltype || ""))
+                || panel.id === "ChatInput" || panel.id === "HudChat") return true;
+            var count = panel.GetChildCount ? panel.GetChildCount() : 0;
+            for (var index = 0; index < count; index++) {
+                if (focusedText(panel.GetChild(index))) return true;
+            }
+            return false;
         }
+        return focusedText(root);
+    }
+
+    function shortcutsBlocked() {
+        if (Number(inputConfig.SurvivalInputLifecycleGeneration) !== inputGeneration) return true;
+        if (textInputActive()) return true;
+        var layers = inputConfig.SurvivalUILayers;
+        if (layers && layers.Top && layers.Top()) return true;
+        // Legacy destroy confirmation has no UILayers lease yet.
+        var context = $.GetContextPanel();
+        var destroy = context && context.FindChildTraverse("ArrowTowerDestroyConfirm");
+        if (destroy && (!destroy.IsValid || destroy.IsValid()) && destroy.visible !== false
+            && destroy.BHasClass && !destroy.BHasClass("Hidden")) return true;
+        var loading = CustomNetTables.GetTableValue("survival_loading", "state");
+        if (loading) {
+            var ready = loading.admission_complete;
+            if (ready === undefined) ready = loading.all_ready;
+            if (ready !== undefined && ready !== true && Number(ready) !== 1) return true;
+        }
+        var playerId = Game.GetLocalPlayerID();
+        if (playerId < 0) return true;
+        var snapshot = CustomNetTables.GetTableValue("survival_ui_state", "player_" + String(playerId));
+        var defeated = snapshot && snapshot.wave && snapshot.wave.player_defeated;
+        return defeated === true || Number(defeated) === 1;
+    }
+
+    inputConfig.SurvivalShortcutGuard = {
+        IsBlocked: shortcutsBlocked,
+        IsTextInputActive: textInputActive
+    };
+
+    function canSelectBuilder() {
+        if (shortcutsBlocked()) return false;
+        var playerId = Game.GetLocalPlayerID(), builder = builderEntity(playerId);
+        // The server's per-player identity is authoritative. Creature owner
+        // getters can disagree after native hero replacement.
+        return validUnit(builder) && Entities.IsAlive(builder);
+    }
+
+    var lastBuilderSelectTime = -1000;
+    function selectBuilder(source) {
+        if (!canSelectBuilder()) return false;
+        var now = Date.now();
+        // A native callback and its fallback command can fire for the same key.
+        if (now - lastBuilderSelectTime < 100) return false;
+        lastBuilderSelectTime = now;
+        var builder = builderEntity(Game.GetLocalPlayerID());
+        inputConfig.SurvivalSelectionResolver.SetDisplayIdentityMode("selection");
+        GameUI.SelectUnit(builder, false);
+        var cameraResult = focusCameraOnUnit(builder, Entities.GetAbsOrigin(builder));
         sendClientDiagnostic("space_select", {
-            hero: hero,
-            hero_name: heroName,
-            builder: builder,
-            target: target,
-            result: validUnit(target) ? "select_playable" : "block_placeholder",
-            move_camera_api: typeof GameUI.MoveCameraToEntity,
-            camera_api: typeof GameUI.SetCameraTargetPosition,
-            camera_result: cameraResult
+            builder: builder, target: builder, source: String(source || "unknown"),
+            result: "select_builder", camera_result: cameraResult
         });
-        $.Msg("[SURVIVAL_SELECTION] SPACE_SELECT player=", String(playerId),
-            " hero=", String(hero), " hero_name=", heroName,
-            " builder=", String(builder), " target=", String(target),
-            " camera=", cameraResult,
-            " action=", validUnit(target) ? "select_playable" : "block_placeholder");
+        return true;
+    }
+
+    inputConfig.SurvivalBuilderSelection = {
+        Select: selectBuilder,
+        CanSelect: canSelectBuilder
+    };
+
+    function selectBuilderOnSpace(key, down) {
+        if (String(key).toUpperCase() !== "SPACE" || down === false) return false;
+        if (textInputActive()) return false;
+        selectBuilder("key_dispatch");
+        // Consume unavailable/modal actions too, so native Space cannot select
+        // the hidden placeholder hero or act behind an open window.
         return true;
     }
 
     registerHandler(keyHandlers, keyHandlerOrder,
-        "placeholder_space_guard", selectPlayableUnitOnSpace, 120);
+        "placeholder_space_guard", selectBuilderOnSpace, 120);
+    function canSelectHero() {
+        if (shortcutsBlocked()) return false;
+        var playerId = Game.GetLocalPlayerID();
+        var hero = Number(Players.GetPlayerHeroEntityIndex(playerId));
+        if (!validUnit(hero) || Entities.GetPlayerOwnerID(hero) !== playerId) return false;
+        // A failed engine replacement can retain a real hero name while hidden
+        // as the placeholder. Accept only the server's successful summon identity.
+        var identity = CustomNetTables.GetTableValue("survival_hero_skills", "player_" + String(playerId));
+        if (!identity || Number(identity.hero_ready) !== 1
+            || Number(identity.unit_entindex) !== hero || !identity.hero_id) return false;
+        var name = Entities.GetUnitName(hero);
+        return name !== "npc_dota_hero_undying" && name !== "npc_survival_builder_proxy";
+    }
+
+    var lastHeroSelectTime = -1000;
+    function selectHero(source) {
+        if (!canSelectHero()) return false;
+        var now = Date.now();
+        if (now - lastHeroSelectTime < 100) return false;
+        lastHeroSelectTime = now;
+        var hero = Number(Players.GetPlayerHeroEntityIndex(Game.GetLocalPlayerID()));
+        inputConfig.SurvivalSelectionResolver.SetDisplayIdentityMode("selection");
+        GameUI.SelectUnit(hero, false);
+        // A dead hero may still be selected to inspect it; do not move the
+        // camera to its hidden/death location while awaiting respawn.
+        var cameraResult = Entities.IsAlive(hero)
+            ? focusCameraOnUnit(hero, Entities.GetAbsOrigin(hero)) : "hero_dead";
+        sendClientDiagnostic("f1_select", {
+            target: hero, source: String(source || "unknown"),
+            result: "select_hero", camera_result: cameraResult
+        });
+        return true;
+    }
+
+    inputConfig.SurvivalHeroSelection = { Select: selectHero, CanSelect: canSelectHero };
+    registerHandler(keyHandlers, keyHandlerOrder, "hero_f1_selection", function (key, down) {
+        if (String(key).toUpperCase() !== "F1" || down === false) return false;
+        if (textInputActive()) return false;
+        selectHero("key_dispatch");
+        return true;
+    }, 120);
+
     // CustomUIConfig survives Workshop Tools Run, callbacks do not. Always
     // replace both dispatchers for this fresh HUD context.
     if (GameUI.SetKeyPressedCallback) {
@@ -217,7 +318,7 @@
         return dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
     });
     if (Game.AddCommand && Game.CreateCustomKeyBind) {
-        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "S", "D", "F", "G", "H", "F2", "TAB", "SPACE"];
+        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "S", "D", "F", "G", "H", "F1", "F2", "TAB", "SPACE"];
         var fallbackCommands = {};
         fallbackKeys.forEach(function (key) {
             var command = "survival_input_" + inputContextId + "_"

@@ -515,3 +515,12 @@ RadioButton:selected .ArchiveFilter_selected {visibility:visible;}
 #ShopTooltipType,#ShopTooltipCondition,#ShopTooltipOwned,#ShopTooltipFields,#ShopTooltipStatus { visibility:collapse; }
 
 #ShopEntryTooltip #ShopTooltipDescription { visibility:visible; width:100%; height:fit-children; white-space:normal; font-size:16px; line-height:22px; color:#dce3e6; margin-top:10px; }
+
+/* Knowledge books retain native art, with independent purchase toggles beneath. */
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct.AutoBookCard,
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct.AutoBookCard:hover { height:120px; }
+.AutoBookButton { position:0px 92px 0px; width:90px; height:28px; background-color:#152e39; border:1px solid #776840; z-index:12; }
+.AutoBookButton Label { horizontal-align:center; vertical-align:center; color:#ddc58a; font-size:18px; }
+.AutoBookButton:hover { brightness:1.3; }
+.AutoBookButton.AutoBookEnabled { background-color:#285d4b; border-color:#c3ae6b; }
+.AutoBookButton.AutoBookEnabled Label { color:#f5e6b8; }

@@ -36,7 +36,7 @@
         return frame;
     }
     // End shared uniform slot outline.
-    function art(parent,id,key) {if(key==="top_gold"||key==="top_wood"||key==="top_population"){
+    function art(parent,id,key) {/* survival unified icon art */var unified={"top_gold":"gold","top_wood":"wood","top_population":"population","top_wave":"skill_morale","top_return_64":"nav_back","top_treasure_64":"nav_treasure","top_benefit_64":"gold_stack","top_shop_64":"talent_wealthy_start","stat_attack":"broadsword","stat_armor":"platemail","stat_attack_speed":"gloves","stat_strength":"reaver","stat_agility":"swift_blink","stat_intelligence":"arcane_blink","top_settings_64":"nav_settings","top_social_64":"nav_social"};if(unified[key]){var refined=create("Image",parent,id,false);refined.SetImage("file://{images}/spellicons/survival/native/"+unified[key]+".png");return refined;}if(key==="top_gold"||key==="top_wood"||key==="top_population"){
  var resource=create("Panel",parent,id,false);
  function part(x,y,w,h,values){var q=create("Panel",resource,"",false);place(q,x,y,w,h);style(q,values);return q;}
  if(key==="top_gold"){
@@ -82,8 +82,10 @@
         if(id==="social"){nodes.HandoffSocial.visible=!nodes.HandoffSocial.visible;return;}
         var a=actions[id];if(available(id)){nodes.HandoffSocial.visible=false;cfg[a[0]][a[1]]();}else notice("该入口尚未接入");
     }
+    // Screen-width decoration, separate from the centered/scaled navigation canvas.
+    var topBackdrop=create("Panel",host,"HandoffTopBackdrop",false);
+    style(topBackdrop,{backgroundImage:'url("file://{images}/'+assets.top_top_soft_black_backdrop.file+'")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",maxWidth:"10000px",maxHeight:"10000px",minWidth:"0px",overflow:"noclip"});
     var top=create("Panel",host,"HandoffTop",true);top.hittest=false;top.AddClass("HandoffCanvas");
-    place(art(top,"HandoffTopBackdrop","top_top_soft_black_backdrop"),0,0,1672,941);
     var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"]];
     nav.forEach(function(a,i){var b=create("Button",top,"HandoffNav_"+a[0],true);b.AddClass("HandoffNav");place(b,10+i*58,3,64,64);place(art(b,"","top_"+a[0]+"_64"),0,0,64,64);tooltip(b,a[1]);b.SetPanelEvent("onactivate",function(){activate(a[0]);});topButtons[a[0]]=b;});
     function topMetric(id,key,x,textX,textWidth){
@@ -250,8 +252,8 @@
     function layout() {
         var w=(ctx.actuallayoutwidth||1672)/(ctx.actualuiscale_x||1),h=(ctx.actuallayoutheight||941)/(ctx.actualuiscale_y||1);
         var topScale=Math.min(w/1672,h/941);place(top,(w-1672*topScale)/2,0,1672,941);style(top,{transform:"scale3d("+topScale+","+topScale+",1)"});
-        var backdropBleed=(w-1672*topScale)/(2*topScale)+24;
-        place(nodes.HandoffTopBackdrop,-backdropBleed,0,1672+backdropBleed,941);
+        // Both screen edges lie inside the texture; no Image aspect-fit gutters.
+        place(topBackdrop,-24,0,w+48,941*topScale);
         var count=abilityCount(),g=cfg.HandoffGeometry(w,h,count);
         var signature=[w,h,count,selectedUnit(),currentEntries.map(function(e){return e.ability;}).join(",")].join(":");
         // Reapply when the engine rebuilds its native HUD, even without a selection event.

@@ -410,6 +410,9 @@
     function pollSnapshot() {
         readStartup();
         readSnapshot();
+        if (!initialBuilderSelectionFinished) {
+            recoverInitialBuilderSelection("hud_poll", 20, initialBuilderSelectionSerial);
+        }
         if (Game.GetGameTime() - lastSnapshotAt > 2.0) requestSnapshot();
         $.Schedule(0.25, pollSnapshot);
     }
@@ -516,6 +519,7 @@
         var portrait = -1;
         try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
         if (selected.indexOf(builder) >= 0 || portrait === builder) {
+            focusHeroWithoutLock({ entindex: builder });
             initialBuilderSelectionFinished = true;
             $.Msg("[SURVIVAL_SELECTION] INITIAL_BUILDER_READY reason=", reason,
                 " action=already_selected builder=", String(builder));
@@ -537,6 +541,7 @@
         }
 
         GameUI.SelectUnit(builder, false);
+        focusHeroWithoutLock({ entindex: builder });
         initialBuilderSelectionFinished = true;
         $.Msg("[SURVIVAL_SELECTION] INITIAL_BUILDER_READY reason=", reason,
             " action=select_builder builder=", String(builder),
@@ -571,6 +576,10 @@
     GameEvents.Subscribe("survival_loading_mode_result", handleModeResult);
     GameEvents.Subscribe("ui_camera_follow_hero", focusHeroWithoutLock);
     GameEvents.Subscribe("survival_select_unit", function (data) {
+        if (data && data.reason === "builder_ready") {
+            scheduleInitialBuilderSelection("builder_ready");
+            return;
+        }
         var entindex = Number(data && data.entindex);
         if (entindex >= 0 && Entities.IsValidEntity(entindex)) {
             GameUI.SelectUnit(entindex, false);

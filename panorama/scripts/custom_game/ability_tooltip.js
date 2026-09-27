@@ -117,12 +117,21 @@
     }
 
     function readTooltipTable(name, key) {
-        if (!bindingSnapshot) return CustomNetTables.GetTableValue(name, key);
-        var cacheKey = name + ":" + String(key);
-        if (!Object.prototype.hasOwnProperty.call(bindingSnapshot.tables, cacheKey)) {
-            bindingSnapshot.tables[cacheKey] = CustomNetTables.GetTableValue(name, key);
+        var value;
+        if (!bindingSnapshot) value = CustomNetTables.GetTableValue(name, key);
+        else {
+            var cacheKey = name + ":" + String(key);
+            if (!Object.prototype.hasOwnProperty.call(bindingSnapshot.tables, cacheKey)) {
+                bindingSnapshot.tables[cacheKey] = CustomNetTables.GetTableValue(name, key);
+            }
+            value = bindingSnapshot.tables[cacheKey];
         }
-        return bindingSnapshot.tables[cacheKey];
+        var production = GameUI.CustomUIConfig().SurvivalProductionHUD;
+        if (name === "survival_ability_runtime" && production && production.GetResearchRuntime) {
+            return production.GetResearchRuntime(Number(key),
+                bindingSnapshot ? bindingSnapshot.unit : selectedUnit(), value);
+        }
+        return value;
     }
 
     function cancelChecks(checks) {
@@ -415,12 +424,12 @@
 
     function propertyIcon(label) {
         var icons = {
-            "生命": { type: "item", name: "item_vitality_booster" },
-            "护甲": { type: "item", name: "item_chainmail" },
-            "攻击提升": { type: "image", name: GameUI.CustomUIConfig().SurvivalUI.Asset("project.custom_game.survival_native.icon_damage") },
-            "攻击速度": { type: "image", name: GameUI.CustomUIConfig().SurvivalUI.Asset("project.custom_game.survival_native.icon_attack_speed") },
+            "生命": { type: "image", name: "file://{images}/spellicons/survival/native/vitality_booster.png" },
+            "护甲": { type: "image", name: "file://{images}/spellicons/survival/native/platemail.png" },
+            "攻击提升": { type: "image", name: "file://{images}/spellicons/survival/native/broadsword.png" },
+            "攻击速度": { type: "image", name: "file://{images}/spellicons/survival/native/gloves.png" },
             "人口上限": { type: "ability", name: "ability_train_population" },
-            "每秒金币": { type: "item", name: "item_hand_of_midas" },
+            "每秒金币": { type: "image", name: "file://{images}/spellicons/survival/native/hand_of_midas.png" },
             "效率": { type: "ability", name: "ability_upgrade_gold_mine_efficiency" },
             "暴击率": { type: "ability", name: "ability_upgrade_gold_mine_crit" },
             "暴击倍率": { type: "ability", name: "ability_upgrade_gold_mine_crit" }
@@ -466,6 +475,11 @@
 
     function researchStatus(runtime) {
         var code = String(runtime.research_status_code || "available");
+        if (code === "syncing") return String(runtime.status_text || "正在同步科技信息");
+        if (code === "researching_other") return String(runtime.status_text || "此研究所已有科技正在研究");
+        if (["queue_available", "queue_waiting_prerequisite", "research_queue_full", "queued_max_level"].indexOf(code) >= 0) {
+            return String(runtime.status_text || "研究队列等待中");
+        }
         var tokens = {
             "available": "Survival_ResearchStatus_Available",
             "max_level": "Survival_ResearchStatus_MaxLevel",
@@ -475,7 +489,7 @@
         };
         var fallback = code === "max_level" ? "Maximum level reached"
             : (code === "researching_current" ? "Research in progress"
-            : (code === "researching_other" ? "Another team research is in progress"
+            : (code === "researching_other" ? "This building is researching another technology"
             : (code === "prerequisite_not_met" ? "Prerequisite not met"
             : "Available to research")));
         return localize(tokens[code] || "", fallback);
@@ -590,6 +604,12 @@
             asArray(runtime.fields).forEach(function (field) {
                 if (field) addField(fields, field.label, field.value);
             });
+            if (runtime.cost_timing_text) addField(fields, "扣费时机", runtime.cost_timing_text);
+            if (runtime.auto_research_available === 1) {
+                addField(fields, "自动研究", runtime.auto_research_enabled === 1
+                    ? "已开启 · 右键关闭" : "右键此科技开启");
+                addField(fields, "自动间隔", "完成后等待 1 秒再研究下一级");
+            }
         } else if (upgradeMode || heroMode) {
             asArray(runtime.fields).forEach(function (field) {
                 if (field) addField(fields, field.label, field.value);
@@ -605,8 +625,7 @@
                     ? localize("Survival_UpgradeTooltip_ResourceLow", "RESOURCE LOW")
                     : localize("Survival_UpgradeTooltip_Available", "AVAILABLE"))));
         var statusText = researchMode && lacksResources
-            ? localize("Survival_UpgradeTooltip_ResourceLowDetail",
-                "Not enough resources · server validates the final cost")
+            ? "资源不足，可加入队列等待；开始研究时扣费"
             : researchMode ? researchStatus(runtime)
             : upgradeMode && runtime.upgrade_in_progress === 1
             ? localize("Survival_UpgradeTooltip_InProgressDetail", "Upgrade completes in 1 second")
@@ -1761,15 +1780,10 @@
             if (!isFinite(boundAbility) || boundAbility < 0
                 || !/^ability_research_/.test(abilityName)
                 || !isSelectedResearchLab()) return false;
-            var unit = Number(selectedUnit());
-            var unitName = "";
-            try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
-            if (unitName !== "building_advanced_research_lab") return false;
             hideNativeTooltip(proxy);
-            var shop = GameUI.CustomUIConfig().SurvivalShop;
-            if (!shop || !shop.OpenResearch) return false;
-            shop.OpenResearch(unit);
-            return true;
+            var production = GameUI.CustomUIConfig().SurvivalProductionHUD;
+            return !!(production && production.ToggleResearch
+                && production.ToggleResearch(boundAbility, Number(selectedUnit())));
         });
         externalProxies[displayIndex] = proxy;
         return proxy;

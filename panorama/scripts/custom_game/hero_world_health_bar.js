@@ -97,6 +97,8 @@
         var scaleX = Number(container.actualuiscale_x) || 1;
         var scaleY = Number(container.actualuiscale_y) || 1;
         var containerPosition = windowPosition(container);
+        var visibility=typeof GameUI!=="undefined"?GameUI.CustomUIConfig().SurvivalWorldOverlayVisibility:null;
+        var occlusion=visibility?visibility.Capture():null;
         Object.keys(states).forEach(function (key) {
             try {
             var state = states[key];
@@ -146,6 +148,9 @@
             if (!isFinite(localX) || !isFinite(localY)) {
                 hide(key);
                 return;
+            }
+            if(visibility&&visibility.Overlaps(occlusion,screenX-31*scaleX,screenY-26*scaleY,62*scaleX,11*scaleY)){
+                hide(key);return;
             }
             bar.style.position = localX.toFixed(2) + "px "
                 + localY.toFixed(2) + "px 0px";

@@ -36,24 +36,26 @@
         return frame;
     }
     // End shared uniform slot outline.
-    function art(parent,id,key) {if(key==="top_shop_64"){var icon=create("Panel",parent,id,false),handle=create("Panel",icon,"",false),bag=create("Panel",icon,"",false);place(handle,26,18,12,15);style(handle,{border:"2px solid #e3ded0",borderRadius:"6px 6px 0px 0px"});place(bag,21,29,22,20);style(bag,{border:"2px solid #e3ded0",borderRadius:"2px"});return icon;}if(key==="slot_frame")return uniformSlotFrame(parent,id);if(key==="top_gold"||key==="top_wood"||key==="top_population"){
+    function art(parent,id,key) {/* survival unified icon art */var unified={"top_gold":"gold","top_wood":"wood","top_population":"population","top_wave":"skill_morale","stat_attack":"broadsword","stat_armor":"platemail","stat_attack_speed":"gloves","stat_strength":"reaver","stat_agility":"swift_blink","stat_intelligence":"arcane_blink"};if(unified[key]){var refined=create("Image",parent,id,false);refined.SetImage("file://{images}/spellicons/survival/native/"+unified[key]+".png");return refined;}if(key==="top_shop_64"){var icon=create("Panel",parent,id,false),handle=create("Panel",icon,"",false),bag=create("Panel",icon,"",false);place(handle,26,18,12,15);style(handle,{border:"2px solid #e3ded0",borderRadius:"6px 6px 0px 0px"});place(bag,21,29,22,20);style(bag,{border:"2px solid #e3ded0",borderRadius:"2px"});return icon;}if(key==="slot_frame")return uniformSlotFrame(parent,id);if(key==="top_population"){var food=create("Image",parent,id,false);food.SetImage("file://{images}/custom_game/survival/food_population.png");return food;}if(key==="top_gold"||key==="top_wood"){
  var resource=create("Panel",parent,id,false);
  function part(x,y,w,h,values){var q=create("Panel",resource,"",false);place(q,x,y,w,h);style(q,values);return q;}
  if(key==="top_gold"){
- part(4,4,24,24,{border:"2px solid #ffdf76",borderRadius:"50%",backgroundColor:"#dba332"});
- part(8,8,16,16,{border:"1px solid #fff0ad",borderRadius:"50%"});
- part(14,11,4,10,{backgroundColor:"#ffe69a",borderRadius:"1px"});
- }else if(key==="top_population"){
- part(18,14,10,13,{backgroundColor:"#638e9c",border:"1px solid #bcd6cc",borderRadius:"5px 5px 2px 2px"});
- part(19,6,8,8,{backgroundColor:"#d9bb7b",border:"1px solid #f0d99e",borderRadius:"50%"});
- part(5,15,16,14,{backgroundColor:"#88b4aa",border:"1px solid #d3e0bd",borderRadius:"7px 7px 3px 3px"});
- part(8,3,10,11,{backgroundColor:"#e6c686",border:"1px solid #fff0bc",borderRadius:"50%"});
+ // Three warm gold coins, with a bright face and a darker milled edge.
+ [[3,8],[17,5],[10,18]].forEach(function(coin){
+     part(coin[0],coin[1]+3,14,9,{border:"1px solid #9d570b",borderRadius:"50%",backgroundColor:"gradient(linear, 0% 0%, 0% 100%, from(#ffc72d), to(#b86c0c))"});
+     part(coin[0],coin[1],14,8,{border:"1px solid #ffeaa0",borderRadius:"50%",backgroundColor:"gradient(linear, 0% 0%, 0% 100%, from(#fff6ad), color-stop(0.45, #ffdb32), to(#efa70d))"});
+     part(coin[0]+4,coin[1]+2,6,2,{borderRadius:"50%",backgroundColor:"#fff5b8"});
+ });
  }else{
- part(11,6,13,23,{border:"1px solid #d2c38d",borderRadius:"3px",backgroundColor:"#68894e",transform:"rotateZ(35deg)"});
- part(15,8,2,14,{backgroundColor:"#b3c57c",transform:"rotateZ(35deg)"});
- part(5,19,13,10,{border:"1px solid #f1d59d",borderRadius:"50%",backgroundColor:"#c39b61",transform:"rotateZ(35deg)"});
- part(9,22,5,4,{border:"1px solid #765c37",borderRadius:"50%",transform:"rotateZ(35deg)"});
- part(3,5,8,12,{border:"1px solid #bbdc8c",borderRadius:"80% 5% 80% 5%",backgroundColor:"#78b753",transform:"rotateZ(-25deg)"});
+ // A cut timber log: warm bark, a pale cut end and visible grain.
+ var log=part(3,10,28,14,{transform:"rotateZ(32deg)",overflow:"noclip"});
+ function grain(x,y,w,h,values){var p=create("Panel",log,"",false);place(p,x,y,w,h);style(p,values);}
+ grain(0,0,24,14,{border:"1px solid #603518",borderRadius:"3px",backgroundColor:"gradient(linear, 0% 0%, 0% 100%, from(#e2b676), color-stop(0.3, #ba7c39), color-stop(0.65, #875025), to(#4f2b16))"});
+ grain(3,3,17,2,{backgroundColor:"#ebbe79"});
+ grain(2,9,18,2,{backgroundColor:"#673616"});
+ grain(19,0,10,14,{border:"1px solid #f5d49b",borderRadius:"50%",backgroundColor:"gradient(linear, 0% 0%, 100% 100%, from(#ffe2a3), to(#c48943))"});
+ grain(22,3,5,8,{border:"1px solid #9c672f",borderRadius:"50%"});
+ grain(24,5,1,4,{backgroundColor:"#9c672f"});
  }
  return resource;}var p=create("Image",parent,id,false);p.SetImage(key==="top_shop_64"?"s2r://panorama/images/custom_game/shop_preview_v1/shop_png.vtex":"file://{images}/"+assets[key].file);return p;}
     function label(parent,id,cls) {var p=create("Label",parent,id,false);p.text="";if(cls)p.AddClass(cls);style(p,{fontFamily:'"Source Han Sans SC"',color:"#f3ebd4",fontSize:"23px",whiteSpace:"nowrap",textOverflow:"shrink",zIndex:"5"});return p;}
@@ -92,16 +94,24 @@
         var row=create("Panel",top,id+"Row",false);place(row,x,14,textX-x+textWidth,44);
         var icon=art(row,id+"Icon",key);place(icon,0,0,32,32);style(icon,{verticalAlign:"center"});
         var value=label(row,id);place(value,textX-x,0,textWidth,44);
-        style(value,{height:"fit-children",verticalAlign:"center"});
-        if(id.indexOf("HandoffResource_")===0)style(value,{transform:"translateY(4px)"});
+        // Clear place()'s fixed minimum: otherwise the glyph is top-aligned
+        // inside a 44px Label while its icon is centered in the row.
+        style(value,{height:"fit-children",minHeight:"0px",verticalAlign:"center",transform:"none"});
     }
     topButtons.survival_shop.enabled=available("survival_shop");
     style(topButtons.survival_shop,{saturation:available("survival_shop")?"1":"0",opacity:available("survival_shop")?"1":"0.4"});
-    topMetric("HandoffWave","top_wave",734,779,218);
+    topMetric("HandoffWave","top_wave",646,688,480);
     [["gold",1194,1234],["wood",1339,1379],["population",1484,1524]].forEach(function(a){topMetric("HandoffResource_"+a[0],"top_"+a[0],a[1],a[2],105);});
     var social=create("Panel",top,"HandoffSocial",true);social.AddClass("HandoffSocial");place(social,474,94,192,130);social.visible=false;
     [["SharedUnitsButton","共享单位"],["SharedContentButton","共享内容"],["CombatLogButton","战斗日志"]].forEach(function(a){var b=create("Button",social,"",true);label(b,"","").text=a[1];b.SetPanelEvent("onactivate",function(){if(!blocked()){if(!forward(a[0]))notice(a[1]+"当前不可用");social.visible=false;}});});
     place(label(top,"HandoffNotice"),18,112,480,55);nodes.HandoffNotice.visible=false;
+    var enemyCounter=create("Panel",host,"HandoffEnemyCounter",false);enemyCounter.AddClass("HandoffEnemyCounter");enemyCounter.visible=false;
+    var enemyTitle=label(enemyCounter,"HandoffEnemyTitle");enemyTitle.text="进攻怪物";
+    var enemyValue=label(enemyCounter,"HandoffEnemyValue");
+    var enemyCountdown=label(enemyCounter,"HandoffEnemyCountdown");enemyCountdown.visible=false;
+    [enemyTitle,enemyValue,enemyCountdown].forEach(function(p){style(p,{fontSize:"16px",height:"fit-children",verticalAlign:"center"});});
+    style(enemyValue,{width:"fill-parent-flow(1)",textAlign:"center",color:"#f8dc94"});
+    style(enemyCountdown,{width:"24px",textAlign:"right",fontSize:"20px",fontWeight:"bold",color:"#ff7769"});
     var bottom=create("Panel",host,"HandoffBottom",false);bottom.AddClass("HandoffCanvas");bottom.visible=false;
     var background=create("Panel",bottom,"HandoffBackground",false);
     cfg.HandoffDecoration=background;
@@ -323,6 +333,18 @@
         // Both screen edges lie inside the texture; no Image aspect-fit gutters.
         place(topBackdrop,-24,0,w+48,941*topScale);
         var count=abilityCount(),g=cfg.HandoffGeometry(w,h,count);
+        var counterY=h-g.minimapSize-56;
+        place(enemyCounter,6,counterY,g.minimapSize+12,34);style(enemyCounter,{padding:"0px 8px"});
+        // The native bottom bar lives outside this custom HUD hierarchy. Publish
+        // its physical bounds once per layout, so world labels cannot paint over it.
+        var origin=ctx.GetPositionWithinWindow?ctx.GetPositionWithinWindow():{x:0,y:0};
+        var sx=Number(ctx.actualuiscale_x)||1,sy=Number(ctx.actualuiscale_y)||1;
+        function rect(x,y,width,height){return {x:(Number(origin.x)||0)+x*sx,y:(Number(origin.y)||0)+y*sy,width:width*sx,height:height*sy};}
+        cfg.HandoffWorldOcclusion=ready?[
+            rect(g.x,g.y,g.width*g.scale,g.height*g.scale),
+            rect(0,counterY,g.minimapSize+24,h-counterY),
+            rect((w-1672*topScale)/2,0,1672*topScale,90*topScale)
+        ]:[];
         var signature=[w,h,count,selectedUnit(),currentEntries.map(function(e){return e.ability;}).join(",")].join(":");
         // Reapply when the engine rebuilds its native HUD, even without a selection event.
         if(signature!==lastSignature||!ready||!valid(natives.abilities)||!valid(natives.inventory)) {
@@ -366,16 +388,45 @@
         style(root.FindChildTraverse("HeroCombatDebugPanel"),{visibility:cfg.HandoffShowCombatDebug?"visible":"collapse"});
     }
     function compact(v) {var f=cfg.SurvivalNumberFormatter;return f&&f.Compact?f.Compact(v):f&&f.Format?f.Format(v):String(v===undefined?"—":v);}
+    function waveCaption(wave) {
+        var current=Math.max(0,Math.floor(Number(wave.current_wave)||0));
+        var total=Math.max(0,Math.floor(Number(wave.total_waves)||0));
+        var t=Math.max(0,Math.ceil(Number(wave.timer)||0));
+        var next=total>0&&current>=total?null:current+1;
+        if(wave.status==="archive_challenges"||wave.status==="archive_challenges_pending")return "挑战阶段";
+        var waiting=wave.status==="selecting_difficulty"||wave.status==="selecting_mode"||wave.status==="idle";
+        var time=next===null||waiting?"—":(Math.floor(t/60)<10?"0":"")+Math.floor(t/60)+":"+(t%60<10?"0":"")+(t%60);
+        return "下一波次 "+(next===null?"—":String(next))+"  倒计时 "+time;
+    }
     function data(next) {
         if(!next)return;var incoming=Number(next.sequence);if(isFinite(incoming)&&incoming<=sequence)return;if(isFinite(incoming))sequence=incoming;
         var r=next.resources||{},wave=next.wave||{},t=Math.max(0,Math.ceil(Number(wave.timer)||0));
         text("HandoffResource_gold",compact(r.gold));text("HandoffResource_wood",compact(r.wood));text("HandoffResource_population",compact(r.population)+" / "+compact(r.max_population));
-        var n=Number(wave.current_wave||0),m=Math.floor(t/60);text("HandoffWave",(n<10?"0":"")+n+" · "+(m<10?"0":"")+m+":"+(t%60<10?"0":"")+t%60);
+        text("HandoffWave",waveCaption(wave));
+        var alive=Math.max(0,Math.floor(Number(wave.alive)||0)),limit=Number(wave.alive_limit);
+        enemyCounter.visible=isFinite(limit)&&limit>0;
+        var defeated=wave.player_defeated===true||Number(wave.player_defeated)===1;
+        text("HandoffEnemyTitle",defeated?"本局失败":"进攻怪物");
+        text("HandoffEnemyValue",defeated?"可继续观战":String(alive)+" / "+(limit>0?Math.floor(limit):"—"));
+        var overflow=!defeated&&(wave.overflow_active===true||Number(wave.overflow_active)===1);
+        enemyCounter.SetHasClass("EnemyOverflow",overflow);
+        enemyCounter.SetHasClass("EnemyDefeated",defeated);
+        enemyCountdown.visible=overflow;
+        // Only a number is rendered. The server owns both time and defeat.
+        text("HandoffEnemyCountdown",overflow?String(Math.max(0,Math.ceil(Number(wave.overflow_remaining)||0))):"");
     }
     function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{layout();refreshInventoryPresentation();
         if(ready&&cfg.SurvivalMultiSelectionPortraits)cfg.SurvivalMultiSelectionPortraits.Apply(native("PortraitGroup"),geometry.portraitSize);
         // Native images can be created one frame AFTER the slot parent. Reacquire them.
         if(ready){fitNativeSkills(geometry);var inv=native("inventory");if(valid(inv))for(var j=0;j<6;j++){var item=inv.FindChildTraverse("inventory_slot_"+j);if(valid(item)){square(item);style(item,{marginRight:"5px"});}}}
+        if(cfg.SurvivalProductionHUD){
+            var productionHeight=cfg.SurvivalProductionHUD.Refresh(geometry,selectedUnit(),ready,currentEntries);
+            if(ready&&geometry){
+                place(native("buffs"),geometry.heroWidth+10,-42-productionHeight,geometry.centerWidth-20,40);
+                place(native("debuffs"),geometry.heroWidth+10,-86-productionHeight,geometry.centerWidth-20,40);
+            }
+        }
+        if(cfg.SurvivalMinimapShortcuts)cfg.SurvivalMinimapShortcuts.Refresh(geometry,ready);
         mirror();mirrorKeys();revealWhenStable();}catch(e){$.Warning("[HANDOFF_HUD] "+e);}}
     function tick(){if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;refreshNow();$.Schedule(.1,tick);}
     cfg.HandoffBoundValuesChanged=function(){if(cfg.HandoffGeneration===generation&&valid(ctx))mirror();};

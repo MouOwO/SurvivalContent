@@ -13,12 +13,15 @@
         <include src="file://{resources}/styles/custom_game/archive_difficulty.css" />
         <include src="file://{resources}/styles/custom_game/lottery_celestial.css" />
         <include src="file://{resources}/styles/custom_game/handoff_v1.css" />
+        <include src="file://{resources}/styles/custom_game/production_progress.css" />
+        <include src="file://{resources}/styles/custom_game/minimap_shortcuts.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
     <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/></styles>
     <scripts><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" />
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
+        <include src="file://{resources}/scripts/custom_game/world_overlay_visibility.js" />
         <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
         <include src="file://{resources}/scripts/custom_game/attack_range_input.js" />
         <include src="file://{resources}/scripts/custom_game/gold_mine_income_numbers.js" />
@@ -39,6 +42,8 @@
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
         <include src="file://{resources}/scripts/custom_game/handoff_assets.js" />
         <include src="file://{resources}/scripts/custom_game/geometry_remaining_5d5c1152eb.js" />
+        <include src="file://{resources}/scripts/custom_game/production_progress.js" />
+        <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
         <include src="file://{resources}/scripts/custom_game/topnav_remaining_5d5c1152eb.js" />
     <include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/></scripts>
     <Panel class="SurvivalHUDRoot Theme_Native HandoffBoot" hittest="false">
@@ -219,7 +224,7 @@
         <Panel id="CustomShopWindow" class="ShopDrawer Closed" hittest="true">
             <Panel id="ShopHeader">
                 <Panel id="ShopModeToggles">
-                    <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.Open()"><Label text="商店" /></Button>
+                    <Button id="ShopModeShop" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.SelectShop()"><Label text="商店" /></Button>
                     <Button id="ShopModeChallenge" class="ShopModeToggle" onactivate="GameUI.CustomUIConfig().SurvivalShop.OpenChallenge()"><Label text="挑战" /></Button>
                 </Panel>
                 <Panel id="ShopTitleBlock">
@@ -255,11 +260,11 @@
             <Label id="ShopTooltipDescription" text="" />
             <Panel id="ShopTooltipCostRow">
                 <Panel class="TooltipCostBlock">
-                    <Image class="TooltipCostIcon" src="file://{images}/custom_game/handoff_v1/top/wood.png" />
+                    <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/wood.png" />
                     <Label id="ShopTooltipWoodCost" class="TooltipCostValue" text="0" />
                 </Panel>
                 <Panel class="TooltipCostBlock">
-                    <Image class="TooltipCostIcon" src="file://{images}/custom_game/handoff_v1/top/gold.png" />
+                    <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/gold.png" />
                     <Label id="ShopTooltipGoldCost" class="TooltipCostValue" text="0" />
                 </Panel>
             </Panel>
@@ -283,11 +288,11 @@
             <Label id="CustomAbilityDescription" text="" />
             <Panel id="CustomAbilityCostRow">
                 <Panel id="CustomAbilityGoldCostBlock" class="AbilityCostBlock">
-                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/st2_darkfantasy/icons/st2_icon_gold.png" hittest="false" />
+                    <Image class="AbilityCostIcon" src="file://{images}/spellicons/survival/native/gold.png" hittest="false" />
                     <Label id="CustomAbilityGoldCost" class="AbilityCostValue" text="0" />
                 </Panel>
                 <Panel id="CustomAbilityWoodCostBlock" class="AbilityCostBlock">
-                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/st2_darkfantasy/icons/st2_icon_wood.png" hittest="false" />
+                    <Image class="AbilityCostIcon" src="file://{images}/spellicons/survival/native/wood.png" hittest="false" />
                     <Label id="CustomAbilityWoodCost" class="AbilityCostValue" text="0" />
                 </Panel>
             </Panel>
@@ -406,12 +411,12 @@
             <Panel id="SurvivalHeroInfo" class="SurvivalHeroInfo">
                 <Panel id="SurvivalHeroNameRow"><Label id="SurvivalHeroName" text="农民" /><Label id="SurvivalHeroLevelText" class="Hidden" text="" /></Panel>
                 <Panel id="SurvivalHeroStats" class="SurvivalHeroStats">
-                    <Panel class="SurvivalStatRow Attack"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_damage.png" hittest="false" /><Label id="CombatAttackValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow Armor"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_armor.png" hittest="false" /><Label id="CombatArmorValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow AttackSpeed"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_attack_speed.png" hittest="false" /><Label id="CombatAttackSpeedValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow Strength"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_strength.png" hittest="false" /><Label id="CombatStrengthValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow Agility"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_agility.png" hittest="false" /><Label id="CombatAgilityValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
-                    <Panel class="SurvivalStatRow Intellect"><Image class="SurvivalStatIconImage" src="file://{images}/custom_game/survival_native/icon_intelligence.png" hittest="false" /><Label id="CombatIntellectValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Attack"><Image class="SurvivalStatIconImage" src="file://{images}/spellicons/survival/native/broadsword.png" hittest="false" /><Label id="CombatAttackValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Armor"><Image class="SurvivalStatIconImage" src="file://{images}/spellicons/survival/native/platemail.png" hittest="false" /><Label id="CombatArmorValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow AttackSpeed"><Image class="SurvivalStatIconImage" src="file://{images}/spellicons/survival/native/gloves.png" hittest="false" /><Label id="CombatAttackSpeedValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Strength"><Image class="SurvivalStatIconImage" src="file://{images}/spellicons/survival/native/reaver.png" hittest="false" /><Label id="CombatStrengthValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Agility"><Image class="SurvivalStatIconImage" src="file://{images}/spellicons/survival/native/swift_blink.png" hittest="false" /><Label id="CombatAgilityValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
+                    <Panel class="SurvivalStatRow Intellect"><Image class="SurvivalStatIconImage" src="file://{images}/spellicons/survival/native/arcane_blink.png" hittest="false" /><Label id="CombatIntellectValue" class="SurvivalStatValue MonoNumbersFont" text="0" /></Panel>
                 </Panel>
             </Panel>
             <Panel id="SurvivalHeroAbilityBar" class="SurvivalHeroAbilityBar" hittest="true">
@@ -444,6 +449,11 @@
         </Panel>
         <Label id="SurvivalPointTargetHint" class="SurvivalPointTargetHint" text="" />
       <Panel id="HandoffHUD" hittest="false" hittestchildren="true" />
+      <Panel id="SurvivalProductionPanel" visible="false" hittest="true" hittestchildren="true" />
+      <Panel id="SurvivalResearchAutoMarkers" hittest="false" hittestchildren="false" />
+      <!-- Static dependency for the dynamically created return-home Image. -->
+      <Image id="SurvivalReturnCastleAsset" src="file://{images}/custom_game/minimap_shortcuts/return_castle.svg" visible="false" hittest="false" hittestchildren="false" />
+      <Panel id="SurvivalMinimapShortcuts" visible="false" hittest="false" hittestchildren="true" />
       <Panel id="NotificationContainer" />
     </Panel>
 </root>

@@ -5,7 +5,7 @@
     position: 0px 0px 0px;
     flow-children: none;
     overflow: noclip;
-    z-index: 20;
+    z-index: -2;
 }
 
 .SurvivalHeroWorldHealthBar

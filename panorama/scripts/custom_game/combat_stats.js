@@ -634,12 +634,13 @@
         }
         // Juggernaut deliberately uses an Arcana body in the world and a
         // separate undecorated Valve unit in the selected-unit portrait.
-        if (unitName === "npc_dota_hero_juggernaut") return true;
+        if (unitName === "npc_dota_hero_juggernaut" || unitName === "npc_dota_hero_doom_bringer") return true;
         // Boss bodies use the generic wave unit but publish an explicit
         // portrait_unit_name in their snapshot. Hold the same native-layer
         // transition mask until that snapshot arrives, preventing the
         // decorated world model from leaking into the portrait.
         if (unitName === "npc_survival_wave_monster") return true;
+        if (/^npc_survival_named_challenge_(05_|06_|07_|08_|09_|10_terrorblade_fractal$)/.test(unitName)) return true;
             for (var index = 0; index < maxAbilityEngineSlots; index++) {
                 var ability = Entities.GetAbility(unit, index);
                 if (ability >= 0
@@ -796,7 +797,7 @@
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
-        var isTowerPortrait = /^(tower_|monster_boss_|monster_wave_|monster_archive_|hero_permanent_hero_blademaster$)/
+        var isTowerPortrait = /^(tower_|monster_boss_|monster_wave_|monster_archive_|hero_permanent_hero_(blademaster|doom)$|challenge_monster_(beastmaster_legacy|morphling|ember_searing_path|primal_beast_svarog|spectre_phantom_advent|terrorblade_fractal_horns)$)/
             .test(modelAssetId)
             && /^npc_dota_hero_/.test(portraitUnit);
         if (!snapshot || Number(snapshot.entindex) !== Number(displayUnit())
@@ -1171,9 +1172,9 @@
         logicalAttributeOverlay.style.position = "0px 0px 0px";
         logicalAttributeOverlay.style.zIndex = "1000";
         [
-            ["Strength", "strength", "icon_strength.png"],
-            ["Agility", "agility", "icon_agility.png"],
-            ["Intellect", "intellect", "icon_intelligence.png"]
+            ["Strength", "strength", "reaver.png"],
+            ["Agility", "agility", "swift_blink.png"],
+            ["Intellect", "intellect", "arcane_blink.png"]
         ].forEach(function (definition) {
             var row = $.CreatePanel(
                 "Panel", logicalAttributeOverlay,
@@ -1185,7 +1186,7 @@
             var icon = $.CreatePanel("Image", row, "");
             icon.hittest = false;
             icon.SetImage(
-                "file://{images}/custom_game/survival_native/" + definition[2]
+                "file://{images}/spellicons/survival/native/" + definition[2]
             );
             icon.style.width = "16px";
             icon.style.height = "16px";
@@ -1744,6 +1745,26 @@
         panel.hittest = true;
         panel.__survivalRuntimeStatus = runtime.status_text || "";
         panel.__survivalRuntime = runtime;
+        // Keep the native button and its input handlers. Only overlay its image.
+        var talent = panel.__survivalTalentIcon;
+        var isTalent = runtime.talent_pending !== undefined;
+        if (isTalent && !validPortraitPanel(talent)) {
+            var iconParent = panel.FindChildTraverse("AbilityImage") || panel;
+            talent = $.CreatePanel("Image", iconParent, "SurvivalTalentIcon");
+            talent.hittest = false; talent.hittestchildren = false;
+            talent.style.width = "100%"; talent.style.height = "100%";
+            talent.style.zIndex = "1";
+            panel.__survivalTalentIcon = talent;
+        }
+        if (validPortraitPanel(talent)) {
+            talent.visible = isTalent;
+            if (isTalent) {
+                var uri = "file://{images}/spellicons/" + runtime.icon_name + ".png";
+                if (talent.__uri !== uri) { talent.SetImage(uri); talent.__uri = uri; }
+                talent.style.brightness = Number(runtime.talent_pending) === 1
+                    ? String(1.05 + 0.55 * (0.5 + 0.5 * Math.sin(Game.GetGameTime() * 4))) : "1";
+            }
+        }
         return runtime;
     }
 
@@ -2501,6 +2522,12 @@
             $.Msg("[SURVIVAL_CAST][CLIENT] reject invalid unit=", String(unit));
             return false;
         }
+        var researchName = String(runtime.ability_name || "");
+        try { if (!researchName) researchName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
+        if (/^ability_research_/.test(researchName)) {
+            var production = GameUI.CustomUIConfig().SurvivalProductionHUD;
+            return !!(production && production.QueueResearch && production.QueueResearch(abilityIndex, unit));
+        }
         if (runtime.removed === 1
             || runtime.available === 0) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject unavailable ability=", String(abilityIndex),
@@ -2629,17 +2656,41 @@
         return false;
     }
 
+    function canRequestReturnHome() {
+        if (!contextActive()) return false;
+        var guard = GameUI.CustomUIConfig().SurvivalShortcutGuard;
+        if (!guard || !guard.IsBlocked || guard.IsBlocked()) return false;
+        var localPlayer = Game.GetLocalPlayerID();
+        var hero = Number(Players.GetPlayerHeroEntityIndex(localPlayer));
+        if (!isFinite(hero) || hero < 0 || !Entities.IsValidEntity(hero)
+            || !Entities.IsAlive(hero) || Entities.GetPlayerOwnerID(hero) !== localPlayer) return false;
+        var name = Entities.GetUnitName(hero);
+        if (name === "npc_dota_hero_undying" || name === "npc_survival_builder_proxy") return false;
+        for (var slot = 0; slot < unitAbilityCount(hero); slot++) {
+            var ability = Entities.GetAbility(hero, slot);
+            if (ability === undefined || ability < 0) continue;
+            if (Abilities.GetAbilityName(ability) === "ability_survival_return_home") {
+                return Abilities.GetLevel(ability) > 0
+                    && Abilities.GetCooldownTimeRemaining(ability) <= 0;
+            }
+        }
+        return false;
+    }
+
     function requestReturnHome(source) {
-        var now = Game.GetGameTime ? Number(Game.GetGameTime()) : 0;
+        if (!canRequestReturnHome()) return false;
+        var now = Date.now() / 1000;
         if (now - lastReturnHomeTime < 0.15) return false;
         lastReturnHomeTime = now;
         $.Msg("[SURVIVAL_RETURN_HOME][CLIENT] source=", String(source || "unknown"));
+        // The server resolves the sender's real hero, skill and own main city.
         GameEvents.SendCustomGameEventToServer("ui_return_home_request", {});
         return true;
     }
 
     GameUI.CustomUIConfig().SurvivalReturnHomeInput = {
-        Request: requestReturnHome
+        Request: requestReturnHome,
+        CanRequest: canRequestReturnHome
     };
 
     function bindHotkeys() {
@@ -2658,7 +2709,10 @@
                 " key=", normalized, " down=", String(down));
             if (!down) return false;
             if (normalized === "F2") {
-                return requestReturnHome("key_dispatch");
+                var guard = GameUI.CustomUIConfig().SurvivalShortcutGuard;
+                if (guard && guard.IsTextInputActive && guard.IsTextInputActive()) return false;
+                requestReturnHome("key_dispatch");
+                return true;
             }
             if (utilityAbilityForKey[normalized]) {
                 var utilityCast = castAbilityByName(normalized, "key_dispatch");

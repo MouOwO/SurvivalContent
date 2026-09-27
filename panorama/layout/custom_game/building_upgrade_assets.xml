@@ -1,0 +1,7 @@
+<root>
+    <!-- Build both native DOTAAbilityImage textures from the gold chevron PNG assets. -->
+    <Panel>
+        <Image src="file://{images}/spellicons/survival/building_upgrade_one_v4.png" />
+        <Image src="file://{images}/spellicons/survival/building_upgrade_large_v5.png" />
+    </Panel>
+</root>

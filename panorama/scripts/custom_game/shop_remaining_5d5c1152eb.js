@@ -7,6 +7,7 @@
     var latestSequence = 0;
     var closeBound = false;
     var currentMode = "shop";
+    var lastShopMode = "shop";
     var researchSourceEntindex = -1;
     var unlocks = { shop: false, research: false };
     var entryCardsById = {};
@@ -170,7 +171,7 @@
 
     function open() {
         if (!unlocks.shop) return;
-        currentMode = "shop";
+        currentMode = lastShopMode;
         researchSourceEntindex = -1;
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
@@ -183,6 +184,7 @@
     function openChallenge() {
         if (!unlocks.shop) return;
         currentMode = "challenge";
+        lastShopMode = "challenge";
         researchSourceEntindex = -1;
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
@@ -222,11 +224,14 @@
         else close();
     }
 
+    function selectShop() { lastShopMode = "shop"; open(); }
+
     function toggleShop() {
         var windowPanel = byId("CustomShopWindow");
         if (windowPanel && windowPanel.BHasClass("ShopOpen")
             && currentMode === "shop") close();
-        else open();
+        else if (!windowPanel || !windowPanel.BHasClass("ShopOpen")) open();
+        else selectShop();
     }
 
     function toggleChallenge() {
@@ -536,7 +541,22 @@
         };
     }
 
+    var autoBookButtons = {};
+    function updateAutoBookButtons() {
+        var values = CustomNetTables.GetTableValue("survival_shop_config", "auto_purchase_" + Game.GetLocalPlayerID()) || {};
+        Object.keys(autoBookButtons).forEach(function(id) {
+            var button = autoBookButtons[id];
+            if (button && button.IsValid()) {
+                button.SetHasClass("AutoBookEnabled", Number(values[id] || 0) === 1);
+                button.GetChild(0).text = Number(values[id] || 0) === 1 ? "自动 ✓" : "自动";
+            }
+        });
+    }
+    if (typeof CustomNetTables !== "undefined") CustomNetTables.SubscribeNetTableListener("survival_shop_config", function(table, key) {
+        if (key === "auto_purchase_" + Game.GetLocalPlayerID()) updateAutoBookButtons();
+    });
     function renderItems() {
+        if (currentMode === "shop" || currentMode === "challenge") lastShopMode = currentMode;
         var list = byId("ShopItemList");
         if (!list || !snapshot) return;
         var entries = visibleEntries();
@@ -550,6 +570,7 @@
             updateAllCooldownOverlays();
             return;
         }
+        autoBookButtons = {};
         renderedStructureSignature = nextSignature;
         entryCardsById = {};
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
@@ -655,8 +676,24 @@
             });
             var R=GameUI.CustomUIConfig().RemainingHandoff;
             if(R)R.SurvivalShopCard(card,entry,function(){purchase(entryById(card.GetAttributeString("entry_id","")));});
+            if (entry.entry_id === "shop_item_knowledge_book" || entry.entry_id === "shop_item_super_knowledge_book") {
+                card.AddClass("AutoBookCard");
+                var autoButton = $.CreatePanel("Button", card, "");
+                autoButton.AddClass("AutoBookButton");
+                autoButton.hittest = true;
+                autoButton.hittestchildren = false;
+                var autoLabel = $.CreatePanel("Label", autoButton, "");
+                autoLabel.text = "自动";
+                var bookEntryId = entry.entry_id;
+                autoBookButtons[bookEntryId] = autoButton;
+                autoButton.SetPanelEvent("onactivate", function() {
+                    GameEvents.SendCustomGameEventToServer("ui_shop_auto_purchase_toggle_request", {entry_id:bookEntryId});
+                    return true;
+                });
+            }
             updateEntryCard(card, entry);
         });
+        updateAutoBookButtons();
 
         if (entries.length === 0) {
             var empty = $.CreatePanel("Label", list, "");
@@ -906,6 +943,7 @@
     GameEvents.Subscribe("ui_operation_result", onResult);
     GameUI.CustomUIConfig().SurvivalShop = {
         Open: open,
+        SelectShop: selectShop,
         Close: close,
         Toggle: toggle,
         ToggleShop: toggleShop,

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Compact ivory fortress, following the project's editable navigation SVGs. -->
+  <g stroke="#14202b" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">
+    <path fill="#f2eedb" d="M22 21h20v35H22z"/>
+    <path fill="#fff8e5" d="M17 22l8-7h3V9l4-4 4 4v6h3l8 7z"/>
+    <path fill="#f2eedb" d="M6 35h16v21H6zM42 35h16v21H42z"/>
+    <path fill="#fff8e5" d="M3 35l8-8h6l8 8zM39 35l8-8h6l8 8z"/>
+    <path fill="#fff8e5" d="M18 36l7-7h14l7 7z"/>
+    <path fill="#f2eedb" d="M5 53h54v6H5z"/>
+    <path fill="#14202b" stroke-width="1.5" d="M27 59V46a5 5 0 0 1 10 0v13z"/>
+    <path fill="none" stroke-width="2.8" d="M13 42v5M51 42v5M30 24h4"/>
+  </g>
+  <path fill="none" stroke="#d6be83" stroke-width="1.4" stroke-linecap="round" d="M9 55h14m18 0h14M24 19h16"/>
+</svg>

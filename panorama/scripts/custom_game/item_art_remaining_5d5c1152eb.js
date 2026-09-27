@@ -32,8 +32,36 @@
         m=id.match(/^rebirth_challenge_(\d+)$/);if(m&&Number(m[1])>=1&&Number(m[1])<=10)return ['challenges',10+Number(m[1])];
         return null;
     }
+    // Native Dota inventory art and unit portraits for the shop/challenge entries.
+    function nativeArt(value){
+        if (/^(?:shop_)?(?:weapon_|item_survival_)ice_blade_(?:[0-9]+|max)$/.test(String(value||""))) return "extreme_cold_blade_v2";
+        // Derived from challenge encounter members and their model/portrait configuration.
+        var challengePortraits={"challenge_01":"portrait_undying","challenge_02":"portrait_axe","challenge_03":"portrait_clinkz","challenge_04":"portrait_beastmaster","challenge_05":"portrait_beastmaster","challenge_06":"portrait_morphling","challenge_07":"portrait_ember_spirit","challenge_08":"portrait_primal_beast","challenge_09":"portrait_spectre","challenge_10":"portrait_terrorblade","challenge_11":"portrait_necrolyte"};
+        var challengeId=String(value||'').replace(/^shop_/,'');
+        if(Object.prototype.hasOwnProperty.call(challengePortraits,challengeId))return challengePortraits[challengeId];
+        var old=shopArt(value);if(!old)return null;
+        var shop=['broadsword','gloves','radiance','platemail','mask_of_madness','mithril_hammer',
+            'mystic_staff','tome_of_knowledge','book_of_shadows','portrait_roshan','soul_booster',
+            'gem','shivas_guard','heart','point_booster'];
+        var swords=['broadsword','lesser_crit','greater_crit','radiance','rapier'];
+        var challenges=['quelling_blade','hand_of_midas','portrait_doom_bringer','portrait_crystal_maiden',
+            'ultimate_orb','portrait_furion','portrait_roshan','portrait_dragon_knight','portrait_enigma',
+            'portrait_ancient_apparition','portrait_nevermore','portrait_skeleton_king','portrait_ogre_magi',
+            'portrait_dragon_knight','portrait_terrorblade','portrait_warlock','portrait_doom_bringer',
+            'portrait_nevermore','portrait_ancient_apparition','portrait_enigma','portrait_roshan'];
+        return old[0]==='shop'?shop[old[1]]:old[0]==='swords'?swords[Math.floor(old[1]/5)]:challenges[old[1]];
+    }
     function create(parent,item,className){
         var keys=item?[item.content_id,item.item_id,item.id,item.entry_id,item.shop_entry_id,item.icon]:[];
+        var nativeKey=null;
+        for(var n=0;n<keys.length&&!nativeKey;n++)nativeKey=nativeArt(keys[n]);
+        if(nativeKey){
+            var nativeIcon=$.CreatePanel('Image',parent,'');
+            if(className)nativeIcon.AddClass(className);
+            nativeIcon.SetImage('file://{images}/spellicons/survival/native/'+nativeKey+'.png');
+            nativeIcon.SetScaling('stretch-to-fit-preserve-aspect');
+            nativeIcon.hittest=false;nativeIcon.hittestchildren=false;return nativeIcon;
+        }
         var selected=null;
         for(var k=0;k<keys.length&&!selected;k++)selected=shopArt(keys[k]);
         if(selected){
@@ -51,7 +79,7 @@
         icon.hittest=false;icon.hittestchildren=false;
         return icon;
     }
-    cfg.SurvivalItemArt={Lookup:lookup,Create:create,ResolveOriginal:shopArt};
+    cfg.SurvivalItemArt={Lookup:lookup,Create:create,ResolveOriginal:shopArt,ResolveNative:nativeArt};
     var presentation=cfg.SurvivalRewardPresentation;
     if(presentation){
         var colors={n:'#398754',r:'#3283c5',sr:'#a052c8',ssr:'#bd8b25',ur:'#66338f'};

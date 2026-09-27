@@ -1,0 +1,522 @@
+{
+  "nativeItems": 47,
+  "mappings": {
+    "weapon_growth_sword_01": "survival_shop_v2/swords_00",
+    "weapon_growth_sword_02": "survival_shop_v2/swords_01",
+    "weapon_growth_sword_03": "survival_shop_v2/swords_02",
+    "weapon_growth_sword_04": "survival_shop_v2/swords_03",
+    "weapon_growth_sword_max": "survival_shop_v2/swords_04",
+    "equipment_attack_gloves_01": "survival_shop_v2/shop_01",
+    "equipment_attack_gloves_02": "survival_shop_v2/shop_01",
+    "equipment_attack_gloves_03": "survival_shop_v2/shop_01",
+    "equipment_attack_gloves_04": "survival_shop_v2/shop_01",
+    "equipment_attack_gloves_max": "survival_shop_v2/shop_01",
+    "equipment_burning_blade_01": "survival_shop_v2/shop_02",
+    "equipment_burning_blade_02": "survival_shop_v2/shop_02",
+    "equipment_burning_blade_03": "survival_shop_v2/shop_02",
+    "equipment_burning_blade_04": "survival_shop_v2/shop_02",
+    "equipment_burning_blade_max": "survival_shop_v2/shop_02",
+    "equipment_iron_armor_01": "survival_shop_v2/shop_03",
+    "equipment_iron_armor_02": "survival_shop_v2/shop_03",
+    "equipment_iron_armor_03": "survival_shop_v2/shop_03",
+    "equipment_iron_armor_04": "survival_shop_v2/shop_03",
+    "equipment_iron_armor_max": "survival_shop_v2/shop_03",
+    "equipment_infernal_armor_01": "survival_shop_v2/shop_12",
+    "equipment_infernal_armor_02": "survival_shop_v2/shop_12",
+    "equipment_infernal_armor_03": "survival_shop_v2/shop_12",
+    "equipment_infernal_armor_04": "survival_shop_v2/shop_12",
+    "equipment_infernal_armor_max": "survival_shop_v2/shop_12",
+    "weapon_frost_blade_01": "survival_shop_v2/swords_05",
+    "weapon_frost_blade_02": "survival_shop_v2/swords_06",
+    "weapon_frost_blade_03": "survival_shop_v2/swords_07",
+    "weapon_frost_blade_04": "survival_shop_v2/swords_08",
+    "weapon_frost_blade_max": "survival_shop_v2/swords_09",
+    "weapon_ice_blade_01": "survival_unified/extreme_cold_blade_v2",
+    "weapon_ice_blade_02": "survival_unified/extreme_cold_blade_v2",
+    "weapon_ice_blade_03": "survival_unified/extreme_cold_blade_v2",
+    "weapon_ice_blade_04": "survival_unified/extreme_cold_blade_v2",
+    "weapon_ice_blade_max": "survival_unified/extreme_cold_blade_v2",
+    "weapon_epic_icefire_00": "survival_shop_v2/swords_15",
+    "weapon_epic_icefire_01": "survival_shop_v2/swords_16",
+    "weapon_epic_icefire_02": "survival_shop_v2/swords_16",
+    "weapon_epic_icefire_03": "survival_shop_v2/swords_17",
+    "weapon_epic_icefire_04": "survival_shop_v2/swords_18",
+    "weapon_epic_icefire_05": "survival_shop_v2/swords_18",
+    "weapon_epic_icefire_06": "survival_shop_v2/swords_19",
+    "weapon_legend_abyss_00": "survival_shop_v2/swords_20",
+    "weapon_legend_abyss_01": "survival_shop_v2/swords_20",
+    "weapon_legend_abyss_10": "survival_shop_v2/swords_24",
+    "weapon_legend_abyss_02": "survival_shop_v2/swords_21",
+    "weapon_legend_abyss_03": "survival_shop_v2/swords_21",
+    "weapon_legend_abyss_04": "survival_shop_v2/swords_22",
+    "weapon_legend_abyss_05": "survival_shop_v2/swords_22",
+    "weapon_legend_abyss_06": "survival_shop_v2/swords_22",
+    "weapon_legend_abyss_07": "survival_shop_v2/swords_23",
+    "weapon_legend_abyss_08": "survival_shop_v2/swords_23",
+    "weapon_legend_abyss_09": "survival_shop_v2/swords_24",
+    "item_death_mask": "survival_shop_v2/shop_04",
+    "material_molten_core_01": "survival_shop_v2/shop_10",
+    "material_molten_core_02": "survival_shop_v2/shop_10",
+    "material_molten_core_03": "survival_shop_v2/shop_10",
+    "material_molten_core_04": "survival_shop_v2/shop_10",
+    "item_molten_upgrade_gem_01_03": "survival_shop_v2/shop_11",
+    "item_molten_upgrade_gem_04": "survival_shop_v2/shop_11",
+    "material_synthesis_gem": "survival_shop_v2/shop_11",
+    "challenge_synthesis_gem": "survival_shop_v2/shop_11",
+    "item_forging_hammer": "survival_shop_v2/shop_05",
+    "shop_proxy_iron_armor_01": "survival_shop_v2/shop_03",
+    "shop_proxy_attack_gloves_01": "survival_shop_v2/shop_01",
+    "shop_proxy_burning_blade_01": "survival_shop_v2/shop_02",
+    "item_small_polar_crystal": "survival_shop_v2/shop_06",
+    "item_large_polar_crystal": "survival_shop_v2/shop_06",
+    "material_ice_soul_ember": "survival_shop_v2/shop_14",
+    "item_knowledge_book": "survival_shop_v2/shop_07",
+    "item_super_knowledge_book": "survival_shop_v2/shop_08",
+    "service_early_final_boss": "survival_shop_v2/shop_09",
+    "item_survival_synthesis_gem_shell": "survival_shop_v2/shop_11",
+    "item_survival_molten_core_01_shell": "survival_shop_v2/shop_10",
+    "item_survival_molten_core_02_shell": "survival_shop_v2/shop_10",
+    "item_survival_molten_core_03_shell": "survival_shop_v2/shop_10",
+    "item_survival_molten_core_04_shell": "survival_shop_v2/shop_10",
+    "item_survival_ice_soul_ember_shell": "survival_shop_v2/shop_14",
+    "item_survival_death_mask": "survival_shop_v2/shop_04",
+    "item_survival_small_polar_crystal": "survival_shop_v2/shop_06",
+    "item_survival_large_polar_crystal": "survival_shop_v2/shop_06",
+    "item_survival_growth_sword_01": "survival_shop_v2/swords_00",
+    "item_survival_growth_sword_02": "survival_shop_v2/swords_01",
+    "item_survival_growth_sword_03": "survival_shop_v2/swords_02",
+    "item_survival_growth_sword_04": "survival_shop_v2/swords_03",
+    "item_survival_growth_sword_max": "survival_shop_v2/swords_04",
+    "item_survival_frost_blade_01": "survival_shop_v2/swords_05",
+    "item_survival_frost_blade_02": "survival_shop_v2/swords_06",
+    "item_survival_frost_blade_03": "survival_shop_v2/swords_07",
+    "item_survival_frost_blade_04": "survival_shop_v2/swords_08",
+    "item_survival_frost_blade_max": "survival_shop_v2/swords_09",
+    "item_survival_ice_blade_01": "survival_unified/extreme_cold_blade_v2",
+    "item_survival_ice_blade_02": "survival_unified/extreme_cold_blade_v2",
+    "item_survival_ice_blade_03": "survival_unified/extreme_cold_blade_v2",
+    "item_survival_ice_blade_04": "survival_unified/extreme_cold_blade_v2",
+    "item_survival_ice_blade_max": "survival_unified/extreme_cold_blade_v2",
+    "item_survival_epic_icefire_00": "survival_shop_v2/swords_15",
+    "item_survival_epic_icefire_01": "survival_shop_v2/swords_16",
+    "item_survival_epic_icefire_02": "survival_shop_v2/swords_16",
+    "item_survival_epic_icefire_03": "survival_shop_v2/swords_17",
+    "item_survival_epic_icefire_04": "survival_shop_v2/swords_18",
+    "item_survival_epic_icefire_05": "survival_shop_v2/swords_18",
+    "item_survival_epic_icefire_06": "survival_shop_v2/swords_19",
+    "item_survival_epic_icefire_07": "survival_shop_v2/swords_19",
+    "item_survival_legend_abyss_00": "survival_shop_v2/swords_20",
+    "item_survival_legend_abyss_01": "survival_shop_v2/swords_20",
+    "item_survival_legend_abyss_10": "survival_shop_v2/swords_24",
+    "item_survival_legend_abyss_02": "survival_shop_v2/swords_21",
+    "item_survival_legend_abyss_03": "survival_shop_v2/swords_21",
+    "item_survival_legend_abyss_04": "survival_shop_v2/swords_22",
+    "item_survival_legend_abyss_05": "survival_shop_v2/swords_22",
+    "item_survival_legend_abyss_06": "survival_shop_v2/swords_22",
+    "item_survival_legend_abyss_07": "survival_shop_v2/swords_23",
+    "item_survival_legend_abyss_08": "survival_shop_v2/swords_23",
+    "item_survival_legend_abyss_09": "survival_shop_v2/swords_24",
+    "item_survival_attack_gloves_shell": "survival_shop_v2/shop_01",
+    "item_survival_burning_blade_shell": "survival_shop_v2/shop_02",
+    "item_survival_iron_armor_shell": "survival_shop_v2/shop_03",
+    "item_survival_infernal_armor_shell": "survival_shop_v2/shop_12"
+  },
+  "images": [
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 0,
+      "file": "shop_00.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 1,
+      "file": "shop_01.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 2,
+      "file": "shop_02.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 3,
+      "file": "shop_03.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 4,
+      "file": "shop_04.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 5,
+      "file": "shop_05.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 6,
+      "file": "shop_06.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 7,
+      "file": "shop_07.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 8,
+      "file": "shop_08.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 9,
+      "file": "shop_09.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 10,
+      "file": "shop_10.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 11,
+      "file": "shop_11.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 12,
+      "file": "shop_12.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 13,
+      "file": "shop_13.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 14,
+      "file": "shop_14.png"
+    },
+    {
+      "atlas": "shop",
+      "grid": 4,
+      "index": 15,
+      "file": "shop_15.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 0,
+      "file": "swords_00.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 1,
+      "file": "swords_01.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 2,
+      "file": "swords_02.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 3,
+      "file": "swords_03.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 4,
+      "file": "swords_04.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 5,
+      "file": "swords_05.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 6,
+      "file": "swords_06.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 7,
+      "file": "swords_07.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 8,
+      "file": "swords_08.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 9,
+      "file": "swords_09.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 10,
+      "file": "swords_10.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 11,
+      "file": "swords_11.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 12,
+      "file": "swords_12.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 13,
+      "file": "swords_13.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 14,
+      "file": "swords_14.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 15,
+      "file": "swords_15.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 16,
+      "file": "swords_16.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 17,
+      "file": "swords_17.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 18,
+      "file": "swords_18.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 19,
+      "file": "swords_19.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 20,
+      "file": "swords_20.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 21,
+      "file": "swords_21.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 22,
+      "file": "swords_22.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 23,
+      "file": "swords_23.png"
+    },
+    {
+      "atlas": "swords",
+      "grid": 5,
+      "index": 24,
+      "file": "swords_24.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 0,
+      "file": "challenges_00.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 1,
+      "file": "challenges_01.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 2,
+      "file": "challenges_02.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 3,
+      "file": "challenges_03.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 4,
+      "file": "challenges_04.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 5,
+      "file": "challenges_05.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 6,
+      "file": "challenges_06.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 7,
+      "file": "challenges_07.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 8,
+      "file": "challenges_08.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 9,
+      "file": "challenges_09.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 10,
+      "file": "challenges_10.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 11,
+      "file": "challenges_11.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 12,
+      "file": "challenges_12.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 13,
+      "file": "challenges_13.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 14,
+      "file": "challenges_14.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 15,
+      "file": "challenges_15.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 16,
+      "file": "challenges_16.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 17,
+      "file": "challenges_17.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 18,
+      "file": "challenges_18.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 19,
+      "file": "challenges_19.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 20,
+      "file": "challenges_20.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 21,
+      "file": "challenges_21.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 22,
+      "file": "challenges_22.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 23,
+      "file": "challenges_23.png"
+    },
+    {
+      "atlas": "challenges",
+      "grid": 5,
+      "index": 24,
+      "file": "challenges_24.png"
+    }
+  ]
+}

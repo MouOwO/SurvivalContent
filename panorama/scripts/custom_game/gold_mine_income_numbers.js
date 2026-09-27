@@ -21,6 +21,8 @@
         var now = Game.GetGameTime();
         var scaleX = Number(container && container.actualuiscale_x) || 1;
         var scaleY = Number(container && container.actualuiscale_y) || 1;
+        var visibility=typeof GameUI!=="undefined"?GameUI.CustomUIConfig().SurvivalWorldOverlayVisibility:null;
+        var occlusion=visibility?visibility.Capture():null;
         for (var index = active.length - 1; index >= 0; index -= 1) {
             var entry = active[index];
             var elapsed = now - entry.startedAt;
@@ -33,6 +35,9 @@
                 entry.panel.style.visibility = "collapse"; continue;
             }
             var progress = Math.max(0, Math.min(1, elapsed));
+            if(visibility&&visibility.Overlaps(occlusion,screenX-50*scaleX,screenY-(36+progress*54)*scaleY,100*scaleX,36*scaleY)){
+                entry.panel.style.visibility="collapse";continue;
+            }
             entry.panel.style.opacity = String(1 - progress);
             entry.panel.style.transform = "translate3d(" + (screenX / scaleX - 50).toFixed(2) + "px, " + (screenY / scaleY - 36 - progress * 54).toFixed(2) + "px, 0px)";
             entry.panel.style.visibility = "visible";

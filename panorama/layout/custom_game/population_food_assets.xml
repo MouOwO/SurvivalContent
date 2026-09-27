@@ -1,0 +1,6 @@
+<root>
+    <!-- Compile the transparent population food icon independently of other HUD art. -->
+    <Panel>
+        <Image src="file://{images}/custom_game/survival/food_population.png" />
+    </Panel>
+</root>

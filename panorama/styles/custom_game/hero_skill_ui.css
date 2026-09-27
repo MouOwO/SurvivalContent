@@ -1,16 +1,16 @@
 .HeroSkillUIRoot { width: 100%; height: 100%; }
 .Hidden { visibility: collapse; }
-.HeroSkillRuleHint { color: #aeb9c8; font-size: 15px; margin-top: 3px; margin-bottom: 10px; }
-.HeroSkillPassiveBadge { color: #bc91e8; font-size: 14px; }
-.HeroSkillChoiceName { color: #ffffff; font-size: 21px; font-weight: bold; }
-.HeroSkillStat { color: #dce5ef; font-size: 16px; margin-top: 5px; }
-.HeroSkillEffect { color: #bcd4e7; font-size: 15px; margin-top: 5px; white-space: normal; }
-.HeroSkillNextEffect { color: #8edda8; font-size: 15px; margin-top: 5px; white-space: normal; }
-#HeroSkillChoiceBackdrop { width: 100%; height: 100%; background-color: #000000b8; }
-#HeroSkillChoicePanel { horizontal-align: center; vertical-align: center; width: 1240px; min-height: 520px; padding: 22px; flow-children: down; background-color: #0b1119fa; border: 2px solid #b18ad2; }
-.HeroSkillChoiceTitle { horizontal-align: center; color: #f1dcff; font-size: 31px; font-weight: bold; }
-.HeroSkillChoiceList { width: 100%; min-height: 390px; flow-children: right; }
-.HeroSkillChoiceCard { width: fill-parent-flow(1); min-height: 370px; margin: 8px; padding: 16px; flow-children: down; background-color: #182331; border: 2px solid #63778c; }
-.HeroSkillChoiceCard:hover { background-color: #27384b; border-color: #d2aaf5; brightness: 1.2; }
-.HeroSkillChoiceLevel { color: #ffd86b; font-size: 17px; margin-top: 17px; margin-bottom: 8px; }
-.HeroSkillResult { horizontal-align: center; color: #ffd86b; font-size: 17px; min-height: 24px; }
+.HeroSkillRuleHint { color:#a9bac0; font-size:17px; margin:8px 8px 16px; }
+.HeroSkillPassiveBadge { color:#a2b9bd; font-size:16px; margin-top:5px; }
+.HeroSkillChoiceName { color:#f2ddb0; font-size:25px; font-weight:bold; }
+.HeroSkillStat { color:#d5e0e1; font-size:18px; margin-top:9px; }
+.HeroSkillEffect { color:#b8cbd0; font-size:18px; margin-top:12px; white-space:normal; }
+.HeroSkillNextEffect { color:#a4cfac; font-size:17px; margin-top:10px; white-space:normal; }
+#HeroSkillChoiceBackdrop { width:100%; height:100%; background-color:#000000a8; }
+#HeroSkillChoicePanel { horizontal-align:center; vertical-align:center; width:1180px; min-height:490px; padding:25px; flow-children:down; background-color:gradient(linear,0% 0%,0% 100%,from(#102a35fa),to(#081920fc)); border:1px solid #a78d50; box-shadow:0px 8px 36px #000000b0; }
+.HeroSkillChoiceTitle { horizontal-align:center; color:#e8d6a6; font-size:30px; font-weight:bold; letter-spacing:3px; margin-bottom:8px; }
+.HeroSkillChoiceList { width:100%; min-height:370px; flow-children:right; border-top:1px solid #766640; padding-top:12px; }
+.HeroSkillChoiceCard { width:fill-parent-flow(1); min-height:350px; margin:8px; padding:20px; flow-children:down; background-color:gradient(linear,0% 0%,0% 100%,from(#183945),to(#102630)); border:1px solid #52665f; transition-property:border-color,background-color; transition-duration:0.15s; }
+.HeroSkillChoiceCard:hover { background-color:gradient(linear,0% 0%,0% 100%,from(#254b53),to(#19333c)); border-color:#d5bb77; }
+.HeroSkillChoiceLevel { color:#e7c978; font-size:19px; margin-top:18px; margin-bottom:10px; }
+.HeroSkillResult { horizontal-align:center; color:#e7c978; font-size:18px; min-height:25px; }

@@ -1,0 +1,39 @@
+#SurvivalMinimapShortcuts {
+    flow-children: none;
+    z-index: 2054;
+    overflow: noclip;
+}
+.MinimapShortcutButton {
+    width: 64px;
+    height: 76px;
+    background-color: transparent;
+    border: 0px solid transparent;
+    overflow: clip;
+}
+.MinimapShortcutButton:hover { brightness: 1.25; }
+.MinimapShortcutButton:active { brightness: 0.85; }
+.MinimapShortcutIcon {
+    position: 6px 0px 0px;
+    width: 52px;
+    height: 52px;
+    border-radius: 4px;
+    border: 1px solid #c6ab6e80;
+    box-shadow: #00000066 0px 1px 3px 0px;
+}
+#SurvivalReturnHomeShortcutIcon { border: 0px solid transparent; background-color: transparent; box-shadow: none; }
+.MinimapShortcutButton:hover .MinimapShortcutIcon { border-color: #f0d99b; }
+.MinimapShortcutButton.Unavailable .MinimapShortcutIcon { saturation: 0.25; brightness: 0.6; border-color: #6d797480; }
+#SurvivalMinimapShortcuts Label {
+    position: 0px 52px 0px;
+    width: 64px;
+    height: 24px;
+    font-family: "Source Han Sans SC";
+    font-size: 20px;
+    color: #ead8a7;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-shadow: 0px 1px 2px 2 #000000ee;
+}
+#SurvivalMinimapShortcuts .Unavailable Label { color: #83958e; }
+.HandoffBoot #SurvivalMinimapShortcuts { opacity: 0; }
