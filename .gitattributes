@@ -10,7 +10,10 @@
 *.vpcf -whitespace
 *.vmdl -whitespace
 maps/survival_world_v2.vmap filter=lfs diff=lfs merge=lfs -text
-
 # Editable authored maps are versioned with LFS.
 maps/survival_c6.vmap filter=lfs diff=lfs merge=lfs -text
 maps/template_map.vmap filter=lfs diff=lfs merge=lfs -text
+maps/tilesets/survival_dire_journey_basic.vmap filter=lfs diff=lfs merge=lfs -text
+maps/tilesets/survival_dire_jungle_basic.vmap filter=lfs diff=lfs merge=lfs -text
+maps/tilesets/survival_radiant_snow_basic.vmap filter=lfs diff=lfs merge=lfs -text
+maps/tilesets/survival_radiant_ti10_basic.vmap filter=lfs diff=lfs merge=lfs -text
