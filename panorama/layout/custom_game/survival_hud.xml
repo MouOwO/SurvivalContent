@@ -21,6 +21,7 @@
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" />
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
+        <include src="file://{resources}/scripts/custom_game/lumberjack_fusion_queue.js" />
         <include src="file://{resources}/scripts/custom_game/world_overlay_visibility.js" />
         <include src="file://{resources}/scripts/custom_game/hero_world_health_bar.js" />
         <include src="file://{resources}/scripts/custom_game/attack_range_input.js" />
@@ -35,6 +36,8 @@
         <include src="file://{resources}/scripts/custom_game/shop_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/multiselect_portraits.js" />
+        <include src="file://{resources}/scripts/custom_game/portrait_palette.js" />
+        <include src="file://{resources}/scripts/custom_game/portrait_presentation.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
 
@@ -46,7 +49,7 @@
         <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
         <include src="file://{resources}/scripts/custom_game/topnav_remaining_5d5c1152eb.js" />
     <include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/></scripts>
-    <Panel class="SurvivalHUDRoot Theme_Native HandoffBoot" hittest="false">
+    <Panel class="SurvivalHUDRoot Theme_Native HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated" hittest="false">
         <Panel id="SurvivalHeroWorldHealthBars" hittest="false" hittestchildren="false" />
         <Panel id="GoldMineIncomeNumbers" hittest="false" hittestchildren="false" />
         <Panel id="SurvivalTowerPortraitOverlay" class="SurvivalTowerPortraitOverlay" hittest="false" hittestchildren="false">
@@ -451,8 +454,9 @@
       <Panel id="HandoffHUD" hittest="false" hittestchildren="true" />
       <Panel id="SurvivalProductionPanel" visible="false" hittest="true" hittestchildren="true" />
       <Panel id="SurvivalResearchAutoMarkers" hittest="false" hittestchildren="false" />
-      <!-- Static dependency for the dynamically created return-home Image. -->
-      <Image id="SurvivalReturnCastleAsset" src="file://{images}/custom_game/minimap_shortcuts/return_castle.svg" visible="false" hittest="false" hittestchildren="false" />
+      <Button id="SurvivalLocalHeroPortrait" hittest="true" hittestchildren="false">
+        <Image id="SurvivalLocalHeroPortraitImage" scaling="stretch-to-fit-preserve-aspect" hittest="false" hittestchildren="false" />
+      </Button>
       <Panel id="SurvivalMinimapShortcuts" visible="false" hittest="false" hittestchildren="true" />
       <Panel id="NotificationContainer" />
     </Panel>

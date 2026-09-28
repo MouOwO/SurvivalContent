@@ -57,8 +57,8 @@
             toggle.checked = category.id === current;
             A.NavIcon(toggle, category.id, navIcons[category.id]);
             toggle.enabled = Number(category.disabled) !== 1;
-            label(toggle, category.name);
-            toggle.SetPanelEvent("onactivate", function () {
+            label(toggle, category.name, "ArchiveNavLabel");
+            toggle.__archiveActivate = function () {
                 if (Number(category.disabled) === 1 || current === category.id) return;
                 current = category.id; filterMode="all"; lastData=pageCache[current]||null;
                 if(lastData){tabs();render(lastData);return;}
@@ -68,6 +68,8 @@
                 panel("ArchiveEmpty").text = "正在读取存档…";
                 panel("ArchivePageTitle").text = category.name;
                 panel("ArchiveSummary").text = "";
+                panel("ArchiveFilterAllLabel").text = "全部";
+                panel("ArchiveContext").text = "";
                 panel("ArchiveHint").text = "";
                 panel("ArchiveStatus").text = "正在同步档案…";
                 showDrawBar();
@@ -78,7 +80,8 @@
                 // Coalesce fast toggle changes and respect the server throttle.
                 var generation = ++requestGeneration;
                 request(true);
-            });
+            };
+            toggle.SetPanelEvent("onactivate", toggle.__archiveActivate);
         });
     }
     function icon(parent, item) { A.Icon(parent,item,current,buildingIcons); }
@@ -95,7 +98,7 @@
         if (socialPage && social) {
             panel("ArchiveTickets").text = social.currency_name + "：" + social.tickets;
             panel("ArchiveDraw").enabled = Number(social.tickets) >= Number(social.draw_cost) && Number(social.remaining) > 0 && Number(data.pending) !== 1;
-            panel("ArchiveDrawResult").text = data.last_draw && data.last_draw.pool_id === current ? "获得：" + data.last_draw.name : "";
+            panel("ArchiveDrawResult").text = data.last_draw && data.last_draw.pool_id === current ? "获得：" + data.last_draw.name : "每次消耗 " + social.draw_cost + " 张 · 重复获得叠加效果";
             panel("ArchiveDraw").SetPanelEvent("onactivate", function () {
                 if (!panel("ArchiveDraw").enabled) return;
                 panel("ArchiveDraw").enabled = false;
@@ -121,9 +124,20 @@
             card.AddClass("ArchiveCard");
             card.hittestchildren = false;
             icon(card, item);
-            label(card, item.name, "ArchiveItemName");
-            if (unlocked !== null) { var status=label(card,unlocked?"已解锁":"未解锁","ArchiveUnlockBadge");status.AddClass(unlocked?"Unlocked":"Locked"); }
-            cardFrame(card);
+            var displayName = current === "fragment" ? String(item.name || "").replace(/^神兵[-－·]/, "") : item.name;
+            // Tier requirements already have a progress badge; keep the full
+            // configured name in the tooltip instead of repeating it on cards.
+            if(current === "endless" || current === "boss") displayName = item.short_name || ("第 " + (index + 1) + " 阶");
+            label(card, displayName, "ArchiveItemName");
+            // Full status remains in the tooltip; a small shape avoids repeating
+            // the same status sentence across every card in a dense collection.
+            if (unlocked !== null) {
+                var status=$.CreatePanel("Image",card,"");
+                status.AddClass("ArchiveStateIcon");
+                status.AddClass(unlocked?"Unlocked":"Locked");
+                status.SetImage(GameUI.CustomUIConfig().ArchiveHandoffAssets[unlocked?"icon_check_light.png":"icon_lock_light.png"]);
+                status.hittest=false;
+            }
             card.SetPanelEvent("onmouseover", function () { tooltip(item, card); });
             card.SetPanelEvent("onmouseout", hideTooltip);
             if (current === "work" || current === "building") {
@@ -152,7 +166,7 @@
                     promote.AddClass("ArchivePromote");
                     promote.enabled = Number(item.can_promote) === 1;
                     label(promote, "晋升兑换");
-                    U.ActionButton.Adopt(promote);
+                    // ArchivePromote owns its dark enabled/disabled palette; shared ivory buttons write an inline text color.
                     promote.SetPanelEvent("onmouseover", function () {
                         tooltip({name:"晋升兑换", description:"消耗" + item.promotion_cost + "片，兑换" + item.promotion_target + "碎片×1。累计获得超过200片后解锁。"}, promote);
                     });
@@ -167,6 +181,7 @@
                     });
                 }
             }
+            cardFrame(card);
             if (Number(item.count) > 0) ownedTypes += 1;
             if (Number(item.completed) === 1) done += 1;
         });
@@ -220,6 +235,15 @@
             }
             panel("ArchiveStatus").text = Number(data.pending) === 1 ? "正在保存进度…" : "进度每分钟保存 · 奖励永久保留；通关后新增属性于下局生效";
         }
+        var unlockedTotal = rows.filter(function(item){return A.Unlocked(item,current) === true;}).length;
+        panel("ArchiveFilterAllLabel").text = "全部（" + unlockedTotal + "/" + rows.length + "）";
+        var contextText = current === "building" && data.buildings ? "信仰值 " + data.buildings.faith
+            : current === "work" && data.online ? "软妹币 " + data.online.coins
+            : current === "endless" ? "累计积分 " + (rows.length ? Number(rows[0].count) || 0 : 0)
+            : current === "map_level" && data.online ? "等级 " + data.online.level + "/" + data.online.max_level : "";
+        panel("ArchiveContext").text = contextText;
+        // Cards and promotion buttons are created after Init: style them now.
+        A.ApplyPalette();
     }
     GameEvents.Subscribe("survival_archive_snapshot", function (data) {
         var sequence = Number(data.sequence) || 0;
@@ -259,9 +283,11 @@
         status.text = data.status === "running" ? "无尽第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
             : "无尽结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
         if (opened && current === "endless" && data.remaining === 0) request();
+        A.ApplyPalette();
     });
     function close() {
         opened = false; fitGeneration++;
+        if(A.HideCardText)A.HideCardText();
         panel("ArchiveScrim").AddClass("ArchiveHidden");
         archiveShell.Close();
         panel("ArchiveWindow").AddClass("ArchiveHidden");
@@ -271,6 +297,11 @@
     U.ActionButton.Adopt(panel("ArchiveDraw"),{variant:"gold"}); U.Tooltip.Adopt(panel("ArchiveTooltip"));
     A.Init();
     GameUI.CustomUIConfig().SurvivalArchive = {
+        IsOpen: function () { return opened; },
+        SelectCategory: function(id) {
+            var tab=panel("ArchiveTab_"+id);
+            if(tab && tab.enabled && tab.__archiveActivate)tab.__archiveActivate();
+        },
         Toggle: function () {
             if (opened) { close(); return; }
             opened = true;

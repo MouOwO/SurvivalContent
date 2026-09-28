@@ -1,0 +1,7 @@
+"Layer0"
+{
+ "shader" "ui.vfx"
+ "F_STENCIL_MASKING" "1"
+ "F_TRANSLUCENT" "1"
+ "Texture" "materials/survival_ui/portrait_slate_backdrop.png"
+}

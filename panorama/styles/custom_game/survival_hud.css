@@ -12,7 +12,9 @@
     /* Keep the scene in the normal HUD layer so Valve's portrait frame can paint above it. */
     z-index: 0;
     clip: rect(0px, 100%, 100%, 0px);
-    background-color: #10151aff;
+    /* The portrait controller replaces this neutral fill with the model's hue. */
+    background-color: gradient(linear, 0% 0%, 100% 100%, from(#29424b), to(#080d0f));
+    background-image: none;
     border: 0px solid transparent;
 }
 

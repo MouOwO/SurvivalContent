@@ -191,7 +191,7 @@
                     promote.AddClass("ArchivePromote");
                     promote.enabled = Number(item.can_promote) === 1;
                     label(promote, "晋升兑换");
-                    U.ActionButton.Adopt(promote);
+                    // ArchivePromote owns its dark enabled/disabled palette; shared ivory buttons write an inline text color.
                     promote.SetPanelEvent("onmouseover", function () {
                         tooltip({name:"晋升兑换", description:"消耗" + item.promotion_cost + "片，兑换" + item.promotion_target + "碎片×1。累计获得超过200片后解锁。"});
                     });
