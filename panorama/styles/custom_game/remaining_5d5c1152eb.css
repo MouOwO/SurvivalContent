@@ -167,8 +167,8 @@
 #RogueRewardSurface .RogueArt_defense {background-image:url("file://{images}/custom_game/remaining_handoff_ready/rogue_defense.png");}
 #RogueRewardSurface .RogueBack {background-image:url("file://{images}/custom_game/remaining_handoff_ready/rogue_back.png");}
 #RogueRewardSurface .RogueCopy {position:27px 454px 0px;width:236px;height:168px;z-index:2;}
-#RogueRewardSurface .RogueCardName {font-family:"Source Han Serif SC";font-weight:bold;font-size:26px;color:#57391f;opacity:1;text-shadow:none;}
-#RogueRewardSurface .RogueCardDescription {font-family:"Source Han Sans SC";font-size:18px;font-weight:medium;line-height:24px;color:#36322c;opacity:1;text-shadow:none;}
+#RogueRewardSurface .RogueCardName {font-family:"Source Han Serif SC";font-weight:bold;font-size:26px;color:#254755;}
+#RogueRewardSurface .RogueCardDescription {font-family:"Source Han Sans SC";font-size:18px;line-height:24px;color:#3e5962;}
 #RogueRewardSurface .RogueRewardTitle {font-family:"Source Han Serif SC";font-weight:bold;}
 #RogueRewardSurface .RoguePick {box-shadow:none;transition-duration:.16s;transition-property:transform,brightness;}
 #RogueRewardSurface .RoguePick:enabled:hover {box-shadow:none;brightness:1.06;transform:translate3d(0px,-4px,0px) scale3d(1.035,1.035,1);}

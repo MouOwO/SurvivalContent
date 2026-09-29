@@ -10,7 +10,7 @@
     ["LotterySingleButton","LotteryTenButton","LotteryAgain","LotteryConfirm","LotteryInfoConfirm"].forEach(function(id){U.ActionButton.Adopt($("#"+id),{variant:id==="LotteryTenButton"||id==="LotteryAgain"?"gold":"ivory"});});
     RH.LotteryActions();U.Checkbox.Adopt($("#LotterySkipAnimation")); LH.CloseButton($("#LotteryCloseButton"),close);
     var state = null;
-    var poolCache={}, poolVersions={}, poolAssemblies={};
+    var poolCache={}, poolVersions={}, poolAssemblies={}, poolErrors={};
     var pending = false;
     var requestSerial = 0;
     var selectedPoolId = "map";
@@ -109,6 +109,9 @@
 
     function errorText(code) {
         var messages = {
+            archive_config_mismatch: "游戏与服务器配置版本不一致，请同步配置后重新进入游戏",
+            mode_not_selected: "请先选择游戏模式，再打开抽奖",
+            http_profile_required: "服务器存档尚未连接，请稍后重新打开抽奖",
             lottery_ticket_insufficient: "抽奖券不足",
             lottery_ticket_consume_failed: "抽奖券扣除失败",
             lottery_item_grant_failed: "奖励发放失败",
@@ -450,24 +453,26 @@
         }
         if (snapshot.snapshot_scope === "details") {
             if (activeFeature !== "details" || Number(snapshot.snapshot_request_id) !== detailRequestSerial) return;
+            poolErrors[detailPoolId] = snapshot.error || "";
             detailState = snapshot.error ? null : snapshot; feature("details");
-            if (snapshot.error) setText("LotteryInfoRules", "加载失败：" + errorText(snapshot.error));
             return;
         }
         if (activeFeature === "details" && snapshot.selected_pool_id && String(snapshot.selected_pool_id) === detailPoolId && detailPoolId !== selectedPoolId) {
+            poolErrors[detailPoolId] = snapshot.error || "";
             detailState = snapshot.error ? null : snapshot;
             feature("details");
-            if (snapshot.error) setText("LotteryInfoRules", "加载失败：" + errorText(snapshot.error));
             return;
         }
         if (snapshot.error) {
+            poolErrors[selectedPoolId] = snapshot.error;
             state = null; switchingPool = false; updateButtons();
-            if (activeFeature === "details") { feature("details"); setText("LotteryInfoRules", "加载失败：" + errorText(snapshot.error)); }
+            if (activeFeature === "details" && detailPoolId === selectedPoolId) { detailState = null; feature("details"); }
             setText("LotteryStatus", "抽奖数据加载失败："
                 + errorText(snapshot.error));
             return;
         }
         if (snapshot.selected_pool_id && String(snapshot.selected_pool_id) !== selectedPoolId) return;
+        poolErrors[selectedPoolId] = "";
         state = snapshot;
         if(opened)markRead(snapshot.selected_pool,"visit");
         if (activeFeature === "details" && detailPoolId === selectedPoolId) detailState = snapshot;
@@ -614,7 +619,8 @@
             var commerce = GameUI.CustomUIConfig().SurvivalCommerceView;
             hideTooltip();
             if (commerce && commerce.OpenTicketPurchase && selectedTicketPool) {
-                commerce.OpenTicketPurchase({id:selectedTicketPool.id || selectedPoolId,display_name:selectedTicketPool.display_name || selectedPoolId,ticket_name:selectedTicketPool.ticket_name || "抽奖券"});
+                var handled=commerce.OpenTicketPurchase({id:selectedTicketPool.id || selectedPoolId,display_name:selectedTicketPool.display_name || selectedPoolId,ticket_name:selectedTicketPool.ticket_name || "抽奖券"});
+                if(!handled)setText("LotteryStatus",selectedPoolId==="map"?"地图抽奖券通过游戏玩法获得":"抽奖券购买暂未开放，请稍后重试");
             } else { setText("LotteryStatus", "抽奖券购买暂未开放"); }
             return;
         }
@@ -675,6 +681,13 @@
                 label(copy, (item.duration_text || "永久") + " · 重复转化 " + Number(item.duplicate_points || 0) + " 积分", "LotteryDetailMeta");
             });
             selectReward(rewards.filter(function (item) { return item.id === selectedRewardId; })[0] || rewards[0] || null);
+            // A failed prefetch can arrive before the dialog opens. Preserve its
+            // cause instead of presenting a deleted/empty pool or endless loading.
+            if (!viewState && poolErrors[detailPoolId]) {
+                setText("LotteryInfoRules", "加载失败：" + errorText(poolErrors[detailPoolId]));
+                setText("LotteryPoolGuarantee", "奖池数据尚未加载");
+                setText("LotterySelectedName", "奖池暂时无法加载");
+            }
         } else if (name === "history") {
             var entries=history.filter(function(entry){return String(entry.pool)===historyPoolId;});
             RH.History(host,entries,createRewardIcon,showTooltip,hideTooltip);
