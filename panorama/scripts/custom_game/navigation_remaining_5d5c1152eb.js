@@ -35,13 +35,10 @@
         upperLeft.style.backgroundPosition='right top';
         upperLeft.style.transformOrigin='50% 50%';
         upperLeft.style.transform='scale3d(-1,1,1)';
-        // Promotion controls are added after Card() by the existing renderer.
-        $.Schedule(0,function(){if(card.IsValid&&!card.IsValid())return;card.Children().forEach(function(c){if(c.BHasClass('ArchivePromote'))cfg.RemainingHandoff.Action(c,false,[88,29,12,10]);});});
+        // Archive promotion controls keep the readable dark theme.
     };
     view.Init = function () {
         originalInit.call(view);
-        var draw=$.GetContextPanel().FindChildTraverse('ArchiveDraw');
-        if(draw)cfg.RemainingHandoff.Action(draw,false,[142,36,20,12]);
         var filters=$.GetContextPanel().FindChildTraverse('ArchiveFilters');
         if(filters)filters.Children().forEach(function(button){
             if(button.Children().some(function(c){return c.BHasClass('ArchiveFilterFrame');}))return;

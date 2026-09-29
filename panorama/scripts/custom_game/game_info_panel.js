@@ -36,6 +36,9 @@
 
     function dispose() {
         if (disposed) return;
+        if (open && config.SurvivalGameInfoGeneration === generation) {
+            GameEvents.SendCustomGameEventToServer("ui_game_info_request", {open: 0});
+        }
         disposed = true;
         open = false;
         life.Dispose();
@@ -170,8 +173,8 @@
     }
 
     function requestSnapshot() {
-        if (!active()) return;
-        GameEvents.SendCustomGameEventToServer("ui_game_info_request", {});
+        if (!active() || !open) return;
+        GameEvents.SendCustomGameEventToServer("ui_game_info_request", {open: 1});
     }
 
     function setOpen(value, source) {
@@ -190,6 +193,7 @@
             render(CustomNetTables.GetTableValue(tableName, tableKey));
             scheduleDynamicValues();
         } else {
+            GameEvents.SendCustomGameEventToServer("ui_game_info_request", {open: 0});
             life.Cancel();
             dynamicPending = false;
             renderPending = false;

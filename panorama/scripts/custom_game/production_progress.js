@@ -219,8 +219,12 @@
         if (runtime.removed === 1 || !runtime.technology_group || unit !== selectedUnit()
             || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return false;
         if (runtime.owner_entindex !== undefined && Number(runtime.owner_entindex) !== unit) return false;
-        // Availability on an owner runtime may mean "already researching" or a
-        // different player's max level. Queue admission is checked by the server.
+        // Shared labs use the viewer's private availability, not the owner's row.
+        var personal = getResearchRuntime(ability, unit, runtime);
+        if (Number(personal.available) !== 1) {
+            notify(personal.status_text || "当前不能加入研究队列");
+            return true;
+        }
         GameEvents.SendCustomGameEventToServer("ui_research_queue_request", {
             request_id: requestId("research"), technology_group: runtime.technology_group, source_entindex: unit
         });
@@ -295,9 +299,14 @@
         var panelScale = Math.max(g.scale, 0.5) * 1.15;
         var width = Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / panelScale));
         var height = showTraining ? 426 : 270;
-        var rightEdge = g.x + (g.heroWidth + g.centerWidth - 10) * g.scale;
-        place(panel, rightEdge - width * panelScale,
-            g.y - height * panelScale - 8, width, height);
+        var physicalWidth=width*panelScale,physicalHeight=height*panelScale;
+        var panelX=Math.max(8,g.x-physicalWidth-14);
+        var viewportHeight=(Number(ctx.actuallayoutheight)||1080)/(Number(ctx.actualuiscale_y)||1);
+        var panelY=g.y+g.height*g.scale-physicalHeight;
+        // Keep the queue to the left, clear of the minimap and its shortcuts.
+        if(panelX<g.minimapSize+94) panelY=Math.min(panelY,viewportHeight-g.minimapSize-64-physicalHeight);
+        if(panelX+physicalWidth>g.x-4) panelY=Math.min(panelY,g.y-physicalHeight-8);
+        place(panel,panelX,Math.max(8,panelY),width,height);
         style(panel, { transform: "scale3d(" + panelScale + "," + panelScale + ",1)", transformOrigin: "0% 0%" });
         // Layout measurements omit our CSS transform. World-overlay occlusion
         // consumes physical window pixels, matching GetPositionWithinWindow().
@@ -308,7 +317,7 @@
         currentWorkerIcon.visible = !!showTraining;
         place(currentWorkerIcon, 16, 66, 50, 50);
         place(currentIcon, 16, 66, 50, 50);
-        place(jobName, 76, 52, width - 192, 82);
+        place(jobName, 76, 70, width - 192, 66);
         place(remaining, width - 108, 67, 92, 44);
         place(track, 16, 139, width - 32, 13);
         place(footer, 16, height - 42, width - 32, 36);
@@ -376,7 +385,7 @@
             text(jobName, showTraining ? "选择伐木工等级加入队列" : autoEnabled ? "自动待命 · 等待资源或前置条件" : "请选择要研究的科技");
             text(remaining, ""); style(fill, { width: "0%" });
         }
-        return height * panelScale / g.scale + 8 / g.scale;
+        return 0; // The left-hand queue no longer pushes the buffs above the HUD.
     }
     function repaint() { refresh(lastGeometry, selectedUnit(), lastReady, lastEntries); }
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {

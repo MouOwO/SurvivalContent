@@ -17,12 +17,12 @@
 }
 
 #CustomAbilityTooltip {
-    width: 337px;
+    width: 460px;
     min-height: 0px;
-    max-height: 360px;
+    max-height: 620px;
     padding: 14px;
     flow-children: down;
-    background-color: #101820f8;
+    background-color: #101820;
     border: 1px solid #8799a8;
     box-shadow: #000000cc 0px 0px 12px 0px;
     z-index: 2101;
@@ -30,6 +30,12 @@
     transition-property: opacity;
     transition-duration: 0.1s;
     transition-timing-function: linear;
+}
+
+/* Explicit tooltip typography: archive consumes these same resolved roles. */
+#CustomAbilityTooltip Label {
+    font-family:"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    font-weight:normal; font-style:normal; font-stretch:normal; text-shadow:none;
 }
 
 #CustomAbilityTooltip.FadingOut { opacity: 0; }
@@ -42,37 +48,37 @@
     background-color: #17384dcc;
     border-left: 3px solid #55bdefff;
     padding: 3px 7px 3px 8px;
-    font-size: 14px;
+    font-size: 19px;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 7px;
 }
-#AbilityTooltipHeader { width: 100%; height: 32px; flow-children: right; }
+#AbilityTooltipHeader { width: 100%; height: 42px; flow-children: right; }
 #AbilityTooltipTitleBlock { width: 100%; vertical-align: center; }
 #CustomAbilityTitleRow { width: 100%; flow-children: right; vertical-align: center; }
-#CustomAbilityTitle { color: #ffffff; font-size: 22px; }
+#CustomAbilityTitle { color: #ffffff; font-size: 30px; }
 #CustomAbilityLevel {
     color: #9db0bf;
-    font-size: 14px;
+    font-size: 19px;
     margin-left: 10px;
     vertical-align: center;
 }
 #CustomAbilityType {
     color: #7fa4bd;
-    font-size: 14px;
+    font-size: 19px;
     margin-left: 10px;
     vertical-align: center;
 }
 #CustomAbilityStatus {
     color: #8fd28f;
-    font-size: 16px;
+    font-size: 22px;
     margin-top: 6px;
 }
 .Unavailable #CustomAbilityStatus { color: #d28f8f; }
 .ResourceLow #CustomAbilityStatus { color: #e4ad69; }
 #CustomAbilityDescription {
     color: #d8e0e8;
-    font-size: 17px;
+    font-size: 24px;
     margin-top: 10px;
     white-space: normal;
 }
@@ -97,7 +103,7 @@
 }
 .AbilityCostValue {
     color: #f0d48a;
-    font-size: 17px;
+    font-size: 24px;
     margin-left: 5px;
     vertical-align: center;
 }
@@ -109,8 +115,8 @@
     margin-right: 6px;
     vertical-align: center;
 }
-.AbilityFieldLabel { width: 124px; color: #9db0bf; font-size: 16px; }
-.AbilityFieldValue { color: #f0d48a; font-size: 16px; }
+.AbilityFieldLabel { width: 164px; color: #9db0bf; font-size: 22px; }
+.AbilityFieldValue { color: #f0d48a; font-size: 22px; }
 
 #SurvivalAbilityTakeoverLayer {
     width: 100%;
@@ -235,7 +241,7 @@
     width: 100%;
     margin-top: 4px;
     color: #bdc7cf;
-    font-size: 14px;
+    font-size: 19px;
 }
 
 .AbilityCalibrationContent {
@@ -279,7 +285,7 @@
     horizontal-align: center;
     vertical-align: center;
     color: #ffffff;
-    font-size: 16px;
+    font-size: 22px;
 }
 
 .AbilityCalibrationNudges {
