@@ -373,7 +373,9 @@
             root.__placementStateKey=stateKey;
         }
         if (!status) return;
-        var text=message || (valid ? "左键建造 · 右键取消" : "无法建造 · 请换个位置");
+        var relocate = activeProfile && activeProfile.placement_action === "relocate";
+        var text=message || (valid ? (relocate ? "左键移动 · 右键取消" : "左键建造 · 右键取消")
+            : (relocate ? "无法移动 · 请换个位置" : "无法建造 · 请换个位置"));
         if (status.text!==text) status.text=text;
     }
 
@@ -410,7 +412,8 @@
                 suppressedHint.style.opacity = "0";
             }
         }
-        if (title) title.text = "预建造 · " + String(profile.display_name || profile.building_id);
+        if (title) title.text = (profile.placement_action === "relocate" ? "网格移动 · " : "预建造 · ")
+            + String(profile.display_name || profile.building_id);
         if(!gridState) ensureCellPanels(1);
         hideProjectedVisuals();
         setVisualValid(false);
@@ -1114,6 +1117,8 @@
         } else if (activeProfile) {
             hidePreview();
         }
+        if (activeProfile && activeProfile.placement_action === "relocate"
+            && selectedUnit() !== activeUnit) cancelPreview("selection_changed");
         if (activeProfile) {
             var frameStarted=Date.now();
             renderCursorIcon();
@@ -1145,7 +1150,9 @@
                 if (fastMotion) {
                     if(!gridState) setStyle(cellHost,"opacity","0.0000");
                     setStyle(footprintHost,"opacity","0.0000");
-                    setVisualValid(false,gridState?"左键建造 · 右键取消":"移动中 · 停稳后显示可建造区域",true);
+                    setVisualValid(false,gridState
+                        ? (activeProfile.placement_action === "relocate" ? "左键移动 · 右键取消" : "左键建造 · 右键取消")
+                        : "移动中 · 停稳后显示可放置区域",true);
                 } else if (lastValidation) renderValidation(lastValidation);
                 else if (lastAreaValidation) renderValidation(lastAreaValidation, true);
             } else {
@@ -1284,7 +1291,7 @@
             requestValidation(world,true);
         } else requestValidation(world);
         if (!validationIsCurrentAndLegal()) {
-            setVisualValid(false, "当前位置不可建造或仍在等待校验", !lastValidation);
+            setVisualValid(false, "当前位置不可放置或仍在等待校验", !lastValidation);
             return true;
         }
         if (inputMode === "custom") return submitCustomPlacement();
@@ -1319,6 +1326,27 @@
             dispatcher.RegisterKeyHandler("grid_placement", keyHandler, 100);
         }
     }
+
+    controllerConfig.SurvivalGridPlacement = {
+        BeginRelocation: function (ability, unit) {
+            var profile = profiles.ability_building_blink;
+            var pointInput = controllerConfig.SurvivalPointTargetInput;
+            if (!currentController() || !profile || !pointInput || !pointInput.Begin) return false;
+            cancelPreview("relocation_restart");
+            if (!pointInput.Begin(ability, unit)) return false;
+            showProfile(profile, ability, unit, "custom");
+            var world = cursorWorld(true);
+            if (world) requestValidation(world, true);
+            return true;
+        },
+        IsRelocating: function (unit) {
+            return currentController() && !!activeProfile && activeProfile.placement_action === "relocate"
+                && activeUnit === Number(unit);
+        },
+        CancelRelocation: function () {
+            if (activeProfile && activeProfile.placement_action === "relocate") cancelPreview("relocation_cancel");
+        }
+    };
 
     if(controllerConfig.SurvivalGridUnsubscribe) controllerConfig.SurvivalGridUnsubscribe();
     var subscriptions=[];

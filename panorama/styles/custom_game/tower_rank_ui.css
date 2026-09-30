@@ -1,0 +1,63 @@
+.SurvivalTowerRankRoot, #SurvivalTowerRanks {
+    width: 100%;
+    height: 100%;
+    overflow: clip;
+}
+.TowerRank {
+    width: 102px;
+    height: 30px;
+    flow-children: right;
+    visibility: collapse;
+}
+.TowerRankLetter {
+    width: 27px;
+    height: 27px;
+    vertical-align: center;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+.RankN .TowerRankLetter {
+    background-image: url("s2r://panorama/images/custom_game/survival_tower_rank/rareicon_n_png.vtex");
+}
+.RankR .TowerRankLetter {
+    background-image: url("s2r://panorama/images/custom_game/survival_tower_rank/rareicon_r_png.vtex");
+}
+.RankSR .TowerRankLetter {
+    background-image: url("s2r://panorama/images/custom_game/survival_tower_rank/rareicon_sr_png.vtex");
+}
+.RankSSR .TowerRankLetter {
+    background-image: url("s2r://panorama/images/custom_game/survival_tower_rank/rareicon_ssr_png.vtex");
+}
+.TowerRankUltimate {
+    visibility: collapse;
+    width: 27px;
+    height: 27px;
+    font-family: "Radiance", "Arial";
+    font-size: 18px;
+    font-weight: bold;
+    font-style: italic;
+    color: gradient(linear, 0% 0%, 0% 100%, from(#fff8d4), color-stop(0.42, #fff1a3), to(#e29131));
+    text-shadow: 0px 1px 3px 2.0 #39163ddd;
+    vertical-align: center;
+    horizontal-align: center;
+    text-align: center;
+}
+.RankUR .TowerRankUltimate { visibility: visible; }
+.TowerRankStars {
+    width: 70px;
+    height: 14px;
+    flow-children: right;
+    vertical-align: center;
+    margin-left: 2px;
+}
+.TowerRankStar {
+    width: 14px;
+    height: 14px;
+    background-image: url("s2r://panorama/images/control_icons/starfilled_psd.vtex");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    wash-color: #ffcf49;
+    visibility: collapse;
+}
+.TowerRankStar.ActiveStar { visibility: visible; }
+.TowerRankStar.RedStar { wash-color: #ff5959; }

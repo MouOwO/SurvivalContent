@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <Panel hittest="false">
+    <!-- This entry was inactive in the compiled gameplay baseline. Keep it
+         inactive during the scene/tower release; the payment work can restore it.
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/payment_test.xml" />
+    -->
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_hud.xml" />
+    <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/tower_rank_ui.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_grid_placement.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/hero_skill_ui.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/rogue_reward_ui.xml" />

@@ -4,7 +4,6 @@
     var moving = false;
     var selectedEnt = -1;
     var confirmEnt = -1;
-    var RANGE = 1000;
     var MOVE_ABILITY = "ability_building_blink";
     var DESTROY_ABILITY = "ability_destroy_arrow_tower";
 
@@ -47,23 +46,21 @@
 
     function beginMove(unit) {
         unit = Number(unit === undefined ? selectedUnit() : unit);
-        if (visibleAbility(unit, MOVE_ABILITY) < 0) return false;
+        var ability = visibleAbility(unit, MOVE_ABILITY);
+        if (ability < 0) return false;
+        var grid = GameUI.CustomUIConfig().SurvivalGridPlacement;
+        if (!grid || !grid.BeginRelocation || !grid.BeginRelocation(ability, unit)) return false;
         selectedEnt = unit;
         moving = true;
-        var hint = $("#SurvivalPointTargetHint");
-        if (hint) {
-            hint.text = "请选择箭塔移动位置（右键取消）";
-            hint.AddClass("PointTargetActive");
-        }
-        $.Msg("[BuildingMove] select ent=" + String(selectedEnt));
+        $.Msg("[BuildingMove] grid select ent=" + String(selectedEnt));
         return true;
     }
 
     function cancelMove() {
+        var grid = GameUI.CustomUIConfig().SurvivalGridPlacement;
+        if (moving && grid && grid.CancelRelocation) grid.CancelRelocation();
         moving = false;
         selectedEnt = -1;
-        var hint = $("#SurvivalPointTargetHint");
-        if (hint) hint.RemoveClass("PointTargetActive");
     }
 
     function confirmPanel() { return $("#ArrowTowerDestroyConfirm"); }
@@ -97,39 +94,9 @@
         return true;
     }
 
-    function sendPosition() {
-        if (!moving || selectedEnt < 0
-            || visibleAbility(selectedEnt, MOVE_ABILITY) < 0) {
-            cancelMove();
-            return false;
-        }
-        var screen = GameUI.GetCursorPosition();
-        var world = GameUI.GetScreenWorldPosition(screen);
-        if (!world) {
-            $.Msg("[BuildingMove] no world position");
-            return true;
-        }
-        var origin = Entities.GetAbsOrigin(selectedEnt);
-        var dx = world[0] - origin[0];
-        var dy = world[1] - origin[1];
-        if (Math.sqrt(dx * dx + dy * dy) > RANGE) {
-            $.Msg("[BuildingMove] rejected range");
-            cancelMove();
-            return true;
-        }
-        GameEvents.SendCustomGameEventToServer("ui_building_move_request", {
-            entindex: selectedEnt,
-            x: world[0], y: world[1], z: world[2]
-        });
-        $.Msg("[BuildingMove] request ent=" + String(selectedEnt));
-        cancelMove();
-        return true;
-    }
-
     function mouseCallback(eventName, button, gameTime) {
         if (confirmEnt >= 0) return true;
         if (!moving) return false;
-        if (eventName === "pressed" && button === 0) return sendPosition();
         if (eventName === "pressed" && button === 1) {
             cancelMove();
             return true;
@@ -160,10 +127,7 @@
         }
         if (normalized === "G") return openDestroyConfirm();
         if (normalized !== "D") return false;
-        if (moving) {
-            cancelMove();
-            return true;
-        }
+        // Every D starts a fresh grid session, including repeated presses.
         return beginMove();
     };
     if (dispatcher && dispatcher.RegisterKeyHandler) {
@@ -191,6 +155,11 @@
     };
 
     function lifecycleTick() {
+        var grid = GameUI.CustomUIConfig().SurvivalGridPlacement;
+        if (moving && grid && grid.IsRelocating && !grid.IsRelocating(selectedEnt)) {
+            moving = false;
+            selectedEnt = -1;
+        }
         if (confirmEnt >= 0 && (selectedUnit() !== confirmEnt
             || visibleAbility(confirmEnt, DESTROY_ABILITY) < 0)) {
             closeDestroyConfirm();
