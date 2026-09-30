@@ -1,18 +1,22 @@
 .GridPlacementLayoutRoot {
     width: 100%;
     height: 100%;
+    overflow: clip;
 }
 
 .GridPlacementRoot {
     width: 100%;
     height: 100%;
+    /* The projected circle may be wider/taller than the viewport. Panorama's
+       default squish changes its layout size and breaks mask counter-motion. */
+    overflow: clip;
 }
 
 .GridPlacementRoot.Hidden {
     visibility: collapse;
 }
 
-#GridPlacementCells {
+#GridPlacementCells, #GridPlacementFootprint {
     width: 100%;
     height: 100%;
 }
@@ -24,22 +28,132 @@
 
 .GridPlacementCellEdge {
     z-index: 2;
-    background-color: #a9ddd6c8;
-    box-shadow: 0 0 3px 1px #8ed8ce50;
+    background-color: #d5e6d33c;
 }
 
 .GridPlacementCellFill {
     z-index: 1;
-    background-color: #78cfc51c;
+    background-color: #75c15c0c;
 }
 
 .GridPlacementCell.Invalid .GridPlacementCellEdge {
-    background-color: #ff665ee8;
-    box-shadow: 0 0 4px 1px #ff302d70;
+    background-color: #e28f8238;
 }
 
 .GridPlacementCell.Invalid .GridPlacementCellFill {
-    background-color: #e6423f35;
+    background-color: #c7554518;
+}
+
+#GridPlacementTerrain, #GridPlacementFootprintTiles {
+    width: 100%;
+    height: 100%;
+    overflow: clip;
+}
+
+.GridStateQuad {
+    overflow: clip;
+}
+.GridStateFill {
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+}
+.GridStateQuad.TerrainBlocked { wash-color: #c75545; opacity: 0.13; }
+.GridStateQuad.FootprintTile.Clear { wash-color: #64f044; opacity: 0.40; }
+.GridStateQuad.FootprintTile.Blocked { wash-color: #ef3525; opacity: 0.50; }
+.GridStateQuad.FootprintTile.Unknown { wash-color: #b8bcb8; opacity: 0.20; }
+
+#GridPlacementStaticMask {
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 50%;
+    overflow: clip;
+}
+
+#GridPlacementStaticMask.StaticGridActive {
+    /* SVG backgrounds work, but the native opacity-mask path needs a texture. */
+    opacity-mask: url("file://{images}/custom_game/survival_grid/range_mask.png");
+}
+
+#GridPlacementStaticMesh {
+    width: 100%;
+    height: 100%;
+    overflow: clip;
+}
+
+.StaticGridLine {
+    z-index: 2;
+    height: 1px;
+    background-color: gradient(linear, 0% 0%, 0% 100%, from(#d5e6d300), color-stop(0.5, #d5e6d352), to(#d5e6d300));
+}
+
+.StaticGridMark {
+    z-index: 3;
+    width: 8px;
+    height: 8px;
+    background-image: url("file://{images}/custom_game/survival_grid/corner.svg");
+    background-size: 100% 100%;
+}
+
+.GridPlacementCell.Footprint {
+    z-index: 4;
+}
+
+.GridPlacementCell.Footprint.Valid .GridPlacementCellFill {
+    background-color: #64f04465;
+}
+
+.GridPlacementCell.Footprint.Invalid .GridPlacementCellFill {
+    background-color: #ef352580;
+}
+
+.GridPlacementCell.Footprint.Valid .GridPlacementCellEdge {
+    background-color: #b4fa8e90;
+}
+
+.GridPlacementCell.Footprint.Invalid .GridPlacementCellEdge {
+    background-color: #ff796a90;
+}
+
+.GridPlacementCellMark {
+    z-index: 3;
+    background-color: #dcebd67a;
+}
+
+.GridPlacementCell.Invalid .GridPlacementCellMark {
+    background-color: #dcc5b560;
+}
+
+#GridPlacementCursorIcon {
+    width: 48px;
+    height: 48px;
+    border: 1px solid #a6d58160;
+    border-radius: 3px;
+    z-index: 10;
+}
+
+/* Remote terrain differs in height from the construction plane. Its outline
+   must share the grid projection rather than following underwater ground. */
+#GridPlacementPlaneRange {
+    border: 1px solid #75e14b99;
+    border-radius: 50%;
+    box-shadow: #75e14b22 0px 0px 3px 1px;
+    transform-origin: 50% 50%;
+    overflow: clip;
+}
+
+.PlacementInvalid #GridPlacementCursorIcon {
+    border-color: #d9555570;
+    saturation: 0.45;
+}
+
+.PlacementPending #GridPlacementCursorIcon {
+    border-color: #d4d9d4aa;
+    saturation: 1;
+}
+
+.GridPlacementRoot.PlacementPending #GridPlacementStatus {
+    color: #d8dee5;
 }
 
 .GridPlacementRoot.PlacementValid #GridPlacementStatus {
@@ -53,14 +167,14 @@
 .GridPlacementHint {
     horizontal-align: center;
     vertical-align: bottom;
-    margin-bottom: 220px;
+    margin-bottom: 198px;
     flow-children: down;
-    padding: 8px 14px;
-    background-color: #091315d8;
-    border: 1px solid #587774b0;
+    padding: 3px 9px;
+    background-color: #09131570;
 }
 
 #GridPlacementTitle {
+    visibility: collapse;
     horizontal-align: center;
     color: white;
     font-size: 20px;
@@ -70,6 +184,6 @@
 #GridPlacementStatus {
     horizontal-align: center;
     color: #d8dee5;
-    font-size: 16px;
-    margin-top: 2px;
+    font-size: 14px;
+    text-shadow: 0px 1px 2px 2 #000000;
 }
