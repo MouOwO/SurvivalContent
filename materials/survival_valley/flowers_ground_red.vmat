@@ -1,0 +1,16 @@
+"Layer0"
+{
+ "F_TRANSLUCENT" "1"
+ "F_ALPHA_TEST" "1"
+ "g_flAlphaTestReference" ".3"
+	"shader"	"global_lit_simple.vfx"
+	"F_SPECULAR"	"0"
+	"F_TINT_MASK"	"1"
+	"g_flSpecularIntensity"	".1"
+	"g_vColorTint"	"[.86 .22 .18 1]"
+	"g_vColorTint2"	"[.37 .51 .29 0]"
+	"TextureReflectance"	"materials/survival_valley/card_flowers_000b_refl.png"
+	"TextureColor"	"materials/survival_valley/card_flowers_000_color.png"
+	"TextureTranslucency"	"materials/survival_valley/card_flowers_000_55cf14b0_trans.png"
+	"TextureTintMask"	"materials/survival_valley/card_flowers_000_mask.png"
+}
