@@ -10,13 +10,19 @@
         config.SurvivalTowerRanks.Stop();
     }
     function valid(panel) { return panel && (!panel.IsValid || panel.IsValid()); }
+    function setRowVisibility(panel, value) {
+        if (valid(panel) && panel.__rankVisibility !== value) {
+            panel.style.visibility = value;
+            panel.__rankVisibility = value;
+        }
+    }
     function hide(key, reason) {
         reasons[key] = reason || "hidden";
-        if (valid(panels[key])) panels[key].style.visibility = "collapse";
+        setRowVisibility(panels[key], "collapse");
     }
     function remove(key) {
         if (valid(panels[key])) {
-            panels[key].style.visibility = "collapse";
+            setRowVisibility(panels[key], "collapse");
             panels[key].DeleteAsync(0);
         }
         delete panels[key];
@@ -71,7 +77,7 @@
     function ensure(key, state) {
         if (valid(panels[key])) return panels[key];
         var panel = $.CreatePanel("Panel", container, "TowerRank_" + key);
-        panel.style.visibility = "collapse";
+        setRowVisibility(panel, "collapse");
         panel.AddClass("TowerRank"); panel.hittest = false; panel.hittestchildren = false;
         var letter = $.CreatePanel("Panel", panel, "");
         letter.AddClass("TowerRankLetter"); letter.hittest = false;
@@ -108,18 +114,27 @@
         frame = $.Schedule(0, positions);
         diagnostics.frames++;
         if (!valid(container)) { diagnostics.lastError = "container_missing"; return; }
+        var stateKeys = Object.keys(states);
+        // Empty sessions have no world labels to project or HUD bounds to read.
+        if (!stateKeys.length) { diagnostics.occlusion = null; return; }
         try {
+        var visibility = config.SurvivalWorldOverlayVisibility;
+        var occlusion = visibility && visibility.Capture ? visibility.Capture() : null;
+        diagnostics.occlusion = occlusion ? { blocked: !!occlusion.blocked, rects: occlusion.rects || [] } : null;
+        // A full-screen UI covers every row. Hide existing panels before
+        // skipping entity calls; closing it resumes the normal next-frame path.
+        if (occlusion && occlusion.blocked) {
+            stateKeys.forEach(function (key) { hide(key, "hud_occlusion"); });
+            return;
+        }
         var sx = Number(container.actualuiscale_x) || 1;
         var sy = Number(container.actualuiscale_y) || 1;
         var width = Number(container.actuallayoutwidth) || 0;
         var height = Number(container.actuallayoutheight) || 0;
         var offset = container.GetPositionWithinWindow ? container.GetPositionWithinWindow() : { x: 0, y: 0 };
-        var visibility = config.SurvivalWorldOverlayVisibility;
-        var occlusion = visibility && visibility.Capture ? visibility.Capture() : null;
         diagnostics.viewport = { width: width, height: height, scale_x: sx, scale_y: sy,
             x: Number(offset.x || 0), y: Number(offset.y || 0) };
-        diagnostics.occlusion = occlusion ? { blocked: !!occlusion.blocked, rects: occlusion.rects || [] } : null;
-        Object.keys(states).forEach(function (key) {
+        stateKeys.forEach(function (key) {
             try {
                 var state = states[key], entindex = Number(state.entindex);
                 if (!Entities.IsValidEntity(entindex)) { remove(key); reasons[key] = "invalid_entity"; return; }
@@ -151,8 +166,12 @@
                     hide(key, "hud_occlusion"); return;
                 }
                 var panel = ensure(key, state);
-                panel.style.position = lx.toFixed(2) + "px " + ly.toFixed(2) + "px 0px";
-                panel.style.visibility = "visible";
+                var position = lx.toFixed(2) + "px " + ly.toFixed(2) + "px 0px";
+                if (panel.__rankPosition !== position) {
+                    panel.style.position = position;
+                    panel.__rankPosition = position;
+                }
+                setRowVisibility(panel, "visible");
                 reasons[key] = "visible";
             } catch (error) { diagnostics.lastError = String(error); hide(key, "entity_exception"); }
         });

@@ -45,6 +45,8 @@
     var poseSequence = 0, lastPoseKey = "", lastPoseAt = -10000;
     var newestResponse = 0;
     var lastValidation = null;
+    var pendingRelocation = null;
+    var pendingRelocationStart = null;
     var lastAreaValidation = null;
     var cursorWorldAvailable = null;
     var lastOverviewKey = "";
@@ -379,10 +381,10 @@
         if (status.text!==text) status.text=text;
     }
 
-    function showProfile(profile, abilityIndex, unit, mode) {
-        previewSessionSequence += 1;
-        activePreviewSession = previewSessionSequence;
+    function showProfile(profile, abilityIndex, unit, mode, session) {
+        activePreviewSession = session || ++previewSessionSequence;
         activeProfile = profile;
+        pendingRelocation = null;
         lastPoseKey=""; lastPoseAt=-10000;
         activeAbility = abilityIndex;
         activeUnit = unit;
@@ -438,6 +440,7 @@
             );
         }
         activeProfile = null;
+        pendingRelocation = null;
         activeAbility = -1;
         activeUnit = -1;
         inputMode = "";
@@ -458,7 +461,13 @@
     }
 
     function cancelPreview(reason) {
-        if (inputMode === "custom") cancelCustomPointTarget(reason);
+        if (pendingRelocationStart) {
+            GameEvents.SendCustomGameEventToServer("ui_grid_placement_preview_end", {
+                ability_name: "ability_building_blink", session_id: String(pendingRelocationStart.session)
+            });
+            pendingRelocationStart = null;
+            cancelCustomPointTarget(reason);
+        } else if (inputMode === "custom") cancelCustomPointTarget(reason);
         hidePreview();
     }
 
@@ -1081,6 +1090,42 @@
         return true;
     }
 
+    function submitRelocation(world) {
+        if (pendingRelocation) return true;
+        var destination = snappedCursorWorld(world);
+        if (!destination || !isFinite(destination[0]) || !isFinite(destination[1])
+            || !isFinite(destination[2])) return true;
+        // A click is an intent at this cell, never authorization from an old
+        // green reply. The server checks ownership/range/occupancy again.
+        pendingRelocation = activePreviewSession;
+        GameEvents.SendCustomGameEventToServer("ui_grid_placement_commit", {
+            session_id: String(activePreviewSession), entindex: activeUnit,
+            ability_entindex: activeAbility, ability_name: activeProfile.ability_name,
+            x: destination[0], y: destination[1], z: destination[2]
+        });
+        setVisualValid(false, "正在确认移动位置……", true);
+        return true;
+    }
+
+    function resumeRelocationStart() {
+        if (!currentController()) return;
+        var pending = pendingRelocationStart;
+        if (!pending) return;
+        if (selectedUnit() !== pending.unit) { cancelPreview("selection_changed"); return; }
+        var profile = profiles.ability_building_blink;
+        var pointInput = controllerConfig.SurvivalPointTargetInput;
+        if (!profile || !pointInput || !pointInput.Begin) return;
+        if (!pointInput.Begin(pending.ability, pending.unit)) { cancelPreview("ability_unavailable"); return; }
+        pendingRelocationStart = null;
+        showProfile(profile, pending.ability, pending.unit, "custom", pending.session);
+        // Cold profiles must not eat the first click or use a later cursor.
+        if (pending.world) submitRelocation(pending.world);
+        else {
+            var world = cursorWorld(true);
+            if (world) requestValidation(world, true);
+        }
+    }
+
     function updatePreviewModel(world) {
         if(!activeProfile || Number(activeProfile.preview_model)!==1) return;
         var now=Date.now(), key=world[0]+":"+world[1]+":"+world[2];
@@ -1097,6 +1142,10 @@
         if(!currentController()) return;
         // Keep input/validation alive even if a visual API rejects a frame.
         $.Schedule(0.035, updateLoop);
+        if (pendingRelocationStart) {
+            resumeRelocationStart();
+            if (pendingRelocationStart) return;
+        }
         var customName = customPointTargetName();
         var customProfile = profiles[customName];
         var nativeIndex = nativeActiveAbility();
@@ -1128,8 +1177,10 @@
             updateMotion(rawWorld);
             var world = snappedCursorWorld(rawWorld);
             if (world) {
-                updatePreviewModel(world);
-                requestValidation(world);
+                if (!pendingRelocation) {
+                    updatePreviewModel(world);
+                    requestValidation(world);
+                }
                 renderCursorRange(world);
                 if (staticGrid) staticGrid.update(world,true);
                 var rangeFinished=Date.now();
@@ -1189,6 +1240,7 @@
         }
         $.Msg("[GridPlacement] profiles loaded=" + String(list.length)
             + " cell_size=" + String(gridCellSize));
+        resumeRelocationStart();
     }
 
     function onValidation(data) {
@@ -1237,6 +1289,21 @@
     }
 
     function onCommitResult(data) {
+        if (!currentController()) return;
+        if (pendingRelocation && data && Number(data.session_id) === pendingRelocation
+            && activeProfile && activeProfile.placement_action === "relocate") {
+            if (Number(data.success) === 1) {
+                cancelCustomPointTarget("grid_submitted");
+                hidePreview(false);
+            } else {
+                // Rejection closes the server session; preserve placement in
+                // a fresh one so the next cell can be clicked without another D.
+                showProfile(activeProfile, activeAbility, activeUnit, inputMode);
+                var world = cursorWorld(true);
+                if (world) requestValidation(world, true);
+                setVisualValid(false, "无法移动 · 请换个位置");
+            }
+        }
         if (data && Number(data.success) !== 1) {
             $.Msg("[GridPlacement] commit rejected: " + String(data.error || "unknown"));
         }
@@ -1275,6 +1342,17 @@
     }
 
     function mouseHandler(eventName, button) {
+        if (pendingRelocationStart && eventName === "pressed") {
+            if (button === 1) { cancelPreview("right_click"); return true; }
+            if (button === 0) {
+                var waitingWorld = cursorWorld(true);
+                if (waitingWorld && !pendingRelocationStart.world) {
+                    pendingRelocationStart.world = [Number(waitingWorld[0]), Number(waitingWorld[1]), Number(waitingWorld[2])];
+                }
+                resumeRelocationStart();
+                return true;
+            }
+        }
         if (!activeProfile) activateCustomPreviewImmediately();
         if (!activeProfile || eventName !== "pressed") return false;
         if (button === 1) {
@@ -1285,6 +1363,10 @@
         if (button !== 0) return false;
         var world = cursorWorld(true);
         if (!world) return true;
+        if (inputMode === "custom" && activeProfile.placement_action === "relocate") {
+            if (selectedUnit() !== activeUnit) { cancelPreview("selection_changed"); return true; }
+            return submitRelocation(world);
+        }
         if (fastMotion) {
             fastMotion=false; fastUntil=-100;
             motionSample={x:world[0],y:world[1],time:Number(Game.GetGameTime())};
@@ -1301,6 +1383,9 @@
     function keyHandler(key, down) {
         if (!activeProfile) activateCustomPreviewImmediately();
         var normalized = String(key || "").toUpperCase();
+        if (pendingRelocationStart && down && (normalized === "ESC" || normalized === "ESCAPE")) {
+            cancelPreview("escape"); return true;
+        }
         if (!activeProfile || !down || (normalized !== "ESC" && normalized !== "ESCAPE")) {
             return false;
         }
@@ -1329,22 +1414,21 @@
 
     controllerConfig.SurvivalGridPlacement = {
         BeginRelocation: function (ability, unit) {
-            var profile = profiles.ability_building_blink;
-            var pointInput = controllerConfig.SurvivalPointTargetInput;
-            if (!currentController() || !profile || !pointInput || !pointInput.Begin) return false;
+            if (!currentController()) return false;
             cancelPreview("relocation_restart");
-            if (!pointInput.Begin(ability, unit)) return false;
-            showProfile(profile, ability, unit, "custom");
-            var world = cursorWorld(true);
-            if (world) requestValidation(world, true);
-            return true;
+            pendingRelocationStart = {session: ++previewSessionSequence, ability: Number(ability), unit: Number(unit)};
+            if (!profiles.ability_building_blink) {
+                GameEvents.SendCustomGameEventToServer("ui_grid_placement_profiles_request", {});
+            }
+            resumeRelocationStart();
+            return !!pendingRelocationStart || !!activeProfile;
         },
         IsRelocating: function (unit) {
-            return currentController() && !!activeProfile && activeProfile.placement_action === "relocate"
-                && activeUnit === Number(unit);
+            return currentController() && ((!!pendingRelocationStart && pendingRelocationStart.unit === Number(unit))
+                || (!!activeProfile && activeProfile.placement_action === "relocate" && activeUnit === Number(unit)));
         },
         CancelRelocation: function () {
-            if (activeProfile && activeProfile.placement_action === "relocate") cancelPreview("relocation_cancel");
+            if (pendingRelocationStart || (activeProfile && activeProfile.placement_action === "relocate")) cancelPreview("relocation_cancel");
         }
     };
 
