@@ -1,8 +1,9 @@
 <root>
-    <!-- Archive visual audit 2026-09-28: opaque tooltip, shared native-scale typography; stable cards and aligned counters. -->
-    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /><include src="file://{resources}/styles/custom_game/archive_kit.css" /><include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/daily_assets.css"/><include src="file://{resources}/styles/custom_game/archive_handoff_180de7e38b.css" /><include src="file://{resources}/styles/custom_game/archive_typography_180de7e38b.css" /><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/archive_comfort.css"/></styles>
-    <scripts><include src="file://{resources}/scripts/custom_game/archive_theme_tokens.js"/><include src="file://{resources}/scripts/custom_game/archive_theme.js"/><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/daily_resources.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/archive_handoff_assets.js" /><include src="file://{resources}/scripts/custom_game/archive_handoff_180de7e38b.js" /><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/navigation_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/icons_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/archive_180de7e38b.js" /><include src="file://{resources}/scripts/custom_game/daily_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/treasure_history.js" /></scripts>
-    <Panel class="ArchiveRoot" hittest="false">
+    <!-- Treasure polish 20260929: reload frame resources and v4 navigation icons. -->
+    <!-- Archive text revision 2026-09-29: locked tooltip effects use plain dim text after palette refresh. -->
+    <styles><include src="file://{resources}/styles/custom_game/archive.css" /><include src="file://{resources}/styles/custom_game/daily_rewards.css" /><include src="file://{resources}/styles/custom_game/archive_kit.css" /><include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/daily_assets.css"/><include src="file://{resources}/styles/custom_game/archive_handoff_180de7e38b.css" /><include src="file://{resources}/styles/custom_game/archive_typography_180de7e38b.css" /><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/archive_comfort.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/archive_rarity_v1.css" /><include src="file://{resources}/styles/custom_game/vip_window.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/archive_theme_tokens.js"/><include src="file://{resources}/scripts/custom_game/archive_theme.js"/><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/daily_resources.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/archive_handoff_assets.js" /><include src="file://{resources}/scripts/custom_game/archive_handoff_180de7e38b.js" /><include src="file://{resources}/scripts/custom_game/reference_windows.js"/><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/navigation_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/icons_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/archive_180de7e38b.js" /><include src="file://{resources}/scripts/custom_game/daily_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/treasure_history.js" /><include src="file://{resources}/scripts/custom_game/vip_catalog.js" /><include src="file://{resources}/scripts/custom_game/vip_window.js" /></scripts>
+    <Panel class="ArchiveRoot ArchiveRegularText UnifiedWindowsV4" hittest="false">
         <Button id="ArchiveEntry" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Toggle()">
             <Panel class="ArchiveEntryScroll ArchiveKitIcon KitIcon_book" hittest="false" />
             <Label class="ArchiveEntryText" text="存档" />
@@ -11,6 +12,7 @@
         <Button id="TreasureEntry" onactivate="GameUI.CustomUIConfig().SurvivalTreasure.Toggle()"><Label text="宝物" /></Button>
         <Button id="TreasureScrim" class="ArchiveHidden" onactivate="GameUI.CustomUIConfig().SurvivalTreasure.Close()" />
         <Panel id="TreasureWindow" class="ArchiveHidden">
+            <Panel id="TreasureAtmosphere" hittest="false" hittestchildren="false"><Panel class="TreasureBloomTL"/><Panel class="TreasureBloomBR"/><Panel class="TreasureEdgeLightLeft"/><Panel class="TreasureEdgeLightRight"/><Panel class="TreasureHeaderGleam"/><Panel class="TreasureEdgeCoreLeft"/><Panel class="TreasureEdgeCoreRight"/><Image id="TreasureFilaments" src="file://{images}/custom_game/treasure_reference/filaments.svg" scaling="stretch-to-fit"/></Panel>
             <Panel id="TreasureFrame" hittest="false" hittestchildren="false">
                 <Panel class="TreasureFrameTopLeft" /><Panel class="TreasureFrameTop" /><Panel class="TreasureFrameTopRight" />
                 <Panel class="TreasureFrameLeft" /><Panel class="TreasureFrameRight" />
@@ -18,7 +20,7 @@
             </Panel>
             <Panel id="TreasureContent">
             <Panel id="TreasureHeader">
-                <Image id="TreasureEmblem" src="file://{images}/custom_game/handoff_v1/top/treasure_64.png" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
+                <Image id="TreasureEmblem" src="file://{images}/custom_game/topnav_reference_v2/treasure_clean.svg" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
                 <Panel id="TreasureHeading" hittest="false"><Label id="TreasureTitle" text="本局宝物" /><Label id="TreasureSubtitle" text="本局珍藏" /></Panel>
                 <Label id="TreasureCount" text="0 / 20" hittest="false" />
                 <Button id="TreasureClose" onactivate="GameUI.CustomUIConfig().SurvivalTreasure.Close()"><Image src="file://{images}/custom_game/remaining_handoff_ready/window_close_normal.png" hittest="false" /></Button>
@@ -26,6 +28,7 @@
             <Label id="TreasureHint" text="最近获得的宝物在前 · 最多展示 20 件" hittest="false" />
             <Panel id="TreasureCards" />
             <Panel id="TreasureDetail" hittest="false" hittestchildren="false">
+                <Image id="TreasureDetailDivider" src="file://{images}/custom_game/treasure_reference/divider.svg" hittest="false"/>
                 <Label id="TreasureDetailHint" text="悬停宝物，查看获得的效果" />
                 <Panel id="TreasureTooltip" class="ArchiveHidden"><Label id="TreasureTooltipName" /><Label id="TreasureTooltipEffect" /></Panel>
             </Panel>
@@ -55,6 +58,34 @@
             <Panel id="DailyRulesText" class="ArchiveHidden"><Label id="DailyRulesBody" /></Panel>
             <Panel id="DailyTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false"><Label id="DailyTooltipName" /><Label id="DailyTooltipEffect" /></Panel>
         </Panel>
+        <Image id="ArchiveArtifactNavigationPreload" style="visibility: collapse; opacity: 0; width: 0px; height: 0px;" src="file://{images}/custom_game/archive_polish_v1/nav/building.svg" visible="false" hittest="false" />
+        <Button id="VIPScrim" visible="false" hittest="false" />
+        <Panel id="VIPWindow" visible="false" hittest="false">
+            <Panel id="VIPHeader">
+                <Image id="VIPEmblem" src="file://{images}/custom_game/topnav_reference_v2/vip.svg" hittest="false" />
+                <Label id="VIPTitle" text="VIP特权" hittest="false" />
+                <Label id="VIPSubtitle" text="专属权益" hittest="false" />
+                <Button id="VIPClose" />
+            </Panel>
+            <Panel id="VIPBody">
+                <Panel id="VIPSidebar" />
+                <Panel id="VIPContent">
+                    <Label id="VIPGroupTitle" hittest="false" />
+                    <Label id="VIPWallet" hittest="false" />
+                    <Label id="VIPRechargeProgress" hittest="false" />
+                    <Panel id="VIPGrid" />
+                    <Panel id="VIPDetails">
+                        <Label id="VIPDetailTitle" hittest="false" />
+                        <Label id="VIPCondition" hittest="false" />
+                        <Label id="VIPEffectsLeft" hittest="false" />
+                        <Label id="VIPEffectsRight" hittest="false" />
+                        <Label id="VIPDetailNote" hittest="false" />
+                        <Button id="VIPAction"><Label id="VIPActionText" hittest="false" /></Button>
+                    </Panel>
+                </Panel>
+                <Label id="VIPStatus" text="" hittest="false" />
+            </Panel>
+        </Panel>
         <Button id="ArchiveScrim" class="ArchiveHidden" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()" />
         <Panel id="ArchiveWindow" class="ArchiveHidden ArchiveHandoff ArchiveReadableCountsV2">
             <Panel id="ArchiveHeader"><Panel id="ArchiveHeaderArt" hittest="false" />
@@ -62,11 +93,11 @@
                 <Button id="ArchiveClose" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Close()"><Panel class="ArchiveKitIcon KitIcon_close" hittest="false" /></Button>
             </Panel>
             <Panel id="ArchiveBody"><Image id="ArchiveSidebarBacking" hittest="false" /><Image id="ArchiveContentBacking" hittest="false" />
-                <Panel id="ArchiveTabs" />
+                <Panel id="ArchiveTabs" /><Label id="ArchiveNavScrollHint" text="↕ 滚轮查看更多分类" hittest="false" />
                 <Panel id="ArchiveContent">
                     <Panel id="ArchivePageHeader"><Label id="ArchivePageTitle" text="通关存档" /><Label id="ArchiveSummary" text="" /></Panel>
                     <Label id="ArchiveHint" text="" />
-                    <Panel id="ArchiveFilters"><RadioButton id="ArchiveFilter_all" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('all')"><Label id="ArchiveFilterAllLabel" text="全部" /></RadioButton><RadioButton id="ArchiveFilter_unlocked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('unlocked')"><Label text="已解锁" /></RadioButton><RadioButton id="ArchiveFilter_locked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('locked')"><Label text="未解锁" /></RadioButton></Panel><Label id="ArchiveContext" text="" /><Panel id="ArchiveGrid" />
+                    <Panel id="ArchiveFilters"><RadioButton id="ArchiveFilter_all" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('all')"><Label id="ArchiveFilterAllLabel" text="全部" /></RadioButton><RadioButton id="ArchiveFilter_unlocked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('unlocked')"><Label text="已解锁" /></RadioButton><RadioButton id="ArchiveFilter_locked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('locked')"><Label text="未解锁" /></RadioButton></Panel><Label id="ArchiveContext" text="" /><Label id="ArchiveCurrencySource" text="" visible="false" hittest="false" /><Panel id="ArchiveGrid" />
                     <Label id="ArchiveEmpty" text="正在读取存档…" />
                     <Panel id="ArchiveDrawBar" class="ArchiveHidden">
                         <Label id="ArchiveDrawResult" text="" />
@@ -81,7 +112,7 @@
             </Panel>
         </Panel>
         <Panel id="ArchiveTooltip" class="ArchiveHidden" hittest="false" hittestchildren="false">
-            <Panel id="ArchiveTooltipFrame" hittest="false" /><Panel id="ArchiveTooltipBody"><Label id="ArchiveTooltipName" /><Panel id="ArchiveTooltipState"><Image id="ArchiveTooltipStateIcon" /><Label id="ArchiveTooltipStateText" /></Panel><Image id="ArchiveTooltipDivider" /><Label class="ArchiveDetailHeading" text="效果" /><Label id="ArchiveTooltipEffect" /><Label id="ArchiveTooltipCondition" visible="false" /><Panel id="ArchiveTooltipProgressRow"><Label text="当前进度" /><Label id="ArchiveTooltipProgress" /></Panel></Panel>
+            <Panel id="ArchiveTooltipFrame" hittest="false" /><Panel id="ArchiveTooltipBody"><Label id="ArchiveTooltipName" /><Panel id="ArchiveTooltipState"><Image id="ArchiveTooltipStateIcon" /><Label id="ArchiveTooltipStateText" /></Panel><Image id="ArchiveTooltipDivider" /><Label class="ArchiveDetailHeading" text="效果" /><Label id="ArchiveTooltipEffect" /><Label id="ArchiveTooltipCondition" visible="false" /><Panel id="ArchiveTooltipProgressRow"><Label id="ArchiveTooltipProgressLabel" text="当前进度" /><Label id="ArchiveTooltipProgress" /></Panel></Panel>
         </Panel>
     </Panel>
 </root>

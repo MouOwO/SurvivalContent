@@ -37,9 +37,9 @@
 }
 #SurvivalMinimapShortcuts .Unavailable Label { color: #83958e; }
 .HandoffBoot #SurvivalMinimapShortcuts { opacity: 0; }
-/* Screen corner identified by the user, independent of the centered nav bar. */
+/* Fallback below the navigation; HUD layout adjusts for viewport scaling. */
 #SurvivalLocalHeroPortrait {
-    position: 8px 6px 0px;
+    position: 8px 108px 0px;
     width: 64px;
     height: 64px;
     visibility: collapse;

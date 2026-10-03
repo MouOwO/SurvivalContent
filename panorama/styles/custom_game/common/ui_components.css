@@ -85,7 +85,7 @@
 .UIRewardGrid {width:100%;height:100%;flow-children:right-wrap;overflow:squish scroll;}
 .UIReadingGradient {width:100%;height:100%;background-color:gradient(linear,0% 0%,100% 0%,from(#10232a55),to(#10232a00));z-index:-1;}
 /* Existing layouts keep their data slots; the shell chrome is shared. */
-#ArchiveWindow.UIModal,#CustomShopWindow.UIModal,#LotteryInfoDialog.UIModal {background-image:none;background-color:#EFEADF;border:1px solid #C7B88F;border-radius:6px;}
+#ArchiveWindow.UIModal,#LotteryInfoDialog.UIModal {background-image:none;background-color:#EFEADF;border:1px solid #C7B88F;border-radius:6px;}
 #ArchiveHeader.UIModalHeader,#ShopHeader.UIModalHeader,#LotteryInfoHeader.UIModalHeader {background-image:none;background-color:#173743;border-bottom:1px solid #C7B88F;}
 #ArchiveWindow.UIModal #ArchiveHeader {width:100%;}
 #ArchiveWindow.UIModal #ArchiveTabs {background-color:#173743;}
@@ -100,13 +100,14 @@
 #CustomShopWindow.UIModal #ShopModeToggles {width:300px;}
 #CustomShopWindow.UIModal .ShopModeToggle {width:96px;}
 #CustomShopWindow.UIModal #ShopBody {width:100%;height:fill-parent-flow(1);margin:0px;}
-#CustomShopWindow.UIModal #ShopShelfArea {background-color:#EFEADF;border:0px;}
+#CustomShopWindow.UIModal {background-image:none;background-color:#102630;border:1px solid #63767a;}
+#CustomShopWindow.UIModal #ShopShelfArea {background-color:transparent;border:0px;}
 #CustomShopWindow.UIModal #ShopFooter {height:62px;background-color:#173743;}
 #CustomShopWindow.UIModal .ShopShelfSlot.UICardProduct {width:96px;height:76px;flow-children:none;}
 #CustomShopWindow.UIModal #ShopTitle {color:#D0D6D5;}
 #LotteryInfoDialog.UIModal .LotteryModalSurface,#LotteryInfoDialog.UIModal .LotteryV3ModalFrame,#LotteryInfoDialog.UIModal .LotteryNineFrame {visibility:collapse;}
 #LotteryInfoDialog.UIModal #LotteryInfoHeader {width:100%;height:88px;padding:8px 26px;}
-#LotteryInfoDialog.UIModal #LotteryInfoBody {background-color:#EFEADF;}
+#LotteryInfoDialog.UIModal #LotteryInfoBody {background-color:transparent;}
 #LotteryInfoDialog.UIModal #LotteryInfoTitle {color:#D0D6D5;}
 .MainHudIconButton.UIIconButton .UIIcon {horizontal-align:center;vertical-align:top;position:0px 0px 0px;}
 .MainHudIconButton.UIIconButton .UIIconImage {horizontal-align:left;vertical-align:top;}
@@ -115,7 +116,7 @@
 #LotteryWindow .LotteryPoolTab.UITab {background-size:100% 24px;background-position:bottom;background-color:#173743;}
 #LotteryWindow .LotteryPoolTab.UITab:hover {background-image:url("file://{images}/ui/shared/overlay/tab_hover_overlay.png");}
 #LotteryWindow .LotteryPoolTab.UITab.Selected,#LotteryWindow .LotteryPoolTab.UITab.Selected:hover {background-image:url("file://{images}/ui/shared/overlay/tab_selected_overlay.png");}
-#LotteryInfoDialog.UIModal .LotteryDetailRow.UICardSquare {background-image:url("file://{images}/ui/shared/card/body/ivory.png");background-color:#EFEADF;border:0px;}
+#LotteryInfoDialog.UIModal .LotteryDetailRow.UICardSquare {background-image:none;background-color:#112a33;border:1px solid #49626a;}
 #LotteryInfoDialog.UIModal .LotteryDetailRow.UICardSquare.Selected {wash-color:#fff1d0;}
 #ArchiveWindow.UIModal #ArchiveDraw {background-image:url("file://{images}/ui/shared/button/gold/normal.png");}
 #ArchiveWindow.UIModal #ArchiveDraw:hover {background-image:url("file://{images}/ui/shared/button/gold/hover.png");}

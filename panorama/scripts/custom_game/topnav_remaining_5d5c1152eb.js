@@ -71,9 +71,9 @@
     function notice(value) {var serial=++noticeSerial;text("HandoffNotice",value);nodes.HandoffNotice.visible=true;$.Schedule(4,function(){if(valid(host)&&serial===noticeSerial)nodes.HandoffNotice.visible=false;});}
     function blocked() {return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top();}
     function forward(id) {var p=native(id);if(!valid(p))return false;$.DispatchEvent("Activated",p,"mouse");return true;}
-    var actions={survival_shop:["SurvivalShop","ToggleShop"],shop:["SurvivalCommerceView","Open"],treasure:["SurvivalTreasure","Toggle"],archive:["SurvivalArchive","Toggle"],equipment:["SurvivalEquipment","Toggle"],
+    var actions={vip:["SurvivalVIP","Toggle"],survival_shop:["SurvivalShop","ToggleShop"],shop:["SurvivalPayments","Open"],treasure:["SurvivalTreasure","Toggle"],archive:["SurvivalArchive","Toggle"],equipment:["SurvivalEquipment","Toggle"],
         lottery:["SurvivalLottery","Open"],benefit:["SurvivalDaily","Open"],appearance:["SurvivalAppearance","Toggle"]};
-    function available(id) {if(id==="survival_shop"&&!(cfg.SurvivalShopUnlocks&&cfg.SurvivalShopUnlocks.shop))return false;if(id==="return")return valid(native("DashboardButton"));if(id==="settings")return valid(native("SettingsRebornButton"))||valid(native("SettingsButton"));if(id==="social")return true;var a=actions[id];return !!(a&&cfg[a[0]]&&typeof cfg[a[0]][a[1]]==="function");}
+    function available(id) {if(id==="vip")return !!(cfg.SurvivalVIP&&cfg.SurvivalVIP.IsAvailable());if(id==="survival_shop"&&!(cfg.SurvivalShopUnlocks&&cfg.SurvivalShopUnlocks.shop))return false;if(id==="return")return valid(native("DashboardButton"));if(id==="settings")return valid(native("SettingsRebornButton"))||valid(native("SettingsButton"));if(id==="social")return true;var a=actions[id];return !!(a&&cfg[a[0]]&&typeof cfg[a[0]][a[1]]==="function");}
     function activate(id) {
         if(blocked())return;
         // Native dota_hud_menu_buttons uses this engine event. Its hidden MenuButtons
@@ -84,14 +84,58 @@
         if(id==="social"){nodes.HandoffSocial.visible=!nodes.HandoffSocial.visible;return;}
         var a=actions[id];if(available(id)){nodes.HandoffSocial.visible=false;cfg[a[0]][a[1]]();}else notice("该入口尚未接入");
     }
-    // Screen-width decoration, separate from the centered/scaled navigation canvas.
+    // Screen-width decoration, separate from the corner-anchored navigation canvas.
     var topBackdrop=create("Panel",host,"HandoffTopBackdrop",false);
     style(topBackdrop,{backgroundImage:'url("file://{images}/'+assets.top_top_soft_black_backdrop.file+'")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",maxWidth:"10000px",maxHeight:"10000px",minWidth:"0px",overflow:"noclip"});
     var top=create("Panel",host,"HandoffTop",true);top.hittest=false;top.AddClass("HandoffCanvas");
-    var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"],["shop","商城"],["survival_shop","生存商店"]];
-    nav.forEach(function(a,i){var b=create("Button",top,"HandoffNav_"+a[0],true);b.AddClass("HandoffNav");place(b,10+i*58,3,64,64);place(art(b,"",a[0]==="survival_shop"?"top_shop_64":"top_"+a[0]+"_64"),0,0,64,64);b.style.height="88px";var caption=create("Label",b,"",false);caption.text=a[1];place(caption,0,62,64,24);caption.style.horizontalAlign="center";caption.style.width="fit-children";caption.style.minWidth="0px";caption.style.fontFamily="Source Han Sans SC";caption.style.fontSize="18px";caption.style.fontWeight="medium";caption.style.color="#f3ecdb";caption.style.textAlign="center";caption.style.textShadow="0px 1px 2px 2.0 #00000090";/* Top navigation tooltips temporarily disabled. */b.SetPanelEvent("onactivate",function(){activate(a[0]);});topButtons[a[0]]=b;});
+    // Status keeps its original centered reference independently of the corner navigation.
+    var topStatus=create("Panel",host,"HandoffTopStatus",false);topStatus.AddClass("HandoffCanvas");
+    var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"],["shop","商城"],["survival_shop","生存商店"],["vip",""]];
+    // Shared bounds keep initial creation and resolution refresh equally compact.
+    function navBounds(key,index) {
+        return {x:key==="vip"?460:14+index*58,
+            width:key==="survival_shop"?96:key==="vip"?60:56};
+    }
+    // Navigation icons and captions sit directly over the game, without a solid plate.
+    nav.forEach(function(a,i){
+        var bounds=navBounds(a[0],i),buttonWidth=bounds.width;
+        var b=create("Button",top,"HandoffNav_"+a[0],true);b.AddClass("HandoffNav");b.AddClass("HandoffNavUnified");place(b,bounds.x,6,buttonWidth,86);
+        // Halo first so it paints under the icon; z-index:-1 keeps it inside the button.
+        var halo=create("Panel",b,"HandoffNavGlow_"+a[0],false);halo.AddClass("HandoffNavGlow");place(halo,(buttonWidth-62)/2,0,62,62);
+        var icon=create("Image",b,"HandoffNavIcon_"+a[0],false);icon.SetImage("file://{images}/custom_game/topnav_reference_v2/"+a[0]+((a[0]==="treasure"||a[0]==="benefit")?"_clean":"")+".svg");place(icon,(buttonWidth-44)/2,4,44,44);if(a[0]==="vip")place(icon,(buttonWidth-56)/2,-2,56,56);
+        var captionHost=create("Panel",b,"HandoffNavCaptionHost_"+a[0],false);place(captionHost,0,52,buttonWidth,32);
+        var caption=create("Label",captionHost,"HandoffNavCaption_"+a[0],false);caption.text=a[1];style(caption,{width:"100%",height:"fit-children",minHeight:"0px",verticalAlign:"center",margin:"0px",padding:"0px"});
+        style(caption,{fontFamily:'"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif',fontSize:"22px",fontWeight:"bold",textAlign:"center",whiteSpace:"nowrap",textOverflow:"clip"});
+        caption.AddClass("HandoffNavCaption");
+        // Selected-state underline, hidden unless the entry owns the open window.
+        var underline=create("Panel",b,"HandoffNavUnderline_"+a[0],false);underline.AddClass("HandoffNavUnderline");place(underline,(buttonWidth-34)/2,84,34,2);
+        b.__glow=halo;b.__underline=underline;
+        b.SetPanelEvent("onactivate",function(){activate(a[0]);});
+        if(a[0]==="vip"){
+            b.enabled=false;b.hittest=false;
+            icon.SetImage("file://{images}/custom_game/topnav_reference_v2/vip_locked.svg");
+        }
+        topButtons[a[0]]=b;
+    });
+    // One open window at a time, so the highlight is a single owner, not a list.
+    var navWindowIds={vip:"vip",treasure:"treasure",archive:"archive",lottery:"lottery",benefit:"benefit",
+        shop:"shop",survival_shop:"survival_shop"};
+    function markActiveNav(id) {
+        Object.keys(topButtons).forEach(function(key){topButtons[key].SetHasClass("HandoffNavActive",key===id);});
+    }
+    function syncActiveNav() {
+        var top=cfg.SurvivalUILayers&&cfg.SurvivalUILayers.Top?cfg.SurvivalUILayers.Top():null;
+        var matched=null;
+        if(top)Object.keys(navWindowIds).forEach(function(key){if(navWindowIds[key]===top)matched=key;});
+        // Windows opened outside SurvivalUILayers fall back to their own visibility.
+        if(!matched){
+            var probes=[["survival_shop","CustomShopWindow"],["treasure","TreasureWindow"],["archive","ArchiveWindow"],["lottery","LotteryWindow"],["benefit","DailyWindow"]];
+            probes.forEach(function(p){if(matched)return;var w=root.FindChildTraverse(p[1]);if(valid(w)&&w.visible)matched=p[0];});
+        }
+        markActiveNav(matched);
+    }
     function topMetric(id,key,x,textX,textWidth){
-        var row=create("Panel",top,id+"Row",false);place(row,x,14,textX-x+textWidth,44);
+        var row=create("Panel",topStatus,id+"Row",false);place(row,x,14,textX-x+textWidth,44);
         var icon=art(row,id+"Icon",key);place(icon,0,0,32,32);style(icon,{verticalAlign:"center"});
         var value=label(row,id);place(value,textX-x,0,textWidth,44);
         // Clear place()'s fixed minimum: otherwise the glyph is top-aligned
@@ -100,15 +144,23 @@
     }
     topButtons.survival_shop.enabled=available("survival_shop");
     style(topButtons.survival_shop,{saturation:available("survival_shop")?"1":"0",opacity:available("survival_shop")?"1":"0.4"});
-    topMetric("HandoffWave","top_wave",646,688,480);
+    var difficultyRow=create("Panel",topStatus,"HandoffDifficultyRow",false);place(difficultyRow,722,14,50,44);
+    var difficultyLabel=label(difficultyRow,"HandoffDifficulty");place(difficultyLabel,0,0,50,44);
+    style(difficultyLabel,{height:"fit-children",minHeight:"0px",verticalAlign:"center",textAlign:"center",color:"#f0d48a",textShadow:"none"});
+    topMetric("HandoffWave","top_wave",780,822,346);
     [["gold",1194,1234],["wood",1339,1379],["population",1484,1524]].forEach(function(a){topMetric("HandoffResource_"+a[0],"top_"+a[0],a[1],a[2],105);});
     var fxButton=create("Button",top,"HandoffCombatEffects",true);
-    place(fxButton,450,17,180,38);
-    style(fxButton,{backgroundColor:"#243a40ee",border:"1px solid #607579",borderRadius:"3px"});
-    var fxText=label(fxButton,"HandoffCombatEffectsText");
-    style(fxText,{fontSize:"18px",horizontalAlign:"center",verticalAlign:"center",color:"#cdd8dc"});
+    place(fxButton,522,6,96,86);
+    fxButton.AddClass("HandoffNavUnified");
+    var fxHalo=create("Panel",fxButton,"HandoffEffectsGlow",false);fxHalo.AddClass("HandoffNavGlow");place(fxHalo,17,0,62,62);
+    var fxIcon=create("Image",fxButton,"HandoffEffectsIcon",false);fxIcon.SetImage("file://{images}/custom_game/topnav_reference_v2/effects.svg");place(fxIcon,26,4,44,44);
+    style(fxButton,{borderRadius:"0px"});
+    var fxCaptionHost=create("Panel",fxButton,"HandoffEffectsCaptionHost",false);place(fxCaptionHost,0,52,96,32);
+    var fxText=create("Label",fxCaptionHost,"HandoffCombatEffectsText",false);fxText.text="";
+    style(fxText,{width:"100%",height:"fit-children",minHeight:"0px",verticalAlign:"center",margin:"0px",padding:"0px",fontFamily:'"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif',fontSize:"22px",fontWeight:"bold",textAlign:"center"});
+    fxText.AddClass("HandoffNavCaption");
     var fxReduced=cfg.SurvivalReducedCombatEffects===true;
-    function showEffectsSetting(){fxText.text=fxReduced?"简化特效：开":"简化特效：关";style(fxButton,{backgroundColor:fxReduced?"#2d5047ee":"#243a40ee"});}
+    function showEffectsSetting(){fxText.text=fxReduced?"简化特效":"完整特效";fxButton.SetHasClass("HandoffEffectsReduced",fxReduced);}
     function sendEffectsSetting(){GameEvents.SendCustomGameEventToServer("ui_combat_effects_setting",{reduced:fxReduced?1:0});}
     tooltip(fxButton,"简化所有英雄、箭塔的技能光效与命中特效，仅影响自己的画面。<br>保留弹道、攻击范围与升级金光，不改变伤害和技能判定。");
     fxButton.SetPanelEvent("onactivate",function(){if(blocked())return;fxReduced=!fxReduced;cfg.SurvivalReducedCombatEffects=fxReduced;showEffectsSetting();sendEffectsSetting();});
@@ -223,6 +275,10 @@
     ["HandoffBuildingBonus","HandoffBuildingPercent","HandoffBuildingHealthBonus","HandoffBuildingHealthPercent"].forEach(function(id){
         nodes[id].hittest=true;tooltip(nodes[id],function(){return buildingBonusHelp(id.indexOf("Health")>=0?"health":null);});
     });
+    var buildingStatRow=create("Panel",center,"HandoffBuildingStatRow",false);
+    buildingStatRow.hittestchildren=true;
+    style(buildingStatRow,{flowChildren:"right",visibility:"collapse",overflow:"clip"});
+    var buildingInlineIds=["HandoffBuildingSummary","HandoffBuildingBonus","HandoffBuildingPercent","HandoffBuildingHealthPercent"];
     function selectedSnapshot() {return cfg.HandoffCombat && cfg.HandoffCombat.Snapshot ? cfg.HandoffCombat.Snapshot(selectedUnit()) : null;}
     function buildingBonusHelp(stat) {
         var snapshot=selectedSnapshot(),d=snapshot && snapshot.building_stat_details || {};
@@ -461,9 +517,40 @@
         ["ArchiveEntry","TreasureEntry","LotteryButton"].forEach(function(id){style(root.FindChildTraverse(id),{visibility:"collapse"});});
         return true;
     }
+    // Resolve navigation at its displayed size: avoid post-scaling rasterized text/SVG.
+    // Snap child bounds and the shared text baseline to physical screen pixels.
+    function layoutNavigation(scale, screenScale) {
+        function px(value) { return Math.round(value * scale * screenScale) / screenScale; }
+        function box(panel,x,y,width,height) { place(panel,px(x),px(y),px(width),px(height)); }
+        var textSize=px(22)+"px";
+        nav.forEach(function(entry,index){
+            var key=entry[0],bounds=navBounds(key,index),width=bounds.width;
+            box(topButtons[key],bounds.x,6,width,86);
+            box(nodes["HandoffNavGlow_"+key],(width-62)/2,0,62,62);
+            box(nodes["HandoffNavIcon_"+key],(width-44)/2,4,44,44);
+            if(key==="vip")box(nodes["HandoffNavIcon_"+key],(width-56)/2,-2,56,56);
+            box(nodes["HandoffNavCaptionHost_"+key],0,52,width,32);
+            style(nodes["HandoffNavCaption_"+key],{fontSize:textSize});
+            box(nodes["HandoffNavUnderline_"+key],(width-34)/2,84,34,2);
+        });
+        box(fxButton,522,6,96,86);
+        box(fxHalo,17,0,62,62);
+        box(fxIcon,26,4,44,44);
+        box(fxCaptionHost,0,52,96,32);
+        style(fxText,{fontSize:textSize});
+    }
     function layout() {
         var w=(ctx.actuallayoutwidth||1672)/(ctx.actualuiscale_x||1),h=(ctx.actuallayoutheight||941)/(ctx.actualuiscale_y||1);
-        var topScale=Math.min(w/1672,h/941);place(top,(w-1672*topScale)/2,0,1672,941);style(top,{transform:"scale3d("+topScale+","+topScale+",1)"});
+        var topScale=Math.min((w-16)/1672,h/941),topX=8,topY=6;
+        var navPixelScale=Number(ctx.actualuiscale_x)||1;
+        topX=Math.round(topX*navPixelScale)/navPixelScale;
+        topY=Math.round(topY*navPixelScale)/navPixelScale;
+        place(top,topX,topY,630*topScale,94*topScale);style(top,{transform:"none"});
+        layoutNavigation(topScale,navPixelScale);
+        var statusScale=Math.min(w/1672,h/941),statusX=(w-1672*statusScale)/2;
+        place(topStatus,statusX,0,1672,941);style(topStatus,{transform:"scale3d("+statusScale+","+statusScale+",1)"});
+        // Keep the hero shortcut below the navigation at every viewport scale.
+        style(root.FindChildTraverse("SurvivalLocalHeroPortrait"),{position:topX+"px "+(topY+94*topScale+8)+"px 0px"});
         // Both screen edges lie inside the texture; no Image aspect-fit gutters.
         place(topBackdrop,-24,0,w+48,941*topScale);
         var presentation=statVisibility(selectedUnit());presentation.multi=!!(cfg.SurvivalMultiSelectionPortraits&&cfg.SurvivalMultiSelectionPortraits.IsActive());var count=presentation.tree?0:abilityCount(),g=cfg.HandoffGeometry(w,h,count,presentation.building,presentation.tree,presentation);
@@ -477,7 +564,8 @@
         cfg.HandoffWorldOcclusion=ready?[
             rect(g.x,g.y-(g.heroWidth===0?23*g.scale:0),g.width*g.scale,(g.height+(g.heroWidth===0?23:0))*g.scale),
             rect(0,counterY,g.minimapSize+24,h-counterY),
-            rect((w-1672*topScale)/2,0,1672*topScale,90*topScale)
+            rect(topX,topY,716*topScale,94*topScale),
+            rect(statusX+646*statusScale,14*statusScale,983*statusScale,44*statusScale)
         ]:[];
         if(ready)layoutMinimap(g);
         var signature=[w,h,count,g.heroWidth,g.height,selectedUnit(),currentEntries.map(function(e){return e.ability;}).join(",")].join(":");
@@ -532,7 +620,12 @@
         building=building || !!id || wall || tower;
         var hero=/^npc_dota_hero_/.test(name) && name!=="npc_dota_hero_undying";
         try {if(Entities.IsHero) hero=hero && !!Entities.IsHero(unit);} catch(error) {}
-        return {combat:!!name && !building,attributes:hero && !building,building:building,wall:wall,tower:tower};
+        // Creature names cover every wave/practice/challenge family before a snapshot arrives.
+        // Team detection also covers bosses created from native hero definitions.
+        var monster=/^(npc_survival_(?:wave_|named_|rogue_training_dummy)|asset_proxy_(?:monster_|wave_)|zombie_)/.test(name);
+        try {monster=monster || !!(Entities.GetTeamNumber && Number(Entities.GetTeamNumber(unit))===3);} catch(error) {}
+        monster=!building && monster;
+        return {combat:!!name && !building,attributes:hero && !building && !monster,building:building,wall:wall,tower:tower,monster:monster,production:/^building_(main_city|(?:advanced_)?research_lab)$/.test(name)};
     }
     function buildingPresentation(shown,multi) {
         // Shared compact presentation does not classify resource trees as friendly buildings.
@@ -540,7 +633,7 @@
         style(native("AbilitiesAndStatBranch"),{visibility:shown.tree?"collapse":"visible"});
         // Hide parents: native/cosmetic code may continue updating their children.
         ["PortraitGroup","inventory","inventory_composition_layer_container"].forEach(function(id){
-            style(native(id),{visibility:building && !(id==="PortraitGroup" && workerMulti)?"collapse":"visible"});
+            style(native(id),{visibility:(building && !(id==="PortraitGroup" && workerMulti)) || (shown.monster && id!=="PortraitGroup")?"collapse":"visible"});
         });
         var grid=native("multiunit");
         if(valid(grid)) {
@@ -553,16 +646,24 @@
             }
         }
         ["HandoffHeroBase","HandoffPortraitFrame","HandoffNamePlate","HandoffInventoryBase"].forEach(function(id){
-            style(nodes[id],{visibility:building && !(id==="HandoffPortraitFrame" && workerMulti)?"collapse":"visible"});
+            style(nodes[id],{visibility:(building && !(id==="HandoffPortraitFrame" && workerMulti)) || (shown.monster && id==="HandoffInventoryBase")?"collapse":"visible"});
         });
-        ["HandoffCombatPlate","HandoffAttributesPlate"].forEach(function(id){style(slices[id],{visibility:building?"collapse":"visible"});});
-        slotFrames.forEach(function(p){style(p,{visibility:building?"collapse":"visible"});});
-        ["HandoffLevelPlate","HandoffLevelBounds"].forEach(function(id){if(valid(nodes[id]))nodes[id].visible=!multi&&!building;});
+        ["HandoffCombatPlate","HandoffAttributesPlate"].forEach(function(id){style(slices[id],{visibility:building || (shown.monster && id==="HandoffAttributesPlate")?"collapse":"visible"});});
+        slotFrames.forEach(function(p){style(p,{visibility:building || shown.monster?"collapse":"visible"});});
+        ["HandoffLevelPlate","HandoffLevelBounds"].forEach(function(id){if(valid(nodes[id]))nodes[id].visible=!multi&&!building&&!shown.monster;});
         ["hp","mp"].forEach(function(type){
-            var show=!building || (type==="hp" && (shown.wall || shown.tree));
+            var show=(!building && (!shown.monster || type==="hp")) || (type==="hp" && (shown.wall || shown.tree));
             ["_track","_fill","_valueBounds"].forEach(function(suffix){style(nodes["Handoff_"+type+suffix],{visibility:show?"visible":"collapse"});});
         });
         ["HandoffBuildingLevel","HandoffBuildingSummary","HandoffBuildingBonus","HandoffBuildingHealthBonus","HandoffBuildingPercent","HandoffBuildingHealthPercent"].forEach(function(id){style(nodes[id],{visibility:"collapse"});});
+        // Natural text widths keep fixed bonuses immediately after their base value.
+        // Restore the original parent when switching to resource trees or other units.
+        var inlineStats=shown.wall||shown.tower;
+        buildingInlineIds.forEach(function(id){
+            var node=nodes[id],parent=inlineStats?buildingStatRow:center;
+            if(node.GetParent()!==parent)node.SetParent(parent);
+        });
+        style(buildingStatRow,{visibility:"collapse"});
         style(nodes.HandoffNameBounds,{visibility:building?"collapse":"visible"});
         style(nodes.HandoffBuildingTitleBounds,{visibility:building&&(!multi||shown.worker)?"visible":"collapse"});
         style(nodes.Handoff_hp_value,{fontSize:building&&(shown.wall||shown.tree)?"36px":"30px"});
@@ -636,22 +737,21 @@
             var base=snapshot && isFinite(total)?compact(total-Number(details[stat+"_bonus"]||0)):"\u2026";
             text("HandoffBuildingSummary",(shown.wall?"\u9632\u5fa1 ":"\u653b\u51fb ")+base);
             text("HandoffBuildingBonus",bonusText(stat));
-            text("HandoffBuildingPercent",percentText(stat));
+            text("HandoffBuildingPercent","（"+percentText(stat)+"）");
             var rowWidth=g.centerWidth-40,y=shown.wall?259:239;
-            place(nodes.HandoffBuildingSummary,20,y,rowWidth*.27,44);
-            place(nodes.HandoffBuildingBonus,20+rowWidth*.27,y,rowWidth*.17,44);
-            place(nodes.HandoffBuildingPercent,20+rowWidth*.44,y,rowWidth*.16,44);
-            style(nodes.HandoffBuildingSummary,{visibility:multi?"collapse":"visible"});
-            style(nodes.HandoffBuildingBonus,{visibility:multi?"collapse":"visible"});
-            style(nodes.HandoffBuildingPercent,{visibility:multi?"collapse":"visible"});
+            place(buildingStatRow,20,y,rowWidth,44);
+            style(buildingStatRow,{visibility:multi?"collapse":"visible",flowChildren:"right"});
+            buildingInlineIds.forEach(function(id,index){
+                style(nodes[id],{position:"0px 0px 0px",horizontalAlign:"left",verticalAlign:"center",
+                    width:"fit-children",minWidth:"0px",height:"fit-children",minHeight:"0px",
+                    margin:index===0?"0px":index===3?"0px 0px 0px 18px":"0px 0px 0px 8px",
+                    padding:"0px",textAlign:"left",textOverflow:"clip",
+                    visibility:multi||(index===3&&!shown.wall)?"collapse":"visible"});
+            });
         }
         if(shown.wall) {
-            text("HandoffBuildingHealthBonus","\u751f\u547d "+bonusText("health"));
-            place(nodes.HandoffBuildingHealthBonus,20+(g.centerWidth-40)*.60,259,(g.centerWidth-40)*.25,44);
-            text("HandoffBuildingHealthPercent",percentText("health"));
-            place(nodes.HandoffBuildingHealthPercent,20+(g.centerWidth-40)*.85,259,(g.centerWidth-40)*.15,44);
-            style(nodes.HandoffBuildingHealthPercent,{visibility:multi?"collapse":"visible"});
-            style(nodes.HandoffBuildingHealthBonus,{visibility:multi?"collapse":"visible"});
+            text("HandoffBuildingHealthBonus","");
+            text("HandoffBuildingHealthPercent","生命加成（"+percentText("health")+"）");
         }
     }
     function mirror() {
@@ -685,6 +785,14 @@
             }
         });
         Object.keys(topButtons).forEach(function(id){topButtons[id].enabled=!!available(id);if(id==="survival_shop")style(topButtons[id],{saturation:available(id)?"1":"0",opacity:available(id)?"1":"0.4"});});
+        var vipReady=available("vip");
+        topButtons.vip.hittest=vipReady;
+        style(topButtons.vip,{opacity:vipReady?"1":"0.85"});
+        if(topButtons.vip.__vipReady!==vipReady){
+            nodes.HandoffNavIcon_vip.SetImage("file://{images}/custom_game/topnav_reference_v2/"+(vipReady?"vip":"vip_locked")+".svg");
+            topButtons.vip.__vipReady=vipReady;
+        }
+        syncActiveNav();
         // Both daily and monthly-pass views are reachable inside the existing welfare window.
         if(available("benefit"))["DailyEntry","PassEntry"].forEach(function(id){style(root.FindChildTraverse(id),{visibility:"collapse"});});
         style(root.FindChildTraverse("HeroCombatDebugPanel"),{visibility:cfg.HandoffShowCombatDebug?"visible":"collapse"});
@@ -725,6 +833,9 @@
         if(!next)return;var incoming=Number(next.sequence);if(isFinite(incoming)&&incoming<=sequence)return;if(isFinite(incoming))sequence=incoming;
         var r=next.resources||{},wave=next.wave||{},t=Math.max(0,Math.ceil(Number(wave.timer)||0));
         text("HandoffResource_gold",compact(r.gold));text("HandoffResource_wood",compact(r.wood));text("HandoffResource_population",compact(r.population)+" / "+compact(r.max_population));
+        var selected=wave.difficulty_selected===true||Number(wave.difficulty_selected)===1;
+        var difficulty=String(wave.difficulty_id||"").toUpperCase();
+        text("HandoffDifficulty",selected&&/^N[1-9][0-9]*$/.test(difficulty)?difficulty:"");
         countdownWave=wave;renderCountdowns();
         var alive=Math.max(0,Math.floor(Number(wave.alive)||0)),limit=Number(wave.alive_limit);
         enemyCounter.visible=isFinite(limit)&&limit>0;
@@ -738,7 +849,10 @@
         // Only a number is rendered. The server owns both time and defeat.
         text("HandoffEnemyCountdown",overflow?String(remaining(wave.overflow_deadline,wave.overflow_remaining)):"");
     }
-    function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{layout();
+    function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{
+        if(cfg.SurvivalPortraitPresentation && cfg.SurvivalPortraitPresentation.RefreshLocalHeroPortrait)
+            cfg.SurvivalPortraitPresentation.RefreshLocalHeroPortrait(root);
+        layout();
         if(ready&&cfg.SurvivalPortraitPresentation)cfg.SurvivalPortraitPresentation.Refresh(native("PortraitGroup"));
         refreshInventoryPresentation();
         if(ready&&cfg.SurvivalMultiSelectionPortraits)cfg.SurvivalMultiSelectionPortraits.Apply(native("PortraitGroup"),geometry.portraitSize);
@@ -776,6 +890,39 @@
     GameEvents.Subscribe("survival_ui_private_snapshot",data);
     cfg.SurvivalMainHUD={Inspect:function(){return {nativeReady:ready,presented:presented,missing:missing,geometry:geometry,unit:selectedUnit(),abilities:currentEntries.map(function(e){return e.name;}),name:nodes.HandoffName.text,hp:nodes.Handoff_hp_value.text,keys:skillPanels.map(function(p,i){var b=nodes["HandoffKey_"+i+"Bounds"];return b&&b.visible?nodes["HandoffKey_"+i].text:"";}),version:"compact_workers_20260928",sequence:sequence};}};
     if(Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
+        // Tools-only visual review opens existing windows without activating purchases or rewards.
+        var windowReview="survival_window_review_"+Date.now(),reviewClose=null;
+        Game.AddCommand(windowReview,function(){
+            var args=Array.prototype.slice.call(arguments),id=String(args[args.length-1]||"");
+            if(id==="nav"){
+                var captions=nav.map(function(a){return ["HandoffNavCaption_"+a[0],"HandoffNavIcon_"+a[0]];});
+                captions.push(["HandoffCombatEffectsText","HandoffEffectsIcon"]);
+                $.Msg("[NAV_TEXT_ALIGNMENT] "+JSON.stringify(captions.map(function(ids){var t=nodes[ids[0]],icon=nodes[ids[1]];
+                    return {id:ids[0],text:t.text,xy:t.GetPositionWithinWindow(),width:t.actuallayoutwidth,height:t.actuallayoutheight,
+                        font:t.style.fontSize,iconXY:icon.GetPositionWithinWindow(),iconWidth:icon.actuallayoutwidth};})));
+                return;
+            }
+            if(id==="inspect"){
+                function dump(p,depth){if(!valid(p)||depth<0)return;var xy=p.GetPositionWithinWindow();
+                    $.Msg("[WINDOW_LIVE_STYLE] "+JSON.stringify({id:p.id,type:p.paneltype,xy:xy,w:p.actuallayoutwidth,h:p.actuallayoutheight,
+                        unified:p.BHasClass("UnifiedWindow"),frame:p.BHasClass("RHFrame"),bg:p.style.backgroundColor,image:p.style.backgroundImage,
+                        margin:p.style.marginRight,color:p.style.color,visibility:p.style.visibility,visible:p.visible,revision:p._rhSurvivalShop}));
+                    if(depth>0)p.Children().forEach(function(c){dump(c,depth-1);});}
+                $.Msg("[WINDOW_HELPER_VERSION] "+JSON.stringify({dark:String(cfg.RemainingHandoff.Window).indexOf("UnifiedWindow")>=0,
+                    shop:String(cfg.RemainingHandoff.SurvivalShopWindow).indexOf("archive_dark_v6")>=0,pass:String(cfg.RemainingHandoff.DailyPass).indexOf("UnifiedPassActive")>=0}));
+                ["CustomShopWindow","TreasureCards","DailyClaim","DailyPassStatus"].forEach(function(key){dump(root.FindChildTraverse(key),key==="CustomShopWindow"?3:1);});return;
+            }
+            if(id==="close"){if(reviewClose)reviewClose();reviewClose=null;return;}
+            if(["treasure","benefit","lottery","shop","survival_shop"].indexOf(id)<0)return;
+            var entry=actions[id],api=entry&&cfg[entry[0]];
+            if(!api || typeof api[entry[1]]!=="function")return;
+            if(reviewClose)reviewClose();
+            api[entry[1]]();
+            reviewClose=typeof api.Close==="function"?function(){api.Close();}:
+                typeof api.CloseShop==="function"?function(){api.CloseShop();}:
+                id==="survival_shop"?function(){api.ToggleShop();}:null;
+        },"Open existing windows for read-only style review",0);
+        $.Msg("[WINDOW_STYLE_REVIEW] "+windowReview);
         var workerInspect="survival_worker_hud_inspect_"+Date.now();
         Game.AddCommand(workerInspect,function(){
             var visibility={};

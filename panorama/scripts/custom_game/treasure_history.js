@@ -32,11 +32,13 @@
         hideDetail();
         p("TreasureCards").RemoveAndDeleteChildren();
         p("TreasureCount").text = history.length + " / " + CAPACITY;
+        p("TreasureHint").text = history.length ? "最近获得的宝物在前 · 最多展示 20 件" : "尚未获得宝物 · 在命运抉择中选择强化后，将在这里展示";
         for (var i = 0; i < CAPACITY; i++) {
             var card = $.CreatePanel("Panel", p("TreasureCards"), "");
             card.AddClass("TreasureCard"); card.hittestchildren = false;
+            card.style.marginRight = i % 5 === 4 ? "0px" : "10px";
             var item = history[i];
-            label(card, (i + 1 < 10 ? "0" : "") + (i + 1), "TreasureOrder");
+            if (item) label(card, (i + 1 < 10 ? "0" : "") + (i + 1), "TreasureOrder");
             var art = $.CreatePanel("Panel", card, "");
             art.AddClass("TreasureArt"); art.hittest = false;
             if (item && item.icon_name) {
@@ -51,7 +53,7 @@
             } else {
                 label(art, item ? String(item.name || "宝").substring(0, 1) : "◇", "TreasureGlyph");
             }
-            label(card, item ? item.name : "尚未获得", "TreasureName");
+            label(card, item ? item.name : "", "TreasureName");
             if (!item) { card.AddClass("TreasureVacant"); continue; }
             if (i === 0) { card.AddClass("TreasureLatest"); label(card, "最新", "TreasureLatestBadge"); }
             (function (panel, reward) {
@@ -82,5 +84,21 @@
             p("TreasureWindow").SetFocus();
         }
     };
+    // Tools-only inspection: show real reward data without stealing desktop focus.
+    if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
+        var reviewCommand = "treasure_style_review_" + Date.now();
+        Game.AddCommand(reviewCommand, function () {
+            opened = true;
+            p("TreasureWindow").RemoveClass("ArchiveHidden");
+            p("TreasureScrim").RemoveClass("ArchiveHidden");
+            update(CustomNetTables.GetTableValue("survival_rogue_reward", String(Game.GetLocalPlayerID())));
+            if (layers()) layers().Open("treasure", p("TreasureWindow"), close, { scrim:p("TreasureScrim") });
+            $.Schedule(0.25, function () {
+                var win=p("TreasureWindow"), grid=p("TreasureCards");
+                $.Msg("TREASURE_STYLE_REVIEW " + JSON.stringify({hidden:win.BHasClass("ArchiveHidden"),size:[win.actuallayoutwidth,win.actuallayoutheight],cards:grid.Children().length,owned:history.length}));
+            });
+        }, "Inspect treasure presentation without purchases or reward changes", 0);
+        $.Msg("TREASURE_STYLE_COMMAND " + reviewCommand);
+    }
     $.RegisterEventHandler("Cancelled", p("TreasureWindow"), close);
 })();

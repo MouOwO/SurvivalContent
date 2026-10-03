@@ -16,7 +16,7 @@
         <include src="file://{resources}/styles/custom_game/production_progress.css" />
         <include src="file://{resources}/styles/custom_game/minimap_shortcuts.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
-    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/></styles>
+    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /></styles>
     <scripts><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" />
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
@@ -39,7 +39,7 @@
         <include src="file://{resources}/scripts/custom_game/portrait_palette.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_presentation.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
-        <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
+        <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/reference_windows.js"/><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_cinematic_v1.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
 
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
@@ -49,7 +49,19 @@
         <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
         <include src="file://{resources}/scripts/custom_game/topnav_remaining_5d5c1152eb.js" />
     <include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/></scripts>
-    <Panel class="SurvivalHUDRoot Theme_Native HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated" hittest="false">
+    <Panel class="SurvivalHUDRoot Theme_Native UnifiedWindowsV4 HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated" hittest="false">
+        <!-- The top navigation treasure icon must compile with the HUD as well as the archive window. -->
+        <Image id="HandoffTreasureIconPreload" src="file://{images}/custom_game/handoff_v1/top/treasure_64.png" style="visibility: collapse;" hittest="false" />
+        <Panel hittest="false" style="visibility: collapse;">
+            <Image src="file://{images}/custom_game/topnav_v2/return.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/treasure.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/archive.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/lottery.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/benefit.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/shop.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/survival_shop.svg" />
+            <Image src="file://{images}/custom_game/topnav_v2/effects.svg" />
+        </Panel>
         <Panel id="SurvivalHeroWorldHealthBars" hittest="false" hittestchildren="false" />
         <Panel id="GoldMineIncomeNumbers" hittest="false" hittestchildren="false" />
         <Panel id="SurvivalTowerPortraitOverlay" class="SurvivalTowerPortraitOverlay" hittest="false" hittestchildren="false">
@@ -125,12 +137,13 @@
             <Label id="LotteryButtonLabel" text="抽奖" />
         </Button>
         <Panel id="LotteryWindow" class="LotteryWindow LotteryClosed" hittest="true" oncancel="GameUI.CustomUIConfig().SurvivalUILayers.CloseTop()">
+<Panel id="LotterySceneBackground" class="LotteryScene_map" hittest="false" hittestchildren="false" />
+<Panel id="LotterySceneShade" hittest="false" hittestchildren="false" />
 <Panel id="LotteryMainCanvas" hittest="true">
     <Panel id="LotteryReadingMask" hittest="false" hittestchildren="false" />
     <Panel id="LotteryCelestialHeader" class="LHControls">
         <Panel class="LHLogo" hittest="false" />
         <Label id="LotteryBrand" text="地图抽奖" hittest="false" />
-        <Panel id="LotteryPoolTabs" />
         <Panel id="LotteryWallet">
             <Panel class="LHTicket" hittest="false" />
             <Label id="LotteryTicketValue" text="抽奖券 —" hittest="false" />
@@ -138,29 +151,32 @@
         </Panel>
         <Button id="LotteryCloseButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Close()"><Panel class="LHClose" hittest="false" /></Button>
     </Panel>
+    <Panel id="LotteryPoolTabs" class="LHControls" />
     <Panel id="LotteryHeroCopy" class="LHControls">
         <Button id="LotteryAnnouncement" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Feature('announcement')"><Label text="开奖公告  ›" /></Button>
         <Label id="LotteryTitle" text="地图宝箱" hittest="false" />
-        <Label id="LotteryTagline" text="探索秘境 · 开启珍藏" hittest="false" />
+        <Panel id="LotteryTaglineBounds" hittest="false"><Label id="LotteryTagline" text="探索秘境 · 开启珍藏" hittest="false" /></Panel>
         <Panel id="LotteryGuaranteeRow" hittest="false"><Panel class="LHGuaranteeText"><Label id="LotteryGuaranteeValue" text="正在读取保底规则…" /><Label id="LHGuaranteeQuality" /></Panel><Panel class="LHGuaranteeLine" /></Panel>
     </Panel>
+        <Label id="LotteryUnlockNotice" text="" hittest="false" visible="false" />
     <Panel id="LotteryCelestialFooter" class="LHControls">
         <Button id="LHDetails" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Feature('details')"><Panel class="LHDetailsIcon" hittest="false" /><Label text="奖池详情" /></Button>
         <Panel class="LHUtilityDivider" hittest="false" />
         <Button id="LHHistory" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Feature('history')"><Panel class="LHHistoryIcon" hittest="false" /><Label text="抽奖记录" /></Button>
         <ToggleButton id="LotterySkipAnimation" onactivate="GameUI.CustomUIConfig().SurvivalLottery.SetSkipAnimation()"><Label text="跳过动画" /></ToggleButton>
-        <Button id="LotterySingleButton" class="LotteryIvoryButton" hittestchildren="false" onactivate="GameUI.CustomUIConfig().SurvivalLottery.DrawSingle()">
-            <Panel class="LHDrawVisual" hittest="false" hittestchildren="false">
-                <Image id="LHSingleBase" class="LHDrawBase" src="file://{images}/custom_game/lottery_handoff_v1/single_button.png" hittest="false" />
-                <Panel class="LHSingleHover" hittest="false" />
-                <Panel class="LHDrawTicket" hittest="false" /><Panel class="LHDrawCaption" hittest="false"><Label id="LotterySingleText" text="单抽" /></Panel><Label id="LotterySingleCost" class="LHCost" text="—" />
+        <Panel id="LotteryDrawPity" hittest="false"><Panel id="LotteryDrawPityCaptionBounds" hittest="false"><Label id="LotteryDrawPityCaption" text="十连保底" /></Panel><Label id="LHTenQuality" /></Panel>
+        <Button id="LotterySingleButton" class="LotteryIvoryButton ZXDrawAction" hittestchildren="false" onactivate="GameUI.CustomUIConfig().SurvivalLottery.DrawSingle()">
+            <Panel class="LHDrawVisual ZXActionSkin" hittest="false" hittestchildren="false" />
+            <Panel class="ZXDrawContent" hittest="false" hittestchildren="false">
+                <Label id="LotterySingleText" text="单抽" />
+                <Panel class="ZXDrawCost"><Panel class="LHDrawTicket" /><Label id="LotterySingleCost" class="LHCost" text="—" /></Panel>
             </Panel>
         </Button>
-        <Button id="LotteryTenButton" class="LotteryGoldButton" hittestchildren="false" onactivate="GameUI.CustomUIConfig().SurvivalLottery.DrawTen()">
-            <Panel class="LHDrawVisual" hittest="false" hittestchildren="false">
-                <Image id="LHTenBase" class="LHDrawBase" src="file://{images}/custom_game/lottery_handoff_v1/ten_button.png" hittest="false" />
-                <Image id="LHTenHover" class="LHTenHover" src="file://{images}/custom_game/lottery_handoff_v1/ten_button_hover.png" hittest="false" />
-                <Panel class="LHDrawTicket" hittest="false" /><Panel class="LHDrawCaption" hittest="false"><Label id="LotteryTenText" text="10连" /><Label id="LHTenQuality" /></Panel><Label id="LotteryTenCost" class="LHCost" text="—" />
+        <Button id="LotteryTenButton" class="LotteryGoldButton ZXDrawAction" hittestchildren="false" onactivate="GameUI.CustomUIConfig().SurvivalLottery.DrawTen()">
+            <Panel class="LHDrawVisual ZXActionSkin" hittest="false" hittestchildren="false" />
+            <Panel class="ZXDrawContent" hittest="false" hittestchildren="false">
+                <Label id="LotteryTenText" text="10连" />
+                <Panel class="ZXDrawCost"><Panel class="LHDrawTicket" /><Label id="LotteryTenCost" class="LHCost" text="—" /></Panel>
             </Panel>
         </Button>
     </Panel>
@@ -454,7 +470,7 @@
       <Panel id="HandoffHUD" hittest="false" hittestchildren="true" />
       <Panel id="SurvivalProductionPanel" visible="false" hittest="true" hittestchildren="true" />
       <Panel id="SurvivalResearchAutoMarkers" hittest="false" hittestchildren="false" />
-      <Button id="SurvivalLocalHeroPortrait" hittest="true" hittestchildren="false">
+      <Button id="SurvivalLocalHeroPortrait" visible="false" hittest="false" hittestchildren="false">
         <Image id="SurvivalLocalHeroPortraitImage" scaling="stretch-to-fit-preserve-aspect" hittest="false" hittestchildren="false" />
       </Button>
       <Panel id="SurvivalMinimapShortcuts" visible="false" hittest="false" hittestchildren="true" />

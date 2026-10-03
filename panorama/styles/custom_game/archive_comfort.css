@@ -224,7 +224,7 @@
    The two state shapes remain distinct even without their color difference. */
 .ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArt,
 .ArchiveRoot #ArchiveWindow #ArchiveArtTrial .ArchiveArt {
-    background-image:none; background-color:gradient(linear, 0% 0%, 0% 100%, from(#16353e), to(#0b1b23));
+    background-image:none; background-color:transparent;
     border:1px solid #344550; box-shadow:none;
 }
 .ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArt { position:20px 7px 0px; }
@@ -427,3 +427,76 @@
 }
 .ArchiveRoot .ArchiveEndlessRingLeft { position:6px 14px 0px; transform:rotateZ(28deg); }
 .ArchiveRoot .ArchiveEndlessRingRight { position:31px 14px 0px; transform:rotateZ(-28deg); }
+
+/* Header/navigation have their own hierarchy; accepted popup/card text stays 19px. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTitleBlock {
+    position:260px 22px 0px; width:349px; height:92px; padding:0px; flow-children:down;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTitle {
+    height:52px; line-height:46px; margin:0px; font-size:36px; text-align:center;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveSubtitle {
+    height:30px; line-height:28px; margin:0px; font-size:22px; text-align:center;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTabs .ArchiveTab {
+    border-left:3px solid transparent;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTabs .ArchiveTab:selected {
+    border-left:3px solid #aa9467;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTabs .ArchiveTab .ArchiveNavIcon {
+    position:16px 7px 0px; width:40px; height:40px; margin:0px; align:left top;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTabs .ArchiveTab .ArchiveNavLabel {
+    position:66px 12px 0px; width:136px; height:34px; margin:0px; padding:0px;
+    align:left top; text-align:left; font-size:25px; line-height:30px;
+}
+/* Match the popup as a continuous surface, with no dark gradient restarted per cell. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveBody { background-color:gradient(linear, 0% 0%, 0% 100%, from(#16353e), to(#0b1b23)); }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveContent,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTabs,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCard,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCard:hover,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveHovered,
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArt {
+    background-image:none; background-color:transparent; box-shadow:none;
+}
+
+/* Currency help is visible on its own page, without reviving the old page banner. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveCurrencySource {
+    position:18px 58px 0px; width:600px; height:112px; padding:8px 10px;
+    background-color:transparent; border-left:2px solid #f0d48a;
+    font-family:"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size:19px; color:#d8e0e8;
+    white-space:normal; text-overflow:clip; line-height:25px;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveContent.ArchiveHasCurrencySource #ArchiveGrid { position:18px 180px 0px; height:384px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard { width:192px; height:226px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveArtifactArt { position:11px 9px 0px; width:168px; height:122px; border:0px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveNameHost { position:3px 134px 0px; width:184px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveItemName { width:184px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveCountHost { position:3px 166px 0px; width:184px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveWorkCost { position:3px 197px 0px; width:184px; height:26px; text-align:center; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveNativeArtifactIcon { width:100%; height:100%; saturation:1; brightness:1; wash-color:none; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveSocialPortraitCard { height:164px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveSocialPortraitCard .ArchiveArt { position:7px 5px 0px; width:96px; height:96px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveSocialPortraitCard .ArchiveRewardIcon { width:100%; height:100%; saturation:1; brightness:1; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveSocialPortraitCard .ArchiveNameHost { position:3px 101px 0px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveSocialPortraitCard .ArchiveCountHost { position:3px 132px 0px; }
+
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveCostHost { position:3px 197px 0px; width:184px; height:26px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveArtifactCard .ArchiveCostHost .ArchiveWorkCost { position:0px 0px 0px; width:184px; }
+
+/* The 60 fishing/work entries use clear, larger item silhouettes. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard { height:158px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard .ArchiveArt { position:11px 5px 0px; width:88px; height:88px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard .ArchiveRewardIcon { width:100%; height:100%; saturation:1; brightness:1; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard .ArchiveNameHost { position:3px 94px 0px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard .ArchiveCountHost { position:3px 124px 0px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard.ArchiveWorkCard { height:184px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard .ArchiveCostHost { position:3px 153px 0px; width:104px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveCollectionCard .ArchiveCostHost .ArchiveWorkCost { position:0px 0px 0px; width:104px; }
+
+/* Keep the secondary source explanation inside the frame at its own text size. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveFooter { height:22px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveStatus { height:22px; line-height:22px; }

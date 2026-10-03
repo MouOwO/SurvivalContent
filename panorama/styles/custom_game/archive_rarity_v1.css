@@ -1,0 +1,12 @@
+/* Server-supplied rarity, fixed to the icon and carried with its scroll position. */
+.ArchiveRoot #ArchiveWindow .ArchiveArt .ArchiveRarityBadge {
+    align:right bottom; margin:0px; padding:2px 5px; min-width:30px; height:24px;
+    font-family:"Arial"; font-size:17px; font-weight:bold; letter-spacing:0px;
+    text-align:center; text-shadow:none; background-color:#09121ef2;
+    border-top:1px solid #96a6af77; border-left:1px solid #96a6af77;
+    color:#e4f5eb; z-index:6; opacity:1; brightness:1; saturation:1;
+}
+.ArchiveRoot #ArchiveWindow .ArchiveArt .ArchiveRarity_R {color:#88ceff;border-color:#88ceff88;}
+.ArchiveRoot #ArchiveWindow .ArchiveArt .ArchiveRarity_SR {color:#e0acff;border-color:#e0acff88;}
+.ArchiveRoot #ArchiveWindow .ArchiveArt .ArchiveRarity_SSR {color:#ffe19a;border-color:#ffe19a99;}
+.ArchiveRoot #ArchiveWindow .ArchiveArt .ArchiveRarity_UR {color:#ffb9ed;border-color:#ffb9ed99;}

@@ -176,7 +176,7 @@
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow();
+        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
         setOpenState(true);
         requestSnapshot();
     }
@@ -189,7 +189,7 @@
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow();
+        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
         setOpenState(true);
         requestSnapshot();
     }
@@ -202,7 +202,7 @@
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow();
+        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
         setOpenState(true);
         requestSnapshot();
     }
@@ -830,7 +830,7 @@
         researchSourceEntindex = Number(payload.source_entindex || -1);
         hideValveShopWindow();
         updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow();
+        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
         setOpenState(true);
         onSnapshot(payload.snapshot || {});
     }
@@ -956,7 +956,7 @@
     var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:604,height:806,onClose:close});
     ["ShopModeShop","ShopModeChallenge"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
     U.Tooltip.Adopt(byId("ShopEntryTooltip"));
-    GameUI.CustomUIConfig().RemainingHandoff.SurvivalShopWindow();
+    GameUI.CustomUIConfig().RemainingHandoff.SurvivalShopWindow(byId("CustomShopWindow"));
     setUnlocks(GameUI.CustomUIConfig().SurvivalShopUnlocks || unlocks);
     setOpenState(false);
 })();

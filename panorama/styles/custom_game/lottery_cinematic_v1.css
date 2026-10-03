@@ -1,0 +1,18 @@
+/* Movie attaches to the viewport, outside the scaled controls canvas. */
+#LotteryWindow #LotteryCinematicSurface {
+    position:0px 0px 0px; width:100%; height:100%;
+    background-color:#040812; border-radius:0px; overflow:clip; z-index:90;
+}
+#LotteryCinematicBackdrop { width:100%; height:100%; background-color:#040812; }
+#LotteryCinematicMovie { position:0px 0px 0px; align:center center; width:100%; height:100%; z-index:1; }
+#LotteryCinematicCaption {
+    position:36px 22px 0px; width:700px; height:32px; z-index:3;
+    font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif;
+    font-size:23px; font-weight:normal; color:#d9c8a7; letter-spacing:4px; text-shadow:none;
+}
+#LotteryCinematicSkip { position:0px 0px 0px; align:right top; margin:24px 32px 0px 0px; width:172px; height:44px; z-index:4; background-color:#081221dd; border:1px solid #a4987355; border-radius:5px; }
+#LotteryCinematicSkip Label { align:center center; color:#eddfbf; font-size:21px; font-weight:normal; text-shadow:none; }
+#LotteryCinematicSkip:hover { border-color:#e3c886; background-color:#233046; }
+.LotteryCinematicPlaying #LotterySkipReveal { visibility:collapse; }
+.LotteryCinematicPlaying #LotteryRevealStage { visibility:collapse; }
+.LotteryCinematicPlaying #LotteryCloseButton { visibility:collapse; }

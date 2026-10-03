@@ -1,0 +1,40 @@
+/* Readable choice text over parchment and a changing world backdrop. */
+#RogueRewardBackdrop #RogueRewardSurface .RogueCopy {
+    position:23px 446px 0px; width:244px; height:200px;
+    opacity:1; brightness:1; saturation:1; wash-color:none; z-index:4;
+}
+#RogueRewardBackdrop #RogueRewardSurface .RogueCardName {
+    font-family:"Source Han Serif SC", "Microsoft YaHei";
+    font-size:30px; font-weight:bold; color:#211408;
+    width:100%; height:fit-children; max-height:72px;
+    margin:0px; padding:0px; text-align:center;
+    text-shadow:none; opacity:1; wash-color:none;
+    white-space:normal; text-overflow:clip;
+}
+#RogueRewardBackdrop #RogueRewardSurface .RogueCardDescription {
+    font-family:"Source Han Sans SC", "Microsoft YaHei";
+    font-size:26px; font-weight:bold; line-height:30px;
+    color:#101010; text-shadow:none; opacity:1; wash-color:none;
+    width:100%; height:fill-parent-flow(1); margin:10px 0px 0px; padding:0px;
+    white-space:normal; text-overflow:clip; overflow:squish scroll; text-align:left;
+}
+#RogueRewardBackdrop #RogueRewardSurface .RogueRewardSubtitle {
+    position:400px 116px 0px; width:872px; height:36px;
+    font-family:"Source Han Serif SC", "Microsoft YaHei";
+    font-size:27px; font-weight:normal; color:#fff1cf;
+    letter-spacing:1px; text-align:center; text-overflow:clip;
+    text-shadow:0px 1px 1px 2 #07121af2; opacity:1; wash-color:none;
+}
+#RogueRewardBackdrop #RogueRewardSurface #RogueRewardStatus {
+    position:400px 155px 0px; width:872px; height:28px;
+    font-family:"Source Han Sans SC", "Microsoft YaHei";
+    font-size:22px; font-weight:normal; color:#fff1cf;
+    text-shadow:0px 1px 1px 2 #07121af2; opacity:1; text-overflow:clip;
+}
+#RogueRewardBackdrop #RogueRewardSurface #RogueReducedMotion Label {
+    font-family:"Source Han Sans SC", "Microsoft YaHei";
+    font-size:21px; font-weight:normal; color:#fff1cf;
+    text-shadow:0px 1px 1px 2 #07121af2; opacity:1;
+}
+/* The parchment may brighten on hover; its dark copy keeps the same contrast. */
+#RogueRewardBackdrop #RogueRewardSurface .RoguePick:enabled:hover {brightness:1;}

@@ -1,0 +1,324 @@
+/* Full-screen illustrated lottery. Only this page departs from the archive window theme. */
+#LotteryWindow { width:100%; height:100%; background-color:#050911; background-image:none; border:0px; border-radius:0px; padding:0px; overflow:clip; box-shadow:none; }
+#LotteryWindow #LotterySceneBackground { width:100%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
+#LotterySceneBackground.LotteryScene_map { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/map.png"); }
+#LotterySceneBackground.LotteryScene_cultivation { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/cultivation.png"); }
+#LotterySceneBackground.LotteryScene_dragon_knight { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/dragon_knight.png"); }
+#LotterySceneBackground.LotteryScene_summer { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/summer.png"); }
+#LotteryWindow #LotterySceneShade { width:100%; height:100%; background-color:gradient(linear,0% 0%,0% 100%,from(#030710c9),color-stop(.22,#03071012),color-stop(.65,#03071000),to(#030710e8)); }
+#LotteryWindow.LotteryResultsShown #LotterySceneShade { background-color:#030710a3; }
+#LotteryWindow #LotteryMainCanvas { width:1600px; height:900px; align:center center; border:0px; border-radius:0px; overflow:noclip; background-image:none; background-color:transparent; box-shadow:none; }
+#LotteryMainCanvas #LotteryReadingMask, #LotteryMainCanvas #LotteryPoolArtwork,
+#LotteryMainCanvas .ReferenceAtmosphere, #LotteryMainCanvas .ReferenceFrame { visibility:collapse; }
+#LotteryMainCanvas #LotteryCelestialHeader { height:92px; border:0px; background-color:transparent; }
+#LotteryMainCanvas .LHLogo { position:38px 23px 0px; width:38px; height:38px; }
+#LotteryMainCanvas #LotteryBrand { position:90px 23px 0px; font-size:28px; height:42px; color:#f5e6c7; }
+#LotteryMainCanvas #LotteryWallet { position:0px 0px 0px; align:right top; margin:25px 112px 0px 0px; width:286px; }
+#LotteryMainCanvas #LotteryCloseButton { position:0px 0px 0px; align:right top; margin:24px 40px 0px 0px; width:44px; height:44px; border:0px; background-color:transparent; }
+#LotteryMainCanvas #LotteryPoolTabs { position:0px 0px 0px; align:center top; margin-top:94px; width:1280px; height:78px; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab { width:314px; height:76px; margin-right:6px; background-color:transparent; border-bottom:1px solid #e0c99444; border-radius:0px; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab.Selected { background-color:gradient(linear,0% 0%,0% 100%,from(#f4d18b00),to(#f4d18b29)); border-bottom:2px solid #f4d18b; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTabName { font-size:26px; color:#f5e6c7; text-shadow:0px 2px 4px 2 #030710cc; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolBadge { background-color:transparent; background-image:none; border:0px; font-size:16px; color:#e5d2a4; }
+#LotteryMainCanvas .LHTabGlow { visibility:collapse; }
+#LotteryMainCanvas #LotteryHeroCopy { position:5% 37% 0px; width:500px; height:290px; }
+#LotteryMainCanvas #LotteryAnnouncement Label { color:#eee6d4; text-shadow:0px 2px 5px 2 #030710ee; }
+#LotteryMainCanvas #LotteryTitle { position:0px 48px 0px; width:500px; height:86px; font-size:60px; color:#fff0cb; text-shadow:0px 2px 7px 2 #030710dd; }
+#LotteryMainCanvas #LotteryTagline { position:2px 145px 0px; font-size:25px; color:#eee6d4; text-shadow:0px 2px 5px 2 #030710ee; }
+#LotteryMainCanvas #LotteryGuaranteeRow { position:2px 210px 0px; }
+#LotteryMainCanvas #LotteryGuaranteeValue, #LotteryMainCanvas #LHGuaranteeQuality { text-shadow:0px 2px 5px 2 #030710ee; }
+#LotteryMainCanvas #LotteryCelestialFooter { position:0px 0px 0px; align:center bottom; margin-bottom:22px; width:1456px; height:106px; border:0px; background-color:transparent; }
+#LotteryMainCanvas #LHDetails { position:0px 27px 0px; }
+#LotteryMainCanvas #LHHistory { position:186px 27px 0px; }
+#LotteryMainCanvas .LHUtilityDivider { position:168px 42px 0px; }
+#LotteryMainCanvas #LotterySkipAnimation { position:390px 31px 0px; }
+#LotteryMainCanvas #LotterySingleButton { position:868px 18px 0px; }
+#LotteryMainCanvas #LotteryTenButton { position:1152px 18px 0px; }
+#LotteryMainCanvas #LotterySingleButton, #LotteryMainCanvas #LotteryTenButton { width:272px; height:68px; }
+#LotteryMainCanvas #LotteryStatus { position:0px 0px 0px; align:center bottom; margin-bottom:135px; width:1400px; text-align:center; font-size:22px; color:#fff0cb; text-shadow:0px 2px 4px 2 #030710ee; }
+/* Rewards float over the scene: five fixed columns, two rows, no rectangular cards. */
+#LotteryMainCanvas #LotteryResultStage { position:0px 0px 0px; align:center center; width:1456px; height:742px; margin-top:28px; background-color:transparent; background-image:none; border:0px; }
+#LotteryMainCanvas #LotteryResultHeading { margin-top:0px; font-size:36px; height:52px; letter-spacing:8px; color:#fff0cb; text-shadow:0px 2px 5px 2 #030710cc; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList { position:0px 0px 0px; align:center top; width:1360px; height:568px; margin:66px 0px 0px; padding:0px; overflow:noclip; }
+/* Result cards occupy explicit 5 x 2 slots; avoid scaled right-wrap rounding. */
+#LotteryWindow #LotteryMainCanvas #LotteryItemList.LotteryTenResults { flow-children:none; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardCard { width:244px; height:268px; margin:8px 14px; padding:0px; flow-children:down; border:0px; border-radius:0px; background-color:transparent; background-image:none; box-shadow:none; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardCard:hover { brightness:1.15; box-shadow:none; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryCardState { visibility:collapse; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardIconFrame { width:204px; height:170px; align:center top; margin-top:0px; padding:0px; background-color:transparent; background-image:none; border:0px; box-shadow:none; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardIcon { width:156px; height:156px; align:center center; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardName { width:100%; height:36px; margin-top:2px; padding:0px; font-size:24px; color:#fff1d3; text-align:center; text-shadow:0px 2px 4px 2 #030710dd; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardDescription { visibility:collapse; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardDuration { width:100%; height:26px; font-size:17px; color:#d5d8de; text-align:center; text-shadow:0px 2px 3px 2 #030710dd; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardQuantity { background-color:transparent; padding:0px; height:26px; color:#f4dfa8; font-size:21px; text-shadow:0px 2px 3px 2 #030710dd; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryDuplicateBadge { height:27px; font-size:17px; color:#fff0cb; background-color:#07121ccc; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryCardBack { background-image:none; background-color:gradient(radial,50% 40%,0% 0%,65% 70%,from(#efd7a833),to(#efd7a800)); border:0px; box-shadow:none; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardCard { width:360px; height:530px; margin:0px; align:center center; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardIconFrame { width:340px; height:360px; margin:0px; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardIcon { width:300px; height:300px; }
+#LotteryWindow #LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardName { height:48px; font-size:32px; }
+#LotteryMainCanvas #LotteryResultActions { align:center bottom; margin-bottom:0px; }
+#LotteryMainCanvas #LotteryResultActions Button { width:244px; height:62px; background-color:#101b24c9; border:1px solid #d2b579aa; }
+.LotteryResultsShown #LotteryMainCanvas #LotteryStatus { position:0px 0px 0px; align:center bottom; margin-bottom:10px; width:1400px; height:28px; background-color:transparent; }
+#LotteryMainCanvas #LotteryRevealStage { visibility:collapse; }
+#LotteryMainCanvas #LotterySkipReveal { align:right top; margin:96px 44px 0px 0px; }
+/* Zhu Xian reference proportions: ivory / warm-gold beveled plaques, fine cloud engraving. */
+#LotteryMainCanvas #LotteryCelestialFooter { height:126px; margin-bottom:24px; }
+#LotteryMainCanvas #LHDetails { position:0px 51px 0px; width:152px; }
+#LotteryMainCanvas #LHHistory { position:178px 51px 0px; width:152px; }
+#LotteryMainCanvas .LHUtilityDivider { position:165px 64px 0px; }
+#LotteryMainCanvas #LotterySkipAnimation { position:1230px 55px 0px; width:208px; }
+#LotteryMainCanvas #LotterySingleButton { position:404px 42px 0px; }
+#LotteryMainCanvas #LotteryTenButton { position:740px 42px 0px; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction { width:312px; height:72px; padding:0px; border:0px; border-radius:0px; background-color:transparent; background-image:none; box-shadow:none; flow-children:none; transition-property:brightness,opacity; transition-duration:.12s; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXActionSkin { position:0px 0px 0px; width:100%; height:100%; margin:0px; ignore-parent-flow:true; background-size:100% 100%; background-repeat:no-repeat; background-image:url("file://{images}/custom_game/lottery_actions_v2/ivory.svg"); }
+#LotteryWindow #LotteryMainCanvas #LotteryTenButton .ZXActionSkin,
+#LotteryWindow #LotteryMainCanvas #LotteryAgain .ZXActionSkin { background-image:url("file://{images}/custom_game/lottery_actions_v2/gold.svg"); }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:enabled:hover { brightness:1.13; transform:none; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:enabled:active { brightness:.93; transform:translate3d(0px,1px,0px); }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:disabled,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction.Disabled { brightness:.76; saturation:.28; opacity:.72; transform:none; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXDrawContent { align:center center; margin-bottom:6px; height:38px; flow-children:right; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction #LotterySingleText,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction #LotteryTenText { align:left center; width:fit-children; height:36px; margin:0px; padding:0px; color:#372b19; font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif; font-size:25px; font-weight:normal; text-shadow:none; letter-spacing:3px; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawCost { flow-children:right; vertical-align:center; height:34px; margin-left:18px; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .LHDrawTicket { position:0px 0px 0px; align:left center; width:32px; height:32px; margin:0px 6px 0px 0px; opacity:.92; background-size:contain; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .LHCost { position:0px 0px 0px; align:left center; margin:0px; width:fit-children; min-width:28px; height:32px; font-size:23px; color:#372b19; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas .ZXFreeDraw .ZXDrawCost { visibility:collapse; }
+#LotteryMainCanvas #LotteryDrawPity { align:center top; margin-top:4px; width:fit-children; height:30px; flow-children:right; padding:0px; }
+#LotteryMainCanvas #LotteryDrawPity Label { color:#e9d8b3; font-size:20px; text-shadow:0px 1px 3px 2 #030710cc; }
+#LotteryMainCanvas #LotteryDrawPity #LHTenQuality { font-size:20px; margin-left:8px; }
+#LotteryWindow #LotteryMainCanvas #LotteryResultActions { height:72px; }
+#LotteryWindow #LotteryMainCanvas #LotteryResultActions .ZXDrawAction { margin:0px 12px; }
+#LotteryWindow #LotteryMainCanvas #LotteryResultActions .ZXDrawAction Label { align:center center; margin:0px 0px 6px; color:#372b19; font-size:25px; font-weight:normal; text-shadow:none; letter-spacing:3px; }
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:enabled:hover .ZXActionSkin,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:enabled:active .ZXActionSkin,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:disabled .ZXActionSkin { brightness:1; saturation:1; transform:none; }
+
+/* Currency follows the selected server-owned pool; golden tickets keep their own alpha silhouette. */
+#LotteryWindow.LotteryGoldenTicket #LotteryMainCanvas .LHTicket,
+#LotteryWindow.LotteryGoldenTicket #LotteryMainCanvas .LHDrawTicket {
+    background-image:url("file://{images}/custom_game/lottery_tickets_v2/gold_ticket.png");
+    background-size:contain; background-position:center; opacity-mask:none;
+}
+#LotteryMainCanvas #LotteryUnlockNotice { position:5% 71% 0px; width:650px; height:36px; font-size:22px; color:#f3dbab; text-shadow:0px 2px 4px 2 #02040eee; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolLocked .LotteryPoolBadge { color:#f4d493; }
+/* Readability pass: crisp text, no legacy ivory name strips, stable bitmap plaques. */
+#LotteryWindow #LotteryMainCanvas Label {
+    font-family:"Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    font-weight:normal; font-style:normal; letter-spacing:0px;
+    text-shadow:0px 1px 1px 2 #020611ee;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryTitle,
+#LotteryWindow #LotteryMainCanvas #LotteryBrand,
+#LotteryWindow #LotteryMainCanvas #LotteryResultHeading,
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement Label,
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryTagline,
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaption {
+    font-family:"Source Han Serif SC", "Microsoft YaHei"; font-weight:normal;
+    color:#fff1cf; text-shadow:0px 1px 1px 2 #07121af2;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTabName {
+    font-family:"Microsoft YaHei"; font-weight:normal; font-size:26px; color:#fff3d6;
+    text-shadow:0px 1px 1px 2 #020611ee;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryPoolTabs .LotteryPoolBadge {
+    align:center bottom; margin:0px 0px 5px; width:270px; height:26px;
+    font-size:18px; color:#ffe6ab; text-shadow:0px 1px 1px 2 #020611ee;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTab:first-child .LotteryPoolBadge {visibility:visible;}
+#LotteryWindow #LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTabName {margin-top:6px;}
+#LotteryWindow #LotteryMainCanvas #LotteryTagline,
+#LotteryWindow #LotteryMainCanvas #LotteryAnnouncement Label,
+#LotteryWindow #LotteryMainCanvas #LotteryGuaranteeValue,
+#LotteryWindow #LotteryMainCanvas #LHGuaranteeQuality,
+#LotteryWindow #LotteryMainCanvas #LotteryStatus,
+#LotteryWindow #LotteryMainCanvas #LotteryUnlockNotice {
+    text-shadow:0px 1px 1px 2 #020611ee;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXActionSkin {
+    background-image:url("file://{images}/custom_game/lottery_actions_v3/ivory.png");
+}
+#LotteryWindow #LotteryMainCanvas #LotteryTenButton .ZXActionSkin,
+#LotteryWindow #LotteryMainCanvas #LotteryAgain .ZXActionSkin {
+    background-image:url("file://{images}/custom_game/lottery_actions_v3/gold.png");
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction {overflow:noclip;}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:enabled:hover {brightness:1.06;}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:disabled,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction.Disabled {brightness:.92;saturation:.35;opacity:1;}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXDrawContent {margin-bottom:5px;}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction Label,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction #LotterySingleText,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction #LotteryTenText,
+#LotteryWindow #LotteryMainCanvas #LotteryResultActions .ZXDrawAction Label {
+    font-family:"Microsoft YaHei"; font-size:24px; font-weight:bold;
+    letter-spacing:1px; color:#35230d; text-shadow:none;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .LHCost {
+    font-family:"Arial";font-size:25px;font-weight:bold;color:#35230d;text-shadow:none;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity Label {font-size:21px;text-shadow:0px 1px 1px 2 #020611ee;}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardName {
+    background-image:none; background-color:gradient(linear,0% 0%,100% 0%,from(#08121b00),color-stop(.18,#08121bd9),color-stop(.82,#08121bd9),to(#08121b00));
+    border:0px; box-shadow:none; color:#fff4dc; text-shadow:0px 1px 1px 2 #010309;
+    font-family:"Microsoft YaHei"; font-size:23px; font-weight:normal;
+    padding:2px 5px 0px; height:37px; white-space:nowrap; text-overflow:ellipsis;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardQuality {
+    align:right top; margin:3px 7px 0px 0px; min-width:48px; height:35px;
+    padding:3px 9px 0px; background-color:#09121ff5;
+    border:1px solid #adbac666; border-radius:3px;
+    font-family:"Arial"; font-weight:bold; font-size:25px; letter-spacing:1px;
+    text-align:center; text-shadow:none; color:#e4f5eb; z-index:6;
+}
+/* All result rarities are text only, without badge plates. */
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_N .LotteryRewardQuality,
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_R .LotteryRewardQuality,
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_SR .LotteryRewardQuality,
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_SSR .LotteryRewardQuality,
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_UR .LotteryRewardQuality {
+    background-color:transparent; background-image:none;
+    border:0px; border-radius:0px; box-shadow:none;
+    text-shadow:0px 1px 2px 2 #020611cc;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_R .LotteryRewardQuality {color:#88ceff;}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_SR .LotteryRewardQuality {color:#e0acff;}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_SSR .LotteryRewardQuality {color:#ffe19a;}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryQuality_UR .LotteryRewardQuality {color:#ffb9ed;}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardDuration,
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardQuantity {
+    font-family:"Microsoft YaHei"; font-size:20px; color:#f4ead5; text-shadow:0px 1px 1px 2 #020611ee;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryDuplicateBadge {
+    font-family:"Microsoft YaHei";font-size:17px;color:#fff0bf;text-shadow:none;
+    background-color:#09121ff0;border-top:1px solid #c9af7377;padding-top:2px;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList .LotteryRewardCard:hover {brightness:1;transform:none;}
+#LotteryWindow #LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardQuality {height:44px;font-size:31px;min-width:64px;}
+/* Scene action plates own their silhouette; no inherited teal rectangle in any state. */
+#LotteryWindow #LotteryMainCanvas #LotterySingleButton,
+#LotteryWindow #LotteryMainCanvas #LotteryTenButton,
+#LotteryWindow #LotteryMainCanvas #LotteryConfirm,
+#LotteryWindow #LotteryMainCanvas #LotteryAgain,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:hover,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:active,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction:disabled {
+    background-color:transparent; background-image:none; border:0px; box-shadow:none;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXActionSkin {
+    background-color:transparent; border:0px; box-shadow:none;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .PolishDrawBase,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .PolishSingleHover,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .PolishTenHover {visibility:collapse;}
+/* Explicit label styles beat old LHControls colors and the faded small-copy rules. */
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement {
+    background-color:transparent; background-image:none; border:0px; box-shadow:none;
+    position:0px 0px 0px; margin:0px; padding:0px; height:38px;
+    opacity:1; brightness:1; saturation:1; wash-color:none;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement Label,
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryTagline {
+    /* Font, color and shadow come from the exact same rule as the chest title. */
+    font-style:normal; opacity:1; brightness:1; saturation:1; wash-color:none;
+    letter-spacing:0px;
+    white-space:nowrap; text-overflow:clip; margin:0px; padding:0px;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement Label {
+    font-size:24px; height:36px; vertical-align:center;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryTagline {
+    position:0px 145px 0px; font-size:27px; height:42px; width:470px;
+}
+
+/* Paired buttons use identical text and currency columns, centered by actual line height. */
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity {height:36px;}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaption {
+    font-size:24px; height:fit-children; vertical-align:center; letter-spacing:0px;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LHTenQuality {vertical-align:center;}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXDrawContent {
+    width:174px; height:44px; align:center center; margin:0px 0px 5px;
+    flow-children:right;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction #LotterySingleText,
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction #LotteryTenText {
+    width:82px; min-width:82px; height:fit-children; margin:0px; padding:0px;
+    align:left center; text-align:center; text-overflow:clip;
+    font-family:"Source Han Sans SC"; font-size:28px; font-weight:medium;
+    letter-spacing:1px; color:#251708; text-shadow:none; opacity:1;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXDrawCost {
+    width:80px; height:44px; margin:0px 0px 0px 12px; padding:0px;
+    flow-children:right; vertical-align:center;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXDrawCost .LHDrawTicket {
+    width:36px; height:36px; position:0px 0px 0px; align:left center;
+    margin:0px 6px 0px 0px; background-position:center; opacity:1;
+}
+#LotteryWindow #LotteryMainCanvas .ZXDrawAction .ZXDrawCost .LHCost {
+    position:0px 0px 0px; align:left center; margin:0px; padding:0px;
+    width:38px; min-width:0px; height:fit-children; text-align:left;
+    font-family:"Arial"; font-size:25px; font-weight:bold;
+    letter-spacing:0px; color:#251708; text-shadow:none;
+}
+#LotteryWindow #LotteryMainCanvas .ZXFreeDraw .ZXDrawContent {width:130px;}
+#LotteryWindow #LotteryMainCanvas .ZXFreeDraw #LotterySingleText {width:130px;}
+
+/* Small copy is rendered with the actual 60px title glyphs, then uniformly reduced.
+   Scale the stroke/shadow with the glyph instead of giving small text a full-size halo. */
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement {
+    width:180px; height:42px; overflow:clip;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement Label,
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryTagline,
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaption {
+    font-family:"Source Han Serif SC", "Microsoft YaHei"; font-size:60px; font-weight:normal;
+    font-style:normal; color:#fff1cf; text-shadow:0px 1px 1px 2 #07121af2;
+    letter-spacing:0px; height:86px; min-height:86px; width:1000px;
+    position:0px 0px 0px; align:left top; margin:0px; padding:0px;
+    white-space:nowrap; text-overflow:clip; transform-origin:0% 0%;
+    opacity:1; brightness:1; saturation:1; wash-color:none;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryAnnouncement Label {
+    transform:scale3d(.45,.45,1);
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryTaglineBounds {
+    position:0px 145px 0px; width:470px; height:46px; overflow:clip;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryHeroCopy #LotteryTagline {
+    transform:scale3d(.50,.50,1);
+}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity {height:40px;}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaptionBounds {
+    width:112px; height:40px; vertical-align:center; overflow:clip;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaption {
+    transform:scale3d(.45,.45,1);
+}
+
+/* Caption and server-provided rarity share one text baseline and one title-glyph scale. */
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaptionBounds {
+    width:180px; height:40px;
+}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LHTenQuality {visibility:collapse;}
+#LotteryWindow #LotteryMainCanvas #LotteryDrawPity #LotteryDrawPityCaption {
+    width:400px; text-align:center;
+}
+/* Public notice text comes from the same server snapshot as the selected pool. */
+#LotteryInfoList .LotteryAnnouncementHeading {
+    width:100%; font-family:"Source Han Serif SC", "Microsoft YaHei";
+    font-size:26px; font-weight:bold; color:#ffe2a1; margin-bottom:16px;
+    text-shadow:none; white-space:normal;
+}
+#LotteryInfoList .LotteryAnnouncementBody {
+    width:100%; font-family:"Source Han Sans SC", "Microsoft YaHei";
+    font-size:21px; color:#e5e5d7; margin-bottom:12px;
+    text-shadow:none; white-space:normal;
+}
+#LotteryInfoList .LotteryAnnouncementProbability {
+    width:100%; font-family:"Source Han Sans SC", "Microsoft YaHei";
+    font-size:24px; font-weight:bold; color:#ffe08f; margin-bottom:22px;
+    text-shadow:none; white-space:normal;
+}

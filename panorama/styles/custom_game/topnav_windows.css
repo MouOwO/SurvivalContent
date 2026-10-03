@@ -1,0 +1,169 @@
+/* Top navigation windows: the same opaque teal surface and regular text as Archive.
+   Only presentation is shared; prices, entitlements and actions remain authoritative. */
+#DailyWindow.RHWindow Label, #CustomShopWindow.RHWindow Label, #LotteryInfoDialog.RHWindow Label, .RCWindow.RHWindow Label, .UnifiedWindow Label, #TreasureWindow Label, #LotteryMainCanvas .LHControls Label {
+    font-family:"Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    font-weight:normal; color:#e8eef0; text-shadow:none; letter-spacing:0px;
+}
+.UnifiedCloseGlyph { width:100%; height:100%; text-align:center; font-size:34px; color:#f0d48a; vertical-align:center; }
+.UnifiedWindow .RHClose:hover { background-color:#29444b; brightness:1; }
+.UnifiedWindow .RHTitleOrnamentLeft, .UnifiedWindow .RHTitleOrnamentRight,
+.UnifiedWindow .RHTabBase, .UnifiedWindow .RHTabGlow, .UnifiedWindow .RHStandaloneTabGlow,
+.UnifiedWindow .RHRewardCardBase, .UnifiedWindow .RHPoolMaterial,
+.UnifiedWindow .RHActionArt, .UnifiedWindow .RHDailyCardBase, .UnifiedWindow .RHDailyPassSkin,
+.UnifiedWindow .RCNavGlow, .UnifiedWindow .RCCardBase, .UnifiedWindow .RCHoverScrim,
+.UnifiedWindow .RHShopTabGlow { visibility:collapse; }
+.UnifiedWindow VerticalScrollBar { background-image:none; background-color:#0b1b23; }
+.UnifiedWindow VerticalScrollBar .ScrollThumb { background-image:none; background-color:#70858a; }
+.UnifiedWindow .RHAction { background-color:#203a43; border:1px solid #63767a; }
+.UnifiedWindow .RHAction.UnifiedPrimary { background-color:#354444; border:1px solid #b39a68; }
+.UnifiedWindow .RHAction:hover { background-color:#2a4851; brightness:1; }
+.UnifiedWindow .RHAction:active { background-color:#122a33; }
+.UnifiedWindow .RHAction Label { color:#e8eef0; text-shadow:none; font-weight:normal; }
+.UnifiedWindow .RHAction.UnifiedPrimary Label { color:#f0d48a; }
+.UnifiedWindow .RHAction:disabled { background-color:#142830; border-color:#3e535b; opacity:1; }
+.UnifiedWindow .RHAction:disabled Label { color:#9fadb3; }
+.UnifiedWindow .RCTitle, #DailyWindow.RHWindow #DailyTitle,
+#LotteryInfoDialog.RHWindow #LotteryInfoTitle { font-family:"Source Han Sans SC"; font-weight:normal; color:#e8eef0; font-size:34px; }
+.UnifiedWindow .RCTab, #LotteryInfoDialog.RHWindow #LotteryInfoTabs .LotteryPoolTab {
+    background-image:none; background-color:#203740; border:1px solid #526a73;
+}
+.UnifiedWindow .RCTab:hover, #LotteryInfoDialog.RHWindow #LotteryInfoTabs .LotteryPoolTab:hover {
+    background-color:#2b444d; brightness:1;
+}
+.UnifiedWindow .RCTab.UISelected, #LotteryInfoDialog.RHWindow #LotteryInfoTabs .LotteryPoolTab.Selected {
+    background-color:#354444; border-color:#b39a68;
+}
+.UnifiedWindow .RCTab.UISelected .RCTabText, #LotteryInfoDialog.RHWindow #LotteryInfoTabs .Selected .LotteryPoolTabName { color:#f0d48a; }
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .LotteryDetailRow {
+    background-color:#112a33; border:1px solid #49626a;
+}
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .LotteryDetailRow:hover { brightness:1; border-color:#b39a68; }
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .RHRewardName,
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .LotteryDetailName { color:#e8eef0; font-size:19px; font-weight:normal; }
+#LotteryInfoDialog.RHWindow #LotteryInfoFooter { border-color:#63767a; }
+#LotteryInfoDialog.RHWindow .RHHistoryRow { background-color:#142e37; border-bottom:1px solid #3b525a; }
+#LotteryInfoDialog.RHWindow .RHHistoryRow.RHAlternate { background-color:#1c3640; }
+#LotteryInfoDialog.RHWindow .RHHistoryTime { color:#a9bbc2; }
+#LotteryInfoDialog.RHWindow .RHHistoryName { color:#e8eef0; }
+#LotteryInfoDialog.RHWindow .RHHistoryQuantity { color:#f0d48a; }
+/* Welfare: no ivory reward-card plates or dark text left underneath. */
+#DailyWindow.RHWindow #DailySubtitle { font-family:"Source Han Sans SC"; font-size:28px; font-weight:normal; color:#e8eef0; }
+#DailyWindow.RHWindow .DailyNormalCard, #DailyWindow.RHWindow .DailyWeekCard {
+    background-color:#112a33; border:1px solid #49626a;
+}
+#DailyWindow.RHWindow .RHDailyCurrent { border-color:#c3ab75; background-color:#21383d; }
+#DailyWindow.RHWindow .DailyDay { font-family:"Source Han Sans SC"; font-weight:normal; color:#e8eef0; }
+#DailyWindow.RHWindow .DailyRewardName, #DailyWindow.RHWindow .DailyRewardValue { color:#f0d48a; }
+#DailyWindow.RHWindow .DailyCardStatus, #DailyWindow.RHWindow .DailyBaseStatus,
+#DailyWindow.RHWindow #DailyCount, #DailyWindow.RHWindow #DailyNotice { color:#a9bbc2; }
+#DailyWindow.RHWindow #DailyPassStatus { background-color:#233e46; border:1px solid #b39a68; }
+#DailyWindow.RHWindow #DailyPassStatusText { color:#f0d48a; }
+#DailyWindow.RHWindow #DailyTooltip, #DailyWindow.RHWindow #DailyRulesText {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#16353e),to(#0b1b23));
+    background-image:none; border:1px solid #63767a; box-shadow:none;
+}
+#DailyWindow.RHWindow #DailyTooltipName { color:#e8eef0; font-family:"Source Han Sans SC"; font-weight:normal; }
+#DailyWindow.RHWindow #DailyTooltipEffect { color:#e8eef0; }
+#DailyWindow.RHWindow #PassPrice, #DailyWindow.RHWindow #PassValidity { color:#f0d48a; }
+/* Treasure: preserve the established name-to-image left alignment. */
+#TreasureWindow { background-image:none; background-color:gradient(linear,0% 0%,0% 100%,from(#16353e),to(#0b1b23)); border:1px solid #63767a; box-shadow:none; }
+#TreasureWindow #TreasureFrame { visibility:collapse; }
+#TreasureWindow #TreasureContent { background-image:none; background-color:transparent; }
+#TreasureWindow #TreasureHeader, #TreasureWindow #TreasureDetail { border-color:#63767a; }
+#TreasureWindow #TreasureTitle { font-family:"Source Han Sans SC"; font-weight:normal; color:#e8eef0; }
+#TreasureWindow #TreasureCount { color:#f0d48a; }
+#TreasureWindow #TreasureSubtitle, #TreasureWindow #TreasureHint, #TreasureWindow #TreasureDetailHint { color:#a9bbc2; }
+#TreasureWindow .TreasureName, #TreasureWindow .TreasureCardName { font-family:"Source Han Sans SC"; font-size:19px; color:#e8eef0; text-shadow:none; }
+#TreasureWindow #TreasureTooltipName { color:#f0d48a; }
+#TreasureWindow #TreasureTooltipEffect { color:#e8eef0; font-size:19px; }
+/* Store and order confirmation, including disabled/owned states. */
+.UnifiedWindow .RCProduct { background-color:#112a33; border:1px solid #49626a; }
+.UnifiedWindow .RCProduct:hover { border-color:#b39a68; }
+.UnifiedWindow .RCProductHover { background-color:#102731f5; }
+.UnifiedWindow .RCProductName, .UnifiedWindow .RCBundleName, .UnifiedWindow .RCOrderName { color:#e8eef0; }
+.UnifiedWindow .RCProduct .UIPrice, .UnifiedWindow .RCActualAmount, .UnifiedWindow .RCBundleQuantity { color:#f0d48a; }
+.UnifiedWindow .RCNotice, .UnifiedWindow .RCOrderStatus, .UnifiedWindow .RCExpiry, .UnifiedWindow .RCStockState { color:#a9bbc2; }
+.UnifiedWindow .RCMethod { background-color:#213b44; border:1px solid #63767a; }
+.UnifiedWindow .RCMethodSelected { opacity:0.25; }
+.UnifiedWindow .RCMethodText { color:#e8eef0; }
+#CustomShopWindow.RHWindow #ShopHeader { background-image:none; background-color:transparent; }
+#CustomShopWindow.RHWindow #ShopTitle { color:#e8eef0; font-family:"Source Han Sans SC"; font-weight:normal; }
+#CustomShopWindow.RHWindow #ShopModeShop, #CustomShopWindow.RHWindow #ShopModeChallenge { background-image:none; background-color:#203740; border:1px solid #526a73; }
+#CustomShopWindow.RHWindow .ShopModeButton.Selected { background-color:#354444; border-color:#b39a68; }
+#CustomShopWindow.RHWindow .ShopModeButton Label { color:#e8eef0; }
+/* Lottery main view: retains the actual pool art but shares the archive surface. */
+#LotteryWindow #LotteryMainCanvas {
+    background-image:none; background-color:gradient(linear,0% 0%,0% 100%,from(#16353e),to(#0b1b23)); border:1px solid #63767a;
+}
+#LotteryMainCanvas #LotteryReadingMask { background-image:none; background-color:transparent; }
+#LotteryMainCanvas #LotteryCelestialHeader { border-bottom:1px solid #63767a; }
+#LotteryMainCanvas #LotteryCelestialFooter { border-top:1px solid #63767a; }
+#LotteryMainCanvas #LotteryBrand { font-family:"Source Han Sans SC"; font-weight:normal; color:#e8eef0; }
+#LotteryMainCanvas #LotteryTitle { font-family:"Source Han Sans SC"; font-weight:normal; font-size:84px; color:#e8eef0; }
+#LotteryMainCanvas #LotteryTagline { color:#a9bbc2; font-size:28px; }
+#LotteryMainCanvas #LotteryGuaranteeValue, #LotteryMainCanvas #LotteryTicketValue { color:#f0d48a; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab { border-bottom:2px solid transparent; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab.Selected { background-color:#2d4147; border-bottom-color:#c3ab75; }
+#LotteryMainCanvas #LotteryPoolTabs .Selected .LotteryPoolTabName { color:#f0d48a; }
+#LotteryMainCanvas .LHTabGlow, #LotteryMainCanvas .LHDrawBase, #LotteryMainCanvas .LHSingleHover, #LotteryMainCanvas .LHTenHover,
+#LotteryMainCanvas .PolishDrawBase, #LotteryMainCanvas .PolishSingleHover, #LotteryMainCanvas .PolishTenHover { visibility:collapse; }
+#LotteryMainCanvas #LotterySingleButton Label, #LotteryMainCanvas #LotteryTenButton Label { color:#f0d48a; text-shadow:none; }
+#LotteryMainCanvas #LotterySingleButton:disabled Label, #LotteryMainCanvas #LotteryTenButton:disabled Label { color:#9fadb3; }
+
+#LotteryMainCanvas #LotteryPoolArtwork {
+    position:940px 150px 0px; width:624px; height:596px; z-index:0;
+    background-size:cover; background-position:right center; background-repeat:no-repeat;
+    border:1px solid #49626a; opacity:0.85;
+}
+#LotteryMainCanvas .LHControls { z-index:1; }
+#DailyWindow.RHWindow #DailyHeading { font-family:"Source Han Sans SC"; font-weight:normal; color:#e8eef0; }
+#DailyWindow.RHWindow .DailyPremiumName, #DailyWindow.RHWindow .DailyPremiumTag { color:#f0d48a; }
+#DailyWindow.RHWindow .DailyPremiumState, #DailyWindow.RHWindow #DailyRuleLine, #DailyWindow.RHWindow #DailyRulesBody { color:#d8e0e8; }
+#DailyWindow.RHWindow .DailySpecial { background-image:none; background-color:#112a33; border:1px solid #49626a; }
+#DailyWindow.RHWindow #PassPurchase, #DailyWindow.RHWindow #DailyBack { background-image:none; background-color:#233e46; border:1px solid #b39a68; }
+#DailyWindow.RHWindow #PassPurchase Label, #DailyWindow.RHWindow #DailyBack Label { color:#f0d48a; }
+#DailyWindow.RHWindow #PassPurchase:disabled { background-color:#142830; border-color:#3e535b; }
+#DailyWindow.RHWindow #PassPurchase:disabled Label { color:#9fadb3; }
+#TreasureWindow .TreasureEmpty .TreasureName { color:#a9bbc2; }
+#TreasureWindow .TreasureCard:hover .TreasureArt { brightness:1; box-shadow:none; }
+
+#TreasureWindow .TreasureVacant .TreasureName { color:#a9bbc2; }
+
+.UnifiedWindow .UnifiedCloseGlyph, #DailyWindow.RHWindow .UnifiedCloseGlyph, #LotteryInfoDialog.RHWindow .UnifiedCloseGlyph, #CustomShopWindow.RHWindow .UnifiedCloseGlyph { color:#f0d48a; }
+
+/* Explicit legacy-state overrides, verified against live Panorama windows. */
+.RHWindow .RHFrame { visibility:collapse; }
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle Label { color:#e8eef0; }
+#CustomShopWindow.RHSurvivalShop .ShopModeToggle.Selected Label { color:#f0d48a; }
+#CustomShopWindow.RHSurvivalShop .ShopSectionTitle { color:#d8e0e8; font-size:20px; }
+#CustomShopWindow.RHSurvivalShop #ShopResourceSummary { color:#f0d48a; font-size:16px; }
+#CustomShopWindow.RHSurvivalShop #ShopStatus { color:#a9bbc2; font-size:16px; }
+#CustomShopWindow.RHSurvivalShop #ShopBody, #CustomShopWindow.RHSurvivalShop #ShopShelfArea { background-color:transparent; background-image:none; }
+#CustomShopWindow.RHSurvivalShop .RHShopTabGlow { visibility:collapse; }
+#DailyWindow.RHWindow #DailyClaim.RHAction { background-color:#294149; border:1px solid #b39a68; opacity:1; brightness:1; }
+#DailyWindow.RHWindow #DailyClaim.RHAction:hover { background-color:#354f57; }
+#DailyWindow.RHWindow #DailyClaim.RHAction:disabled { background-color:#142830; border-color:#526a73; opacity:1; }
+#DailyWindow.RHWindow #DailyClaim #DailyClaimText { color:#f0d48a; opacity:1; }
+#DailyWindow.RHWindow #DailyClaim:disabled #DailyClaimText { color:#a9bbc2; }
+#DailyWindow.RHWindow #DailyPassStatus .RHDailyPassSkin { visibility:collapse; }
+#DailyWindow.RHWindow .DailyPremiumBadge { visibility:collapse; }
+#DailyWindow.RHWindow .DailyPremiumTag { background-color:#294149; border:1px solid #b39a68; }
+#DailyWindow.RHWindow #DailyClose .UnifiedCloseGlyph,
+#CustomShopWindow.RHWindow #ShopCloseButton .UnifiedCloseGlyph,
+#LotteryInfoDialog.RHWindow #LotteryInfoClose .UnifiedCloseGlyph,
+.RCWindow.RHWindow .RCClose .UnifiedCloseGlyph { font-size:34px; color:#f0d48a; text-align:center; }
+#LotteryMainCanvas #LotterySingleButton .LHDrawVisual,
+#LotteryMainCanvas #LotteryTenButton .LHDrawVisual { background-color:#294149; border:1px solid #b39a68; opacity:1; }
+#LotteryMainCanvas #LotterySingleButton:disabled .LHDrawVisual,
+#LotteryMainCanvas #LotteryTenButton:disabled .LHDrawVisual { background-color:#142830; border-color:#63767a; opacity:1; }
+#LotteryMainCanvas #LotterySingleButton:disabled #LotterySingleText,
+#LotteryMainCanvas #LotteryTenButton:disabled #LotteryTenText { opacity:1; }
+#LotteryMainCanvas #LotteryPoolTabs .Selected .LHTabGlow { visibility:collapse; }
+
+/* Five columns and four rows remain within the shared bordered shell. */
+#TreasureWindow #TreasureCards .TreasureCard { width:144px; margin:0px 8px 8px 0px; }
+#DailyWindow.RHWindow #DailyPassStatus .RHDailyPassSkin { opacity:0; }
+
+#CustomShopWindow.RHSurvivalShop #ShopFooter #ShopResourceSummary { color:#f0d48a; font-size:16px; }
+#CustomShopWindow.RHSurvivalShop #ShopFooter #ShopStatus { color:#a9bbc2; font-size:16px; }
+#CustomShopWindow.RHSurvivalShop #ShopFooter #ShopStatus.error { color:#e9a4a4; }

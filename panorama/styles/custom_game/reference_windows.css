@@ -1,0 +1,235 @@
+/* Approved treasure language shared by navigation windows. All ornaments ignore input. */
+.ReferenceWindow { border-radius:18px; }
+.ReferenceAtmosphere { ignore-parent-flow:true; width:100%; height:100%; position:0px 0px 0px; overflow:clip; border-radius:18px; z-index:-1; }
+.ReferenceFilaments { width:100%; height:100%; }
+.ReferenceBloomTL { width:470px; height:310px; align:left top; background-color:gradient(radial,0% 0%,0% 0%,100% 100%,from(#269acd50),color-stop(.42,#22789c22),to(#22789c00)); }
+.ReferenceBloomBR { width:430px; height:260px; align:right bottom; background-color:gradient(radial,100% 100%,0% 0%,100% 100%,from(#249bc65c),color-stop(.46,#2580ab26),to(#2580ab00)); }
+.ReferenceLightLeft { width:20px; height:220px; position:0px 40px 0px; background-color:gradient(radial,0% 50%,0% 0%,100% 50%,from(#a2eeffb0),color-stop(.18,#5bc6e773),to(#3b9fca00)); }
+.ReferenceLightRight { width:20px; height:240px; align:right top; margin-top:144px; background-color:gradient(radial,100% 50%,0% 0%,100% 50%,from(#c6f7ffe0),color-stop(.14,#63d1ed80),to(#3b9fca00)); }
+.ReferenceFrame { ignore-parent-flow:true; width:100%; height:100%; position:0px 0px 0px; border:1px solid #8fa398aa; border-radius:18px; z-index:40; }
+.ReferenceFrame Panel { width:50px; height:50px; background-size:100% 100%; background-repeat:no-repeat; }
+.ReferenceCornerTL { align:left top; background-image:url("file://{images}/custom_game/treasure_reference/tl.svg"); }
+.ReferenceCornerTR { align:right top; background-image:url("file://{images}/custom_game/treasure_reference/tr.svg"); }
+.ReferenceCornerBL { align:left bottom; background-image:url("file://{images}/custom_game/treasure_reference/bl.svg"); }
+.ReferenceCornerBR { align:right bottom; background-image:url("file://{images}/custom_game/treasure_reference/br.svg"); }
+.ReferenceWindow .ReferenceClose { width:40px; height:40px; background-image:none; background-color:transparent; border:1px solid #839188aa; border-radius:50%; box-shadow:none; }
+.ReferenceWindow .ReferenceClose:hover { background-color:#31546555; border-color:#eed8a7; brightness:1.1; }
+.ReferenceWindow .UnifiedCloseGlyph { color:#eed8a7; font-size:34px; font-weight:normal; }
+.ReferenceWindow Label { font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif; text-shadow:none; }
+.ReferenceWindow .RCTitle, .ReferenceWindow #LotteryInfoTitle, #CustomShopWindow.ReferenceWindow #ShopTitle { font-family:"Source Han Serif SC"; font-weight:normal; font-size:32px; color:#eed8a7; letter-spacing:2px; text-shadow:none; }
+.ReferenceWindow .RCHeader, #CustomShopWindow.ReferenceWindow #ShopHeader, #DailyWindow.ReferenceWindow #DailyHeader { background-image:none; background-color:transparent; }
+.ReferenceWindow .RCTab { background-image:none; background-color:#183844; border:1px solid #5d7c83; border-radius:4px; }
+.ReferenceWindow .RCTab.UISelected { background-color:#284b58; border-color:#cbb780; }
+.ReferenceWindow .RCTab Label { font-weight:normal; font-size:23px; color:#e1e8e8; }
+.ReferenceWindow .RHAction { border-radius:4px; }
+/* Archive: retain validated card geometry, counters and native text layer. */
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveHeaderArt,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveSidebarBacking,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContentBacking { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveHeader { height:124px; border-bottom:1px solid #afbb9977; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveReferenceEmblem { position:32px 28px 0px; width:56px; height:56px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTitleBlock { position:108px 25px 0px; width:540px; height:85px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTitle { text-align:left; font-size:32px; font-weight:normal; color:#eed8a7; letter-spacing:2px; height:46px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveSubtitle { text-align:left; font-size:19px; color:#acbdc4; height:28px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveClose { position:796px 36px 0px; width:40px; height:40px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveClose .ArchiveCloseImage { width:28px; height:28px; align:center center; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveBody,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs { background-image:none; background-color:transparent; border:0px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs { border-right:1px solid #6d919355; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs .ArchiveTab .ArchiveNavLabel { font-weight:normal; font-size:23px; color:#e1e8e8; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs .ArchiveTab .ArchiveNavIcon { saturation:1; brightness:1; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs .ArchiveTab:selected { background-color:#31556680; border-left:3px solid #dac28a; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs .ArchiveTab:selected .ArchiveNavLabel { color:#eed8a7; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveCard { background-color:#102b3733; border:1px solid #6d91934a; border-radius:4px; box-shadow:none; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveCard:hover { background-color:#234a5755; border-color:#cbb780; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveFilters RadioButton { background-color:#183844; border-color:#5d7c83; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveFilters RadioButton:selected { background-color:#284b58; border-color:#cbb780; }
+/* Welfare: same heading hierarchy, quiet cards and legible secondary text. */
+#DailyWindow.ReferenceWindow #DailyHeading { position:96px 23px 0px; horizontal-align:left; text-align:left; width:600px; height:46px; font-family:"Source Han Serif SC"; font-size:32px; font-weight:normal; color:#eed8a7; }
+#DailyWindow.ReferenceWindow #DailyClose { position:1270px 23px 0px; width:40px; height:40px; }
+#DailyWindow.ReferenceWindow #DailySubtitle { font-family:"Source Han Sans SC"; font-size:25px; font-weight:normal; color:#e1e8e8; }
+#DailyWindow.ReferenceWindow .DailyNormalCard, #DailyWindow.ReferenceWindow .DailyWeekCard, #DailyWindow.ReferenceWindow .DailySpecial { background-color:#102b3755; border:1px solid #6d919377; border-radius:5px; box-shadow:none; }
+#DailyWindow.ReferenceWindow .RHDailyCurrent { background-color:#24495399; border-color:#d4bc82; box-shadow:0px 0px 8px 0 #d4bc8225; }
+#DailyWindow.ReferenceWindow .DailyDay { font-size:23px; font-weight:normal; color:#e1e8e8; }
+#DailyWindow.ReferenceWindow .DailyRewardName { color:#eed8a7; }
+#DailyWindow.ReferenceWindow .DailyMultiItem .DailyRewardName { font-size:18px; }
+#DailyWindow.ReferenceWindow #DailyRuleLine { font-size:19px; color:#acbdc4; border-color:#afbb9977; }
+#DailyWindow.ReferenceWindow #DailyCount, #DailyWindow.ReferenceWindow .DailyPremiumState { font-size:19px; color:#acbdc4; }
+#DailyWindow.ReferenceWindow #DailyRulesText, #DailyWindow.ReferenceWindow #DailyTooltip { background-color:gradient(linear,0% 0%,0% 100%,from(#1b4354),to(#102b37)); border:1px solid #99a78c; border-radius:6px; }
+/* Lottery uses a 1280 x 800 window; the full viewport behind it is only a scrim. */
+#LotteryWindow { width:100%; height:100%; background-image:none; background-color:#00000033; }
+#LotteryWindow #LotteryMainCanvas { width:1280px; height:800px; align:center center; border:0px; border-radius:18px; overflow:clip; }
+#LotteryMainCanvas #LotteryCelestialHeader { height:92px; overflow:noclip; }
+#LotteryMainCanvas .LHLogo { position:32px 24px 0px; width:48px; height:48px; background-image:url("file://{images}/custom_game/topnav_reference_v2/lottery.svg"); }
+#LotteryMainCanvas #LotteryBrand { position:98px 27px 0px; width:600px; height:48px; font-family:"Source Han Serif SC"; font-size:32px; font-weight:normal; color:#eed8a7; }
+#LotteryMainCanvas #LotteryWallet { position:884px 27px 0px; width:270px; height:44px; background-color:transparent; }
+#LotteryMainCanvas #LotteryTicketValue { font-size:22px; width:170px; }
+#LotteryMainCanvas #LotteryCloseButton { position:1205px 26px 0px; width:40px; height:40px; }
+#LotteryMainCanvas .LHClose { width:28px; height:28px; align:center center; }
+#LotteryMainCanvas #LotteryPoolTabs { position:28px 102px 0px; width:1224px; height:80px; align:left top; margin:0px; z-index:5; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab { width:300px; height:78px; margin-right:6px; border-bottom:1px solid #6d919366; border-radius:4px; }
+#LotteryMainCanvas #LotteryPoolTabs .LHMainTab.Selected { background-color:#31556680; border-bottom:2px solid #dac28a; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTabName { font-size:25px; margin-top:9px; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolBadge { align:center top; margin:43px 0px 0px; width:136px; height:23px; background-image:none; background-color:#254751; border:1px solid #8e9275; color:#d9c79a; font-size:15px; }
+#LotteryMainCanvas #LotteryHeroCopy { position:56px 242px 0px; width:488px; height:350px; }
+#LotteryMainCanvas #LotteryAnnouncement { position:0px 0px 0px; height:32px; }
+#LotteryMainCanvas #LotteryAnnouncement Label { font-size:21px; color:#acbdc4; }
+#LotteryMainCanvas #LotteryTitle { position:0px 54px 0px; width:488px; height:80px; font-family:"Source Han Serif SC"; font-weight:normal; font-size:52px; color:#eed8a7; }
+#LotteryMainCanvas #LotteryTagline { position:0px 153px 0px; font-size:25px; color:#acbdc4; }
+#LotteryMainCanvas #LotteryGuaranteeRow { position:0px 229px 0px; width:420px; height:58px; }
+#LotteryMainCanvas #LotteryGuaranteeValue, #LotteryMainCanvas #LHGuaranteeQuality { font-size:25px; }
+#LotteryMainCanvas #LotteryPoolArtwork { position:604px 214px 0px; width:620px; height:416px; opacity:1; border:1px solid #859b9777; border-radius:8px; background-position:center; }
+#LotteryMainCanvas #LotteryCelestialFooter { position:28px 684px 0px; width:1224px; height:100px; border-top:1px solid #afbb9977; background-color:transparent; }
+#LotteryMainCanvas #LHDetails { position:4px 22px 0px; width:152px; height:48px; }
+#LotteryMainCanvas #LHHistory { position:178px 22px 0px; width:152px; height:48px; }
+#LotteryMainCanvas #LHDetails Label, #LotteryMainCanvas #LHHistory Label { font-size:22px; }
+#LotteryMainCanvas .LHDetailsIcon, #LotteryMainCanvas .LHHistoryIcon { width:32px; height:36px; }
+#LotteryMainCanvas .LHUtilityDivider { position:165px 35px 0px; height:25px; }
+#LotteryMainCanvas #LotterySkipAnimation { position:355px 26px 0px; width:208px; height:40px; }
+#LotteryMainCanvas #LotterySkipAnimation .TickBox { width:32px; height:32px; }
+#LotteryMainCanvas #LotterySkipAnimation Label { font-size:21px; }
+#LotteryMainCanvas #LotterySingleButton, #LotteryMainCanvas #LotteryTenButton,
+#LotteryMainCanvas #LotterySingleButton:hover, #LotteryMainCanvas #LotteryTenButton:hover,
+#LotteryMainCanvas #LotterySingleButton:active, #LotteryMainCanvas #LotteryTenButton:active,
+#LotteryMainCanvas #LotterySingleButton:disabled, #LotteryMainCanvas #LotteryTenButton:disabled { width:252px; height:64px; border-radius:4px; }
+#LotteryMainCanvas #LotterySingleButton { position:632px 18px 0px; }
+#LotteryMainCanvas #LotteryTenButton { position:900px 18px 0px; }
+#LotteryMainCanvas .LHDrawVisual { width:252px; height:64px; }
+#LotteryMainCanvas .LHDrawCaption { margin-left:36px; }
+#LotteryMainCanvas #LotterySingleText, #LotteryMainCanvas #LotteryTenText, #LotteryMainCanvas #LHTenQuality { font-size:25px; }
+#LotteryMainCanvas .LHDrawTicket { position:15px 5px 0px; width:42px; height:40px; }
+#LotteryMainCanvas #LotteryCelestialFooter .LHCost { margin:0px 0px 4px 26px; font-size:16px; color:#d8e4e6; text-shadow:none; }
+#LotteryMainCanvas #LotteryStatus { position:56px 645px 0px; width:1168px; height:30px; font-size:20px; color:#d8e4e6; }
+/* Two rows of five rewards, with actions below; no full-screen result surface. */
+#LotteryMainCanvas #LotteryResultStage { position:28px 105px 0px; width:1224px; height:663px; }
+#LotteryMainCanvas #LotteryResultHeading { margin-top:0px; font-size:32px; color:#eed8a7; text-shadow:none; }
+#LotteryMainCanvas #LotteryItemList { width:1160px; height:512px; margin-top:54px; align:center top; }
+#LotteryMainCanvas #LotteryItemList.LotteryTenResults { padding:0px; flow-children:right-wrap; }
+#LotteryMainCanvas #LotteryItemList .LotteryRewardCard { width:220px; height:248px; margin:4px 6px; background-color:#153642; border-radius:5px; box-shadow:none; }
+#LotteryMainCanvas .LotteryRewardIconFrame { width:130px; height:112px; margin-top:6px; padding:5px; background-color:#102b37; }
+#LotteryMainCanvas .LotteryRewardIcon { width:100px; height:100px; }
+#LotteryMainCanvas .LotteryRewardName { height:28px; margin-top:5px; font-size:21px; color:#e1e8e8; }
+#LotteryMainCanvas .LotteryRewardDescription { height:44px; font-size:17px; color:#acbdc4; }
+#LotteryMainCanvas .LotteryRewardDuration { font-size:15px; color:#acbdc4; }
+#LotteryMainCanvas .LotteryDuplicateBadge { font-size:16px; height:28px; color:#eed8a7; }
+#LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardCard { width:330px; height:486px; margin-top:8px; }
+#LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardIconFrame { width:280px; height:262px; margin-top:14px; }
+#LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardIcon { width:238px; height:238px; }
+#LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardName { height:44px; font-size:28px; }
+#LotteryMainCanvas #LotteryItemList.LotterySingleResult .LotteryRewardDescription { height:82px; font-size:21px; }
+#LotteryMainCanvas #LotteryResultActions { align:center bottom; margin-bottom:6px; }
+#LotteryMainCanvas #LotteryResultActions Button { height:58px; background-color:#294b56; border:1px solid #c6b17d; border-radius:4px; }
+#LotteryMainCanvas #LotteryResultActions Button Label { color:#eed8a7; font-size:25px; }
+#LotteryMainCanvas #LotteryRevealStage { position:28px 100px 0px; width:1224px; height:600px; }
+#LotteryMainCanvas #LotterySkipReveal { margin:106px 48px 0px 0px; }
+.LotteryResultsShown #LotteryMainCanvas #LotteryPoolTabs, .LotteryResultsShown #LotteryMainCanvas #LotteryPoolArtwork { visibility:collapse; }
+.LotteryResultsShown #LotteryMainCanvas #LotteryStatus { position:36px 762px 0px; width:1208px; height:26px; font-size:18px; }
+
+#LotteryWindow { border:0px; box-shadow:none; }
+#DailyWindow.ReferenceWindow #DailyPassPage .DailySection { color:#eed8a7; font-size:27px; }
+#DailyWindow.ReferenceWindow #PassValidity, #DailyWindow.ReferenceWindow #PassPrice,
+#DailyWindow.ReferenceWindow .DailySpecial .DailyText { color:#e1e8e8; font-size:22px; }
+.ReferenceWindow .RCTitle { font-weight:normal; }
+
+#DailyWindow.ReferenceWindow #DailyClose,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveClose,
+#LotteryMainCanvas.ReferenceWindow #LotteryCloseButton,
+#LotteryInfoDialog.ReferenceWindow #LotteryInfoClose,
+#CustomShopWindow.ReferenceWindow #ShopCloseButton,
+.ReferenceWindow .RCHeader .RCClose {
+    background-image:none; background-color:transparent; border:1px solid #839188aa;
+    border-radius:50%; box-shadow:none;
+}
+#DailyWindow.ReferenceWindow #DailyClose:hover,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveClose:hover,
+#LotteryMainCanvas.ReferenceWindow #LotteryCloseButton:hover,
+#LotteryInfoDialog.ReferenceWindow #LotteryInfoClose:hover,
+#CustomShopWindow.ReferenceWindow #ShopCloseButton:hover,
+.ReferenceWindow .RCHeader .RCClose:hover { border-color:#eed8a7; background-color:#31546555; }
+
+.ReferenceHeaderEmblem { position:32px 18px 0px; width:48px; height:48px; }
+#LotteryInfoDialog.ReferenceWindow #LotteryInfoTitle { color:#eed8a7; font-family:"Source Han Serif SC"; font-size:32px; font-weight:normal; }
+
+/* Match TreasureHint: regular Chinese glyphs, no outline or glow.
+   Sizes and semantic colors (gold prices, rarity, disabled states) stay local. */
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff.ReferenceWindow Label,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs .ArchiveTab .ArchiveNavLabel,
+#DailyWindow.ReferenceWindow Label,
+#LotteryMainCanvas.ReferenceWindow Label,
+#LotteryInfoDialog.ReferenceWindow Label,
+#LotteryItemTooltip.LotterySimpleTooltip Label,
+#CustomShopWindow.ReferenceWindow Label,
+.RCWindow.RHWindow.ReferenceWindow Label {
+    font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif;
+    font-weight:normal; font-style:normal; text-shadow:none; letter-spacing:0px;
+}
+/* Older title and number rules have ID selectors: override them explicitly. */
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTitle,
+#DailyWindow.ReferenceWindow #DailyHeading,
+#DailyWindow.ReferenceWindow #DailyTitle,
+#DailyWindow.ReferenceWindow #DailySubtitle,
+#DailyWindow.ReferenceWindow #DailyTooltipName,
+#DailyWindow.ReferenceWindow .DailyDay,
+#LotteryMainCanvas.ReferenceWindow #LotteryBrand,
+#LotteryMainCanvas.ReferenceWindow #LotteryTitle,
+#LotteryMainCanvas.ReferenceWindow #LHTenQuality,
+#LotteryMainCanvas.ReferenceWindow #LotterySingleText,
+#LotteryMainCanvas.ReferenceWindow #LotteryTenText,
+#LotteryInfoDialog.ReferenceWindow #LotteryInfoTitle,
+#CustomShopWindow.ReferenceWindow #ShopTitle,
+#CustomShopWindow.ReferenceWindow .ShopStockLabel,
+.RCWindow.RHWindow.ReferenceWindow .RCHeader .RCTitle {
+    font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif;
+    font-weight:normal; font-style:normal; text-shadow:none;
+}
+
+/* Archive readability pass: three full collection rows, separate controls/footer. */
+.ArchiveRoot #ArchiveWindow.ReferenceWindow { height:816px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveBody,
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent { height:692px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs { height:620px; padding-right:8px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveNavScrollHint {
+    position:12px 644px 0px; width:190px; height:28px;
+    font-size:18px; color:#acbdc4; text-align:center; vertical-align:top;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs VerticalScrollBar {
+    visibility:collapse; width:0px; opacity:0;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveTabs VerticalScrollBar .ScrollThumb {
+    background-image:none; background-color:#bca875; border:0px; border-radius:3px;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent #ArchiveGrid { height:544px; margin:0px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveCollectionPage #ArchiveGrid { height:504px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveHasDraw #ArchiveGrid { height:504px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveHasDraw #ArchiveDrawBar { position:18px 568px 0px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent #ArchiveFooter {
+    position:18px 632px 0px; width:600px; height:44px;
+    padding:2px 4px 0px; border-top:1px solid #6d919355;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent #ArchiveStatus {
+    width:592px; height:42px; font-size:18px; line-height:20px;
+    white-space:normal; text-overflow:ellipsis; text-align:left;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent #ArchiveCurrencySource {
+    position:18px 58px 0px; height:108px; line-height:27px; padding:8px 10px;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveHasCurrencySource #ArchiveGrid { position:18px 180px 0px; height:440px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveWorkPage #ArchiveGrid { height:376px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveArtifactCard { height:214px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveArtifactCard .ArchiveArtifactArt { position:29px 21px 0px; width:132px; height:92px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveArtifactCard .ArchiveNameHost { position:3px 126px 0px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveArtifactCard .ArchiveCountHost { position:3px 156px 0px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveArtifactCard .ArchiveCostHost { position:3px 184px 0px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveCollectionPage #ArchiveGrid .ArchiveCollectionCard { height:164px; }
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveContent.ArchiveCollectionPage #ArchiveGrid .ArchiveCollectionCard .ArchiveCountHost { position:3px 132px 0px; }
+
+/* The level badge is gone: center the full promotion caption in its card. */
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveFragmentCard .ArchivePromote {
+    position:14px 186px 0px; width:116px; height:28px;
+    margin:0px; padding:0px; align:left top;
+}
+.ArchiveRoot #ArchiveWindow.ReferenceWindow #ArchiveGrid .ArchiveFragmentCard .ArchivePromote Label {
+    width:100%; height:26px; margin:0px; padding:0px;
+    align:center center; text-align:center; white-space:nowrap; text-overflow:clip;
+}

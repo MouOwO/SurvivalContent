@@ -8,7 +8,10 @@
     function label(parent,text,cls){var el=$.CreatePanel('Label',parent,'');el.AddClass(cls);el.text=String(text);el.hittest=false;return el;}
     function unlocked(item,category){
         if(item.unlocked!==undefined)return Number(item.unlocked)===1;
-        if(item.completed!==undefined && ['clear','endless','pet','boss','map_level','work'].indexOf(category)>=0)return Number(item.completed)===1;
+        // Achievement progress is not an unlock until the target is completed.
+        if(item.completed!==undefined && ['clear','endless','boss','map_level','starjoy_points','gift'].indexOf(category)>=0)return Number(item.completed)===1;
+        // Upgrade effects activate at level 1; completed means max level here.
+        if(['fragment','building','work'].indexOf(category)>=0)return Number(item.level!==undefined?item.level:item.count)>0;
         if(category==='fishing'&&Number(item.count_known)!==1)return null;
         return item.count!==undefined?Number(item.count)>0:null;
     }
@@ -16,6 +19,15 @@
         var count=item.count, target=item.target;
         if(item.count_known!==undefined&&Number(item.count_known)!==1)count=undefined;
         return (count!==undefined&&isFinite(Number(count))?String(count):'—')+' / '+(target!==undefined&&Number(target)>0?String(target):'—');
+    }
+    function isAchievement(category){return ['clear','endless','boss','map_level','starjoy_points','gift'].indexOf(category)>=0;}
+    function ownedCount(item){return item.count_known!==undefined&&Number(item.count_known)!==1?'—':item.count!==undefined&&isFinite(Number(item.count))?String(item.count):'—';}
+    function cardProgress(item,category){
+        if(category==='starjoy_points')return String(item.target);
+        if(isAchievement(category))return progress(item);
+        if(category==='building'||category==='work')return 'LV'+(Number(item.level)||0)+' / '+(Number(item.target)||1);
+        if(category==='fragment')return '碎片 ×'+ownedCount(item);
+        return '拥有 ×'+ownedCount(item);
     }
     function condition(item,category){
         if(item.unlock_condition||item.condition_text)return item.unlock_condition||item.condition_text;
@@ -55,6 +67,14 @@
     }
 function formatArchiveEffects(value) {
     var source=String(value||'').replace(/\r\n?/g,'\n'),depth=0,out='';
+    // Fragment levels are complete rows: keep the LV prefix with its effect.
+    // The generic number/space splitter below is only for unstructured effects.
+    if(/(^|\n)[ \t]*lv[ \t]*\d+[ \t]+\S/i.test(source)){
+        return source.split('\n').map(function(line){
+            var row=line.match(/^[ \t]*lv[ \t]*(\d+)[ \t]+(.+?)[ \t]*$/i);
+            return row?'LV'+row[1]+' '+row[2]:formatArchiveEffects(line);
+        }).filter(function(line){return !!line;}).join('\n');
+    }
     for(var i=0;i<source.length;i++){
         var c=source.charAt(i);
         if(c==='('||c==='（'||c==='['||c==='【')depth++;
@@ -71,10 +91,27 @@ function formatArchiveEffects(value) {
     return out.split('\n').map(function(line){return line.replace(/^\s+|\s+$/g,'');}).filter(function(line){return !!line;}).join('\n');
 }
 
-    function effectMarkup(value) {
+    function escapedEffectText(value){
+        return formatArchiveEffects(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function effectMarkup(value, unlockedLevel, unlockedState) {
         // Escape configured text before inserting our own number styling.
-        var text=formatArchiveEffects(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        return text.replace(/[+-]?\d+(?:,\d{3})*(?:\.\d+)?(?:%|％)?/g,function(number){return '<font color="'+cfg.SurvivalArchiveColors.number+'">'+number+'</font>';}).replace(/\n/g,'<br>');
+        var text=escapedEffectText(value);
+        function numbers(line){
+            return line.replace(/[+-]?\d+(?:,\d{3})*(?:\.\d+)?(?:%|％)?/g,function(number){return '<font color="'+cfg.SurvivalArchiveColors.number+'">'+number+'</font>';});
+        }
+        var hasLevel=unlockedLevel!==undefined;
+        var current=hasLevel&&isFinite(Number(unlockedLevel))?Math.max(0,Math.floor(Number(unlockedLevel))):0;
+        return text.split('\n').map(function(line){
+            var level=line.match(/^LV(\d+)\s/);
+            if(hasLevel&&level){
+                // Locked rows include their numbers in the muted color; no gold leaks through.
+                if(Number(level[1])>current)return '<font color="#788b93">'+line+'</font>';
+                return '<font color="#e1e8e8">'+numbers(line)+'</font>';
+            }
+            if(!hasLevel&&unlockedState!==undefined&&unlockedState!==true)return '<font color="#788b93">'+line+'</font>';
+            return numbers(line);
+        }).join('<br>');
     }
     function show(item,category,card,onlyEffect){
         hide();anchor=card;effectOnly=!!onlyEffect;
@@ -87,13 +124,13 @@ function formatArchiveEffects(value) {
         p('ArchiveTooltipName').text=item.name||'';
         p('ArchiveTooltipStateText').text=state===null?'状态待同步':state?'已解锁':'未解锁';
         p('ArchiveTooltipStateIcon').SetImage(assets[state?'icon_check_light.png':'icon_lock_light.png']);
-        p('ArchiveTooltipEffect').html=true;
-        p('ArchiveTooltipEffect').text=effectMarkup(item.description||'服务端未提供效果说明');
         var unlockText=item.unlock_condition||item.condition_text||'';
         p('ArchiveTooltipCondition').text=unlockText;
         p('ArchiveTooltipCondition').visible=!effectOnly&&!!unlockText;
         p('ArchiveTooltipCondition').style.visibility=(!effectOnly&&unlockText)?'visible':'collapse';
-        p('ArchiveTooltipProgress').text=progress(item);
+        p('ArchiveTooltipProgress').text=isAchievement(category)?progress(item):(category==='building'||category==='work')?cardProgress(item,category):ownedCount(item);
+        var progressLabel=p('ArchiveTooltipProgressLabel');
+        if(progressLabel)progressLabel.text=isAchievement(category)?'当前进度':(category==='building'||category==='work')?'当前等级':category==='fragment'?'持有碎片':'拥有数量';
         if(effectOnly){
             var ancestors=[],source=card;
             while(source){ancestors.push(source);source=source.GetParent();}
@@ -103,7 +140,16 @@ function formatArchiveEffects(value) {
                 parent.style.zIndex='100012';parent=parent.GetParent();
             }
         }
-        palette(p('ArchiveTooltip'));p('ArchiveTooltip').RemoveClass('ArchiveHidden');position(generation);
+        palette(p('ArchiveTooltip'));
+        // Apply after the shared tooltip palette: locked ordinary effects are
+        // plain dim text, so neither inline gold numbers nor palette refresh can relight them.
+        var effect=p('ArchiveTooltipEffect');
+        var dimEffect=!!item.id&&category!=='fragment'&&state!==true;
+        effect.style.color=dimEffect?'#788b93':cfg.SurvivalArchiveColors.body;
+        effect.html=true;
+        effect.text=dimEffect?escapedEffectText(item.description||'服务端未提供效果说明').replace(/\n/g,'<br>'):
+            effectMarkup(item.description||'服务端未提供效果说明',category==='fragment'?(item.level===undefined?0:item.level):undefined,item.id?state:undefined);
+        p('ArchiveTooltip').RemoveClass('ArchiveHidden');position(generation);
     }
     function icon(parent,item,category,buildings){
         var art=$.CreatePanel('Panel',parent,'');art.AddClass('ArchiveArt');art.hittest=false;
@@ -115,85 +161,84 @@ function formatArchiveEffects(value) {
             if(artId)img(art,'art_'+artId+'.png','ArchiveRewardIcon');
             else {art.AddClass('ArchiveMissingArt');label(art,'未配置图标','ArchiveMissingArtText');}
         }
-        label(parent,progress(item).replace(/ /g,''),'ArchiveCount');
+        if(category==='points'){
+            var q=String(item.quality||'').toUpperCase();
+            if(['N','R','SR','SSR','UR'].indexOf(q)>=0){
+                var badge=label(art,q,'ArchiveRarityBadge');
+                badge.AddClass('ArchiveRarity_'+q);badge.hittest=false;
+            }
+        }
+        label(parent,cardProgress(item,category),'ArchiveCount');
     }
-    // Render card glyphs beside the modal, like the approved tooltip. A nested
-    // inverse transform still filters the modal's text texture, so it is not enough.
-    var nativeLayer=null,nativePairs=[],nativeJob=null,nativeDirty=true,nativeLastKey='',nativeScrollAnchor=null;
+    // Text belongs to its card. The engine now scrolls and clips both together;
+    // no detached labels or timer-driven screen-coordinate copies are involved.
+    var cardTextPairs=[],textJob=null,textDirty=true,textLastKey='';
     function stopNativeCardText(){
-        if(nativeJob!==null){$.CancelScheduled(nativeJob);nativeJob=null;}
-        if(nativeLayer&&nativeLayer.IsValid())nativeLayer.visible=false;
+        if(textJob!==null){$.CancelScheduled(textJob);textJob=null;}
     }
-    function cardTextRect(at,base,width,height,sx,sy,fit){
-        return {x:(at.x-base.x)/sx,y:(at.y-base.y)/sy,w:width*fit/sx,h:height*fit/sy};
-    }
-    function updateNativeCardText(){
-        nativeJob=null;
-        if(!root.IsValid()||!cfg.SurvivalArchive||!cfg.SurvivalArchive.IsOpen()){stopNativeCardText();return;}
-        var grid=p('ArchiveGrid'),win=p('ArchiveWindow'),sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1;
+    function updateCardTypography(){
+        textJob=null;
+        if(!root.IsValid()||!cfg.SurvivalArchive||!cfg.SurvivalArchive.IsOpen())return;
+        var win=p('ArchiveWindow'),sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1;
         var fit=Math.min((root.actuallayoutwidth||1920)/sx/1672,(root.actuallayoutheight||1080)/sy/941);
-        var base=grid.GetPositionWithinWindow();
-        if(!grid.actuallayoutwidth||!isFinite(base.x)||!isFinite(base.y)){nativeLayer.visible=false;nativeJob=$.Schedule(0.03,updateNativeCardText);return;}
-        var scrollAt=nativeScrollAnchor&&nativeScrollAnchor.IsValid()?nativeScrollAnchor.GetPositionWithinWindow():{x:0,y:0};
-        var key=[base.x,base.y,grid.actuallayoutwidth,grid.actuallayoutheight,scrollAt.x,scrollAt.y,fit,win.style.zIndex].join(':');
-        if(nativeDirty||key!==nativeLastKey){
-            nativeDirty=false;nativeLastKey=key;
-            // Window text lives inside the modal fit transform; compensate once
-            // per layout change so it matches native card and popup text.
-            var fontSize=parseFloat(cfg.SurvivalArchiveColors.archive_text_size)||19;
+        var key=[fit,sx,sy].join(':');
+        if(textDirty||key!==textLastKey){
+            textDirty=false;textLastKey=key;
+            var fontSize=Math.round(22*fit*sx)/sx;
             function sizeText(node){
-                if(String(node.paneltype||'').toLowerCase()==='label' && String(node.style.fontSize)!==(fontSize/fit)+'px')node.style.fontSize=(fontSize/fit)+'px';
+                if(node.BHasClass('ArchiveRarityBadge'))return;
+                var C=cfg.SurvivalArchiveColors;
+                var role=node.id==='ArchiveTitle'?'archive_title_size':node.id==='ArchiveSubtitle'?'archive_subtitle_size':node.BHasClass('ArchiveNavLabel')?'archive_nav_size':'archive_text_size';
+                var target=role==='archive_text_size'?fontSize:role==='archive_title_size'?parseFloat(C[role]):Math.round(parseFloat(C[role])*fit*sx)/sx;
+                if(node.id==='ArchiveStatus'||node.id==='ArchiveNavScrollHint')target=Math.round(18*fit*sx)/sx;
+                if(String(node.paneltype||'').toLowerCase()==='label')node.style.fontSize=(target/fit)+'px';
                 node.Children().forEach(sizeText);
             }
             sizeText(win);
-            style(nativeLayer,{position:(base.x/sx)+'px '+(base.y/sy)+'px 0px',width:(grid.actuallayoutwidth*fit/sx)+'px',height:(grid.actuallayoutheight*fit/sy)+'px',zIndex:String((Number(win.style.zIndex)||100000)+1)});
-            nativePairs.forEach(function(pair){
-                if(!pair.source.IsValid()||!pair.card.IsValid()||!pair.host.IsValid()){pair.box.visible=false;return;}
-                pair.box.visible=pair.card.visible;
-                if(!pair.box.visible)return;
-                var at=pair.host.GetPositionWithinWindow(),rect=cardTextRect(at,base,pair.host.actuallayoutwidth,pair.host.actuallayoutheight,sx,sy,fit);
-                pair.box.visible=rect.y+rect.h>0&&rect.y<grid.actuallayoutheight*fit/sy;
-                if(!pair.box.visible)return;
-                style(pair.box,{position:Math.round(rect.x)+'px '+Math.round(rect.y)+'px 0px',width:Math.round(rect.w)+'px',height:Math.round(rect.h)+'px'});
+            cardTextPairs.forEach(function(pair){
+                if(!pair.label.IsValid()||!pair.host.IsValid())return;
+                // Layout width is untransformed. Only convert font size, never position.
+                var width=pair.host.actuallayoutwidth/sx;
+                if(!width){textDirty=true;return;}
+                var units=String(pair.label.text||'').split('').reduce(function(n,c){return n+(c.charCodeAt(0)>255?1:0.55);},0);
+                var target=fontSize/fit;
+                if(pair.label.BHasClass('ArchiveItemName')||pair.label.BHasClass('ArchiveCount'))target=Math.max(target*0.88,Math.min(target,(width-2)/Math.max(1,units)));
+                pair.label.style.fontSize=(Math.floor(target*fit*sx)/(fit*sx))+'px';
             });
         }
-        nativeLayer.visible=true;
-        nativeJob=$.Schedule(0.03,updateNativeCardText);
+        // Watch viewport changes only. Scrolling needs no JavaScript work.
+        textJob=$.Schedule(0.25,updateCardTypography);
     }
     function nativeCardTypography(){
-        if(!nativeLayer){var stale=p('ArchiveNativeCardText');if(stale)stale.DeleteAsync(0);nativeLayer=$.CreatePanel('Panel',root,'ArchiveNativeCardText');nativeLayer.hittest=false;nativeLayer.hittestchildren=false;}
-        var old=nativePairs;nativePairs=[];
+        var stale=p('ArchiveNativeCardText');
+        if(stale){stale.visible=false;stale.DeleteAsync(0);}
+        cardTextPairs=[];
         function visit(el,card,promote){
             promote=promote||el.BHasClass('ArchivePromote');
             var name=el.BHasClass('ArchiveItemName'),count=el.BHasClass('ArchiveCount');
             var level=el.BHasClass('ArchiveFragmentLevel'),cost=el.BHasClass('ArchiveWorkCost');
             var button=promote&&String(el.paneltype).toLowerCase()==='label';
             if(name||count||level||cost||button){
-                var pair=el.__archiveNativePair;
-                if(!pair){
-                    var box=$.CreatePanel('Panel',nativeLayer,''),copy=label(box,el.text,'ArchiveNativeText');
-                    box.hittest=false;box.hittestchildren=false;
-                    copy.AddClass(name?'ArchiveNativeName':count||cost?'ArchiveNativeNumber':'ArchiveNativeMeta');
-                    if(level||cost)copy.AddClass('ArchiveNativeLeft');
-                    pair={source:el,card:card,host:el.GetParent(),box:box,label:copy};el.__archiveNativePair=pair;
-                }
-                pair.label.text=el.text;
-                pair.label.style.color=name?cfg.SurvivalArchiveColors.heading:level?cfg.SurvivalArchiveColors.muted:button?(el.GetParent().enabled?cfg.SurvivalArchiveColors.button_text:cfg.SurvivalArchiveColors.button_disabled_text):cfg.SurvivalArchiveColors.number;
-                el.style.opacity='0';nativePairs.push(pair);
+                style(el,{fontFamily:'"Source Han Sans SC", "Microsoft YaHei", sans-serif',fontSize:'22px',fontWeight:'normal',
+                    fontStyle:'normal',fontStretch:'normal',textShadow:'none',letterSpacing:'0px',
+                    brightness:'1',opacity:'1',washColor:'none',transform:'none'});
+                el.style.color=name?'#e1e8e8':level?'#acbdc4':button?(el.GetParent().enabled?cfg.SurvivalArchiveColors.button_text:cfg.SurvivalArchiveColors.button_disabled_text):cfg.SurvivalArchiveColors.number;
+                if(!button&&card.__archiveUnlocked!==true)el.style.color=name?'#9eafb6':'#788b93';
+                if(button)style(el,{width:'100%',textAlign:'center',horizontalAlign:'center',verticalAlign:'center',margin:'0px',padding:'0px'});
+                cardTextPairs.push({label:el,host:el.GetParent(),card:card});
             }
             el.Children().forEach(function(c){visit(c,card,promote);});
         }
         p('ArchiveGrid').Children().forEach(function(card){if(card.BHasClass('ArchiveCard'))visit(card,card,false);});
-        old.forEach(function(pair){if(nativePairs.indexOf(pair)<0&&pair.box.IsValid())pair.box.DeleteAsync(0);});
-        nativeDirty=true;nativeScrollAnchor=null;
-        nativePairs.some(function(pair){if(pair.card.visible){nativeScrollAnchor=pair.card;return true;}return false;});
-        if(nativeJob===null&&cfg.SurvivalArchive&&cfg.SurvivalArchive.IsOpen())nativeJob=$.Schedule(0.03,updateNativeCardText);
+        textDirty=true;
+        stopNativeCardText();
+        updateCardTypography();
     }
     cfg.ArchiveHandoff={
         HideCardText:stopNativeCardText,
         ApplyPalette:function(){palette(p('ArchiveWindow'));nativeCardTypography();},
         Observe:function(data){this.snapshot=data;},
-        Unlocked:unlocked,Progress:progress,Condition:condition,Place:place,Hide:hide,Show:show,ShowEffectOnly:function(item,card){show(item,'',card,true);},Icon:icon,
+        Unlocked:unlocked,Progress:progress,CardProgress:cardProgress,Condition:condition,Place:place,Hide:hide,Show:show,ShowEffectOnly:function(item,card){show(item,'',card,true);},Icon:icon,
         NavIcon:function(toggle,id,key){var name='archive_ui_kit_v1_'+(id==='clear'?'clear_selected':(key||'clear')+'_normal')+'.png';if(!assets[name])name='archive_ui_kit_v1_clear_selected.png';img(toggle,name,'ArchiveNavIcon');},
         Card:function(card){card.AddClass('ArchiveHandoffCard');
             card.Children().slice().forEach(function(c){
@@ -215,6 +260,9 @@ function formatArchiveEffects(value) {
             // Keep the shared modal lifecycle/escape/scrim policy; change only its artwork.
             p('ArchiveTooltip').RemoveClass('UITooltip');
             palette(p('ArchiveWindow'));
+            cfg.ReferenceWindows.Apply(p('ArchiveWindow'),p('ArchiveHeader'),p('ArchiveClose'));
+            palette(p('ArchiveWindow'));
+            var emblem=$.CreatePanel('Image',p('ArchiveHeader'),'ArchiveReferenceEmblem');emblem.hittest=false;emblem.SetImage('file://{images}/custom_game/topnav_reference_v2/archive.svg');
             $.Msg('ARCHIVE_HANDOFF_READY compact_native_v3');
         }
     };
@@ -241,7 +289,14 @@ function formatArchiveEffects(value) {
         if(args[0]==='treasure'){cfg.SurvivalArchive.Close();if(p('TreasureWindow').BHasClass('ArchiveHidden'))cfg.SurvivalTreasure.Toggle();}
         if(args[0]==='treasureclose')cfg.SurvivalTreasure.Close();
         if(args[0]==='native'){
-            $.Msg('ARCHIVE_NATIVE '+JSON.stringify({layer:nativeLayer&&{xy:nativeLayer.GetPositionWithinWindow(),w:nativeLayer.actuallayoutwidth,h:nativeLayer.actuallayoutheight,z:nativeLayer.style.zIndex,visible:nativeLayer.visible},pairs:nativePairs.filter(function(a){return a.card.visible;}).slice(0,5).map(function(a){return {text:a.source.text,opacity:a.source.style.opacity,visible:a.box.visible,xy:a.box.GetPositionWithinWindow(),w:a.box.actuallayoutwidth,h:a.box.actuallayoutheight,label:[a.label.GetPositionWithinWindow(),a.label.actuallayoutwidth,a.label.actuallayoutheight,a.label.actualuiscale_x]};})}));
+            $.Msg('ARCHIVE_CARD_TEXT '+JSON.stringify({detached:!!p('ArchiveNativeCardText'),pairs:cardTextPairs.slice(0,10).map(function(a){return {text:a.label.text,parentIsHost:a.label.GetParent()===a.host,hostIsInCard:a.host.GetParent()===a.card,opacity:a.label.style.opacity,font:a.label.style.fontSize,card:a.card.GetPositionWithinWindow(),label:a.label.GetPositionWithinWindow()};})}));
+        }
+        if(args[0]==='scroll'&&Game.IsInToolsMode&&Game.IsInToolsMode()){
+            if(args[1]==='bottom')p('ArchiveGrid').ScrollToBottom();else p('ArchiveGrid').ScrollToTop();
+        }
+        if(args[0]==='art'){
+            function inspectArt(n){var out=[];function visit(e){if(e.BHasClass('ArchiveArt')||e.BHasClass('ArchiveRewardIcon'))out.push({type:e.paneltype,brightness:e.style.brightness,saturation:e.style.saturation,opacity:e.style.opacity,wash:e.style.washColor});e.Children().forEach(visit);}visit(n);return {bright:n.BHasClass('ArchiveArtAlwaysBright'),locked:n.BHasClass('ArchiveContentLocked'),art:out};}
+            $.Msg('ARCHIVE_ART '+JSON.stringify(p('ArchiveGrid').Children().filter(function(n){return n.visible&&n.BHasClass('ArchiveCard');}).slice(0,3).map(inspectArt)));
         }
         if(args[0]==='geometry'){
             function detail(e){var at=e.GetPositionWithinWindow();return {text:e.text||'',type:e.paneltype,xy:at,w:e.actuallayoutwidth,h:e.actuallayoutheight,scale:e.actualuiscale_x,width:e.style.width,position:e.style.position,align:e.style.horizontalAlign,textAlign:e.style.textAlign,font:e.style.fontFamily,size:e.style.fontSize,weight:e.style.fontWeight,transform:e.style.transform};}
@@ -249,9 +304,15 @@ function formatArchiveEffects(value) {
             function walk(e,list){e.Children().forEach(function(c){if(c.BHasClass('ArchiveArt')||c.BHasClass('ArchiveCount')||c.BHasClass('ArchiveCountHost')||c.BHasClass('ArchiveItemName'))list.push(detail(c));walk(c,list);});}
             $.Msg('ARCHIVE_GEOMETRY '+JSON.stringify({category:(cfg.ArchiveHandoff.snapshot||{}).category_id,cards:cards.slice(0,5).concat(cards.slice(-5)).map(function(c){var list=[];walk(c,list);return {card:detail(c),children:list};})}));
         }
+        if(args[0]==='appearance'){
+            var nodes=['ArchiveTitle','ArchiveSubtitle','ArchiveBody','ArchiveContent','ArchiveGrid','ArchiveTooltip'];
+            var rows=p('ArchiveTabs').Children().filter(function(n){return n.BHasClass('ArchiveTab');});
+            function look(n){return {id:n.id,text:n.text||'',font:n.style.fontSize,background:n.style.backgroundColor,xy:n.GetPositionWithinWindow(),w:n.actuallayoutwidth,h:n.actuallayoutheight};}
+            $.Msg('ARCHIVE_APPEARANCE '+JSON.stringify({surfaces:nodes.map(function(id){return look(p(id));}),nav:rows.slice(0,9).map(function(n){return n.Children().filter(function(c){return c.BHasClass('ArchiveNavIcon')||c.BHasClass('ArchiveNavLabel');}).map(look);})}));
+        }
         if(args[0]==='audit'){
             var data=cfg.ArchiveHandoff.snapshot||{};
-            $.Msg('ARCHIVE_AUDIT '+JSON.stringify({open:cfg.SurvivalArchive.IsOpen(),hidden:p('ArchiveWindow').BHasClass('ArchiveHidden'),visible:p('ArchiveWindow').visible,category:data.category_id,categories:data.categories,rows:(data.rows||[]).length,filter:p('ArchiveFilterAllLabel').text,context:p('ArchiveContext').text,tickets:p('ArchiveTickets').text,status:p('ArchiveStatus').text,tipBackground:p('ArchiveTooltip').style.backgroundColor}));
+            $.Msg('ARCHIVE_AUDIT '+JSON.stringify({open:cfg.SurvivalArchive.IsOpen(),hidden:p('ArchiveWindow').BHasClass('ArchiveHidden'),visible:p('ArchiveWindow').visible,category:data.category_id,categories:data.categories,rows:(data.rows||[]).length,filter:p('ArchiveFilterAllLabel').text,context:p('ArchiveContext').text,tickets:p('ArchiveTickets').text,status:p('ArchiveStatus').text,tipBackground:p('ArchiveTooltip').style.backgroundColor,effect:{text:p('ArchiveTooltipEffect').text,html:p('ArchiveTooltipEffect').html,color:p('ArchiveTooltipEffect').style.color}}));
         }
     },'',0);
     Game.AddCommand('archive_view_open_'+diagnosticGeneration,function(){cfg.SurvivalArchive.Toggle();$.Msg('ARCHIVE_OPENED');},'',0);

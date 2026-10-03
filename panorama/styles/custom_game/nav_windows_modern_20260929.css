@@ -1,0 +1,310 @@
+/* ============================================================
+   Upper-left navigation windows: modern arcade skin (2026-09-29)
+   Applied to: 生存商店 / 商店 / 宝物 / 存档 / 抽奖 / 福利
+   Palette      : deep navy-teal base, warm gold hairline accents
+   Loaded last in archive.xml and survival_hud.xml so it wins the
+   cascade without editing the six large window stylesheets.
+   ============================================================ */
+
+/* ---- Shared surface tokens ----------------------------------
+   One window shell: deep gradient, gold hairline, rounded corners,
+   soft outer drop plus a single inset highlight along the top edge
+   to imply light from above. Panorama has no pseudo-elements, so
+   every layer is a real property on the window root. */
+
+#DailyWindow.RHWindow,
+.ArchiveRoot #ArchiveWindow,
+#CustomShopWindow.RHWindow {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#16303d),color-stop(.45,#0f2430),to(#0a1922));
+    border:1px solid #3f5b68;
+    border-radius:8px;
+    box-shadow:0px 12px 34px 0 #000000b0, 0px 2px 6px 0 #00000080, inset 0px 1px 0px 0 #e8c98a26;
+    overflow:noclip;
+}
+
+/* Gold accent hairline inset one pixel inside the outer border.
+   Drawn as an inner border on the same root, not a separate panel. */
+#DailyWindow.RHWindow #DailyClaimPage,
+#CustomShopWindow.RHWindow #ShopHeader {
+    border-color:#2f4a56;
+}
+
+/* ---- Window headers ----------------------------------------- */
+
+#DailyWindow.RHWindow #DailyHeader,
+#CustomShopWindow.RHWindow #ShopHeader {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#1b3946cc),to(#12263000));
+    border-bottom:1px solid #35525f;
+    border-radius:8px 8px 0px 0px;
+}
+
+/* Titles: warm off-white, wide tracking, thin gold underline bar. */
+#DailyWindow.RHWindow #DailyTitle,
+#CustomShopWindow.RHWindow #ShopTitle,
+#ArchiveWindow #ArchiveTitle {
+    font-family:"Source Han Serif SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+    font-weight:bold;
+    color:#f2e6c8;
+    letter-spacing:3px;
+    text-shadow:0px 2px 4px 2 #000000aa;
+}
+
+/* ---- Close buttons ------------------------------------------ */
+
+#DailyWindow.RHWindow #DailyClose,
+#CustomShopWindow.RHWindow #ShopClose {
+    background-image:none;
+    background-color:#1d3743;
+    border:1px solid #45606d;
+    border-radius:50%;
+    brightness:1;
+}
+#DailyWindow.RHWindow #DailyClose:hover,
+#CustomShopWindow.RHWindow #ShopClose:hover {
+    background-color:#2a4b58;
+    border-color:#c9a961;
+    brightness:1.15;
+}
+
+/* ---- Cards, slots and rows ----------------------------------
+   Rounded corners and a hairline replace the flat plates, with a
+   gold border on hover instead of a brightness jump. */
+
+.ArchiveRoot #ArchiveGrid .ArchiveCard {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#1a3542),to(#0e2029));
+    border:1px solid #3c5763;
+    border-radius:5px;
+    box-shadow:0px 2px 6px 0 #00000070, inset 0px 1px 0px 0 #ffffff0f;
+    brightness:1;
+}
+.ArchiveRoot #ArchiveGrid .ArchiveCard:hover,
+.ArchiveRoot #ArchiveGrid .ArchiveHovered {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#22414f),to(#132a35));
+    border-color:#c9a961;
+    box-shadow:0px 4px 14px 0 #00000090, inset 0px 1px 0px 0 #e8c98a2e;
+    brightness:1;
+}
+
+#DailyWindow.RHWindow .DailyNormalCard,
+#DailyWindow.RHWindow .DailyWeekCard,
+#DailyWindow.RHWindow .DailySpecial {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#16303d),to(#0d1e28));
+    border:1px solid #3c5763;
+    border-radius:5px;
+    box-shadow:0px 2px 6px 0 #00000066;
+}
+#DailyWindow.RHWindow .RHDailyCurrent {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#24444f),to(#16303c));
+    border:1px solid #c9a961;
+    box-shadow:0px 0px 16px 0 #c9a96140, inset 0px 1px 0px 0 #e8c98a33;
+}
+
+#CustomShopWindow.RHSurvivalShop .ShopItemFrame {
+    background-color:#0d1e28;
+    border:1px solid #3c5763;
+    border-radius:5px;
+}
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.UICardProduct:hover .ShopItemFrame {
+    border-color:#c9a961;
+    box-shadow:0px 0px 12px 0 #c9a96144;
+}
+
+/* ---- Tabs and mode toggles ---------------------------------- */
+
+#CustomShopWindow.RHWindow #ShopModeShop,
+#CustomShopWindow.RHWindow #ShopModeChallenge,
+.UnifiedWindow .RCTab {
+    background-image:none;
+    background-color:#1b333e;
+    border:1px solid #3f5b68;
+    border-radius:4px;
+}
+#CustomShopWindow.RHWindow #ShopModeShop:hover,
+#CustomShopWindow.RHWindow #ShopModeChallenge:hover,
+.UnifiedWindow .RCTab:hover {
+    background-color:#254350;
+    border-color:#6f8c96;
+    brightness:1;
+}
+#CustomShopWindow.RHWindow .ShopModeButton.Selected,
+.UnifiedWindow .RCTab.UISelected {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#2c4b53),to(#1a3540));
+    border:1px solid #c9a961;
+    box-shadow:inset 0px 1px 0px 0 #e8c98a2e;
+}
+#CustomShopWindow.RHWindow .ShopModeButton.Selected Label,
+.UnifiedWindow .RCTab.UISelected .RCTabText {
+    color:#f0d48a;
+}
+
+/* ---- Action buttons ---------------------------------------- */
+
+.UnifiedWindow .RHAction,
+#DailyWindow.RHWindow #DailyClaim,
+#DailyWindow.RHWindow #PassPurchase,
+#DailyWindow.RHWindow #DailyBack {
+    background-image:none;
+    background-color:#1c3843;
+    border:1px solid #46626f;
+    border-radius:5px;
+    box-shadow:0px 2px 8px 0 #00000066, inset 0px 1px 0px 0 #ffffff12;
+}
+.UnifiedWindow .RHAction:hover,
+#DailyWindow.RHWindow #DailyClaim:hover,
+#DailyWindow.RHWindow #PassPurchase:hover {
+    background-color:#264a57;
+    border-color:#7f9aa4;
+    brightness:1;
+}
+/* Primary action carries the gold treatment. */
+.UnifiedWindow .RHAction.UnifiedPrimary,
+#DailyWindow.RHWindow #DailyClaim {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#3a4f42),to(#22362f));
+    border:1px solid #c9a961;
+    box-shadow:0px 2px 10px 0 #00000070, inset 0px 1px 0px 0 #e8c98a30;
+}
+.UnifiedWindow .RHAction.UnifiedPrimary Label,
+#DailyWindow.RHWindow #DailyClaimText {
+    color:#f0d48a;
+}
+.UnifiedWindow .RHAction:disabled {
+    background-color:#16272f;
+    border-color:#334952;
+    opacity:1;
+}
+.UnifiedWindow .RHAction:disabled Label {
+    color:#8fa3aa;
+}
+
+/* ---- Tooltips and info panels ------------------------------- */
+
+#DailyWindow.RHWindow #DailyTooltip,
+#DailyWindow.RHWindow #DailyRulesText {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#1a3542),to(#0d1e28));
+    border:1px solid #c9a961;
+    border-radius:6px;
+    box-shadow:0px 8px 26px 0 #000000a0, inset 0px 1px 0px 0 #e8c98a24;
+}
+
+/* ---- Lottery window ----------------------------------------- */
+
+#LotteryWindow {
+    background-color:#0a1922;
+}
+#LotteryWindow #LotteryMainCanvas {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#16303d),color-stop(.45,#0f2430),to(#0a1922));
+    border:1px solid #3f5b68;
+    border-radius:8px;
+    box-shadow:0px 12px 34px 0 #000000b0, inset 0px 1px 0px 0 #e8c98a26;
+}
+#LotteryMainCanvas #LotteryCelestialHeader {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#1b3946cc),to(#12263000));
+    border-bottom:1px solid #35525f;
+}
+#LotteryMainCanvas #LotteryCelestialFooter {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#12263000),to(#0f2430cc));
+    border-top:1px solid #35525f;
+}
+
+/* ---- Separators and scrollbars ------------------------------ */
+
+#DailyWindow.RHWindow #DailyRuleLine {
+    border-top:1px solid #35525f;
+    border-bottom:1px solid #35525f;
+}
+.RHWindow VerticalScrollBar,
+.UnifiedWindow VerticalScrollBar {
+    background-color:#0e212a;
+    background-image:none;
+    border-radius:4px;
+}
+.RHWindow VerticalScrollBar .ScrollThumb,
+.UnifiedWindow VerticalScrollBar .ScrollThumb {
+    background-color:#4a6a76;
+    background-image:none;
+    border-radius:4px;
+    border:0px;
+}
+.RHWindow VerticalScrollBar .ScrollThumb:hover,
+.UnifiedWindow VerticalScrollBar .ScrollThumb:hover {
+    background-color:#c9a961;
+    brightness:1;
+}
+
+/* Treasure reference polish: opaque blue-teal, quiet gold trim, regular copy. */
+/* Keep the gold navigation legible above the map while this window is open. */
+.ArchiveRoot #TreasureScrim { background-color:#00000033; }
+.ArchiveRoot #TreasureWindow {
+    width:960px; height:800px; padding:0px; border:0px;
+    border-radius:18px; background-image:none;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#1b4354),color-stop(.28,#153441),to(#102b37));
+    box-shadow:#287fa344 0px 0px 20px 0px; overflow:clip;
+}
+.ArchiveRoot #TreasureWindow Label {
+    font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif;
+    font-weight:normal; text-shadow:none; color:#e1e8e8;
+}
+/* Reference frame: swept gold corners and thin rails; no HUD steel bezel. */
+.ArchiveRoot #TreasureWindow #TreasureFrame { visibility:visible; opacity:1; }
+.ArchiveRoot #TreasureWindow #TreasureFrame Panel { background-image:none; }
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameTopLeft { width:50px; height:50px; background-image:url("file://{images}/custom_game/treasure_reference/tl.svg"); }
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameTopRight { width:50px; height:50px; background-image:url("file://{images}/custom_game/treasure_reference/tr.svg"); }
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameBottomLeft { width:50px; height:50px; background-image:url("file://{images}/custom_game/treasure_reference/bl.svg"); }
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameBottomRight { width:50px; height:50px; background-image:url("file://{images}/custom_game/treasure_reference/br.svg"); }
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameTop,
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameBottom { width:868px; height:1px; background-color:#c6ba88aa; opacity:1; margin:2px 0px; }
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameLeft,
+.ArchiveRoot #TreasureWindow #TreasureFrame .TreasureFrameRight { height:708px; width:1px; background-color:#6ba1ada0; opacity:1; margin:0px 2px; }
+.ArchiveRoot #TreasureWindow #TreasureContent { padding:28px; background-color:transparent; }
+.ArchiveRoot #TreasureWindow #TreasureHeader {
+    height:84px; padding:0px 10px 0px 4px; border:0px; border-bottom:1px solid #71878177;
+    border-radius:0px; background-image:none;
+    background-size:100% 100%; background-color:transparent;
+}
+.ArchiveRoot #TreasureWindow #TreasureEmblem { width:56px; height:56px; margin:0px 18px 0px 0px; vertical-align:center; }
+.ArchiveRoot #TreasureWindow #TreasureHeading { margin:0px; vertical-align:center; }
+.ArchiveRoot #TreasureWindow #TreasureTitle { font-family:"Source Han Serif SC"; font-size:32px; font-weight:normal; letter-spacing:2px; color:#eed8a7; }
+.ArchiveRoot #TreasureWindow #TreasureSubtitle { font-size:18px; letter-spacing:1px; color:#a3b8c0; margin-top:4px; }
+.ArchiveRoot #TreasureWindow #TreasureCount { color:#eed8a7; font-size:24px; margin:0px 24px 0px 0px; }
+.ArchiveRoot #TreasureWindow #TreasureClose { width:40px; height:40px; vertical-align:center; margin:0px; border:1px solid #83918888; border-radius:50%; background-color:transparent; box-shadow:none; }
+.ArchiveRoot #TreasureWindow #TreasureClose:hover { background-color:transparent; border-color:#d4b778; brightness:1.1; }
+.ArchiveRoot #TreasureWindow #TreasureClose Image { width:28px; height:28px; }
+.ArchiveRoot #TreasureWindow #TreasureHint { height:46px; padding:12px 6px 0px 6px; font-size:22px; color:#acbdc4; }
+.ArchiveRoot #TreasureWindow #TreasureCards { width:900px; height:520px; padding:0px 5px; flow-children:right-wrap; }
+.ArchiveRoot #TreasureWindow .TreasureCard { width:170px; height:130px; margin:0px 10px 0px 0px; flow-children:none; background-color:transparent; border:0px; }
+.ArchiveRoot #TreasureWindow .TreasureArt { position:41px 6px 0px; width:88px; height:88px; padding:4px; margin:0px; horizontal-align:left; background-color:#10232c; }
+.ArchiveRoot #TreasureWindow .TreasureName { position:5px 100px 0px; width:160px; height:28px; margin:0px; padding:0px; text-align:center; font-size:23px; color:#e1e8e8; white-space:nowrap; text-overflow:ellipsis; }
+.ArchiveRoot #TreasureWindow .TreasureOrder { position:45px 10px 0px; align:left top; margin:0px; font-size:14px; color:#d4dcd9; text-shadow:0px 1px 2px 2 #000000; z-index:3; }
+.ArchiveRoot #TreasureWindow .TreasureLatestBadge { position:92px 73px 0px; align:left top; margin:0px; padding:1px 4px; font-size:14px; background-color:#142b35ee; border:1px solid #a48e62; color:#ecd49c; }
+.ArchiveRoot #TreasureWindow .TreasureVacant .TreasureArt { opacity:0.45; }
+.ArchiveRoot #TreasureWindow .TreasureVacant .TreasureGlyph { font-size:20px; color:#849a9f; }
+.ArchiveRoot #TreasureWindow .TreasureCard:hover { background-color:transparent; }
+.ArchiveRoot #TreasureWindow .TreasureCard:hover .TreasureArt { brightness:1; box-shadow:#d8b76b66 0px 0px 10px 0px; }
+.ArchiveRoot #TreasureWindow .TreasureCard:hover .TreasureName { color:#eed8a7; }
+.ArchiveRoot #TreasureWindow .TreasureVacant:hover .TreasureArt { box-shadow:none; brightness:1; }
+.ArchiveRoot #TreasureWindow #TreasureDetail { background-color:transparent; border-top:1px solid #8c9a8677; padding:12px 10px; }
+.ArchiveRoot #TreasureWindow #TreasureDetailHint { font-size:22px; color:#acbdc4; }
+.ArchiveRoot #TreasureWindow #TreasureTooltipName { font-size:22px; color:#eed8a7; margin-bottom:6px; }
+.ArchiveRoot #TreasureWindow #TreasureTooltipEffect { font-size:22px; color:#e1e8e8; white-space:normal; }
+
+/* Lighting is decorative only and cannot intercept item hover or closing. */
+.ArchiveRoot #TreasureWindow #TreasureAtmosphere { width:100%; height:100%; overflow:clip; border-radius:18px; }
+.ArchiveRoot #TreasureWindow #TreasureFilaments { width:100%; height:100%; }
+.ArchiveRoot #TreasureWindow .TreasureBloomTL { width:470px; height:310px; align:left top; background-color:gradient(radial,0% 0%,0% 0%,100% 100%,from(#269acd50),color-stop(.42,#22789c22),to(#22789c00)); }
+.ArchiveRoot #TreasureWindow .TreasureBloomBR { width:430px; height:260px; align:right bottom; background-color:gradient(radial,100% 100%,0% 0%,100% 100%,from(#249bc65c),color-stop(.46,#2580ab26),to(#2580ab00)); }
+.ArchiveRoot #TreasureWindow .TreasureEdgeLightLeft { width:24px; height:250px; position:0px 38px 0px; background-color:gradient(radial,0% 50%,0% 0%,100% 50%,from(#a2eeffb0),color-stop(.18,#5bc6e773),color-stop(.5,#3b9fca26),to(#3b9fca00)); }
+.ArchiveRoot #TreasureWindow .TreasureEdgeLightRight { width:24px; height:240px; align:right top; margin-top:144px; background-color:gradient(radial,100% 50%,0% 0%,100% 50%,from(#c6f7ffe0),color-stop(.14,#63d1ed80),color-stop(.5,#3b9fca26),to(#3b9fca00)); }
+.ArchiveRoot #TreasureWindow .TreasureHeaderGleam { width:230px; height:22px; position:568px 99px 0px; background-color:gradient(radial,50% 50%,0% 0%,50% 50%,from(#8eddf393),color-stop(.16,#4da7c349),to(#4da7c300)); }
+.ArchiveRoot #TreasureWindow #TreasureHeader { border-bottom:1px solid #afbb9977; }
+
+.ArchiveRoot #TreasureWindow .TreasureEdgeCoreLeft { width:2px; height:94px; position:1px 87px 0px; background-color:gradient(linear,0% 0%,0% 100%,from(#b1f4ff00),color-stop(.5,#b1f4ffd0),to(#b1f4ff00)); }
+.ArchiveRoot #TreasureWindow .TreasureEdgeCoreRight { width:2px; height:120px; align:right top; margin:208px 1px 0px 0px; background-color:gradient(linear,0% 0%,0% 100%,from(#c7f7ff00),color-stop(.5,#c7f7fff0),to(#c7f7ff00)); }
+.ArchiveRoot #TreasureWindow #TreasureDetail { border-top:0px; padding-top:20px; }
+.ArchiveRoot #TreasureWindow #TreasureDetailDivider { ignore-parent-flow:true; width:100%; height:14px; align:center top; margin-top:-19px; }

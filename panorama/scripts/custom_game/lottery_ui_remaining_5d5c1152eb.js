@@ -6,11 +6,12 @@
     var drawSequence=U.DrawResultSequence();
     var infoOptions={id:"lottery_info",panel:$("#LotteryInfoDialog"),root:$.GetContextPanel(),scrim:$("#LotteryInfoOverlay"),header:$("#LotteryInfoHeader"),titlePanel:$("#LotteryInfoTitle"),closeButton:$("#LotteryInfoClose"),width:840,height:610,fit:{reference:[1672,941]},onClose:closeInfo};
     var infoShell=U.ModalShell.Adopt(infoOptions); RH.Window(infoOptions.panel,infoOptions.header,infoOptions.closeButton);
-    U.FullscreenShell.Adopt({panel:$("#LotteryWindow")});
+    // Scene fills the viewport; LotteryHandoff owns responsive control placement.
+    $("#LotteryWindow").RemoveClass("UIFullscreen");
     ["LotterySingleButton","LotteryTenButton","LotteryAgain","LotteryConfirm","LotteryInfoConfirm"].forEach(function(id){U.ActionButton.Adopt($("#"+id),{variant:id==="LotteryTenButton"||id==="LotteryAgain"?"gold":"ivory"});});
-    RH.LotteryActions();U.Checkbox.Adopt($("#LotterySkipAnimation")); LH.CloseButton($("#LotteryCloseButton"),close);
+    RH.LotteryActions();LH.Actions();U.Checkbox.Adopt($("#LotterySkipAnimation")); LH.CloseButton($("#LotteryCloseButton"),close);
     var state = null;
-    var poolCache={}, poolVersions={}, poolAssemblies={};
+    var poolCache={}, poolVersions={}, poolAssemblies={}, poolErrors={};
     var pending = false;
     var requestSerial = 0;
     var selectedPoolId = "map";
@@ -23,7 +24,7 @@
     var historyPoolId = "map", detailPoolId = null, detailState = null, detailRequestSerial = 0;
     var animationTimers = [], activeFeature = "", reopenDetails = false, knownPools = [], selectedRewardId = null, poolCards = [];
     var skipRevealButton=$("#LotterySkipReveal");skipRevealButton.hittest=true;skipRevealButton.hittestchildren=false;skipRevealButton.SetPanelEvent("onactivate",function(){finishReveal();$.Msg("[LOTTERY_SKIP_UI] actual_results="+visibleResults.length);});
-    function cancelAnimation() { animationSerial++; drawSequence.Cancel(); animationTimers = []; }
+    function cancelAnimation() { animationSerial++; drawSequence.Cancel(); if(GameUI.CustomUIConfig().LotteryCinematic)GameUI.CustomUIConfig().LotteryCinematic.Cancel(); animationTimers = []; }
     function cardState(card, name, on) { if (card && (!card.IsValid || card.IsValid())) card.SetHasClass(name, on); }
     function drawCost(selected, count) { var value = Number(count === 10 ? selected.ten_cost : selected.single_cost); return isFinite(value) && value >= 0 ? value : count; }
 
@@ -38,7 +39,7 @@
     function closeInfo() { detailRequestSerial++; activeFeature = ""; infoShell.Close(); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); }
     function updateButtons() {
         var selected = state && (state.selected_pool || state);
-        var locked = pending || animating || switchingPool || !selected || !!activeFeature;
+        var locked = pending || animating || switchingPool || !selected || selected.unlocked===false || !!activeFeature;
         [["LotterySingleButton", 1], ["LotteryTenButton", 10], ["LotteryAgain", lastDrawCount]].forEach(function (entry) {
             var button = panel(entry[0]);
             if (!button) return;
@@ -69,7 +70,14 @@
         animating = true; rootClass("LotteryAnimating", true); rootClass("LotteryCharging", true);
         resultCards.forEach(function (card) { cardState(card,"LotteryCardCovered",true); cardState(card,"LotteryCardEntering",true); });
         updateButtons(); setText("LotteryRevealPhase", "星轨汇聚");
-        drawSequence.Play(visibleResults,{timing:timing,flipHalf:motion.flipHalf,onCharged:function(){rootClass("LotteryCharging",false);},onEnter:function(i){cardState(resultCards[i],"LotteryCardEntering",false);},onFlip:function(i){cardState(resultCards[i],"LotteryCardNarrow",true);},onReveal:function(i){cardState(resultCards[i],"LotteryCardCovered",false);cardState(resultCards[i],"LotteryCardNarrow",false);},onReady:finishReveal});
+        function showCards() {
+            if(generation!==animationSerial || !opened)return;
+            rootClass("LotteryCharging",false);
+            var cardTiming=ten?{enter:60,enterStep:70,flip:320,flipStep:100,ready:1550}:{enter:60,flip:350,ready:1000};
+            drawSequence.Play(visibleResults,{timing:cardTiming,flipHalf:100,onCharged:function(){},onEnter:function(i){cardState(resultCards[i],"LotteryCardEntering",false);},onFlip:function(i){cardState(resultCards[i],"LotteryCardNarrow",true);},onReveal:function(i){cardState(resultCards[i],"LotteryCardCovered",false);cardState(resultCards[i],"LotteryCardNarrow",false);},onReady:finishReveal});
+        }
+        var cinema=GameUI.CustomUIConfig().LotteryCinematic;
+        if(!cinema || !cinema.Play(selectedPoolId,visibleResults,showCards))showCards();
     }
 
     function panel(id) { return $("#" + id); }
@@ -109,7 +117,11 @@
 
     function errorText(code) {
         var messages = {
+            archive_config_mismatch: "游戏与服务器配置版本不一致，请同步配置后重新进入游戏",
+            mode_not_selected: "请先选择游戏模式，再打开抽奖",
+            http_profile_required: "服务器存档尚未连接，请稍后重新打开抽奖",
             lottery_ticket_insufficient: "抽奖券不足",
+            lottery_pool_locked: "地图宝箱累计开启100次后解锁修仙宝箱",
             lottery_ticket_consume_failed: "抽奖券扣除失败",
             lottery_item_grant_failed: "奖励发放失败",
             lottery_pool_empty: "奖池配置为空",
@@ -242,7 +254,19 @@
         list.SetHasClass("LotteryChestMode", false);
         list.SetHasClass("LotterySingleResult", items.length === 1);
         list.SetHasClass("LotteryTenResults", items.length > 1);
-        resultCards = items.map(function (item) { return createResultCard(list, item); });
+        resultCards = items.map(function (item, index) {
+            var card = createResultCard(list, item);
+            if (items.length > 1) {
+                // Five explicit slots per row: scaled pixel rounding must not wrap
+                // the fifth card into a clipped third row.
+                card.style.position = (14 + (index % 5) * 272) + "px "
+                    + (8 + Math.floor(index / 5) * 284) + "px 0px";
+                card.style.margin = "0px";
+                card.style.horizontalAlign = "left";
+                card.style.verticalAlign = "top";
+            }
+            return card;
+        });
     }
 
     function renderDrawStage() {
@@ -398,7 +422,8 @@
             var badge = $.CreatePanel("Label", button, "");
             badge.AddClass("LotteryPoolBadge");
             var guarantees = rows(pool.pity);
-            badge.text = guarantees.length ? String(guarantees[0].label || "十连保底") : "";
+            badge.text = pool.unlocked===false?"解锁进度 "+Number(pool.unlock_progress||0)+"/"+Number(pool.unlock_required||100):(guarantees.length ? String(guarantees[0].label || "十连保底") : "");
+            button.SetHasClass("LotteryPoolLocked",pool.unlocked===false);
             button.SetPanelEvent("onactivate", function () {
                 if (hostId === "LotteryInfoTabs") { if(activeFeature === "history") {historyPoolId=String(pool.id);feature("history");} else selectDetailPool(pool.id); } else selectPool(pool.id);
             });
@@ -450,24 +475,26 @@
         }
         if (snapshot.snapshot_scope === "details") {
             if (activeFeature !== "details" || Number(snapshot.snapshot_request_id) !== detailRequestSerial) return;
+            poolErrors[detailPoolId] = snapshot.error || "";
             detailState = snapshot.error ? null : snapshot; feature("details");
-            if (snapshot.error) setText("LotteryInfoRules", "加载失败：" + errorText(snapshot.error));
             return;
         }
         if (activeFeature === "details" && snapshot.selected_pool_id && String(snapshot.selected_pool_id) === detailPoolId && detailPoolId !== selectedPoolId) {
+            poolErrors[detailPoolId] = snapshot.error || "";
             detailState = snapshot.error ? null : snapshot;
             feature("details");
-            if (snapshot.error) setText("LotteryInfoRules", "加载失败：" + errorText(snapshot.error));
             return;
         }
         if (snapshot.error) {
+            poolErrors[selectedPoolId] = snapshot.error;
             state = null; switchingPool = false; updateButtons();
-            if (activeFeature === "details") { feature("details"); setText("LotteryInfoRules", "加载失败：" + errorText(snapshot.error)); }
+            if (activeFeature === "details" && detailPoolId === selectedPoolId) { detailState = null; feature("details"); }
             setText("LotteryStatus", "抽奖数据加载失败："
                 + errorText(snapshot.error));
             return;
         }
         if (snapshot.selected_pool_id && String(snapshot.selected_pool_id) !== selectedPoolId) return;
+        poolErrors[selectedPoolId] = "";
         state = snapshot;
         if(opened)markRead(snapshot.selected_pool,"visit");
         if (activeFeature === "details" && detailPoolId === selectedPoolId) detailState = snapshot;
@@ -476,6 +503,7 @@
         selectedPoolId = String(snapshot.selected_pool_id || selectedPoolId);
         LH.Background(selectedPoolId);
         var selected = snapshot.selected_pool || snapshot;
+        LH.Ticket(selected);
         renderPoolTabs(snapshot.pools); updateDots();
         setText("LotteryTitle", LH.Name(selectedPoolId,selected.display_name || "星悦抽奖"));
         setText("LotterySubtitle", selected.description
@@ -501,12 +529,14 @@
         renderDrawStage();
         updateButtons();
         if (activeFeature === "details") { reopenDetails = false; feature("details"); }
+        else if (activeFeature === "announcement") { feature("announcement"); }
     }
 
     function draw(count) {
         if (pending || animating || switchingPool || !state || activeFeature) return;
         if (count !== 1 && count !== 10) return;
         var selected = state.selected_pool || state;
+        if(selected.unlocked===false){setText("LotteryStatus","地图宝箱累计开启 "+Number(selected.unlock_progress||0)+" / "+Number(selected.unlock_required||100)+" 次后解锁");return;}
         var cost = drawCost(selected, count);
         if (Number(selected.tickets || 0) < cost) {
             setText("LotteryStatus",
@@ -614,7 +644,8 @@
             var commerce = GameUI.CustomUIConfig().SurvivalCommerceView;
             hideTooltip();
             if (commerce && commerce.OpenTicketPurchase && selectedTicketPool) {
-                commerce.OpenTicketPurchase({id:selectedTicketPool.id || selectedPoolId,display_name:selectedTicketPool.display_name || selectedPoolId,ticket_name:selectedTicketPool.ticket_name || "抽奖券"});
+                var handled=commerce.OpenTicketPurchase({id:selectedTicketPool.id || selectedPoolId,display_name:selectedTicketPool.display_name || selectedPoolId,ticket_name:selectedTicketPool.ticket_name || "抽奖券",ticket_content_id:selectedTicketPool.ticket_content_id});
+                if(!handled)setText("LotteryStatus",(selectedPoolId==="map"||selectedPoolId==="cultivation")?"普通抽奖券通过游戏玩法获得":"抽奖券购买暂未开放，请稍后重试");
             } else { setText("LotteryStatus", "抽奖券购买暂未开放"); }
             return;
         }
@@ -675,6 +706,13 @@
                 label(copy, (item.duration_text || "永久") + " · 重复转化 " + Number(item.duplicate_points || 0) + " 积分", "LotteryDetailMeta");
             });
             selectReward(rewards.filter(function (item) { return item.id === selectedRewardId; })[0] || rewards[0] || null);
+            // A failed prefetch can arrive before the dialog opens. Preserve its
+            // cause instead of presenting a deleted/empty pool or endless loading.
+            if (!viewState && poolErrors[detailPoolId]) {
+                setText("LotteryInfoRules", "加载失败：" + errorText(poolErrors[detailPoolId]));
+                setText("LotteryPoolGuarantee", "奖池数据尚未加载");
+                setText("LotterySelectedName", "奖池暂时无法加载");
+            }
         } else if (name === "history") {
             var entries=history.filter(function(entry){return String(entry.pool)===historyPoolId;});
             RH.History(host,entries,createRewardIcon,showTooltip,hideTooltip);
@@ -683,10 +721,17 @@
             setText("LotteryInfoRules", "共 "+total+" 条奖励记录");
         } else if (name === "announcement") {
             setText("LotteryInfoNote", "当前奖池规则");
-            label(host, selected ? selected.description : "奖池数据尚未就绪", "LotteryDetailDescription");
+            var announcement = selected && selected.update_notice || {};
+            label(host, "玩家须知", "LotteryAnnouncementHeading");
+            if (announcement.single_draw_probabilities) {
+                label(host, "当前宝箱单次抽奖概率", "LotteryAnnouncementBody");
+                label(host, String(announcement.single_draw_probabilities), "LotteryAnnouncementProbability");
+            } else {
+                label(host, "该宝箱的单次抽奖概率公告暂未公布。", "LotteryAnnouncementBody");
+            }
+            label(host, selected ? selected.description : "奖池数据尚未就绪", "LotteryAnnouncementBody");
             rows(selected && selected.pity).forEach(function (rule) { label(host, rule.label || "", "LotteryHistoryHeading"); });
-            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按服务端配置转为星悦积分。", "LotteryDetailDescription");
-            label(host, "活动公告内容暂未接入。", "LotteryDetailMeta");
+            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按配置转为星悦积分。", "LotteryAnnouncementBody");
         } else {
             label(host, "此入口暂未开放，后续补充。", "LotteryHistoryHeading");
             label(host, name === "privilege" ? "免费单抽权益尚未接入；当前单抽按页面显示的抽奖券数量消耗。" : "当前不会扣款、扣券或发放礼包。", "LotteryDetailDescription");
@@ -699,6 +744,7 @@
     GameEvents.Subscribe("ui_lottery_exchange_result", renderExchangeResult);
     $.Schedule(0.3,function(){GameEvents.SendCustomGameEventToServer("ui_lottery_snapshot_request",{prefetch:1,pool_id:selectedPoolId});});
     GameUI.CustomUIConfig().SurvivalLottery = {
+        SkipCinematic: finishReveal,
         Open: open,
         OpenFromShop: openFromShop,
         Close: close,

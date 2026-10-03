@@ -1,0 +1,44 @@
+/* Same 869 x 816 frame, header, sidebar and palette as the archive window. */
+#VIPScrim { width:100%; height:100%; background-color:#0000008c; }
+#VIPWindow { width:869px; height:816px; flow-children:none; padding:0px; overflow:clip; }
+#VIPHeader { position:0px 0px 0px; width:869px; height:124px; flow-children:none; }
+#VIPEmblem { position:30px 28px 0px; width:58px; height:56px; }
+#VIPTitle { position:104px 22px 0px; width:620px; height:46px; font-family:"Source Han Serif SC"; font-size:32px; font-weight:normal; letter-spacing:2px; color:#eed8a7; }
+#VIPSubtitle { position:104px 70px 0px; width:620px; height:30px; font-size:21px; color:#acbdc4; }
+#VIPWindow #VIPClose { position:804px 25px 0px; width:40px; height:40px; margin:0px; padding:0px; border:0px; background-color:transparent; }
+#VIPBody { position:0px 124px 0px; width:869px; height:692px; flow-children:none; }
+#VIPSidebar { position:0px 14px 0px; width:214px; height:645px; border-right:1px solid #afbb9944; }
+.VIPTab { position:0px 0px 0px; width:199px; height:62px; background-color:#173c4980; border-left:3px solid transparent; }
+.VIPTab Image { position:16px 9px 0px; width:42px; height:42px; }
+.VIPTab Label { position:65px 16px 0px; width:125px; height:32px; font-size:23px; color:#eed8a7; }
+#VIPContent { position:234px 14px 0px; width:605px; height:645px; }
+#VIPEmpty { align:center center; width:100%; height:32px; text-align:center; font-size:23px; color:#acbdc4; }
+#VIPStatus { position:234px 664px 0px; width:605px; height:24px; border-top:1px solid #afbb9944; padding-top:3px; font-size:18px; color:#acbdc4; }
+
+.VIPTab.VIPTabSelected { background-color:#315566a0; border-left-color:#dac28a; }
+.VIPTab:hover { brightness:1.3; }
+#VIPGroupTitle { position:0px 0px 0px; width:605px; height:28px; font-size:23px; color:#eed8a7; }
+#VIPWallet { position:0px 29px 0px; width:605px; height:28px; font-size:20px; color:#acbdc4; }
+#VIPGrid { position:0px 94px 0px; width:605px; height:306px; flow-children:right-wrap; overflow:squish scroll; }
+.VIPRewardCard { width:140px; height:96px; margin:0px 8px 6px 0px; padding:0px; background-color:gradient(linear,0% 0%,100% 100%,from(#234955b0),to(#102c36dd)); border:1px solid #64818a60; }
+.VIPRewardCard:hover { brightness:1.25; }
+.VIPRewardCard.VIPSelected { border-color:#e6c57b; background-color:#395865b0; }
+.VIPRewardIcon { position:38px 1px 0px; width:64px; height:47px; saturation:0; brightness:0.45; }
+.VIPOwned .VIPRewardIcon { saturation:1; brightness:1; }
+.VIPRewardRank { position:106px 3px 0px; width:32px; height:22px; text-align:center; font-size:16px; color:#9cabb2; }
+.VIPRewardName { position:0px 45px 0px; width:138px; height:25px; text-align:center; font-size:18px; color:#adbdc3; }
+.VIPRewardState { position:0px 71px 0px; width:138px; height:22px; text-align:center; font-size:17px; color:#8ca1a9; }
+.VIPOwned .VIPRewardName, .VIPOwned .VIPRewardState, .VIPOwned .VIPRewardRank { color:#eed8a7; }
+#VIPDetails { position:0px 408px 0px; width:605px; height:237px; border-top:1px solid #afbb9966; }
+#VIPDetailTitle { position:0px 6px 0px; width:600px; height:30px; font-size:24px; color:#eed8a7; }
+#VIPCondition { position:0px 38px 0px; width:600px; height:38px; font-size:17px; color:#aebfc5; white-space:normal; }
+#VIPEffectsLeft, #VIPEffectsRight { width:300px; height:121px; font-size:18px; color:#d0dce0; line-height:22px; white-space:normal; }
+#VIPEffectsLeft { position:0px 77px 0px; }
+#VIPEffectsRight { position:303px 77px 0px; }
+#VIPDetailNote { position:0px 204px 0px; width:360px; height:30px; font-size:16px; color:#98afb8; white-space:normal; }
+#VIPAction { position:378px 201px 0px; width:220px; height:34px; background-color:gradient(linear,0% 0%,0% 100%,from(#756239),to(#443719)); border:1px solid #dbbd77; }
+#VIPAction:disabled { saturation:0; opacity:0.5; }
+#VIPAction:hover { brightness:1.25; }
+#VIPActionText { align:center center; font-size:19px; color:#f1dfb9; }
+
+#VIPRechargeProgress { position:0px 57px 0px; width:605px; height:29px; font-size:18px; color:#e0c58c; }

@@ -13,10 +13,10 @@
         if(["N","R","SR","SSR","UR"].indexOf(q)<0)q="";
         node.text=q;node.SetHasClass("LHQualitySR",q==="SR");node.SetHasClass("LHQualityUR",q==="UR");
         // ActionButton.Adopt sets inline label colors; explicitly replace that inherited token here.
-        node.style.color=q==="SR"?"#a16be0":q==="UR"?"#9b435d":"#855521";
+        node.style.color=q==="SR"?"#c9a2ef":q==="UR"?"#e4b2ef":"#f0d48a";
         node.visible=!!q;
     }
-    function fit(){
+    function viewportSize(){
         var root=p("LotteryWindow"),canvas=p("LotteryMainCanvas");
         if(!valid(root)||!valid(canvas))return false;
         // Hidden lottery panels have no layout on their first open. Use the
@@ -30,22 +30,77 @@
         if(!viewport)return false;
         var w=viewport.actuallayoutwidth/(viewport.actualuiscale_x||1);
         var h=viewport.actuallayoutheight/(viewport.actualuiscale_y||1);
-        var scale=Math.min(w/1672,h/941);
+        return {width:w,height:h};
+    }
+    function fit(){
+        var viewport=viewportSize(),canvas=p("LotteryMainCanvas");
+        if(!viewport||!valid(canvas))return false;
+        // Fill the entire viewport; preserve a 1600 x 900 safe area for controls.
+        // Ultra-wide screens gain horizontal scene space, 4:3 gains vertical space.
+        var scale=Math.min(viewport.width/1600,viewport.height/900);
+        canvas.style.width=(viewport.width/scale)+"px";
+        canvas.style.height=(viewport.height/scale)+"px";
         canvas.style.transform="scale3d("+scale+","+scale+",1)";
         canvas.style.opacity="1";
+        if(cfg.LotteryCinematic&&cfg.LotteryCinematic.Resize)cfg.LotteryCinematic.Resize(viewport.width,viewport.height);
         return true;
     }
     cfg.LotteryHandoff={
-        Prepare:function(){p("LotteryMainCanvas").style.opacity="0";fit();},
+        Viewport:viewportSize,
+        Prepare:function(){
+            var canvas=p("LotteryMainCanvas");
+            canvas.RemoveClass("ReferenceWindow");
+            canvas.style.backgroundImage="none";canvas.style.backgroundColor="transparent";
+            canvas.style.border="0px";canvas.style.borderRadius="0px";canvas.style.boxShadow="none";
+            canvas.style.opacity="0";fit();
+        },
         Background:function(poolId){
-            var themes={map:"lottery_handoff_v1/scene.png",cultivation:"lottery_pool_scenes_v1/cultivation.png",dragon_knight:"lottery_pool_scenes_v1/dragon_knight.png",summer:"lottery_pool_scenes_v1/summer.png"};
-            p("LotteryMainCanvas").style.backgroundImage='url("file://{images}/custom_game/'+(themes[poolId]||themes.map)+'")';
+            var themes=["map","cultivation","dragon_knight","summer"],scene=p("LotterySceneBackground");
+            var key=themes.indexOf(poolId)>=0?poolId:"map";
+            p("LotteryWindow").SetHasClass("LotteryGoldenTicket",key==="dragon_knight"||key==="summer");
+            if(valid(scene))themes.forEach(function(id){scene.SetHasClass("LotteryScene_"+id,id===key);});
         },
         Name:function(id,fallback){return id==="map"?"地图宝箱":id==="dragon_knight"?"龙脊尖兵":fallback;},
+        Actions:function(){
+            ["LotterySingleButton","LotteryTenButton","LotteryConfirm","LotteryAgain"].forEach(function(id){
+                var button=p(id);if(!valid(button))return;
+                button.AddClass("ZXDrawAction");button.hittestchildren=false;
+                button.style.backgroundImage="none";button.style.backgroundColor="transparent";
+                button.style.border="0px";button.style.boxShadow="none";
+                if(id==="LotteryConfirm"||id==="LotteryAgain"){
+                    if(!button.Children().some(function(c){return c.BHasClass("ZXActionSkin");})){
+                        var skin=$.CreatePanel("Panel",button,"");skin.AddClass("ZXActionSkin");skin.hittest=false;
+                        button.MoveChildBefore(skin,button.Children()[0]);
+                    }
+                    button.Children().forEach(function(c){if(c.paneltype==="Label")c.style.color="#372b19";});
+                }
+            });
+        },
+        Ticket:function(selected){
+            var gold=selected&&selected.ticket_content_id==="special_lottery_ticket";
+            p("LotteryWindow").SetHasClass("LotteryGoldenTicket",!!gold);
+            var notice=p("LotteryUnlockNotice");
+            if(valid(notice)){
+                notice.visible=!!selected&&selected.unlocked===false;
+                notice.text=selected&&selected.unlocked===false?"地图宝箱累计开启 "+Number(selected.unlock_progress||0)+" / "+Number(selected.unlock_required||100)+" 次后解锁":"";
+            }
+        },
         Buttons:function(selected,waiting){
-            p("LotterySingleText").style.color="#365665";
-            p("LotteryTenText").style.color="#fff9e5";
-            quality(p("LHTenQuality"),waiting?null:tenRule(selected&&selected.pity));
+            ["LotterySingleText","LotteryTenText","LotterySingleCost","LotteryTenCost"].forEach(function(id){p(id).style.color="#251708";});
+            var rule=waiting?null:tenRule(selected&&selected.pity);
+            quality(p("LHTenQuality"),rule);
+            // One text run gives the Chinese caption and Latin rarity an identical baseline.
+            var caption=p("LotteryDrawPityCaption"),rarity=p("LHTenQuality");
+            if(valid(caption)){
+                caption.html=true;
+                caption.text="十连保底"+(rule?' <font color="'+rarity.style.color+'">'+rarity.text+'</font>':"");
+                // quality() sets visible=true on every refresh; hide the retired label at runtime.
+                rarity.visible=false;
+                rarity.style.visibility="collapse";
+            }
+            var hint=p("LotteryDrawPity");if(valid(hint))hint.visible=!!rule;
+            var free=selected&&Number(selected.single_cost)===0;
+            p("LotterySingleButton").SetHasClass("ZXFreeDraw",!!free);
         },
         Guarantee:function(rules){
             var rule=tenRule(rules);quality(p("LHGuaranteeQuality"),rule);
@@ -75,8 +130,11 @@
     if(typeof Game!=="undefined"&&Game.AddCommand){
         var stamp=Date.now();
         Game.AddCommand("lottery_handoff_open_"+stamp,function(){cfg.SurvivalLottery.Open();},"Open existing lottery UI",0);
+        Game.AddCommand("lottery_handoff_refresh_"+stamp,function(){cfg.SurvivalLottery.Refresh();},"Refresh lottery snapshot",0);
         Game.AddCommand("lottery_handoff_dump_"+stamp,function(){
             var values={};["LotteryWindow","LotteryMainCanvas","LotteryPoolTabs","LotteryTitle","LotteryTicketValue","LotteryGuaranteeValue","LotterySingleText","LotteryTenText","LotterySingleCost","LotteryTenCost","LotteryTenButton"].forEach(function(id){var n=p(id);values[id]=n?{text:n.text,width:n.actuallayoutwidth,height:n.actuallayoutheight,enabled:n.enabled,scale:n.actualuiscale_x}:null;});
+            var tabs=p("LotteryPoolTabs");
+            if(valid(tabs))values.poolTabs={parent:tabs.GetParent().id,visible:tabs.visible,position:tabs.GetPositionWithinWindow(),children:tabs.Children().map(function(tab){return {width:tab.actuallayoutwidth,height:tab.actuallayoutheight,visible:tab.visible,position:tab.GetPositionWithinWindow(),labels:tab.Children().filter(function(n){return n.paneltype==="Label";}).map(function(n){return n.text;})};})};
             $.Msg("[LOTTERY_HANDOFF_STATE] "+JSON.stringify(values));
         },"Read lottery presentation state",0);
         $.Msg("[LOTTERY_HANDOFF_READY] version=bb9968eef7 commands="+stamp);

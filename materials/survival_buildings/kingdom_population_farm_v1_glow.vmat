@@ -1,0 +1,13 @@
+"Layer0"
+{
+ "shader" "global_lit_simple.vfx"
+ "F_NORMAL_MAP" "1"
+ "F_SPECULAR" "1"
+ "F_SELF_ILLUM" "1"
+ "TextureColor" "materials/survival_buildings/kingdom_population_farm_v1_color.png"
+ "TextureNormal" "materials/survival_buildings/kingdom_population_farm_v1_normal.png"
+ "TextureSelfIllumMask" "materials/survival_buildings/kingdom_population_farm_v1_emission.png"
+ "g_vColorTint" "[1 1 1 0]"
+ "g_vSelfIllumTint" "[1 1 1 0]"
+ "g_flSelfIllumScale" "1"
+}

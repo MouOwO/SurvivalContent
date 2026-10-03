@@ -1,0 +1,10 @@
+"Layer0"
+{
+ "shader" "hero.vfx"
+ "TextureColor" "materials/survival_buildings/kingdom_mine_stage2_r2_color.png"
+ "TextureNormal" "materials/survival_buildings/kingdom_mine_stage2_r2_normal.png"
+ "g_flSelfIllumBlendToFull" "1.0"
+ "g_flAmbientScale" "1.0"
+ "g_flDiffuseModulationAmount" "1.0"
+ "g_flBloomScale" "0.2"
+}

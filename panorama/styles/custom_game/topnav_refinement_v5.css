@@ -1,0 +1,63 @@
+/* Shared text hierarchy and opaque, low-glare surfaces for navigation windows. */
+#LotteryWindow { background-color:#0b1922; }
+#LotteryMainCanvas { background-color:gradient(linear,0% 0%,0% 100%,from(#1b3440),to(#0b1922)); }
+#LotteryMainCanvas #LotteryPoolArtwork { position:838px 154px 0px; width:690px; height:600px; background-size:contain; background-position:center; background-repeat:no-repeat; background-color:transparent; border:0px; opacity:1; }
+#LotteryMainCanvas #LotteryHeroCopy { position:115px 250px 0px; width:680px; height:390px; }
+#LotteryMainCanvas #LotteryAnnouncement { position:0px 0px 0px; }
+#LotteryMainCanvas #LotteryAnnouncement Label { font-size:24px; color:#acbec6; }
+#LotteryMainCanvas #LotteryTitle { position:0px 44px 0px; font-size:76px; height:110px; width:680px; }
+#LotteryMainCanvas #LotteryTagline { position:2px 163px 0px; font-size:28px; color:#bdcbd0; }
+#LotteryMainCanvas #LotteryGuaranteeRow { position:2px 244px 0px; width:460px; }
+#LotteryMainCanvas #LotteryGuaranteeValue, #LotteryMainCanvas #LHGuaranteeQuality { font-size:28px; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolBadge { width:132px; padding:1px 4px; height:29px; font-size:18px; color:#f0d48a; background-image:none; background-color:#243d46; border:1px solid #657075; }
+#LotteryMainCanvas #LotteryPoolTabs .LotteryPoolTabName { margin-top:40px; font-size:26px; }
+#LotteryMainCanvas #LotteryTicketValue { font-size:22px; }
+#LotteryMainCanvas #LotteryCelestialFooter .LHCost { font-size:20px; color:#c6d2d6; text-shadow:none; }
+#LotteryMainCanvas #LotteryStatus { font-size:21px; height:36px; }
+#LotteryInfoDialog.RHWindow #LotteryInfoRules { font-size:20px; }
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .RHRewardName { font-size:21px; }
+#LotteryInfoDialog.RHWindow #LotteryInfoNote { font-size:21px; }
+#DailyWindow.RHWindow #DailyCount, #DailyWindow.RHWindow #DailyNotice { font-size:21px; }
+#DailyWindow.RHWindow .DailyDay { font-size:26px; }
+#DailyWindow.RHWindow .DailyItems { position:0px 64px 0px; height:252px; }
+#DailyWindow.RHWindow .DailyRewardName { font-size:22px; height:32px; }
+#DailyWindow.RHWindow .DailyMultiItem .DailyReward { height:122px; }
+#DailyWindow.RHWindow .DailyMultiItem .DailyItemArt { width:92px; height:88px; }
+#DailyWindow.RHWindow .DailyMultiItem .DailyRewardName { margin-top:87px; font-size:20px; height:30px; }
+#DailyWindow.RHWindow .DailyCardStatus, #DailyWindow.RHWindow .DailyBaseStatus { font-size:22px; }
+#DailyWindow.RHWindow .DailyPremiumName, #DailyWindow.RHWindow .DailyPremiumState { font-size:21px; }
+#DailyWindow.RHWindow #DailyRuleLine { font-size:21px; padding-top:8px; }
+#DailyWindow.RHWindow #DailyTooltipEffect { font-size:22px; }
+#DailyWindow.RHWindow #DailyTooltip { border:1px solid #9a9b80; box-shadow:#00000088 0px 3px 10px 0px; }
+#CustomShopWindow.RHSurvivalShop #ShopBody { height:541px; }
+#CustomShopWindow.RHSurvivalShop #ShopShelfArea { background-image:none; background-color:transparent; }
+#CustomShopWindow.RHSurvivalShop .ShopSectionTitle { height:36px; font-size:23px; color:#e8eef0; border-bottom:1px solid #3a535c; margin-top:6px; margin-bottom:10px; }
+#CustomShopWindow.RHSurvivalShop .ShopItemFrame { border:1px solid #52676e; background-color:#0b1b23; }
+#CustomShopWindow.RHSurvivalShop .ShopStockLabel { font-size:19px; color:#f0d48a; }
+#CustomShopWindow.RHSurvivalShop #ShopFooter { position:40px 739px 0px; height:62px; flow-children:down; border-top:1px solid #3a535c; padding-top:5px; }
+#CustomShopWindow.RHSurvivalShop #ShopFooter #ShopResourceSummary { width:100%; height:27px; font-size:20px; text-align:left; }
+#CustomShopWindow.RHSurvivalShop #ShopFooter #ShopStatus { width:100%; height:24px; font-size:19px; text-align:left; }
+#CustomShopWindow.RHSurvivalShop .AutoBookButton Label { font-size:20px; }
+.ArchiveRoot #TreasureWindow .TreasureName { font-size:20px; height:28px; }
+.ArchiveRoot #TreasureWindow #TreasureHint, .ArchiveRoot #TreasureWindow #TreasureDetailHint { font-size:20px; }
+.RCWindow .RCBundleName, .RCWindow .RCBundleQuantity { font-size:20px; }
+
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .RewardV5Quality { position:7px 5px 0px; width:42px; height:25px; font-size:18px; text-align:center; background-color:#0b1b23dd; border-radius:2px; z-index:3; }
+#LotteryInfoDialog.RHWindow #LotteryInfoBody .LotteryRewardIcon { width:116px; height:110px; }
+
+#DailyWindow.RHWindow .DailyFuture .DailyItemArt { saturation:1; }
+
+#DailyWindow.RHWindow .DailyNormalCard > .DailyStateIcon { position:64px 312px 0px; width:24px; height:24px; }
+
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveRewardV5Card { height:158px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveRewardV5Card .ArchiveArt { position:13px 6px 0px; width:84px; height:84px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveRewardV5Card .ArchiveNameHost { position:3px 94px 0px; }
+.ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveGrid .ArchiveRewardV5Card .ArchiveCountHost { position:3px 124px 0px; }
+
+/* Readable supporting text in the same top-navigation windows. */
+#LotteryItemTooltip.LotterySimpleTooltip #LotteryTooltipEffectHeading { font-size:20px; }
+#LotteryWindow .LotteryDuplicateBadge { font-size:20px; height:48px; }
+#ShopEntryTooltip #ShopTooltipTitle { font-size:22px; }
+#ShopEntryTooltip #ShopTooltipDescription { font-size:20px; line-height:27px; }
+#ShopEntryTooltip .TooltipCostValue { font-size:20px; }
+.RCWindow .RCExpiry, .RCWindow .RCStockState, .RCWindow .RCOrderStatus { font-size:20px; }

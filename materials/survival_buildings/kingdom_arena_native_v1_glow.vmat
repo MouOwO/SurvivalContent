@@ -1,0 +1,10 @@
+"Layer0"
+{
+ "shader" "hero.vfx"
+ "TextureColor" "materials/survival_buildings/kingdom_arena_native_v1_color.png"
+ "TextureNormal" "materials/survival_buildings/kingdom_arena_native_v1_normal.png"
+ "g_flSelfIllumBlendToFull" "1.0"
+ "g_flAmbientScale" "1.0"
+ "g_flDiffuseModulationAmount" "1.0"
+ "g_flBloomScale" "0.2"
+}

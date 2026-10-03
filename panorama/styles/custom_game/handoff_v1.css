@@ -20,3 +20,37 @@
 #TopBar,#WaveBar {opacity:0;}
 #ArchiveEntry,#TreasureEntry,#LotteryButton,#DailyEntry,#PassEntry,#HeroCombatDebugPanel {visibility:collapse;}
 .HandoffBoot #HandoffHUD,.HandoffBoot #SurvivalTowerPortraitOverlay {opacity:0;}
+
+/* Navigation floats over the map in every state: no glass plate or box. */
+.HandoffNavUnified,
+.HandoffNavUnified:hover,
+.HandoffNavUnified:active,
+.HandoffNavUnified.HandoffNavActive,
+.HandoffNavUnified.HandoffEffectsReduced {
+    background-color:transparent; background-image:none; border:0px;
+    border-radius:0px; box-shadow:none; brightness:1; opacity:1;
+}
+.HandoffNavUnified:disabled { opacity:0.45; saturation:0; }
+.HandoffNavGlow {
+    background-color:gradient(radial,50% 50%,0% 0%,50% 50%,from(#e9cc9455),color-stop(.35,#e9cc9428),to(#e9cc9400));
+    opacity:0; z-index:-1;
+}
+.HandoffNavUnified:hover .HandoffNavGlow,
+.HandoffNavUnified.HandoffNavActive .HandoffNavGlow { opacity:1; }
+/* Constant dark silhouette separates gold strokes from bright terrain.
+   Hover gold light is a separate halo, so it never replaces this edge. */
+.HandoffNavUnified Image,
+.HandoffNavUnified:hover Image,
+.HandoffNavUnified.HandoffNavActive Image { img-shadow:0px 1px 2px 2 #071018ee; }
+.HandoffNav:active Image { brightness:0.9; }
+.HandoffNavUnderline { opacity:0; }
+/* More specific than .HandoffCanvas Label; no pale inherited shadow on snow. */
+.HandoffNavUnified .HandoffNavCaption {
+    color:#f5f1e7; opacity:1; font-weight:bold;
+    text-shadow:0px 1px 2px 3 #071018ff;
+}
+.HandoffNavUnified:hover .HandoffNavCaption,
+.HandoffNavUnified.HandoffNavActive .HandoffNavCaption {
+    color:#f4dca5; text-shadow:0px 1px 2px 3 #071018ff;
+}
+.HandoffNavUnified:disabled .HandoffNavCaption { color:#9cabb0; }

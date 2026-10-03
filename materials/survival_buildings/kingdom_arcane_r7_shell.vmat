@@ -1,0 +1,17 @@
+"Layer0"
+{
+ "shader" "hero.vfx"
+ "F_TRANSLUCENT" "1"
+ "TextureColor" "materials/survival_buildings/kingdom_arcane_r7_shell_color.png"
+ "TextureNormal" "materials/survival_buildings/kingdom_arcane_r7_shell_normal.png"
+ "TextureTranslucency" "materials/survival_buildings/kingdom_arcane_r7_shell_alpha.png"
+ "g_flSelfIllumBlendToFull" "0.55"
+ "g_flAmbientScale" "1.0"
+ "g_flDiffuseModulationAmount" "1.0"
+ "g_flSpecularScale" "1.1"
+ "g_flSpecularExponent" "64.0"
+ "g_vSpecularColor" "[0.45 0.75 1.0 0.0]"
+ "g_flRimLightScale" "1.5"
+ "g_vRimLightColor" "[0.15 0.50 1.0 0.0]"
+ "g_flBloomScale" "0.15"
+}

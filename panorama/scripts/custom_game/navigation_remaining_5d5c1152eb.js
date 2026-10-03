@@ -2,7 +2,7 @@
     'use strict';
     var cfg = GameUI.CustomUIConfig(), view = cfg.ArchiveHandoff;
     var originalInit = view.Init, originalIcon = view.NavIcon,originalCard=view.Card;
-    var navFiles={"clear":"file://{images}/custom_game/archive_polish_v1/nav/clear.svg","endless":"file://{images}/custom_game/archive_polish_v1/nav/endless.svg","map_level":"file://{images}/custom_game/archive_polish_v1/nav/map_level.svg","work":"file://{images}/custom_game/archive_polish_v1/nav/work.svg","fishing":"file://{images}/custom_game/archive_polish_v1/nav/fishing.svg","building":"file://{images}/custom_game/archive_polish_v1/nav/building.svg","boss":"file://{images}/custom_game/archive_polish_v1/nav/boss.svg"};
+    var navFiles={"starjoy_points":"s2r://panorama/images/custom_game/starjoy_v1/starjoy.vtex","gift":"file://{images}/custom_game/archive_polish_v1/nav/gift.svg","clear":"file://{images}/custom_game/archive_polish_v1/nav/clear.svg","endless":"file://{images}/custom_game/archive_polish_v1/nav/endless.svg","map_level":"file://{images}/custom_game/archive_polish_v1/nav/map_level.svg","work":"file://{images}/custom_game/archive_polish_v1/nav/work.svg","fishing":"file://{images}/custom_game/archive_polish_v1/nav/fishing.svg","building":"file://{images}/custom_game/archive_polish_v1/nav/building.svg","boss":"file://{images}/custom_game/archive_polish_v1/nav/boss.svg"};
     // The supplied sidebar contains eight baked separators. Keep its texture
     // and frame byte-for-byte: conceal only those six-pixel strips with nearby
     // line-free UV regions. The visible separator belongs to each scrolling row.

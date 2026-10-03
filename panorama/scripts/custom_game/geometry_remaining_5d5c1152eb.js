@@ -32,13 +32,28 @@
             // One full-sized ability row plus breathing room for utility buildings.
             // Wall health and tower combat summaries still need the taller body.
             var buildingHeight=presentation && !presentation.wall && !presentation.tower ? 205 : 330;
+            var buildingX=(width-buildingWidth*scale)/2;
+            var productionLeft;
+            if(presentation && presentation.production) {
+                // Keep map shortcuts at their normal bottom anchor. Move the
+                // action bar only as far as the adjacent queue requires.
+                var shortcutScale=Math.max(.9,Math.min(1.12,height/941));
+                productionLeft=Math.min(reserve-24,220*height/941)+26+64*shortcutScale+14;
+                var queueScale=Math.max(scale,.5)*1.15;
+                var queueWidth=Math.max(600,Math.min(800,(buildingWidth-20)*scale/queueScale));
+                buildingX=Math.min(width-buildingWidth*scale-14,
+                    Math.max(buildingX,productionLeft+queueWidth*queueScale+14));
+            }
             return {count:count,slot:116,step:120,width:buildingWidth,height:buildingHeight,
                 heroWidth:0,portraitSize:264,centerWidth:buildingWidth,
                 attributeX:buildingWidth,attributeWidth:240,barWidth:buildingWidth-30,
-                inventoryX:buildingWidth,x:(width-buildingWidth*scale)/2,y:height-buildingHeight*scale-6,scale:scale,
+                inventoryX:buildingWidth,x:buildingX,y:height-buildingHeight*scale-6,scale:scale,productionLeft:productionLeft,
                 minimapSize:Math.min(reserve-24,220*height/941)};
         }
-        return {count:count,slot:116,step:120,width:total,height:330,
+        // Monsters keep the hero portrait/stat typography and scale, without
+        // reserving empty columns or world-input occlusion for attributes/items.
+        var monster=!!(presentation && presentation.monster);
+        return {count:count,slot:116,step:120,width:monster?1711+delta:total,height:330,
             heroWidth:493,portraitSize:264,centerWidth:1218+delta,
             attributeX:1711+delta,attributeWidth:240,
             barWidth:1188+delta,inventoryX:1951+delta,

@@ -183,8 +183,13 @@
             var player=Number(Game.GetLocalPlayerID());
             var snapshot=player>=0 ? CustomNetTables.GetTableValue("survival_hero_skills","player_"+player) || {} : {};
             var hero=Number(snapshot.unit_entindex);
-            if (Number(snapshot.hero_ready)===1 && isFinite(hero) && hero>=0) {
-                try {name=Entities.GetUnitName(hero) || "";} catch(error) {}
+            var assigned=typeof Players!=="undefined" && Players.GetPlayerHeroEntityIndex
+                ? Number(Players.GetPlayerHeroEntityIndex(player)) : -1;
+            if (Number(snapshot.hero_ready)===1 && snapshot.hero_id && isFinite(hero) && hero>=0 && hero===assigned) {
+                try {
+                    if (!Entities.GetPlayerOwnerID || Number(Entities.GetPlayerOwnerID(hero))===player)
+                        name=Entities.GetUnitName(hero) || "";
+                } catch(error) {}
             }
         }
         // Same textures as the six ability_summon_* buttons in the hero altar.
@@ -198,6 +203,8 @@
         }
         var selection=cfg.SurvivalHeroSelection;
         image.enabled=!!(ready && selection && selection.CanSelect && selection.CanSelect());
+        image.visible=ready;image.hittest=image.enabled;
+        if(!ready && portrait.__survivalHeroIcon){portrait.SetImage("");portrait.__survivalHeroIcon="";}
         style(image,{visibility:ready ? "visible" : "collapse"});
     }
     // Read-only Tools diagnostic: enumerate the actual portrait and nearby HUD

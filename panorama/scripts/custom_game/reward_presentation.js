@@ -3,6 +3,7 @@
     var colors = { n: "#ffffff", r: "#55aee9", sr: "#c471ed", ssr: "#ffd069", ur: "#8844bb",
         white: "#ffffff", blue: "#55aee9", purple: "#c471ed", gold: "#ffd069", green: "#66c9a5" };
     GameUI.CustomUIConfig().SurvivalRewardPresentation = {
+        BadgeColor: function (quality) { return ({n:"#e4f5eb",r:"#88ceff",sr:"#e0acff",ssr:"#ffe19a",ur:"#ffb9ed"})[String(quality || "").toLowerCase()] || "#ffffff"; },
         NameColor: function (quality) { return colors[String(quality || "n").toLowerCase()] || colors.n; },
         CreateIcon: function (parent, item, className) {
             var type = String(item.icon_type || "item"), icon;
