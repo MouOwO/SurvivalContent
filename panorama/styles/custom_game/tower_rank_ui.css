@@ -1,0 +1,75 @@
+.SurvivalTowerRankRoot, #SurvivalTowerRanks {
+    width: 100%;
+    height: 100%;
+    position: 0px 0px 0px;
+    z-index: 1;
+    overflow: clip;
+}
+.TowerRank {
+    width: 108px;
+    height: 49.5px;
+    flow-children: none;
+    visibility: collapse;
+}
+.TowerRankCaption {
+    position: 0px 0px 0px;
+    width: 108px;
+    height: 49.5px;
+    flow-children: none;
+}
+.TowerRankLetter {
+    position: 1px 29.5px 0px;
+    width: 20px;
+    height: 20px;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+.TowerRankName {
+    position: 0px 14px 0px;
+    width: 108px;
+    height: 20px;
+    font-family: "Radiance", "Arial";
+    font-size: 18px;
+    font-weight: bold;
+    color: #f4f3e9;
+    text-shadow: 0px 1px 3px 2.0 #000000ee;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: shrink;
+}
+.RankR .TowerRankName { color: #9cdbff; }
+.RankSR .TowerRankName { color: #cd9bff; }
+.RankSSR .TowerRankName, .RankUR .TowerRankName { color: #ffdc75; }
+.TowerRankUltimate {
+    visibility: collapse;
+    width: 20px;
+    height: 20px;
+    font-family: "Radiance", "Arial";
+    font-size: 16px;
+    font-weight: bold;
+    font-style: italic;
+    color: gradient(linear, 0% 0%, 0% 100%, from(#fff8d4), color-stop(0.42, #fff1a3), to(#e29131));
+    text-shadow: 0px 1px 3px 2.0 #39163ddd;
+    vertical-align: center;
+    horizontal-align: center;
+    text-align: center;
+}
+.RankUR .TowerRankUltimate { visibility: visible; }
+.TowerRankStars {
+    position: 19px 2px 0px;
+    width: 70px;
+    height: 12px;
+    flow-children: right;
+}
+.TowerRankStar {
+    width: 14px;
+    height: 12px;
+    vertical-align: center;
+    background-image: url("s2r://panorama/images/control_icons/starfilled_psd.vtex");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    wash-color: #ffcf49;
+    visibility: collapse;
+}
+.TowerRankStar.ActiveStar { visibility: visible; }
+.TowerRankStar.RedStar { wash-color: #ff5959; }

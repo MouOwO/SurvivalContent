@@ -3,6 +3,7 @@
   <Panel hittest="false">
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/payment_test.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_hud.xml" />
+    <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/tower_rank_ui.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_grid_placement.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/hero_skill_ui.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/rogue_reward_ui.xml" />

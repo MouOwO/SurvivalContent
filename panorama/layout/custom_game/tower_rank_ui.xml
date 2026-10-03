@@ -1,0 +1,13 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/tower_rank_ui.css" />
+    </styles>
+    <scripts>
+        <include src="file://{resources}/scripts/custom_game/world_health_bar_anchor.js" />
+        <include src="file://{resources}/scripts/custom_game/tower_rank_ui.js" />
+    </scripts>
+    <!-- Empty by design: there are no static/preload display images. -->
+    <Panel class="SurvivalTowerRankRoot" hittest="false" hittestchildren="false">
+        <Panel id="SurvivalTowerRanks" hittest="false" hittestchildren="false" />
+    </Panel>
+</root>

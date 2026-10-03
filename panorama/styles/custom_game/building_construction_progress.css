@@ -1,0 +1,23 @@
+#SurvivalConstructionBars
+{
+    width: 100%; height: 100%; position: 0px 0px 0px;
+    flow-children: none; overflow: noclip; z-index: -1;
+}
+.ConstructionBar
+{
+    width: 120px; height: 32px; visibility: collapse;
+    background-color: #07131cee; border: 1px solid #72bfc2cc;
+    box-shadow: 0px 1px 5px 1 #000000aa;
+}
+.ConstructionTrack { width: 100%; height: 100%; overflow: clip; }
+.ConstructionFill
+{
+    width: 0%; height: 100%;
+    background-color: gradient(linear, 0% 0%, 100% 0%, from(#245675ee), to(#58c7cacc));
+}
+.ConstructionText
+{
+    horizontal-align: center; vertical-align: center;
+    color: #ffffff; font-size: 18px; font-weight: bold;
+    text-shadow: 0px 1px 2px 2 #000000;
+}

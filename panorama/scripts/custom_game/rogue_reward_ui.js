@@ -3,7 +3,7 @@
     // UI_REUSE_V1
     var U=GameUI.CustomUIConfig().SurvivalUI;
     var playerId=Game.GetLocalPlayerID(),current={},signature="",cards=[],timers=[],generation=0,ready=false,pending=false;
-    var config=GameUI.CustomUIConfig(),reduced=!!config.RogueReducedMotion;
+    var config=GameUI.CustomUIConfig(),reduced=false;config.RogueReducedMotion=false;
     // Presentation mapping only. Candidate generation and effects remain server-owned.
     var artGroups={defense:["frozen_wall","ion_shield","feast","corrosive_shield","wall_recovery","fortified_defense","emergency_reinforcement","endless_rebirth"],growth:["divine_wish","tower_growth","boss_promise","far_sighted","command_change","infrastructure_maniac","radiant_sapling","fiscal_subsidy","goblin_duplicator","lucky_watch","bounty_order","construction_order","internship_certificate","infrastructure_outsourcing","wealthy_start","infrastructure_maniac_start","precision_lumber","peaceful_labor","woodcutting_bounty","instant_wood","gold_mining_secret","population_expansion","natures_gift"]};
     function panel(id){return $("#"+id);}
@@ -43,11 +43,10 @@
         if(reduced)finish();else later(1.30+Math.max(0,cards.length-1)*.11,finish);
     }
     panel("RogueRewardReroll").SetPanelEvent("onactivate",function(){if(!active()||!ready||pending||Number(current.rerolls_remaining)<=0)return;pending=true;updateButtons();panel("RogueRewardStatus").text="正在重抽…";GameEvents.SendCustomGameEventToServer("ui_rogue_reward_reroll",{token:current.token});});
-    panel("RogueReducedMotion").checked=reduced;panel("RogueReducedMotion").SetPanelEvent("onactivate",function(){reduced=!!panel("RogueReducedMotion").checked;config.RogueReducedMotion=reduced;if(reduced&&active()&&!ready){cancel();finish();watchFit();}});
     GameEvents.Subscribe("ui_rogue_reward_result",function(result){if(!active()||String(result.token)!==String(current.token)||!pending)return;if(result.ok===true||Number(result.ok)===1)return;pending=false;cards.forEach(function(c){c.slot.RemoveClass("RogueChosen");c.slot.RemoveClass("RogueNotChosen");});panel("RogueRewardStatus").text="操作未完成，请重试（"+String(result.error||"unknown")+"）";updateButtons();});
     CustomNetTables.SubscribeNetTableListener("survival_rogue_reward",function(_,key,value){if(String(key)===String(playerId))render(value);});
-    config.SurvivalRogueReward={SetReducedMotion:function(enabled){panel("RogueReducedMotion").checked=!!enabled;reduced=!!enabled;config.RogueReducedMotion=reduced;if(active()&&!ready&&reduced){cancel();finish();watchFit();}}};
+    config.SurvivalRogueReward={SetReducedMotion:function(enabled){reduced=!!enabled;config.RogueReducedMotion=reduced;if(active()&&!ready&&reduced){cancel();finish();watchFit();}}};
     U.FullscreenShell.Adopt({panel:panel("RogueRewardBackdrop"),liveGame:true});
-    U.ActionButton.Adopt(panel("RogueRewardReroll")); U.Checkbox.Adopt(panel("RogueReducedMotion"));
+    U.ActionButton.Adopt(panel("RogueRewardReroll"));
     render(CustomNetTables.GetTableValue("survival_rogue_reward",String(playerId))||{});
 })();

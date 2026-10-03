@@ -105,6 +105,7 @@
     var activePortraitUnit = "";
     var activePortraitKey = "";
     var activePortraitEntity = -1;
+    var activePortraitScene = null;
     var portraitAnchorDiagnostic = "";
     var portraitGeometrySignature = "";
     var portraitGeometryDiagnosticSignature = "";
@@ -118,7 +119,7 @@
     var configuredUnitNames = {
         "building_main_city": "主城",
         "building_wall": "城墙",
-        "building_arrow_tower": "箭塔",
+        "building_arrow_tower": "见习守望",
         "building_gold_mine": "金矿",
         "building_hero_altar": "英雄祭坛",
         "enemy_tree": "树",
@@ -321,7 +322,9 @@
 
     function windowPosition(target) {
         if (!validPortraitPanel(target) || !target.GetPositionWithinWindow) return null;
-        var position = target.GetPositionWithinWindow();
+        var position;
+        try { position = target.GetPositionWithinWindow(); }
+        catch (error) { return null; }
         if (!position) return null;
         // Native builds may expose the vector as an indexed array or x/y fields.
         var x = position.x !== undefined ? position.x : position[0];
@@ -330,7 +333,14 @@
             || x === "" || y === "") return null;
         x = Number(x);
         y = Number(y);
-        return isFinite(x) && isFinite(y) ? { x: x, y: y } : null;
+        return usableLayoutNumber(x) && usableLayoutNumber(y) ? { x: x, y: y } : null;
+    }
+
+    function usableLayoutNumber(value) {
+        // Collapsed/unlaid-out Panorama nodes can report finite values near
+        // FLT_MAX. Reject those placeholders as well as invalid arithmetic.
+        // This bound leaves ample room for real multi-monitor HUD coordinates.
+        return isFinite(value) && Math.abs(value) < 1000000;
     }
 
     function layoutScale(target, axis) {
@@ -478,11 +488,12 @@
     }
 
     function portraitRect(target) {
-        if (!target || !target.GetPositionWithinWindow) return null;
+        if (!validPortraitPanel(target) || !target.GetPositionWithinWindow
+            || target.visible === false || target.style.visibility === "collapse") return null;
         var position = windowPosition(target);
         var width = Number(target.actuallayoutwidth || 0);
         var height = Number(target.actuallayoutheight || 0);
-        if (!position || !isFinite(width) || !isFinite(height)
+        if (!position || !usableLayoutNumber(width) || !usableLayoutNumber(height)
             || width <= 0 || height <= 0) return null;
         return {
             x: Number(position.x || 0),
@@ -724,6 +735,7 @@
         activePortraitUnit = "";
         activePortraitKey = "";
         activePortraitEntity = -1;
+        activePortraitScene = null;
     }
 
     function positionCosmeticPortrait(overlay, anchor, scene) {
@@ -743,8 +755,9 @@
         var y = (Number(anchorPosition.y || 0) - Number(layerPosition.y || 0)) / scaleY;
         var width = Number(anchor.actuallayoutwidth || 0) / scaleX;
         var height = Number(anchor.actuallayoutheight || 0) / scaleY;
-        if (!isFinite(x) || !isFinite(y)
-            || !isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) {
+        if (!usableLayoutNumber(x) || !usableLayoutNumber(y)
+            || !usableLayoutNumber(width) || !usableLayoutNumber(height)
+            || width <= 0 || height <= 0) {
             $.Warning("[SURVIVAL_PORTRAIT] geometry_invalid reason=empty_anchor");
             return false;
         }
@@ -829,7 +842,7 @@
         }
         setPortraitAnchorDiagnostic("ready:" + String(anchor.id || "anonymous"));
         var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
-        if (activePortraitKey !== portraitKey) {
+        if (activePortraitKey !== portraitKey || activePortraitScene !== scene) {
             try {
                 var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
                 if (setUnitResult === false) throw new Error("SetUnit returned false");
@@ -851,6 +864,7 @@
         activePortraitUnit = portraitUnit;
         activePortraitKey = portraitKey;
         activePortraitEntity = Number(snapshot.entindex);
+        activePortraitScene = scene;
         portraitTransitionSignature = "";
         restoreNativePortraitsExcept(anchor);
         dimNativePortraitOpacity(anchor);
@@ -2444,6 +2458,15 @@
         if (!unitOwnsAbility(unit, abilityIndex)) return false;
         var name = "";
         try { name = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
+        if (name === "ability_building_blink" && Abilities.GetCooldownTimeRemaining(abilityIndex) > 0) {
+            var towerTools = GameUI.CustomUIConfig().SurvivalArrowTowerTools;
+            if (towerTools && towerTools.RejectMoveCooldown) towerTools.RejectMoveCooldown(abilityIndex);
+            else {
+                cancelPointTarget("move_ability_cooldown");
+                GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80, message: "移动防御塔CD中"});
+            }
+            return false;
+        }
         pointTargetState.active = true;
         pointTargetState.unit = unit;
         pointTargetState.ability = abilityIndex;
@@ -2550,6 +2573,11 @@
         if (fusionQueue && fusionQueue.Cast && fusionQueue.Cast(abilityIndex, unit)) return true;
         var researchName = String(runtime.ability_name || "");
         try { if (!researchName) researchName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
+        // This dispatcher also owns native ability-button clicks after startup.
+        if (researchName === "ability_building_blink" || researchName === "ability_destroy_arrow_tower") {
+            var towerTools = GameUI.CustomUIConfig().SurvivalArrowTowerTools;
+            return !!(towerTools && towerTools.TriggerAbility && towerTools.TriggerAbility(researchName, unit));
+        }
         if (/^ability_research_/.test(researchName)) {
             var production = GameUI.CustomUIConfig().SurvivalProductionHUD;
             return !!(production && production.QueueResearch && production.QueueResearch(abilityIndex, unit));

@@ -23,7 +23,16 @@
         return natives[id];
     }
     function style(p, values) {if(valid(p)) Object.keys(values).forEach(function(k){if(String(p.style[k])!==String(values[k]))p.style[k]=values[k];});}
-    function place(p,x,y,w,h) {style(p,{transitionDuration:"0s",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",position:x+"px "+y+"px 0px",width:w+"px",height:h+"px"});}
+    function cssNumber(value, precision) {
+        // Panorama rejects exponent notation, including near-zero centering
+        // residue such as 1.1368683772161603e-13. Keep subpixel layout in decimal.
+        var number=Number(value);
+        if(!isFinite(number))number=0;
+        number=Math.max(-10000000,Math.min(10000000,number));
+        return String(Number(number.toFixed(precision===undefined?6:precision)));
+    }
+    function pixels(value) {return cssNumber(value,3)+"px";}
+    function place(p,x,y,w,h) {style(p,{transitionDuration:"0s",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",position:pixels(x)+" "+pixels(y)+" 0px",width:pixels(w),height:pixels(h)});}
     function create(type,parent,id,hit) {var p=$.CreatePanel(type,parent,id);p.hittest=!!hit;p.hittestchildren=!!hit; if(id)nodes[id]=p;return p;}
     // Shared uniform slot outline: transparent center, no sampled lighting patches.
     function uniformSlotFrame(parent,id) {
@@ -61,7 +70,8 @@
         var bounds=nodes[id+"Bounds"];
         if(!bounds){bounds=create("Panel",parent,id+"Bounds",false);label(bounds,id,"HandoffNumber");}
         place(bounds,x,y,w,h);style(bounds,{zIndex:"5"});
-        style(nodes[id],{position:"0px 0px 0px",width:"fit-children",height:"fit-children",maxWidth:"100%",horizontalAlign:"center",verticalAlign:"center",textAlign:"center",fontSize:fontSize+"px"});
+        // Give text-align the full bounds width; center the natural-height line vertically.
+        style(nodes[id],{position:"0px 0px 0px",width:"100%",height:"fit-children",maxWidth:"100%",margin:"0px",padding:"0px",horizontalAlign:"center",verticalAlign:"center",textAlign:"center",fontSize:fontSize+"px"});
         return nodes[id];
     }
     function text(id,value) {var p=nodes[id];if(p&&p.text!==String(value))p.text=String(value);}
@@ -143,7 +153,7 @@
         skillPanels=candidates.slice(0,currentEntries.length);
         candidates.forEach(function(p,index){if(index>=currentEntries.length){style(p,{visibility:"collapse",width:"0px",marginRight:"0px"});p.__handoffOverflow=true;}else{if(p.__handoffOverflow){style(p,{visibility:"visible"});p.__handoffOverflow=false;}square(p);style(p,{marginRight:"4px"});}});
     }
-    function canvas(p,g) {style(p,{transitionProperty:"none",transitionDuration:"0s",animationName:"none"});place(p,g.x,g.y,g.width,g.height);style(p,{transformOrigin:"0% 0%",transform:"scale3d("+g.scale+","+g.scale+",1)",overflow:"noclip",maxWidth:"10000px"});p.hittest=false;p.hittestchildren=true;}
+    function canvas(p,g) {style(p,{transitionProperty:"none",transitionDuration:"0s",animationName:"none"});place(p,g.x,g.y,g.width,g.height);style(p,{transformOrigin:"0% 0%",transform:"scale3d("+cssNumber(g.scale)+","+cssNumber(g.scale)+",1)",overflow:"noclip",maxWidth:"10000px"});p.hittest=false;p.hittestchildren=true;}
     // Called synchronously by the existing hotkey writer, not by the HUD polling loop.
     cfg.HandoffStyleHotkey=function(p,slot,unit,ability){
         // The label stays in its engine-owned hierarchy for binding checks. Only its
@@ -244,14 +254,14 @@
         place(native("buffs"),g.heroWidth+10,-42,g.centerWidth-20,40);place(native("debuffs"),g.heroWidth+10,-86,g.centerWidth-20,40);
         // Live DOTAMinimap stays native; no reference screenshot or old custom frame is used.
         var map=native("minimap_container"),mini=native("minimap_block"),size=g.minimapSize;
-        style(map,{width:(size+12)+"px",height:(size+12)+"px",horizontalAlign:"left",verticalAlign:"bottom",margin:"0px 0px 6px 6px",transform:"none",overflow:"noclip"});
+        style(map,{width:pixels(size+12),height:pixels(size+12),horizontalAlign:"left",verticalAlign:"bottom",margin:"0px 0px 6px 6px",transform:"none",overflow:"noclip"});
         place(mini,0,0,size,size);style(mini,{transform:"none",backgroundImage:"none"});place(native("minimap"),0,0,size,size);style(native("minimap"),{transform:"none"});
         ["ArchiveEntry","TreasureEntry","LotteryButton"].forEach(function(id){style(root.FindChildTraverse(id),{visibility:"collapse"});});
         return true;
     }
     function layout() {
         var w=(ctx.actuallayoutwidth||1672)/(ctx.actualuiscale_x||1),h=(ctx.actuallayoutheight||941)/(ctx.actualuiscale_y||1);
-        var topScale=Math.min(w/1672,h/941);place(top,(w-1672*topScale)/2,0,1672,941);style(top,{transform:"scale3d("+topScale+","+topScale+",1)"});
+        var topScale=Math.min(w/1672,h/941);place(top,(w-1672*topScale)/2,0,1672,941);style(top,{transform:"scale3d("+cssNumber(topScale)+","+cssNumber(topScale)+",1)"});
         // Both screen edges lie inside the texture; no Image aspect-fit gutters.
         place(topBackdrop,-24,0,w+48,941*topScale);
         var count=abilityCount(),g=cfg.HandoffGeometry(w,h,count);
@@ -287,7 +297,7 @@
     }
     function mirror() {
         [["HandoffName","SurvivalHeroName"],["HandoffLevel","SurvivalHeroLevel"],["Handoff_hp_value","SurvivalHeroHealthText"],["Handoff_mp_value","SurvivalHeroManaText"]].forEach(function(a){var source=ctx.FindChildTraverse(a[1]);if(source)text(a[0],source.text);});
-        [["hp","Health"],["mp","Mana"]].forEach(function(a){var source=ctx.FindChildTraverse("SurvivalHero"+a[1]+"Fill");if(source){var fraction=Math.max(0,Math.min(100,parseFloat(source.style.width)||0));style(nodes["Handoff_"+a[0]+"_fill"],{clip:"rect(0%, "+fraction+"%, 100%, 0%)"});}});
+        [["hp","Health"],["mp","Mana"]].forEach(function(a){var source=ctx.FindChildTraverse("SurvivalHero"+a[1]+"Fill");if(source){var fraction=Math.max(0,Math.min(100,parseFloat(source.style.width)||0));style(nodes["Handoff_"+a[0]+"_fill"],{clip:"rect(0%, "+cssNumber(fraction)+"%, 100%, 0%)"});}});
         stats.forEach(function(a){var source=ctx.FindChildTraverse(a[1]);if(source)text("HandoffStat_"+a[0],source.text);});
         Object.keys(topButtons).forEach(function(id){topButtons[id].enabled=!!available(id);});
         // Both daily and monthly-pass views are reachable inside the existing welfare window.

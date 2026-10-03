@@ -23,7 +23,16 @@
         return natives[id];
     }
     function style(p, values) {if(valid(p)) Object.keys(values).forEach(function(k){if(String(p.style[k])!==String(values[k]))p.style[k]=values[k];});}
-    function place(p,x,y,w,h) {style(p,{transitionDuration:"0s",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",position:x+"px "+y+"px 0px",width:w+"px",height:h+"px",minWidth:w+"px",minHeight:h+"px",maxWidth:"10000px",maxHeight:"10000px"});}
+    function cssNumber(value, precision) {
+        // Panorama rejects exponent notation, including near-zero centering
+        // residue such as 1.1368683772161603e-13. Keep subpixel layout in decimal.
+        var number=Number(value);
+        if(!isFinite(number))number=0;
+        number=Math.max(-10000000,Math.min(10000000,number));
+        return String(Number(number.toFixed(precision===undefined?6:precision)));
+    }
+    function pixels(value) {return cssNumber(value,3)+"px";}
+    function place(p,x,y,w,h) {style(p,{transitionDuration:"0s",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",position:pixels(x)+" "+pixels(y)+" 0px",width:pixels(w),height:pixels(h),minWidth:pixels(w),minHeight:pixels(h),maxWidth:"10000px",maxHeight:"10000px"});}
     function create(type,parent,id,hit) {var p=$.CreatePanel(type,parent,id);p.hittest=!!hit;p.hittestchildren=!!hit; if(id)nodes[id]=p;return p;}
     // Shared uniform slot outline: transparent center, no sampled lighting patches.
     function uniformSlotFrame(parent,id) {
@@ -343,7 +352,7 @@
             });
         });
     }
-    function canvas(p,g) {style(p,{transitionProperty:"none",transitionDuration:"0s",animationName:"none"});place(p,g.x,g.y,g.width,g.height);style(p,{transformOrigin:"0% 0%",transform:"scale3d("+g.scale+","+g.scale+",1)",overflow:"noclip",maxWidth:"10000px"});p.hittest=false;p.hittestchildren=true;}
+    function canvas(p,g) {style(p,{transitionProperty:"none",transitionDuration:"0s",animationName:"none"});place(p,g.x,g.y,g.width,g.height);style(p,{transformOrigin:"0% 0%",transform:"scale3d("+cssNumber(g.scale)+","+cssNumber(g.scale)+",1)",overflow:"noclip",maxWidth:"10000px"});p.hittest=false;p.hittestchildren=true;}
     // Called synchronously by the existing hotkey writer, not by the HUD polling loop.
     cfg.HandoffStyleHotkey=function(p,slot,unit,ability){
         // The label stays in its engine-owned hierarchy for binding checks. Only its

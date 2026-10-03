@@ -22,6 +22,9 @@
 
 .SurvivalHeroWorldHealthFill
 {
+    transition-property: width;
+    transition-duration: 0s;
+    transition-timing-function: linear;
     width: 100%;
     height: 100%;
     background-color: gradient(

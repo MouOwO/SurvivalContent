@@ -51,7 +51,7 @@
         });
         var items=products.filter(function(p){return p.category_id===category;});
         var bundles=items.length>0 && items.every(function(p){return p.product_type==="bundle";});grid.SetHasClass("RCBundles",bundles);
-        notice.text=catalog.error?catalog.error:categories.length?"微信支付 · 付款前请核对商品和全部奖励":"正在加载商品，请先完成对局登录。";
+        notice.text=catalog.error?catalog.error:categories.length?(catalog.alipay?"微信 / 支付宝":"微信支付")+" · 付款前请核对商品和全部奖励":"正在加载商品，请先完成对局登录。";
         if(categories.length && !items.length) { var empty=text(grid,"本分类暂无上架商品","RCProductEffect");empty.style.width="900px";return; }
         items.forEach(function(item,i){
             var card=U.ProductCard(grid,{name:"",prices:[{amount:(item.amount_fen/100).toFixed(2),currencyName:"元"}]});

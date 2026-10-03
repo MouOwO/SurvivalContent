@@ -1,16 +1,35 @@
-var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
+var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, PaymentChannel, PaymentCancel;
 (function () {
     "use strict";
     var cfg = GameUI.CustomUIConfig(), disposed = false, subscriptions = [];
     if (cfg.SurvivalPayments && cfg.SurvivalPayments.Dispose) cfg.SurvivalPayments.Dispose();
     var products = [], selected = "", orders = {}, busy = false, opened = false, generation = 0, lastMatrix = "", ticks = 0;
     var gameValues={}, gameEntitlements={}, wallet={}, matchFrozen=false, catalog={products:[],categories:[]};
+    var channel="wechat";
     var entry = $("#PaymentEntry"), dialog = $("#PaymentDialog"), status = $("#PaymentStatus"), buy = $("#PaymentBuy");
+    var scrim=$("#PaymentScrim"), inputShield=$("#PaymentInputShield");
+    // A live JS reload can precede the updated XML resource in Workshop Tools.
+    if(!inputShield){inputShield=$.CreatePanel("Button",dialog,"PaymentInputShield");inputShield.AddClass("PaymentInputShield");}
+    // Match ModalShell's input boundary: blank window space consumes clicks,
+    // while controls above the shield keep their own activation handlers.
+    function consumeWindowClick(){return true;}
+    dialog.SetPanelEvent("onactivate",consumeWindowClick);
+    inputShield.SetPanelEvent("onactivate",consumeWindowClick);
+    if(inputShield.SetAcceptsFocus)inputShield.SetAcceptsFocus(false);
+    scrim.SetPanelEvent("onactivate",function(){
+        if(opened && (!cfg.SurvivalUILayers || !cfg.SurvivalUILayers.Top || cfg.SurvivalUILayers.Top()==="payment_shop"))closeShop();
+        return true;
+    });
     function rows(value) {
         if (Array.isArray(value)) return value;
         return Object.keys(value || {}).sort(function(a,b){return Number(a)-Number(b);}).map(function(key){return value[key];});
     }
     function current() { return products.filter(function(p){return p.sku === selected;})[0]; }
+    function channelAvailable(value) {
+        // CustomGameEventManager transports Lua booleans as numeric 0/1.
+        var flag=value==="wechat"?catalog.wechat:catalog.alipay;
+        return flag===true || flag===1 || (value==="wechat" && flag===undefined);
+    }
     function money(fen) { return "¥" + (Number(fen) / 100).toFixed(2); }
     function number(value) { return String(Math.round(Number(value)*10000)/10000); }
     function valuesText(p,order) {
@@ -39,15 +58,15 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
         if(matchFrozen)text.push("本局已结算冻结，新奖励下局生效。");
         return text.join("\n");
     }
-    function validURL(url) { return typeof url === "string" && /^https:\/\/pay\.xiaofengnet\.com\/checkout\?order=WX[0-9a-f]{30}&token=[0-9a-f]{64}$/.test(url); }
+    function validURL(url) { return typeof url === "string" && /^https:\/\/pay\.xiaofengnet\.com\/checkout(?:\?order=WX|\/alipay\?order=AL)[0-9a-f]{30}&token=[0-9a-f]{64}$/.test(url); }
     function terminal(state) { return ["delivered", "paid_review", "closed"].indexOf(state) >= 0; }
     function drawQR(matrix) {
         var parent = $("#PaymentQR");
-        if (typeof matrix !== "string" || !/^[01|]+$/.test(matrix)) { parent.style.visibility = "collapse"; return; }
+        if (typeof matrix !== "string" || !/^[01|]+$/.test(matrix)) { parent.style.visibility = "collapse"; return false; }
         var qr = matrix.split("|"), size = qr.length;
-        if (size < 29 || size > 65 || qr.some(function(row){return row.length !== size;})) { parent.style.visibility = "collapse"; return; }
+        if (size < 29 || size > 65 || qr.some(function(row){return row.length !== size;})) { parent.style.visibility = "collapse"; return false; }
         parent.style.visibility = "visible";
-        if (lastMatrix === matrix) return;
+        if (lastMatrix === matrix) return true;
         lastMatrix = matrix; parent.RemoveAndDeleteChildren();
         var cell = Math.max(4, Math.floor(260 / size));
         parent.style.width = (size * cell) + "px"; parent.style.height = (size * cell) + "px";
@@ -59,24 +78,38 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
                 run.style.backgroundColor=bits[start]==="1"?"#000000":"#ffffff"; start=end;
             }
         });
+        return true;
     }
     function render() {
         if (disposed) return;
         var p = current(), order = orders[selected];
+        var active=order && !terminal(order.state), shownChannel=active?(order.provider||"wechat"):channel;
+        ["wechat","alipay"].forEach(function(value){
+            var button=$(value==="wechat"?"#PaymentWeChat":"#PaymentAlipay");
+            button.enabled=!busy && !active && channelAvailable(value);
+            button.SetHasClass("Selected",shownChannel===value);
+        });
         var shown=order && order.state!=="closed" ? order : p;
         $("#PaymentTitle").text = shown ? shown.title : "正在加载商品";
         $("#PaymentDescription").text = shown ? shown.description||"" : "请先完成对局登录";
         $("#PaymentPrice").text = shown ? money(shown.amount_fen) : "";
         $("#PaymentValues").text = valuesText(shown,order);
         buy.enabled = !busy && !!p && !!p.enabled && (!order || order.state === "closed" || order.state==="delivered");
-        $("#PaymentBuyLabel").text = p ? (order && order.state==="delivered"?"再次购买 ":"微信购买 ")+money(order && !terminal(order.state)?order.amount_fen:p.amount_fen) : "加载中";
+        buy.enabled=buy.enabled && channelAvailable(shownChannel);
+        $("#PaymentBuyLabel").text = p ? (shownChannel==="alipay"?"支付宝购买 ":"微信购买 ")+money(active?order.amount_fen:p.amount_fen) : "加载中";
         var canOpen = order && order.state === "pending" && !order.expired && validURL(order.checkout_url);
         $("#PaymentOpen").style.visibility = canOpen ? "visible" : "collapse";
+        $("#PaymentOpenLabel").text=shownChannel==="alipay" && order && order.checkout_mode!=="qr"?"打开支付宝收银台":"浏览器备用付款页";
+        $("#PaymentCancel").style.visibility=active?"visible":"collapse";
+        $("#PaymentCancel").enabled=!busy;
         $("#PaymentLink").style.visibility = canOpen ? "visible" : "collapse";
         if (canOpen) $("#PaymentLink").text = order.checkout_url;
-        drawQR(canOpen ? order.qr_matrix : null);
+        var hasQR=drawQR(canOpen ? order.qr_matrix : null);
         if (order) {
-            var labels = {created:"订单正在确认，请查询结果后重试。", pending:"用手机微信扫描上方二维码。付款后自动发放并刷新存档。",
+            var pendingText=hasQR?"用手机"+(shownChannel==="alipay"?"支付宝":"微信")+"扫描上方二维码。付款后自动发放并刷新存档。"
+                : shownChannel==="alipay" && order.checkout_mode!=="qr"?"此订单使用网页收银台，点击“打开支付宝收银台”付款。内置二维码需商户开通扫码支付。"
+                : "二维码暂未显示，请查询付款结果或打开备用付款页。";
+            var labels = {created:"订单正在确认，请查询结果后重试。", pending:pendingText,
                 delivered:"支付成功：" + order.title + " 的全部奖励已写入存档。",
                 paid_review:"已收到付款，该订单需要人工核对。请保留订单号联系开发者。",
                 closed:"订单已关闭，可以重新购买。"};
@@ -95,6 +128,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
         busy = true; render();
         var ticket = ++generation, body = {action:action};
         if (sku) body.sku = sku;
+        if(action==="create")body.provider=channel;
         GameEvents.SendCustomGameEventToServer("survival_payment_request", body);
         $.Schedule(32, function() {
             if (!disposed && ticket === generation && busy) { busy=false; render(); status.text="请求超时，请查询结果后重试。"; }
@@ -104,6 +138,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
     function refreshCatalog() { if (!disposed && !busy) request("catalog"); }
     function buildList(data) {
         catalog=data;
+        if(channel==="alipay" && !channelAvailable("alipay"))channel="wechat";
         products = rows(data.products).filter(function(p) {
             return p && typeof p.sku === "string" && Number(p.amount_fen)>0 && Number(p.amount_fen)<=1000000 && Number(p.amount_fen)%1===0;
         });
@@ -127,10 +162,13 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
     }
     function setOpen(value) {
         opened=value;
-        if (dialog && (!dialog.IsValid || dialog.IsValid())) dialog.SetHasClass("Open",value);
-        var scrim=$("#PaymentScrim"); if (scrim) scrim.SetHasClass("Open",value);
+        if (dialog && (!dialog.IsValid || dialog.IsValid())) {
+            dialog.hittest=value;dialog.hittestchildren=value;dialog.SetHasClass("Open",value);
+        }
+        if(scrim && (!scrim.IsValid || scrim.IsValid())){scrim.hittest=value;scrim.hittestchildren=false;scrim.SetHasClass("Open",value);}
+        if(inputShield && (!inputShield.IsValid || inputShield.IsValid())){inputShield.hittest=value;inputShield.hittestchildren=false;}
         if (cfg.SurvivalUILayers) {
-            if (value) cfg.SurvivalUILayers.Open("payment_shop",dialog,closeShop,{scrim:$("#PaymentScrim"),click:$("#PaymentScrim")});
+            if (value) cfg.SurvivalUILayers.Open("payment_shop",dialog,closeShop,{scrim:scrim,click:scrim});
             else cfg.SurvivalUILayers.Close("payment_shop");
         }
     }
@@ -144,11 +182,18 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop;
     PaymentBuy=function(){
         var p=current(), order=orders[selected];
         if (!p || !p.enabled || busy || (order && order.state!=="closed" && order.state!=="created" && order.state!=="delivered")) return;
-        if (request("create",selected)) status.text="正在创建 " + money(p.amount_fen) + " 微信订单…";
+        if(!channelAvailable(channel))return;
+        if (request("create",selected)) status.text="正在创建 " + money(p.amount_fen) + (channel==="alipay"?" 支付宝":" 微信")+"订单…";
     };
-    PaymentOpen=function(){var order=orders[selected];if(order && order.state==="pending" && validURL(order.checkout_url))$.DispatchEvent("ExternalBrowserGoToURL",order.checkout_url);};
+    PaymentChannel=function(value){var order=orders[selected];if(busy || (order && !terminal(order.state)))return;if((value==="wechat" || value==="alipay") && channelAvailable(value)){channel=value;render();}};
+    PaymentCancel=function(){var order=orders[selected];if(order && !terminal(order.state) && request("cancel",selected))status.text="正在核对并关闭订单，请稍候…";};
+    PaymentOpen=function(){var order=orders[selected];if(order && order.state==="pending" && !order.expired && validURL(order.checkout_url))$.DispatchEvent("ExternalBrowserGoToURL",order.checkout_url);};
     PaymentRefresh=function(){request(orders[selected]?"status":"catalog",orders[selected]?selected:null);};
     var messages={test_account_required:"商城当前仅对指定测试账号开放。",already_owned:"你已经拥有此商品。",
+        payment_channel_unavailable:"此支付方式尚未开放，请选择已开放的方式。",
+        "ACQ.ACCESS_FORBIDDEN":"支付宝扫码支付权限尚未开通，请联系商户开通后再试。",
+        "isv.insufficient-isv-permissions":"支付宝应用尚无扫码支付接口权限，请联系商户完成配置。",
+        payment_close_pending:"支付宝尚未生成可关闭的交易。为防止重复付款，请等待此订单到期后再切换支付方式。",
         component_already_owned:"礼包内有道具已达持有上限，不能重复购买。",entitlement_already_owned:"礼包内有权限已生效，不能重复购买。",
         attribute_limit_reached:"购买后有属性会超过上限，暂不可购买。",
         purchase_limit_reached:"此商品已达到账号购买次数限制。",profile_not_ready:"请先进入对局，等待存档加载。",

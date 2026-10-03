@@ -1,0 +1,17 @@
+"Layer0"
+{
+	"shader"	"grasstile_preview.vfx"
+	"F_SPECULAR"	"1"
+	"F_TINT_MASK"	"1"
+	"g_flGrassFlexibility"	"0.5"
+	"g_flGrassHeightMax"	"20"
+	"g_flGrassHeightMin"	"15"
+	"g_flGrassWidth"	"28"
+	"g_flSpecularIntensity"	".1"
+	"g_vColorTint"	"[.62 .42 .70 1]"
+	"g_vColorTint2"	"[.37 .51 .29 0]"
+	"TextureReflectance"	"materials/survival_valley/card_flowers_000b_refl.png"
+	"TextureColor"	"materials/survival_valley/card_flowers_000_color.png"
+	"TextureTranslucency"	"materials/survival_valley/card_flowers_000_55cf14b0_trans.png"
+	"TextureTintMask"	"materials/survival_valley/card_flowers_000_mask.png"
+}
