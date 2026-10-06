@@ -221,14 +221,18 @@
             var equipmentMax=!!(identity&&identity.removed!==1
                 &&/^equipment_(attack_gloves|burning_blade|iron_armor)_max$/.test(String(identity.content_id||"")))
                 ||/^item_survival_(attack_gloves|burning_blade|iron_armor)_max$/.test(String(name||""));
+            var weaponMax=!!(identity&&identity.removed!==1&&Number(identity.is_max_level)===1)
+                ||/^item_survival_(growth_sword|frost_blade|ice_blade)_max$/.test(String(name||""));
+            var showMax=equipmentMax||weaponMax;
+            hideCounter=hideCounter||weaponMax;
             var maxLabel=slot.FindChildTraverse("SurvivalInventoryArmorMax");
-            if(equipmentMax&&!valid(maxLabel)){
+            if(showMax&&!valid(maxLabel)){
                 maxLabel=$.CreatePanel("Label",slot,"SurvivalInventoryArmorMax");
                 maxLabel.text="MAX";
                 maxLabel.hittest=false;maxLabel.hittestchildren=false;
                 style(maxLabel,{horizontalAlign:"right",verticalAlign:"bottom",margin:"0px 6px 6px 0px",fontSize:"26px",fontWeight:"bold",color:"#ffffff",textShadow:"0px 0px 2px 3 #000000",zIndex:"10"});
             }
-            if(valid(maxLabel))maxLabel.visible=equipmentMax;
+            if(valid(maxLabel))maxLabel.visible=showMax;
             var imageHost=slot.FindChildTraverse("ItemImage");
             if(valid(imageHost)){
                 // DOTAItemImage renders its texture internally. background-size

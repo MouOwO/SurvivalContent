@@ -6,6 +6,7 @@
     delete cfg.SurvivalCommercePreviewData;
     if (!U || !R) { delete cfg.SurvivalCommerceView; return; }
     var disposed=false, category="", catalog={products:[],categories:[]}, revision="", opened=false, ticketRequest=false;
+    var paidCatalog={products:[],categories:[]}, walletCatalog={products:[],categories:[],balances:{}};
     function rows(value) { return Array.isArray(value)?value:Object.keys(value||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return value[k];}); }
     function panel(type,parent,cls) { var n=$.CreatePanel(type,parent,""); if(cls)n.AddClass(cls); return n; }
     function text(parent,value,cls) { var n=panel("Label",parent,cls);n.text=String(value);n.hittest=false;return n; }
@@ -24,10 +25,18 @@
         n.SetScaling("stretch-to-fit-preserve-aspect");n.hittest=false;return n;
     }
     function checkout(item) {
+        if(item && item.purchase_method==="wallet"){
+            if(cfg.SurvivalCommerceWallet && cfg.SurvivalCommerceWallet.Checkout(item.sku)){close();return true;}
+            return false;
+        }
         if(disposed || !item || !cfg.SurvivalPayments || !cfg.SurvivalPayments.Checkout)return false;
         close();cfg.SurvivalPayments.Checkout(item.sku);return true;
     }
-    function purchaseLabel(item) { return item.enabled?"查看 / 购买":item.owned>0?"已拥有 · 查看":"查看奖励"; }
+    function purchaseLabel(item) { return item.purchase_method==="wallet"?"查看 / 兑换":item.enabled?"查看 / 购买":item.owned>0?"已拥有 · 查看":"查看奖励"; }
+    function noticeText(){
+        var b=walletCatalog.balances||{};
+        return (walletCatalog.error?walletCatalog.error+" · ":"")+"商城余额："+(b.u_coin||0)+" U币 · "+(b.shop_points||0)+" 积分 · "+(b.shop_gold||0)+" 金币 · 充值暂未开放";
+    }
     function singleTicket() {
         // A bundle containing tickets is not a single-ticket purchase.
         return rows(catalog.products).filter(function(p){
@@ -36,10 +45,7 @@
                 && rewards[0].id==="special_lottery_ticket" && Number(rewards[0].quantity)===1;
         })[0];
     }
-    function isGoldenProduct(item){var r=rows(item.reward_lines);return item.product_type==="single"&&r.length===1&&r[0].id==="special_lottery_ticket";}
-    function rewardLabel(reward){return reward.id==="special_lottery_ticket"?"金色抽奖券":reward.label;}
-    function productIcon(item){return isGoldenProduct(item)?"custom_game/lottery_tickets_v2/gold_ticket.png":item.icon;}
-    function rewardText(item) { return rows(item.reward_lines).map(function(r){return rewardLabel(r)+" ×"+r.quantity;}).join("\n"); }
+    function rewardText(item) { return rows(item.reward_lines).map(function(r){return r.label+" ×"+r.quantity;}).join("\n"); }
     function render() {
         if(disposed)return;
         tabs.RemoveAndDeleteChildren();grid.RemoveAndDeleteChildren();
@@ -51,19 +57,19 @@
         });
         var items=products.filter(function(p){return p.category_id===category;});
         var bundles=items.length>0 && items.every(function(p){return p.product_type==="bundle";});grid.SetHasClass("RCBundles",bundles);
-        notice.text=catalog.error?catalog.error:categories.length?(catalog.alipay?"微信 / 支付宝":"微信支付")+" · 付款前请核对商品和全部奖励":"正在加载商品，请先完成对局登录。";
+        notice.text=noticeText();
         if(categories.length && !items.length) { var empty=text(grid,"本分类暂无上架商品","RCProductEffect");empty.style.width="900px";return; }
         items.forEach(function(item,i){
-            var card=U.ProductCard(grid,{name:"",prices:[{amount:(item.amount_fen/100).toFixed(2),currencyName:"元"}]});
+            var card=U.ProductCard(grid,{name:"",prices:[{amount:item.purchase_method==="wallet"?item.price:(item.amount_fen/100).toFixed(2),currencyName:item.purchase_method==="wallet"?item.currency_name:"元"}]});
             card.AddClass("RCProduct");card.SetHasClass("RCFourth",i%4===3);card.SetHasClass("RCSecond",i%2===1);
             R.Image(card,bundles?"shop_bundle_compact":"shop_card_normal_native","RCCardBase");
-            var caption=text(card,isGoldenProduct(item)?"金色抽奖券 ×"+rows(item.reward_lines)[0].quantity:item.title,"RCProductName");caption.style.width="fit-children";caption.style.maxWidth=bundles?"496px":"205px";caption.style.horizontalAlign="center";caption.style.position=bundles?"0px 12px 0px":"0px 199px 0px";
+            var caption=text(card,item.title,"RCProductName");caption.style.width="fit-children";caption.style.maxWidth=bundles?"496px":"205px";caption.style.horizontalAlign="center";caption.style.position=bundles?"0px 12px 0px":"0px 199px 0px";
             if(bundles) {
                 var contents=panel("Panel",card,"RCBundleContents");
-                rows(item.reward_lines).forEach(function(r){var slot=panel("Panel",contents,"RCBundleItem");image(slot,r.id==="special_lottery_ticket"?"custom_game/lottery_tickets_v2/gold_ticket.png":item.icon,"RCBundleArt");text(slot,rewardLabel(r),"RCBundleName");text(slot,"×"+r.quantity,"RCBundleQuantity");});
+                rows(item.reward_lines).forEach(function(r){var slot=panel("Panel",contents,"RCBundleItem");image(slot,item.icon,"RCBundleArt");text(slot,r.label,"RCBundleName");text(slot,"×"+r.quantity,"RCBundleQuantity");});
                 action(card,purchaseLabel(item),function(){checkout(item);},"RCBundleBuy");
             } else {
-                image(card,productIcon(item),"RCProductArt");var hover=panel("Panel",card,"RCProductHover");R.Image(hover,"shop_product_hover_scrim","RCHoverScrim");
+                image(card,item.icon,"RCProductArt");var hover=panel("Panel",card,"RCProductHover");R.Image(hover,"shop_product_hover_scrim","RCHoverScrim");
                 text(hover,rewardText(item)||item.description,"RCProductEffect");action(hover,purchaseLabel(item),function(){checkout(item);},"RCProductBuy");
                 if(!item.enabled)text(card,item.owned>0?"已拥有":"暂不可购","RCStockState");
             }
@@ -72,34 +78,45 @@
     function update(data) {
         catalog=data||{products:[],categories:[]};
         // Keep hovered cards stable when only numeric previews have changed.
-        var next=JSON.stringify({categories:catalog.categories,error:catalog.error,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.amount_fen,p.disabled_reason];})});
+        var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.amount_fen,p.price,p.currency,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
         if(next!==revision){revision=next;render();}
+        // Updating a connection notice must not destroy hovered cards or clear products.
+        notice.text=noticeText();
         if(ticketRequest){
             ticketRequest=false;
             var item=singleTicket();
-            if(!item || !checkout(item))notice.text=catalog.error || "金色抽奖券暂未上架，请稍后重试。";
+            if(!item || !checkout(item))notice.text=catalog.error || "特殊抽奖券暂未上架，请稍后重试。";
         }
     }
+    function mergeCatalogs(){
+        var categories=rows(paidCatalog.categories).slice();
+        rows(walletCatalog.categories).forEach(function(c){if(!categories.some(function(v){return v.id===c.id;}))categories.push(c);});
+        update({products:rows(walletCatalog.products).concat(rows(paidCatalog.products)),categories:categories,
+            catalog_hash:paidCatalog.catalog_hash,alipay:paidCatalog.alipay,error:paidCatalog.error});
+    }
+    function updatePaid(data){paidCatalog=data||{products:[],categories:[]};mergeCatalogs();}
     cfg.SurvivalCommerceView={
-        Open:function(){if(disposed)return;opened=true;if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)update(cfg.SurvivalPayments.GetCatalog());render();store.shell.Open();if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog();},
-        Close:close,UpdateCatalog:update,
+        Open:function(){if(disposed)return;opened=true;if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());store.shell.Open();if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog();if(cfg.SurvivalCommerceWallet)cfg.SurvivalCommerceWallet.Refresh();},
+        Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},IsOpen:function(){return opened;},
+        SetNotice:function(message){if(!disposed)notice.text=message;},
         OpenTicketPurchase:function(pool){
-            if(pool && typeof pool==="object"){if(pool.ticket_content_id&&pool.ticket_content_id!=="special_lottery_ticket")return false;pool=pool.id;}
+            if(pool && typeof pool==="object")pool=pool.id;
             var payments=cfg.SurvivalPayments;
-            if(disposed || !pool || ["dragon_knight","summer"].indexOf(pool)<0 || !payments || !payments.Checkout)return false;
-            if(payments.GetCatalog)update(payments.GetCatalog());
+            if(disposed || !pool || pool==="map" || !payments || !payments.Checkout)return false;
+            if(payments.GetCatalog)updatePaid(payments.GetCatalog());
             var item=singleTicket();
             if(item)return checkout(item);
             if(!payments.RefreshCatalog)return false;
             // Opening directly from lottery can precede the first shop snapshot.
             // Show progress and continue to checkout when that catalog arrives.
             category="item";opened=true;render();store.shell.Open();ticketRequest=true;
-            notice.text="正在加载金色抽奖券商品…";payments.RefreshCatalog();return true;
+            notice.text="正在加载特殊抽奖券商品…";payments.RefreshCatalog();return true;
         },
         Inspect:function(){var path=[],p=store.panel;while(p && p.IsValid() && path.length<10){path.push({id:p.id,visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,visibility:p.style.visibility,opacity:p.style.opacity});p=p.GetParent();}
             return {category:category,opened:opened,valid:store.panel.IsValid(),visible:store.panel.visible,
             width:store.panel.actuallayoutwidth,height:store.panel.actuallayoutheight,productCount:rows(catalog.products).length,path:path};},
         Dispose:function(){if(disposed)return;disposed=true;store.shell.Dispose();[store.panel,store.scrim].forEach(function(p){if(p.IsValid())p.DeleteAsync(0);});}
     };
-    if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)update(cfg.SurvivalPayments.GetCatalog());
+    if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());
+    if(cfg.SurvivalCommerceWallet){walletCatalog=cfg.SurvivalCommerceWallet.GetCatalog();mergeCatalogs();}
 }());

@@ -2,7 +2,7 @@
     "use strict";
 
     var LOG_PREFIX = "[SurvivalUIBootstrap]";
-    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260928_hero_portrait_single_jump");
+    $.Msg("[SURVIVAL_INPUT] BOOTSTRAP_ENTER version=20260926_minimap_shortcuts_f1_v2");
     // Phase 0 rollback boundary. Keep inventory native until the separate item
     // interaction controller (use/drag/swap/drop/sell) is complete.
     GameUI.CustomUIConfig().SurvivalHudTakeover = {
@@ -118,9 +118,6 @@
         var portrait = -1;
         try { portrait = Number(Players.GetLocalPlayerPortraitUnit()); } catch (error) {}
         var selected = selectedEntities(playerId).filter(validUnit);
-        var fusionQueue = inputConfig.SurvivalLumberjackFusionQueue;
-        var fusionFocus = fusionQueue && fusionQueue.ResolveFocus ? fusionQueue.ResolveFocus(selected) : -1;
-        if (fusionFocus >= 0) return fusionFocus;
         var builder = builderEntity(playerId);
         var portraitName = validUnit(portrait) ? (Entities.GetUnitName(portrait) || "") : "";
         if (validUnit(portrait) && portraitName !== "npc_dota_hero_undying"
@@ -144,9 +141,6 @@
         if (displayIdentityMode === "query" && validUnit(portrait)
             && portraitName !== "npc_dota_hero_undying") return portrait;
         var selected = selectedEntities(playerId).filter(validUnit);
-        var fusionQueue = inputConfig.SurvivalLumberjackFusionQueue;
-        var fusionFocus = fusionQueue && fusionQueue.ResolveFocus ? fusionQueue.ResolveFocus(selected) : -1;
-        if (fusionFocus >= 0) return fusionFocus;
         if (selected.length > 0) return selected[0];
         if (validUnit(portrait) && portraitName !== "npc_dota_hero_undying") return portrait;
         return resolveSelectedUnit();
@@ -305,131 +299,20 @@
         return true;
     }
 
-    inputConfig.SurvivalHeroSelection = { Select: selectHero, CanSelect: canSelectHero,
-        // A cached portrait callback can survive a HUD reload. Its old entry
-        // point also performs exactly one jump; no camera timer is created.
-        SelectAndFollow:selectHero, IsFollowing:function () { return false; } };
+    inputConfig.SurvivalHeroSelection = { Select: selectHero, CanSelect: canSelectHero };
+    registerHandler(keyHandlers,keyHandlerOrder,"commerce_blink",function(key,down){
+        return String(key).toUpperCase()==="D" && down!==false && !textInputActive()
+            && inputConfig.SurvivalCommerceBlink && inputConfig.SurvivalCommerceBlink();
+    },130);
+    registerHandler(mouseHandlers,mouseHandlerOrder,"commerce_aim",function(eventName,button){
+        return inputConfig.SurvivalCommerceAim && inputConfig.SurvivalCommerceAim(eventName,button);
+    },130);
     registerHandler(keyHandlers, keyHandlerOrder, "hero_f1_selection", function (key, down) {
         if (String(key).toUpperCase() !== "F1" || down === false) return false;
         if (textInputActive()) return false;
         selectHero("key_dispatch");
         return true;
     }, 120);
-
-    // BEGIN shared box-selection filter
-﻿    function installBoxSelectionFilter() {
-    "use strict";
-    var cfg=GameUI.CustomUIConfig(),dispatcher=cfg.SurvivalInputDispatcher,context=$.GetContextPanel();
-    if(!dispatcher)return;
-    var generation=dispatcher.generation,gesture=null,pending=null,serial=0,rewriting=false;
-    var trace=[],lastFilter=null;
-    var installId=String(Date.now())+":"+String(generation);
-    var api={ObserveMouse:observeMouse,generation:generation,installId:installId};
-    cfg.SurvivalBoxSelectionFilter=api;
-    function active(){return cfg.SurvivalBoxSelectionFilter && cfg.SurvivalBoxSelectionFilter.installId===installId && Number(cfg.SurvivalInputLifecycleGeneration)===Number(generation) && (!context.IsValid || context.IsValid());}
-    function valid(unit){return isFinite(Number(unit)) && Number(unit)>=0 && Entities.IsValidEntity(Number(unit));}
-    function selected(){
-        var raw=Players.GetSelectedEntities(Game.GetLocalPlayerID())||[];
-        var values=Array.isArray(raw)?raw:Object.keys(raw).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return raw[k];});
-        return values.map(Number).filter(function(unit,index,all){return valid(unit)&&all.indexOf(unit)===index;});
-    }
-    function fixedTarget(unit){
-        if(!valid(unit))return false;
-        var name=String(Entities.GetUnitName(unit)||"");
-        if(/^(building_|npc_dota_unit_building_|asset_proxy_(tower_|wall_))/.test(name) || name==="npc_dota_unit_ultimate_tower" || /^npc_archive_challenge_[123]$/.test(name) || name==="enemy_tree" || name==="npc_dota_unit_enemy_tree")return true;
-        return !!(Entities.IsBuilding && Entities.IsBuilding(unit));
-    }
-    function cancel(){serial++;gesture=null;pending=null;}
-    function worldPoint(point){
-        if(!point || !isFinite(point[0]) || !isFinite(point[1]))return false;
-        var layers=cfg.SurvivalUILayers;
-        if(layers && layers.Top && layers.Top())return false;
-        var blocked=(cfg.HandoffWorldOcclusion||[]).some(function(r){return point[0]>=r.x && point[0]<=r.x+r.width && point[1]>=r.y && point[1]<=r.y+r.height;});
-        if(blocked)return false;
-        return !GameUI.GetScreenWorldPosition || !!GameUI.GetScreenWorldPosition(point);
-    }
-    function replaceSelection(units){
-        if(!units.length)return;
-        rewriting=true;
-        try {
-            var resolver=cfg.SurvivalSelectionResolver;
-            if(resolver && resolver.SetDisplayIdentityMode)resolver.SetDisplayIdentityMode("selection");
-            units.forEach(function(unit,index){GameUI.SelectUnit(unit,index>0);});
-        } finally {rewriting=false;}
-    }
-    function finish(token){
-        if(!active() || !pending || pending.token!==token || rewriting)return;
-        if(Date.now()>pending.until){pending=null;return;}
-        var state=pending,current=selected();
-        var boxed=state.shift?current.filter(function(unit){return state.before.indexOf(unit)<0;}):current;
-        if(boxed.length===1 && fixedTarget(boxed[0]) && Entities.GetUnitName(boxed[0])!=="enemy_tree")return;
-        var keep=current.filter(function(unit){return !fixedTarget(unit) || (state.shift && state.before.indexOf(unit)>=0);});
-        if(keep.length===current.length)return;
-        if(!keep.length)keep=state.before.filter(valid);
-        if(!keep.length){
-            var resolver=cfg.SurvivalSelectionResolver,builder=resolver && resolver.BuilderEntity ? resolver.BuilderEntity():-1;
-            if(valid(builder))keep=[builder];
-            else {var hero=Players.GetPlayerHeroEntityIndex(Game.GetLocalPlayerID());if(valid(hero)&&!fixedTarget(hero)&&Entities.GetUnitName(hero)!=="npc_dota_hero_undying")keep=[hero];}
-        }
-        if(keep.length===current.length && keep.every(function(unit,index){return unit===current[index];}))return;
-        // The engine can publish another rectangle update after SelectUnit.
-        // Keep the short gesture window active; a deliberate new input cancels it.
-        lastFilter={before:current.slice(),after:keep.slice(),source:state.source};
-        replaceSelection(keep);
-    }
-    function endGesture(state,source){
-        if(!active() || gesture!==state)return;
-        gesture=null;
-        var end=GameUI.GetCursorPosition(),dx=end[0]-state.start[0],dy=end[1]-state.start[1];
-        if(dx*dx+dy*dy<64)return;
-        pending={token:state.token,before:state.before,shift:state.shift,source:source,until:Date.now()+650};
-        [0,0.03,0.10,0.21,0.40,0.66].forEach(function(delay){$.Schedule(delay,function(){finish(state.token);});});
-    }
-    function watchGesture(state){
-        if(!active() || gesture!==state)return;
-        // Source 2 consumes the release of native rectangle selection, so the
-        // mouse callback can receive only pressed. Poll only while a gesture exists.
-        if(!GameUI.IsMouseDown(0)){endGesture(state,"mouse_state");return;}
-        $.Schedule(0.016,function(){watchGesture(state);});
-    }
-    function observeMouse(eventName,button,consumed,clickMode){
-        if(Game.IsInToolsMode && Game.IsInToolsMode()) {
-            trace.push({event:eventName,button:button,consumed:consumed,mode:clickMode,active:active(),point:GameUI.GetCursorPosition(),before:selected()});
-            if(trace.length>12)trace.shift();
-        }
-        if(!active())return;
-        if(eventName==="pressed" || eventName==="doublepressed"){
-            cancel();
-            var none=typeof CLICK_BEHAVIORS!=="undefined" ? CLICK_BEHAVIORS.DOTA_CLICK_BEHAVIOR_NONE:0;
-            if(eventName!=="pressed" || button!==0 || consumed || clickMode!==none)return;
-            var point=GameUI.GetCursorPosition();if(!worldPoint(point))return;
-            gesture={start:[point[0],point[1]],before:selected(),shift:!!(GameUI.IsShiftDown&&GameUI.IsShiftDown()),token:serial};
-            if(typeof GameUI.IsMouseDown==="function"){
-                var started=gesture;$.Schedule(0.016,function(){watchGesture(started);});
-            }
-            return;
-        }
-        if(eventName!=="released" || button!==0 || !gesture)return;
-        if(consumed){cancel();return;}
-        endGesture(gesture,"mouse_callback");
-    }
-    dispatcher.RegisterKeyHandler("box_selection_cancel",function(key,down){
-        if(down!==false && !/^(SHIFT|LSHIFT|RSHIFT|CTRL|CONTROL|ALT)$/.test(String(key).toUpperCase()))cancel();
-        return false;
-    },1000);
-    api.Inspect=function(){return {active:active(),generation:generation,currentGeneration:cfg.SurvivalInputLifecycleGeneration,mode:GameUI.GetClickBehaviors(),none:typeof CLICK_BEHAVIORS!=="undefined"?CLICK_BEHAVIORS.DOTA_CLICK_BEHAVIOR_NONE:"missing",gesture:gesture,pending:pending,lastFilter:lastFilter,mouseDown:typeof GameUI.IsMouseDown==="function"?GameUI.IsMouseDown(0):null,trace:trace,selected:selected().map(function(id){return {id:id,name:Entities.GetUnitName(id),fixed:fixedTarget(id)};})};};
-    if(Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand){
-        $.Msg("[BOX_SELECTION_READY] build=mouse_state_v3 generation=",generation);
-        var command="survival_box_selection_inspect_"+Date.now();
-        Game.AddCommand(command,function(){$.Msg("[BOX_SELECTION_INSPECT] ",JSON.stringify(api.Inspect()));},"Inspect drag selection filter",0);
-    }
-    GameEvents.Subscribe("dota_player_update_selected_unit",function(){
-        if(!active() || !pending || rewriting)return;
-        var token=pending.token;$.Schedule(0,function(){finish(token);});
-    });
-    }
-    installBoxSelectionFilter();
-    // END shared box-selection filter
 
     // CustomUIConfig survives Workshop Tools Run, callbacks do not. Always
     // replace both dispatchers for this fresh HUD context.
@@ -439,13 +322,7 @@
         }, this);
     }
     GameUI.SetMouseCallback(function (eventName, button, gameTime) {
-        var clickMode = GameUI.GetClickBehaviors ? GameUI.GetClickBehaviors() : null;
-        var consumed = dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
-        var selectionFilter = inputConfig.SurvivalBoxSelectionFilter;
-        if (selectionFilter && selectionFilter.ObserveMouse) {
-            selectionFilter.ObserveMouse(eventName, button, consumed, clickMode);
-        }
-        return consumed;
+        return dispatch(mouseHandlers, mouseHandlerOrder, [eventName, button, gameTime]);
     });
     if (Game.AddCommand && Game.CreateCustomKeyBind) {
         var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "S", "D", "F", "G", "H", "F1", "F2", "TAB", "SPACE"];

@@ -1,0 +1,100 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 100
+	m_Renderers = [ {
+		_class = "C_OP_RenderSprites"
+		m_bDisableZBuffering = true
+		m_flAddSelfAmount = 2.0
+		m_bSaturateColorPreAlphaBlend = false
+		m_nHSVShiftControlPoint = 62
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/particle_sphere.vtex"
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_BasicMovement"
+		m_Gravity = [ 0.0, 0.0, -15.0 ]
+		m_fDrag = 0.05
+	}, {
+		_class = "C_OP_InterpolateRadius"
+		m_flEndScale = 22.0
+		m_flBias = 0.8500000000000001
+	}, {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_FadeOut"
+		m_flFadeBias = 0.8500000000000001
+		m_bEaseInAndOut = false
+		m_flFadeOutTimeMax = 1.0
+		m_flFadeOutTimeMin = 0.75
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_RandomColor"
+		m_ColorMin = [ 255, 214, 52, 255 ]
+		m_ColorMax = [ 237, 159, 36, 255 ]
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 7.0200000000000005
+			m_flRandomMax = 7.800000000000001
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.09411766
+			m_flRandomMax = 0.1254902
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+		m_nOutputField = 7
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = -75.0
+			m_flRandomMax = 0.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+		m_nOutputField = 4
+	}, {
+		_class = "C_INIT_RandomSequence"
+		m_nSequenceMax = 5
+	}, {
+		_class = "C_INIT_CreateWithinSphere"
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.3
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMax = [ 0.0, 0.0, 35.88 ]
+		m_OffsetMin = [ 0.0, 0.0, 35.88 ]
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+		m_nParticlesToEmit = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 2.0
+		}
+	} ]
+	m_nBehaviorVersion = 5
+	m_nFirstMultipleOverride_BackwardCompat = 7
+	m_PreEmissionOperators = [  ]
+	m_Constraints = [ {
+		_class = "C_OP_ConstrainDistance"
+		m_fMinDistance = 0.0
+		m_fMaxDistance = 48.0
+		m_nControlPointNumber = 0
+		m_CenterOffset = [ 0.0, 0.0, 0.0 ]
+		m_bGlobalCenter = false
+	} ]
+	m_BoundingBoxMin = [ -307.2, -307.2, -307.2 ]
+	m_BoundingBoxMax = [ 307.2, 307.2, 307.2 ]
+}

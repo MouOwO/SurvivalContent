@@ -1,0 +1,12 @@
+"Layer0"
+{
+"shader" "global_lit_simple.vfx"
+"F_RENDER_BACKFACES" "1"
+"F_ADDITIVE_BLEND" "1"
+"F_TRANSLUCENT" "1"
+"g_flOpacityScale" "1"
+"g_flOverbrightFactor" "10"
+"g_vColorTint" "[1.0 0.9 0.22 0]"
+"g_vTexCoordScale" "[1.5 1 0 0]"
+"TextureColor" "materials/survival/tinker_growth/pulse.png"
+}

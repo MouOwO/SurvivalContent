@@ -1517,8 +1517,9 @@
         var target = Number(snapshot.stage_attack_target || 0);
         setText(
             "CombatProgressValue",
-            "攻击次数 " + formatNumber(snapshot.stage_attack_count)
-                + (target > 0 ? ("/" + formatNumber(target)) : "")
+            Number(snapshot.is_max_level) === 1 ? "MAX"
+                : "攻击次数 " + formatNumber(snapshot.stage_attack_count)
+                    + (target > 0 ? ("/" + formatNumber(target)) : "")
         );
         setText("CombatScaleValue", "战斗缩放 1:" + String(snapshot.scale || 10));
     }

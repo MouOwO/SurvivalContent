@@ -1,0 +1,126 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 40
+	m_hSnapshot = resource:"particles/models/items/enigma/enigma_ti5_blackhole_part.vsnap"
+	m_nSnapshotControlPoint = 6
+	m_flConstantLifespan = 2.0
+	m_ConstantColor = [ 201, 143, 50, 50 ]
+	m_Renderers = [ {
+		_class = "C_OP_RenderRopes"
+		m_nOrientationType = "PARTICLE_ORIENTATION_ALIGN_TO_PARTICLE_NORMAL"
+		m_flOverbrightFactor = 4.0
+		m_flAddSelfAmount = 1.0
+		m_bSaturateColorPreAlphaBlend = false
+		m_flRadiusScale = 0.5
+		m_flTextureVWorldSize = 374.9999771250001
+		m_flTextureVOffset = 0.78125
+		m_flTextureVScrollRate = 39.99999600000001
+		m_nMaxTesselation = 3
+		m_nMinTesselation = 3
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/beam_turb_noise.vtex"
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+		m_nOpEndCapState = "PARTICLE_ENDCAP_ENDCAP_ON"
+	}, {
+		_class = "C_OP_BasicMovement"
+	}, {
+		_class = "C_OP_PositionLock"
+		m_bLockRot = true
+		m_flStartTime_min = 999999.0
+		m_flStartTime_max = 999999.0
+		m_flEndTime_min = 999999.0
+		m_flEndTime_max = 999999.0
+	}, {
+		_class = "C_OP_RampScalarLinearSimple"
+		m_flEndTime = 9999999.0
+		m_Rate = -10.0
+		m_nField = 16
+		m_nOpEndCapState = "PARTICLE_ENDCAP_ENDCAP_ON"
+	}, {
+		_class = "C_OP_InterpolateRadius"
+		m_flBias = 0.9
+		m_flStartScale = 0.0
+	}, {
+		_class = "C_OP_MovementRotateParticleAroundAxis"
+		m_flRotRate = 8.0
+	}, {
+		_class = "C_OP_FadeInSimple"
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_RemapInitialDirectionToCPToVector"
+		m_bNormalize = true
+		m_nFieldOutput = 21
+		m_bDisableOperator = true
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 2.0
+		}
+	}, {
+		_class = "C_INIT_InitFromCPSnapshot"
+		m_nLocalSpaceCP = 9
+		m_nControlPointNumber = 6
+		m_nAttributeToRead = 0
+	}, {
+		_class = "C_INIT_InitFromCPSnapshot"
+		m_nAttributeToRead = 6
+		m_nAttributeToWrite = 6
+		m_nControlPointNumber = 6
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMax = [ 0.0, 0.0, 0.75 ]
+		m_OffsetMin = [ 0.0, 0.0, 0.75 ]
+	}, {
+		_class = "C_INIT_PositionWarp"
+		m_vecWarpMin = [ 11.25, 11.25, 0.375 ]
+		m_bUseCount = true
+		m_flWarpTime = 40.0
+		m_vecWarpMax = [ 15.0, 15.0, 1.875 ]
+	}, {
+		_class = "C_INIT_RemapParticleCountToScalar"
+		m_flOutputMin = 50.0
+		m_nInputMax = 100
+		m_flOutputMax = 300.0
+		m_nSetMethod = "PARTICLE_SET_SCALE_INITIAL_VALUE"
+	}, {
+		_class = "C_INIT_RemapParticleCountToScalar"
+		m_bActiveRange = true
+		m_flOutputMax = 0.5
+		m_nFieldOutput = 7
+		m_nInputMax = 5
+	}, {
+		_class = "C_INIT_RemapParticleCountToScalar"
+		m_bActiveRange = true
+		m_flOutputMax = 0.0
+		m_flOutputMin = 0.5
+		m_nFieldOutput = 7
+		m_nInputMax = 39
+		m_nInputMin = 30
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_nOutputField = 3
+		m_nSetMethod = "PARTICLE_SET_SCALE_CURRENT_VALUE"
+		m_InputValue = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 20
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.00125
+		}
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+		m_nParticlesToEmit = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 40.0
+		}
+	} ]
+	m_nBehaviorVersion = 4
+	m_nFirstMultipleOverride_BackwardCompat = 4
+}

@@ -1,0 +1,271 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 350
+	m_Renderers = [ {
+		_class = "C_OP_RenderSprites"
+		m_bSaturateColorPreAlphaBlend = false
+		m_bRefract = true
+		m_flRefractAmount = 0.1
+		m_nRefractBlurType = "BLURFILTER_BOX"
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/warp_circle_hollow03.vtex"
+		} ]
+	}, {
+		_class = "C_OP_RenderSprites"
+		m_flRadiusScale = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_nMapType = "PF_MAP_TYPE_DIRECT"
+			m_flLiteralValue = 1.4000000000000001
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [  ]
+				m_tangents = [  ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 0.0, 0.0 ]
+			}
+		}
+		m_flAlphaScale = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_nMapType = "PF_MAP_TYPE_DIRECT"
+			m_flLiteralValue = 0.5
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [  ]
+				m_tangents = [  ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 0.0, 0.0 ]
+			}
+		}
+		m_bSaturateColorPreAlphaBlend = false
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/bubble.vtex"
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_BasicMovement"
+		m_fDrag = 0.05
+	}, {
+		_class = "C_OP_VectorNoise"
+		m_bAdditive = true
+		m_vecOutputMin = [ -4.266666666666667, -4.266666666666667, -4.266666666666667 ]
+		m_nFieldOutput = 0
+		m_fl4NoiseScale = 100.0
+		m_vecOutputMax = [ 4.266666666666667, 4.266666666666667, 4.266666666666667 ]
+	}, {
+		_class = "C_OP_PositionLock"
+		m_flStartTime_min = 0.0
+		m_flStartTime_max = 0.0
+		m_flEndTime_min = 0.5
+		m_flEndTime_max = 0.5
+	}, {
+		_class = "C_OP_FadeInSimple"
+		m_flFadeInTime = 0.125
+	}, {
+		_class = "C_OP_FadeOutSimple"
+		m_flFadeOutTime = 0.35000000000000003
+	}, {
+		_class = "C_OP_InterpolateRadius"
+		m_flStartScale = 0.8500000000000001
+		m_flBias = 0.75
+	}, {
+		_class = "C_OP_ColorInterpolate"
+		m_ColorFade = [ 0, 132, 118, 255 ]
+	}, {
+		_class = "C_OP_LerpEndCapScalar"
+		m_nFieldOutput = 16
+		m_flOutput = 0.0
+		m_flLerpTime = 0.25
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.5
+			m_flRandomMax = 1.5
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_RingWave"
+		m_flInitialRadius = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.06666666666666667
+		}
+		m_flInitialSpeedMin = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.13333333333333333
+		}
+		m_flInitialSpeedMax = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.3333333333333333
+		}
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMin = [ 0.0, 0.0, 6.4 ]
+		m_OffsetMax = [ 0.0, 0.0, 7.466666666666667 ]
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 8.0
+			m_flRandomMax = 20.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+	}, {
+		_class = "C_INIT_RandomColor"
+		m_ColorMin = [ 48, 255, 196, 255 ]
+		m_ColorMax = [ 28, 255, 228, 255 ]
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_nOutputField = 3
+		m_nSetMethod = "PARTICLE_SET_SCALE_CURRENT_VALUE"
+		m_InputValue = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.0013333333333333333
+		}
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_ContinuousEmitter"
+		m_flStartTime = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_nMapType = "PF_MAP_TYPE_DIRECT"
+			m_flLiteralValue = 0.25
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [  ]
+				m_tangents = [  ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 0.0, 0.0 ]
+			}
+		}
+		m_flEmitRate = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_nMapType = "PF_MAP_TYPE_DIRECT"
+			m_flLiteralValue = 350.0
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [  ]
+				m_tangents = [  ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 0.0, 0.0 ]
+			}
+		}
+	} ]
+	m_controlPointConfigurations = [ {
+		m_name = "preview"
+		m_drivers = [ {
+			m_iControlPoint = 0
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_entityName = "self"
+		}, {
+			m_iControlPoint = 1
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_vecOffset = [ 400.0, 0.0, 0.0 ]
+			m_entityName = "self"
+		} ]
+	} ]
+	m_ForceGenerators = [ {
+		_class = "C_OP_CurlNoiseForce"
+		m_vecNoiseScale = [ 213.33333333333334, 213.33333333333334, 0.0 ]
+		m_nNoiseType = "PARTICLE_DIR_NOISE_CURL"
+	}, {
+		_class = "C_OP_AttractToControlPoint"
+		m_fForceAmount = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = -0.8
+		}
+		m_fFalloffPower = 0.25
+	} ]
+	m_nBehaviorVersion = 12
+	m_Constraints = [ {
+		_class = "C_OP_PlanarConstraint"
+		m_PointOnPlane = [ 0.0, 0.0, -5.333333333333333 ]
+	}, {
+		_class = "C_OP_ConstrainDistance"
+		m_fMinDistance = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.0
+		}
+		m_fMaxDistance = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.94
+		}
+		m_nControlPointNumber = 0
+		m_CenterOffset = [ 0.0, 0.0, 0.0 ]
+		m_bGlobalCenter = false
+	} ]
+}

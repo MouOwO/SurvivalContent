@@ -1,39 +1,60 @@
 <root>
-  <styles><include src="file://{resources}/styles/custom_game/payment_test.css" /></styles>
-  <scripts><include src="file://{resources}/scripts/custom_game/payment_test.js" /></scripts>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/common/ui_components.css" />
+    <include src="file://{resources}/styles/custom_game/common/ui_typography.css" />
+    <include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css" />
+    <include src="file://{resources}/styles/custom_game/payment_test.css" />
+    <include src="file://{resources}/styles/custom_game/commerce_wallet.css" />
+  </styles>
+  <scripts><include src="file://{resources}/scripts/custom_game/payment_test.js" /><include src="file://{resources}/scripts/custom_game/commerce_wallet.js" /><include src="file://{resources}/scripts/custom_game/commerce_actions.js" /></scripts>
   <Panel class="PaymentRoot" hittest="false" hittestchildren="true">
     <Button id="PaymentEntry" class="PaymentEntry" onactivate="PaymentShop()"><Label text="商品商城" /></Button>
     <Button id="PaymentScrim" class="PaymentScrim" hittest="false" hittestchildren="false" />
-    <Panel id="PaymentDialog" class="PaymentDialog" hittest="false" hittestchildren="false">
+    <Panel id="PaymentDialog" class="PaymentDialog RCWindow" hittest="false" hittestchildren="false">
       <Button id="PaymentInputShield" class="PaymentInputShield" hittest="false" hittestchildren="false" tabindex="-1" />
-      <Panel class="PaymentHeader">
-        <Label class="PaymentHeading" text="订单确认" />
-        <Label class="PaymentSubtitle" text="请核对商品、金额和全部奖励" />
-        <Button class="PaymentClose" onactivate="PaymentToggle()"><Label text="×" /></Button>
+      <Panel id="PaymentHeader" class="PaymentHeader RCHeader">
+        <Label id="PaymentHeading" class="PaymentHeading RCTitle" text="订单确认" />
+        <Button id="PaymentClose" class="PaymentClose RCClose" onactivate="PaymentToggle()"><Label text="×" /></Button>
       </Panel>
       <Panel class="PaymentBody">
-        <Panel class="PaymentCatalog"><Button class="PaymentAction" onactivate="PaymentShop()"><Label text="返回商城" /></Button><Panel id="PaymentProducts" class="PaymentProducts" /></Panel>
-        <Panel class="PaymentCheckout">
-          <Label id="PaymentTitle" class="PaymentTitle" text="正在加载商品" />
-          <Label id="PaymentDescription" class="PaymentDescription" text="请先完成对局登录" />
-          <Panel class="PaymentActions">
-            <Button id="PaymentWeChat" class="PaymentAction Secondary Channel" hittestchildren="false" onactivate="PaymentChannel('wechat')"><Label text="微信支付" /></Button>
-            <Button id="PaymentAlipay" class="PaymentAction Secondary Channel" hittestchildren="false" onactivate="PaymentChannel('alipay')"><Label text="支付宝" /></Button>
+        <Label id="PaymentTitle" class="PaymentTitle" text="正在加载商品" />
+        <Label id="PaymentPrice" class="PaymentPrice" text="" />
+        <Panel class="PaymentSummary">
+          <Image id="PaymentProductArt" class="PaymentProductArt" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
+          <Panel class="PaymentRewardCopy">
+            <Label id="PaymentDescription" class="PaymentDescription" text="请先完成对局登录" />
+            <Label id="PaymentValues" class="PaymentValues" text="" />
           </Panel>
-          <Label id="PaymentPrice" class="PaymentPrice" text="" />
-          <Panel class="PaymentRewards"><Label id="PaymentValues" class="PaymentValues" text="" /></Panel>
-          <Panel id="PaymentQR" class="PaymentQR" hittest="false" />
-          <Label id="PaymentStatus" class="PaymentDescription" text="付款后自动发放到当前游戏账号。" />
-          <Button id="PaymentBuy" class="PaymentAction" onactivate="PaymentBuy()"><Label id="PaymentBuyLabel" text="加载中" /></Button>
-          <Panel class="PaymentActions">
-            <Button id="PaymentRefresh" class="PaymentAction Secondary" onactivate="PaymentRefresh()"><Label text="查询付款结果" /></Button>
-            <Button id="PaymentOpen" class="PaymentAction Secondary" onactivate="PaymentOpen()"><Label id="PaymentOpenLabel" text="浏览器付款" /></Button>
-          </Panel>
-          <TextEntry id="PaymentLink" class="PaymentLink" multiline="false" />
-          <Button id="PaymentCancel" class="PaymentAction" onactivate="PaymentCancel()"><Label text="取消订单 / 更换支付方式" /></Button>
-          <Label class="PaymentHint" text="订单有效期 30 分钟。已有订单需先关闭，再切换支付方式。" />
         </Panel>
+        <Panel class="PaymentQuantity">
+          <Button id="PaymentQuantityMinus" class="PaymentQuantityStep" enabled="false"><Label text="−" /></Button>
+          <Label class="PaymentQuantityValue" text="1" />
+          <Button id="PaymentQuantityPlus" class="PaymentQuantityStep" enabled="false"><Label text="+" /></Button>
+        </Panel>
+        <Panel class="PaymentMethods">
+          <Button id="PaymentWeChat" class="PaymentMethod" hittestchildren="false" onactivate="PaymentChannel('wechat')"><Label text="微信支付" /></Button>
+          <Button id="PaymentAlipay" class="PaymentMethod" hittestchildren="false" onactivate="PaymentChannel('alipay')"><Label text="支付宝" /></Button>
+        </Panel>
+        <Panel class="PaymentQRStage">
+          <Label id="PaymentQRChannel" class="PaymentQRChannel" text="" />
+          <Panel class="PaymentQRFrame" hittest="false">
+            <Panel id="PaymentQR" class="PaymentQR" hittest="false" />
+            <Label id="PaymentQRState" class="PaymentQRState" text="正在获取付款码…" />
+          </Panel>
+        </Panel>
+        <Panel class="PaymentFooter">
+          <Button id="PaymentBack" class="PaymentAction" onactivate="PaymentShop()"><Label text="返回商城" /></Button>
+          <Button id="PaymentBuy" class="PaymentAction" onactivate="PaymentBuy()"><Label id="PaymentBuyLabel" text="加载中" /></Button>
+          <Button id="PaymentRefresh" class="PaymentAction" onactivate="PaymentRefresh()"><Label text="查询付款结果" /></Button>
+          <Button id="PaymentCancel" class="PaymentAction" onactivate="PaymentCancel()"><Label text="取消订单 / 更换方式" /></Button>
+        </Panel>
+        <Button id="PaymentOpen" class="PaymentBrowser" onactivate="PaymentOpen()"><Label id="PaymentOpenLabel" text="浏览器备用付款页" /></Button>
       </Panel>
+      <Label id="PaymentHint" class="PaymentHint" text="每单 1 件 · 请核对商品、金额和全部奖励" />
+      <Label id="PaymentStatus" class="PaymentStatus" text="付款后自动发放到当前游戏账号。" />
+      <!-- The catalog controller retains selection and in-flight orders; the shop owns browsing. -->
+      <Panel id="PaymentProducts" class="PaymentProducts" hittest="false" hittestchildren="false" />
+      <TextEntry id="PaymentLink" class="PaymentLink" multiline="false" />
     </Panel>
   </Panel>
 </root>

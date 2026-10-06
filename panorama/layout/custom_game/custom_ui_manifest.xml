@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <Panel hittest="false">
+    <!-- Paid catalog / checkout is independent of the survival resource shop. -->
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/payment_test.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_hud.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/tower_rank_ui.xml" />
