@@ -1443,18 +1443,6 @@
         return formatNumber(minimum) + " - " + formatNumber(maximum);
     }
 
-    function withPortraitMetadata(snapshot, previous) {
-        if (!snapshot || !previous || Number(snapshot.entindex) !== Number(previous.entindex)) return snapshot;
-        var keys = ["model_asset_id", "portrait_unit_name", "portrait_item_def", "portrait_model_name"];
-        // A stats-only update is not an instruction to remove the portrait.
-        // Explicit empty fields still clear it; never inherit across entities.
-        if (!keys.every(function (key) { return snapshot[key] === undefined; })) return snapshot;
-        var merged = {};
-        Object.keys(snapshot).forEach(function (key) { merged[key] = snapshot[key]; });
-        keys.forEach(function (key) { if (previous[key] !== undefined) merged[key] = previous[key]; });
-        return merged;
-    }
-
     function update(snapshot) {
         if (snapshot && Number(snapshot.entindex) !== Number(displayUnit())) return;
         if (!snapshot) return;
@@ -1474,20 +1462,21 @@
         if (snapshotVersion > acceptedSnapshotVersion) {
             acceptedSnapshotVersion = snapshotVersion;
         }
-        snapshot = withPortraitMetadata(snapshot, selectedUnitSnapshot);
         selectedUnitSnapshot = snapshot;
-        var portraitPresentation = customConfig.SurvivalPortraitPresentation;
-        if (portraitPresentation && portraitPresentation.SetSnapshot) portraitPresentation.SetSnapshot(snapshot);
         updateCosmeticPortrait(snapshot);
         var attack = attackText(snapshot);
         officialAttackText = attack;
         officialAttackUnit = Number(snapshot.entindex);
         writeOfficialAttackText();
         var armor = formatNumber(snapshot.armor);
-        // Percentage and frequency have distinct fields; never infer percent from attacks/second.
-        var attackSpeedValue = Number(snapshot.attack_speed_percentage);
-        if (!isFinite(attackSpeedValue) || attackSpeedValue <= 0) attackSpeedValue = 100;
-        var attackSpeed = formatNumber(attackSpeedValue) + "%";
+        // 攻速字段表示每秒攻击次数；缺失时固定显示默认值 0.5。
+        // 不允许保留上一选中单位的显示值。
+        var attackSpeedValue = snapshot.attack_speed === undefined
+            || snapshot.attack_speed === null
+            || snapshot.attack_speed === ""
+            ? 0.5 : Number(snapshot.attack_speed);
+        if (!isFinite(attackSpeedValue) || attackSpeedValue <= 0) attackSpeedValue = 0.5;
+        var attackSpeed = formatNumber(attackSpeedValue);
         officialAttackSpeedText = attackSpeed;
         officialArmorText = armor;
         writeOfficialSecondaryStats();
@@ -1754,11 +1743,16 @@
     }
 
     function abilityRuntime(abilityIndex) {
-        var runtime = CustomNetTables.GetTableValue("survival_ability_runtime", String(abilityIndex)) || {};
-        var summonGuard = GameUI.CustomUIConfig().SurvivalHeroSummonAvailability;
-        if (summonGuard) runtime = summonGuard(abilityIndex, runtime);
-        var queue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-        return queue && queue.Decorate ? queue.Decorate(abilityIndex, runtime) : runtime;
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime",
+            String(abilityIndex)
+        ) || {};
+        var config = GameUI.CustomUIConfig();
+        var guard = config.SurvivalHeroSummonAvailability;
+        runtime = guard ? guard(abilityIndex, runtime) : runtime;
+        var production = config.SurvivalProductionHUD;
+        return production && production.GetResearchRuntime
+            ? production.GetResearchRuntime(abilityIndex, selectedUnit(), runtime) : runtime;
     }
 
     function applyAbilityRuntime(panel, abilityIndex) {
@@ -1766,12 +1760,6 @@
         var unavailable = runtime.removed === 1
             || runtime.available === 0;
         panel.SetHasClass("DOTADisabled", unavailable);
-        var fusion = /^ability_fuse_lumberjack_\d+$/.test(String(runtime.ability_name || ""));
-        if (fusion || panel.__survivalFusionTint) {
-            var image = panel.FindChildTraverse("AbilityImage");
-            if (image) { image.style.saturation = fusion && (unavailable || runtime.can_afford === 0) ? "0" : "1"; image.style.brightness = fusion && unavailable ? "0.5" : "1"; }
-            panel.__survivalFusionTint = fusion;
-        }
         // Affordability is advisory client data. Keep the button interactive and
         // let the authoritative server spend decide against the latest account.
         panel.hittest = true;
@@ -2293,9 +2281,6 @@
     }
 
     function visibleAbilityEntries(unit) {
-        var unitName=String(Entities.GetUnitName(unit)||"");
-        var repairer=/^npc_survival_repairer(?:_|$)/.test(unitName);
-        var lumberjack=/^npc_survival_(?:super_)?lumberjack(?:_|$)/.test(unitName);
         var entries = [];
         for (var slot = 0; slot < unitAbilityCount(unit); slot++) {
             var ability = abilityIndexForSlot(unit, slot);
@@ -2304,8 +2289,6 @@
             var hidden = false;
             try { hidden = Abilities.IsHidden(ability); } catch (error) {}
             if (!name || hidden || name.indexOf("special_bonus_") === 0) continue;
-            if(repairer && name!=="ability_repairer_suicide")continue;
-            if(lumberjack && !/^ability_fuse_lumberjack_/.test(name))continue;
             entries.push({ ability: ability, name: name, slot: slot });
         }
         return orderVisibleAbilities(entries);
@@ -2388,7 +2371,6 @@
 
     function managedBuildingAction(abilityName) {
         return /^ability_build_/.test(abilityName)
-            || /^ability_fuse_lumberjack_\d+$/.test(abilityName)
             || abilityName === "ability_survival_rogue_reward"
             || abilityName === "ability_open_research"
             || /^ability_research_/.test(abilityName)
@@ -2569,8 +2551,6 @@
             $.Msg("[SURVIVAL_CAST][CLIENT] reject invalid unit=", String(unit));
             return false;
         }
-        var fusionQueue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-        if (fusionQueue && fusionQueue.Cast && fusionQueue.Cast(abilityIndex, unit)) return true;
         var researchName = String(runtime.ability_name || "");
         try { if (!researchName) researchName = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
         // This dispatcher also owns native ability-button clicks after startup.
@@ -2654,19 +2634,8 @@
     // ability_tooltip.js loads first and owns the hover layer. Replace its
     // temporary input implementation with this same dispatcher used by Q/W/E,
     // so managed official-button clicks and hotkeys cannot diverge.
-    function toggleTowerAutoUpgrade(abilityIndex) {
-        var runtime = abilityRuntime(abilityIndex);
-        var name = String(Abilities.GetAbilityName(abilityIndex) || "");
-        if (!/^ability_upgrade_tower(?:_lv01)?$/.test(name)) return false;
-        var unit = casterForAbility(abilityIndex, runtime);
-        if (unit < 0 || Number(unit) !== Number(selectedUnit()) || runtime.removed === 1) return false;
-        if (runtime.auto_upgrade_visible !== 1 || (runtime.auto_upgrade_available !== 1 && runtime.auto_upgrade_enabled !== 1)) return false;
-        GameEvents.SendCustomGameEventToServer("ui_tower_auto_upgrade_toggle_request", {entindex: unit});
-        return true;
-    }
     GameUI.CustomUIConfig().SurvivalAbilityInput = {
-        ExecuteAbility: executeAbility,
-        ToggleTowerAutoUpgrade: toggleTowerAutoUpgrade
+        ExecuteAbility: executeAbility
     };
 
     function castDisplaySlot(slot, source) {
@@ -2940,7 +2909,6 @@
     });
     GameUI.CustomUIConfig().HandoffCombat = {
         Entries: visibleAbilityEntries,
-        Snapshot: function(unit){return selectedUnitSnapshot && Number(selectedUnitSnapshot.entindex)===Number(unit) ? selectedUnitSnapshot : null;},
         RefreshSelection: function(){refreshHeroPanel();refreshAbilityHotkeysIfChanged(false);}
     };
     bindHeroPortrait();

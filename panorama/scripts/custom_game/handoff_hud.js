@@ -214,7 +214,7 @@
         }
         // End legacy corner cleanup.
 
-        place(native("portraitHUD"),0,0,g.portraitSize,g.portraitSize);style(native("portraitHUD"),{transform:"none"});
+        ["portraitHUD","portraitHUDOverlay"].forEach(function(id){place(native(id),0,0,g.portraitSize,g.portraitSize);style(native(id),{transform:"none"});});
         ["stats_container","unitname","health_mana","center_bg","left_flare","right_flare","PortraitBacker","PortraitBackerColor"].forEach(function(id){var n=block.FindChildTraverse(id);style(n,{opacity:"0"});if(valid(n)){n.hittest=false;n.hittestchildren=false;}});
         var branch=native("AbilitiesAndStatBranch"),list=native("abilities");
         place(branch,g.heroWidth+10,61,g.centerWidth-20,116);style(branch,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
@@ -312,8 +312,6 @@
         var n=Number(wave.current_wave||0),m=Math.floor(t/60);text("HandoffWave",(n<10?"0":"")+n+" · "+(m<10?"0":"")+m+":"+(t%60<10?"0":"")+t%60);
     }
     function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{layout();
-        if(ready&&cfg.SurvivalPortraitPresentation)cfg.SurvivalPortraitPresentation.Refresh(native("PortraitGroup"));
-
         // Native images can be created one frame AFTER the slot parent. Reacquire them.
         if(ready){fitNativeSkills();var inv=native("inventory");if(valid(inv))for(var j=0;j<6;j++){var item=inv.FindChildTraverse("inventory_slot_"+j);if(valid(item)){square(item);style(item,{marginRight:"5px"});}}}
         mirror();mirrorKeys();revealWhenStable();}catch(e){$.Warning("[HANDOFF_HUD] "+e);}}

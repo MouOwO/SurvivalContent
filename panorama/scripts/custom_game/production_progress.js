@@ -22,24 +22,7 @@
         var remaining = Math.max(0, until - Number(now));
         return { remaining: remaining, fraction: Math.max(0, Math.min(1, 1 - remaining / duration)) };
     }
-    function panelGeometry(g, training) {
-        if (!g || ![g.x, g.y, g.scale, g.height, g.centerWidth, g.minimapSize].every(function (v) {
-            return typeof v === "number" && isFinite(v);
-        }) || g.scale <= 0 || g.height <= 0 || g.centerWidth <= 0 || g.minimapSize < 0) return null;
-        var scale = Math.max(g.scale, 0.5) * 1.15;
-        var width = Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / scale));
-        var height = training ? 426 : 270;
-        // Stay beside the action bar with matching bottom edges. On a narrow
-        // viewport fit the available left column instead of jumping above it.
-        var left = typeof g.productionLeft === "number" ? g.productionLeft : 8;
-        scale = Math.min(scale, (g.x - left - 14) / width);
-        if (!(scale > 0)) return null;
-        var physicalHeight = height * scale;
-        var x = Math.max(left, g.x - width * scale - 14);
-        var y = g.y + g.height * g.scale - physicalHeight;
-        return { x: x, y: Math.max(8, y), width: width, height: height, scale: scale };
-    }
-    var model = { Rows: rows, TrainingSlots: trainingSlots, Progress: progress, PanelGeometry: panelGeometry };
+    var model = { Rows: rows, TrainingSlots: trainingSlots, Progress: progress };
     if (typeof module !== "undefined" && module.exports) { module.exports = model; return; }
 
     var cfg = GameUI.CustomUIConfig(), ctx = $.GetContextPanel();
@@ -49,7 +32,7 @@
     var markers = ctx.FindChildTraverse("SurvivalResearchAutoMarkers");
     var snapshots = {}, citySlots = {}, currentUnit = -1;
     var buttons = [], queueSlots = [], autoMarkers = [], nodes = {}, serial = 0, lastGeometry = null;
-    var lastReady = false, lastEntries = [], lastGeometryUnit = -1, status = "", statusUntil = 0;
+    var lastReady = false, lastEntries = [], status = "", statusUntil = 0;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
     function active() { return valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
     function blocked() { return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top && cfg.SurvivalUILayers.Top(); }
@@ -150,16 +133,30 @@
     currentIcon.abilityname = "ability_train_lumberjack";
     var jobName = label(panel, "ProductionJobName", "ProductionJobName");
     var remaining = label(panel, "ProductionRemaining", "ProductionRemaining");
+    var cancelCurrent = create("Button", panel, "ProductionCancelCurrent", "ProductionQueueSlot");
+    var cancelCurrentLabel = label(cancelCurrent, "", "ProductionQueueLevel");
+    text(cancelCurrentLabel, "取消");
+    style(cancelCurrentLabel, { width: "100%", height: "100%", textAlign: "center", verticalAlign: "center" });
+    cancelCurrent.visible = false;
+    cancelCurrent.SetPanelEvent("onactivate", function () { cancelResearch(cancelCurrent.job); });
+    cancelCurrent.SetPanelEvent("onmouseover", function () {
+        if (cancelCurrent.job) $.DispatchEvent("DOTAShowTextTooltip", cancelCurrent,
+            "取消本任务；已开始的研究退还费用，并关闭该科技的自动研究。");
+    });
+    cancelCurrent.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
     var track = create("Panel", panel, "ProductionProgressTrack", "ProductionProgressTrack");
     var fill = create("Panel", track, "ProductionProgressFill", "ProductionProgressFill");
     var queue = label(panel, "ProductionQueue", "ProductionQueue");
     var footer = label(panel, "ProductionFooter", "ProductionFooter");
     fullTextTooltip(jobName); fullTextTooltip(footer);
     for (var queueIndex = 0; queueIndex < 6; queueIndex++) {
-        var queueCell = create("Panel", panel, "ProductionQueueSlot" + queueIndex, "ProductionQueueSlot");
+        var queueCell = create("Button", panel, "ProductionQueueSlot" + queueIndex, "ProductionQueueSlot");
         queueCell.icon = create("DOTAAbilityImage", queueCell, "", "ProductionQueueIcon");
         queueCell.workerIcon = create("Image", queueCell, "", "ProductionQueueIcon");
         queueCell.level = label(queueCell, "", "ProductionQueueLevel");
+        queueCell.cancel = label(queueCell, "", "ProductionQueueLevel");
+        text(queueCell.cancel, "×");
+        style(queueCell.cancel, { position: "40px 0px 0px", width: "18px", height: "18px", fontSize: "18px", color: "#ffb2a6" });
         queueCell.hittest = true;
         (function (cell) {
             cell.SetPanelEvent("onmouseover", function () {
@@ -167,9 +164,10 @@
                 var task = cell.job;
                 $.DispatchEvent("DOTAShowTextTooltip", cell,
                     escape(cell.research ? (task.display_name || task.name || "科技") + " LV" + Number(task.target_level || task.level || 1) : workerName(task))
-                    + (cell.research ? "<br>等待研究 · 开始时扣费" : "<br>等待训练"));
+                    + (cell.research ? "<br>等待研究 · 开始时扣费<br>点击取消本任务" : "<br>等待训练"));
             });
             cell.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
+            cell.SetPanelEvent("onactivate", function () { if (cell.research) cancelResearch(cell.job); });
         })(queueCell);
         queueSlots.push(queueCell);
     }
@@ -224,6 +222,10 @@
         if (runtime.removed === 1 || !runtime.technology_group
             || unit !== selectedUnit() || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return false;
         if (runtime.owner_entindex !== undefined && Number(runtime.owner_entindex) !== unit) return false;
+        var personal = getResearchRuntime(ability, unit, runtime);
+        if (Number(personal.auto_research_available) !== 1 && Number(personal.auto_research_enabled) !== 1) {
+            notify(personal.status_text || "前置条件未满足，暂不可研究"); return false;
+        }
         GameEvents.SendCustomGameEventToServer("ui_shop_auto_research_toggle_request", {
             request_id: requestId("auto"), technology_group: runtime.technology_group, source_entindex: unit
         });
@@ -236,14 +238,22 @@
         if (runtime.removed === 1 || !runtime.technology_group || unit !== selectedUnit()
             || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return false;
         if (runtime.owner_entindex !== undefined && Number(runtime.owner_entindex) !== unit) return false;
-        // Shared labs use the viewer's private availability, not the owner's row.
+        // Shared labs use the viewer's authoritative projection, not the owner.
         var personal = getResearchRuntime(ability, unit, runtime);
         if (Number(personal.available) !== 1) {
-            notify(personal.status_text || "当前不能加入研究队列");
-            return true;
+            notify(personal.status_text || "当前不可研究"); return false;
         }
         GameEvents.SendCustomGameEventToServer("ui_research_queue_request", {
             request_id: requestId("research"), technology_group: runtime.technology_group, source_entindex: unit
+        });
+        return true;
+    }
+    function cancelResearch(job) {
+        var unit = selectedUnit(), snapshot = snapshots[unit];
+        if (!active() || blocked() || unit !== currentUnit || !snapshot || !snapshot.research
+            || !/^building_(advanced_)?research_lab$/.test(unitType(unit)) || !job || !job.job_id) return false;
+        GameEvents.SendCustomGameEventToServer("ui_research_cancel_request", {
+            request_id: requestId("cancel"), source_entindex: unit, job_id: String(job.job_id)
         });
         return true;
     }
@@ -265,6 +275,7 @@
             cell.visible = true; place(cell, 146 + 64 * index, 160, 58, 58);
             var entry = pending[index];
             cell.job = entry || null; cell.research = !!research;
+            cell.cancel.visible = !!(entry && research && entry.job_id);
             cell.SetHasClass("Empty", !entry); cell.icon.visible = !!entry && !!research;
             cell.workerIcon.visible = !!entry && !research;
             if (entry && research) cell.icon.abilityname = researchAbility(entry, research);
@@ -297,7 +308,7 @@
     }
     function refresh(g, unit, ready, entries) {
         if (!active()) return 0;
-        lastGeometry = g; lastReady = !!ready; lastEntries = entries || []; lastGeometryUnit = Number(unit);
+        lastGeometry = g; lastReady = !!ready; lastEntries = entries || [];
         unit = Number(unit);
         if (unit !== currentUnit) {
             currentUnit = unit; status = "";
@@ -307,15 +318,18 @@
         var snapshot = snapshots[unit] || {}, training = snapshot.training, research = snapshot.research;
         var showTraining = unitType(unit) === "building_main_city" && training && training.options;
         var showResearch = /^building_(advanced_)?research_lab$/.test(unitType(unit)) && research;
-        var placement = panelGeometry(g, !!showTraining);
-        var show = !!(ready && placement && (showTraining || showResearch));
+        var show = !!(ready && g && (showTraining || showResearch));
         panel.visible = show;
-        updateMarkers(g, lastEntries, !!(ready && placement && showResearch));
+        updateMarkers(g, lastEntries, !!(ready && g && showResearch));
         if (!show) return 0;
         // Dense research ability rows shrink the native HUD. Keep production
         // text legible while aligning this attachment's right edge to that row.
-        var panelScale = placement.scale, width = placement.width, height = placement.height;
-        place(panel, placement.x, placement.y, width, height);
+        var panelScale = Math.max(g.scale, 0.5) * 1.15;
+        var width = Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / panelScale));
+        var height = showTraining ? 426 : 270;
+        var rightEdge = g.x + (g.heroWidth + g.centerWidth - 10) * g.scale;
+        place(panel, rightEdge - width * panelScale,
+            g.y - height * panelScale - 8, width, height);
         style(panel, { transform: "scale3d(" + panelScale + "," + panelScale + ",1)", transformOrigin: "0% 0%" });
         // Layout measurements omit our CSS transform. World-overlay occlusion
         // consumes physical window pixels, matching GetPositionWithinWindow().
@@ -323,10 +337,11 @@
         panel.__survivalWindowHeight = height * panelScale * (Number(ctx.actualuiscale_y) || 1);
         place(title, 16, 8, width - 182, 44); place(badge, width - 166, 13, 150, 36);
         currentIcon.visible = false;
+        cancelCurrent.job = null; cancelCurrent.visible = false;
         currentWorkerIcon.visible = !!showTraining;
         place(currentWorkerIcon, 16, 66, 50, 50);
         place(currentIcon, 16, 66, 50, 50);
-        place(jobName, 76, 70, width - 192, 66);
+        place(jobName, 76, 52, width - 192, 82);
         place(remaining, width - 108, 67, 92, 44);
         place(track, 16, 139, width - 32, 13);
         place(footer, 16, height - 42, width - 32, 36);
@@ -365,6 +380,12 @@
             blockedJob = !job && research.blocked_head && research.blocked_head.technology_group ? research.blocked_head : null;
             renderQueue(rows(research.queued), research.queue_capacity || research.capacity, research);
             currentIcon.visible = !!(job || blockedJob);
+            cancelCurrent.job = (job && research.active_job) || blockedJob;
+            cancelCurrent.visible = !!(cancelCurrent.job && cancelCurrent.job.job_id);
+            if (cancelCurrent.visible) {
+                place(cancelCurrent, width - 194, 70, 78, 38);
+                place(jobName, 76, 52, width - 280, 82);
+            }
             if (job || blockedJob) currentIcon.abilityname = researchAbility(job || blockedJob, research);
             waitUntil = Number(research.next_start_at || 0);
             autoEnabled = Number(research.auto_enabled) === 1 || Object.keys(research.auto_research || {}).some(function (key) {
@@ -375,7 +396,7 @@
             if (blockedText && blockedText.indexOf("扣费") < 0) blockedText += " · 开始时扣费";
             text(footer, status && now < statusUntil ? status
                 : blockedJob ? blockedText
-                : autoEnabled ? "自动：完成后间隔 1 秒 · 右键关闭" : "左键加入队列 · 右键自动研究");
+                : autoEnabled ? "自动：完成后间隔 1 秒 · 队列图标可取消" : "左键加入队列 · 右键自动研究 · 队列图标可取消");
         }
         badge.SetHasClass("Automatic", autoEnabled);
         if (job) {
@@ -394,19 +415,9 @@
             text(jobName, showTraining ? "选择伐木工等级加入队列" : autoEnabled ? "自动待命 · 等待资源或前置条件" : "请选择要研究的科技");
             text(remaining, ""); style(fill, { width: "0%" });
         }
-        return 0; // Side panel leaves buffs at their normal action-bar positions.
+        return height * panelScale / g.scale + 8 / g.scale;
     }
-    function repaint() {
-        var unit = selectedUnit();
-        // Private snapshots and selection events may arrive before the main HUD
-        // has laid out the newly selected unit. Never reuse another unit's anchor.
-        if (unit !== lastGeometryUnit) {
-            panel.visible = false;
-            updateMarkers(null, [], false);
-            return;
-        }
-        refresh(lastGeometry, unit, lastReady, lastEntries);
-    }
+    function repaint() { refresh(lastGeometry, selectedUnit(), lastReady, lastEntries); }
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
         if (!active() || !snapshot || Number(snapshot.success) !== 1) return;
         if (snapshot.player_id !== undefined && Number(snapshot.player_id) !== Number(Game.GetLocalPlayerID())) return;
@@ -434,19 +445,13 @@
         });
     });
     GameEvents.Subscribe("ui_operation_result", function (result) {
-        if (!active() || !result || (result.operation !== "worker_train" && result.operation !== "shop_auto_research_toggle" && result.operation !== "research_queue")) return;
+        if (!active() || !result || (result.operation !== "worker_train" && result.operation !== "shop_auto_research_toggle" && result.operation !== "research_queue" && result.operation !== "research_cancel")) return;
         if (String(result.request_id || "").indexOf("production_") !== 0) return;
         if (Number(result.success) !== 1) notify(result.error || result.message || "操作未完成");
         repaint();
     });
     cfg.SurvivalProductionHUD = {
-        Refresh: refresh, QueueResearch: queueResearch, ToggleResearch: toggleResearch, GetResearchRuntime: getResearchRuntime,
-        Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; }
+        Refresh: refresh, QueueResearch: queueResearch, CancelResearch: cancelResearch, ToggleResearch: toggleResearch, GetResearchRuntime: getResearchRuntime,
+        Inspect: function () { return { unit: currentUnit, visible: panel.visible, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; }
     };
-    if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
-        var inspectCommand = "survival_production_inspect_" + Date.now();
-        Game.AddCommand(inspectCommand, function () {
-            $.Msg("[PRODUCTION_POSITION] " + JSON.stringify(cfg.SurvivalProductionHUD.Inspect()));
-        }, "Inspect production panel positioning", 0);
-    }
 })();

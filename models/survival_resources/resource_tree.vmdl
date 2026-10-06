@@ -1,0 +1,74 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:modeldoc28:version{fb63b6ca-f435-4aa0-a2c7-c66ddc651dca} -->
+{
+	rootNode = 
+	{
+		_class = "RootNode"
+		children = 
+		[
+            {
+                _class = "AttachmentList"
+                children = [
+                    {
+                        _class = "Attachment"
+                        name = "attach_hitloc"
+                        parent_bone = "tree_oak_01_root"
+                        relative_origin = [ 0.0, 80.0, 0.0 ]
+                        relative_angles = [ 0.0, 0.0, 0.0 ]
+                    },
+                ]
+            },
+			{
+				_class = "BoneMarkupList"
+				children = [  ]
+				bone_cull_type = "None"
+			},
+			{
+				_class = "RenderMeshList"
+				children = 
+				[
+					{
+						_class = "RenderMeshFile"
+						name = "mango_tree"
+						filename = "models/survival_resources/resource_tree.dmx"
+					},
+				]
+			},
+			{
+				_class = "HitboxSetList"
+				children = 
+				[
+					{
+						_class = "HitboxSet"
+						name = "default"
+						children = 
+						[
+							{
+								_class = "Hitbox"
+								hitbox_mins = [ -116.655258, -0.628418, -120.560074 ]
+								hitbox_maxs = [ 99.860306, 290.276825, 103.000748 ]
+								name = "tree_oak_01_root"
+								parent_bone = "tree_oak_01_root"
+								surface_property = ""
+								translation_only = false
+								group_id = 0
+							},
+						]
+					},
+				]
+			},
+			{
+				_class = "Skeleton"
+				children = 
+				[
+					{
+						_class = "Bone"
+						name = "tree_oak_01_root"
+						origin = [ 0.0, 0.0, 0.0 ]
+						angles = [ -0.0, 90.0, 90.0 ]
+						do_not_discard = true
+					},
+				]
+			},
+		]
+	}
+}
