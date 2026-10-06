@@ -302,7 +302,7 @@
             " unit=", String(selectedUnit()),
             " ability=", String(activeAbilityIndex),
             " source=", panelIdentity(sourcePanel || activeSourcePanel),
-            " error=", String(message), " stack=", String(error && error.stack || ""));
+            " error=", String(message));
     }
 
     function externalAbilityHighlightTarget(proxy) {
@@ -338,16 +338,8 @@
         try {
             // Project CSS does not reliably cross into Valve's HUD layout
             // context. Inline visual properties work on the real image node.
-            var fusionDisabled = false;
-            if (/^ability_fuse_lumberjack_\d+$/.test(String(proxy.__survivalAbilityName || ""))) {
-                var ability = Number(proxy.__survivalAbilityIndex);
-                var runtime = readTooltipTable("survival_ability_runtime", String(ability)) || {};
-                var queue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-                if (queue && queue.Decorate) runtime = queue.Decorate(ability, runtime);
-                fusionDisabled = runtime.available === 0 || runtime.can_afford === 0;
-            }
-            target.style.brightness = fusionDisabled ? "0.65" : "1.25";
-            target.style.saturation = fusionDisabled ? "0" : "1.35";
+            target.style.brightness = "1.25";
+            target.style.saturation = "1.35";
         } catch (error) {
             // Valve can rebuild AbilityImage during a bounded recovery. The
             // next binding refresh reacquires the current image node.
@@ -536,27 +528,6 @@
         right.text = String(localizedFieldValue(label, value));
     }
 
-    function resetFieldRows(container) {
-        // Panorama hot reload can preserve panel JS properties while deleting
-        // dynamic children. Never reuse a pool merely because its array survived.
-        function valid(panel) { return !!(panel && panel.IsValid && panel.IsValid()); }
-        var rows = container.__fieldRows || [];
-        var stale = rows.some(function (row) {
-            if (!valid(row) || !valid(row.__iconHost)
-                || !valid(row.__left) || !valid(row.__right)) return true;
-            return Object.keys(row.__icons || {}).some(function (key) {
-                return !valid(row.__icons[key]);
-            });
-        });
-        if (stale) {
-            container.RemoveAndDeleteChildren();
-            rows = [];
-        }
-        container.__fieldRows = rows;
-        container.__fieldCursor = 0;
-        rows.forEach(function (row) { row.visible = false; });
-    }
-
     function render(abilityIndex, abilityName, sourcePanel) {
         var upgradeMode = managedUpgrade(abilityIndex, abilityName);
         var heroMode = isSelectedCombatHero()
@@ -574,8 +545,6 @@
             "survival_ability_runtime",
             String(abilityIndex)
         ) || {};
-        var fusionQueue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-        if (fusionQueue && fusionQueue.Decorate) runtime = fusionQueue.Decorate(abilityIndex, runtime);
         if (runtime.removed === 1) runtime = {};
 
         var tooltip = byId("CustomAbilityTooltip");
@@ -590,13 +559,12 @@
 
         var localizedTitle = localize("DOTA_Tooltip_ability_" + abilityName, "");
         var researchMode = runtime.research_upgrade === 1;
-        setText("CustomAbilityTitle", runtime.display_name || localizedTitle
+        setText("CustomAbilityTitle", runtime.display_name
+            || (abilityName === "ability_destroy_arrow_tower" ? tooltipDefinition.name : localizedTitle)
             || tooltipDefinition.name || definition.abilityname || abilityName);
         var abilityLevel = 0;
         try { abilityLevel = Number(Abilities.GetLevel(abilityIndex) || 0); } catch (error) {}
-        var displayedLevel = upgradeMode && runtime.display_current_level !== undefined
-            ? runtime.display_current_level
-            : researchMode && runtime.current_level !== undefined
+        var displayedLevel = researchMode && runtime.current_level !== undefined
             ? runtime.current_level
             : upgradeMode && runtime.current_level !== undefined
             ? runtime.current_level : abilityLevel;
@@ -605,7 +573,9 @@
                 + " " + displayedLevel : "");
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(abilityIndex) || 0); } catch (error) {}
-        var description = researchMode
+        var description = abilityName === "ability_destroy_arrow_tower"
+            ? runtime.upgrade_description || tooltipDefinition.desc || localizedAbilityDescription(abilityName)
+            : researchMode
             ? runtime.upgrade_description
             : localizedAbilityDescription(abilityName)
             || (upgradeMode ? runtime.upgrade_description : "") || tooltipDefinition.desc
@@ -633,7 +603,8 @@
         setText("CustomAbilityGoldCost", goldCost);
         setText("CustomAbilityWoodCost", woodCost);
 
-        resetFieldRows(fields);
+        fields.__fieldCursor = 0;
+        (fields.__fieldRows || []).forEach(function(row){row.visible=false;});
         if (researchMode) {
             asArray(runtime.fields).forEach(function (field) {
                 if (field) addField(fields, field.label, field.value);
@@ -680,7 +651,7 @@
         tooltip.hittestchildren = false;
         tooltipAnimationSerial += 1;
         var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-        if (positioner) positioner.PlaceAbilityAbove(tooltip, sourcePanel, 460, null, 620);
+        if (positioner) positioner.PlaceAbilityAbove(tooltip, sourcePanel, 337);
         // The panel stays laid out at alpha zero. Position before revealing it;
         // reversing an in-flight fade needs no frame delay or reconstruction.
         tooltip.RemoveClass("Hidden");
@@ -986,8 +957,7 @@
         try {
             ownerName = Entities.GetUnitName(Number(runtime.owner_entindex)) || "";
         } catch (error) {}
-        return /^ability_fuse_lumberjack_\d+$/.test(abilityName)
-            || isManagedBuildingAction(abilityName)
+        return isManagedBuildingAction(abilityName)
             || /^building_/.test(ownerName);
     }
 
@@ -1077,8 +1047,6 @@
             return false;
         }
         $.Msg("[SURVIVAL_CAST][TOOLTIP] SEND_NO_TARGET unit=", String(unit), " ability=", String(abilityIndex), " name=", name, " behavior=", String(behavior));
-        var fusionQueue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-        if (fusionQueue && fusionQueue.Cast && fusionQueue.Cast(abilityIndex, unit)) return true;
         GameEvents.SendCustomGameEventToServer("ui_ability_cast_request", {
             entindex: unit,
             ability_entindex: abilityIndex,
@@ -1782,7 +1750,6 @@
             if (!isFinite(boundAbility) || boundAbility < 0
                 || !customTooltipAbility(boundAbility, abilityName)) return;
         var projectManagedInput = /^ability_build_/.test(abilityName)
-                || /^ability_fuse_lumberjack_\d+$/.test(abilityName)
             || abilityName === "ability_survival_rogue_reward"
                 || /^ability_research_/.test(abilityName)
                 || managedUpgrade(boundAbility, abilityName);
@@ -1815,9 +1782,9 @@
         proxy.SetPanelEvent("oncontextmenu", function () {
             var boundAbility = Number(proxy.__survivalAbilityIndex);
             var abilityName = String(proxy.__survivalAbilityName || "");
-            if (!isFinite(boundAbility) || boundAbility < 0) return false;
-
-            if (!/^ability_research_/.test(abilityName) || !isSelectedResearchLab()) return false;
+            if (!isFinite(boundAbility) || boundAbility < 0
+                || !/^ability_research_/.test(abilityName)
+                || !isSelectedResearchLab()) return false;
             hideNativeTooltip(proxy);
             var production = GameUI.CustomUIConfig().SurvivalProductionHUD;
             return !!(production && production.ToggleResearch
@@ -2446,25 +2413,6 @@
             var performance = GameUI.CustomUIConfig().SurvivalTooltipPerformance;
             if (performance) performance.SetDiagnostics(Number(enabled) === 1);
         }, "Enable verbose tooltip diagnostics: 0 or 1", 0);
-    }
-    if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
-        var inspectCommand = "survival_tooltip_inspect_" + Date.now();
-        Game.AddCommand(inspectCommand, function () {
-            var fields = byId("CustomAbilityFields");
-            $.Msg("[TOOLTIP_LIVE] ", JSON.stringify({active:contextActive(),
-                unit:selectedUnit(), bindings:officialBindings.map(function(binding) {
-                    return {ability:binding.abilityName, xy:binding.proxy.GetPositionWithinWindow(),
-                        width:binding.windowWidth,height:binding.windowHeight};
-                }),
-                tooltipHidden:byId("CustomAbilityTooltip").BHasClass("Hidden"),
-                title:byId("CustomAbilityTitle").text,
-                description:byId("CustomAbilityDescription").text,
-                rows:(fields && fields.__fieldRows || []).map(function(row) {
-                    return {valid:row.IsValid(), left:row.__left && row.__left.IsValid(),
-                        right:row.__right && row.__right.IsValid(), iconHost:row.__iconHost && row.__iconHost.IsValid()};
-                })}));
-        }, "Inspect tooltip context and cached field validity", 0);
-        $.Msg("[TOOLTIP_INSPECT_COMMAND] ", inspectCommand);
     }
     registerTooltipFadeDebug();
     observedSelectedUnit = Number(selectedUnit());
