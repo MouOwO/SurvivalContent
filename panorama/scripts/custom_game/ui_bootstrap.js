@@ -444,24 +444,41 @@
         return value.toFixed(1).replace(/\.0$/, "");
     }
 
+    // Chinese large-number units advance by four decimal places. Keep this
+    // table shared by health, combat stats, resources and production costs.
+    var numberUnits = [
+        [1, ""], [1e4, "万"], [1e8, "亿"], [1e12, "兆"],
+        [1e16, "京"], [1e20, "垓"], [1e24, "秭"], [1e28, "穰"],
+        [1e32, "沟"], [1e36, "涧"], [1e40, "正"], [1e44, "载"]
+    ];
+
     function formatLogicalNumber(value) {
         var number = Number(value || 0);
+        if (!isFinite(number)) return "—";
         var sign = number < 0 ? "-" : "";
         var absolute = Math.abs(number);
-        if (absolute >= 100000000) {
-            return sign + trimmedNumber(absolute / 100000000) + "亿";
+        var index = 0;
+        while (index + 1 < numberUnits.length && absolute >= numberUnits[index + 1][0]) index += 1;
+        var scaled = absolute / numberUnits[index][0];
+        var text = index === 0 && Math.abs(scaled - Math.round(scaled)) < 0.001
+            ? String(Math.round(scaled)) : trimmedNumber(scaled);
+        // Promote after rounding too: 9999.96亿 is displayed as 1兆.
+        if (Number(text) >= 10000) {
+            index += 1;
+            if (index < numberUnits.length) {
+                text = trimmedNumber(absolute / numberUnits[index][0]);
+            } else {
+                // Endless progression can exceed the named units. Bound the
+                // label length instead of leaving hundreds of digits before 载.
+                return sign + absolute.toExponential(1).replace(/\.0e/, "e").replace("e+", "e");
+            }
         }
-        if (absolute >= 10000) {
-            return sign + trimmedNumber(absolute / 10000) + "万";
-        }
-        if (Math.abs(absolute - Math.round(absolute)) < 0.001) {
-            return sign + String(Math.round(absolute));
-        }
-        return sign + trimmedNumber(absolute);
+        return (text === "0" ? "" : sign) + text + numberUnits[index][1];
     }
 
     GameUI.CustomUIConfig().SurvivalNumberFormatter = {
-        Format: formatLogicalNumber
+        Format: formatLogicalNumber,
+        Compact: formatLogicalNumber
     };
 
     $.Msg("[SURVIVAL_CRASH_ISOLATION] crash_isolation_v3_alt_ability_takeover_disabled abilities=false research_lab_native=true ability_tooltips=true native_ability_tree=true builder_tooltip_proxy=true");

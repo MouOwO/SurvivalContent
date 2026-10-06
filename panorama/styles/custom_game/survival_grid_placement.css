@@ -84,15 +84,19 @@
 .StaticGridLine {
     z-index: 2;
     height: 1px;
-    background-color: gradient(linear, 0% 0%, 0% 100%, from(#d5e6d300), color-stop(0.5, #d5e6d352), to(#d5e6d300));
+    /* Shared lines use the reference cell's edge strip. No per-cell particles. */
+    background-image: url("file://{images}/custom_game/survival_grid/reference_edge.png");
+    background-size: 100% 100%;
+    opacity: 0.60;
 }
 
 .StaticGridMark {
     z-index: 3;
     width: 8px;
     height: 8px;
-    background-image: url("file://{images}/custom_game/survival_grid/corner.svg");
+    background-image: url("file://{images}/custom_game/survival_grid/reference_corner.png");
     background-size: 100% 100%;
+    opacity: 0.75;
 }
 
 .GridPlacementCell.Footprint {

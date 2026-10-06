@@ -161,6 +161,7 @@
         style(p,{opacity:"0"});
         if(slot)keyBindings[slot.id]={text:String(p.text||""),unit:Number(unit),ability:Number(ability)};
     };
+    cfg.HandoffClearHotkey=function(slot){if(slot)delete keyBindings[slot.id];};
     function mirrorKeys(){
         var unit=Number(selectedUnit());
         for(var i=0;i<32;i++){
