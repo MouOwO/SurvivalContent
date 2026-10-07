@@ -477,7 +477,7 @@
       <Button id="SurvivalLocalHeroPortrait" visible="false" hittest="false" hittestchildren="false">
         <Image id="SurvivalLocalHeroPortraitImage" scaling="stretch-to-fit-preserve-aspect" hittest="false" hittestchildren="false" />
       </Button>
-      <Image id="SurvivalReturnCastleAsset" src="file://{images}/custom_game/minimap_shortcuts/return_castle.svg" visible="false" hittest="false" hittestchildren="false" />
+      <Image id="SurvivalReturnCastleAsset" src="file://{images}/custom_game/minimap_shortcuts/return_castle.svg" style="visibility: collapse;" hittest="false" hittestchildren="false" />
       <Panel id="SurvivalMinimapShortcuts" visible="false" hittest="false" hittestchildren="true" />
       <Panel id="NotificationContainer" />
     </Panel>
