@@ -22,7 +22,24 @@
         var remaining = Math.max(0, until - Number(now));
         return { remaining: remaining, fraction: Math.max(0, Math.min(1, 1 - remaining / duration)) };
     }
-    var model = { Rows: rows, TrainingSlots: trainingSlots, Progress: progress };
+    function panelGeometry(g, training) {
+        if (!g || ![g.x, g.y, g.scale, g.height, g.centerWidth, g.minimapSize].every(function (v) {
+            return typeof v === "number" && isFinite(v);
+        }) || g.scale <= 0 || g.height <= 0 || g.centerWidth <= 0 || g.minimapSize < 0) return null;
+        var scale = Math.max(g.scale, 0.5) * 1.15;
+        var width = Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / scale));
+        var height = training ? 426 : 270;
+        // Stay beside the action bar with matching bottom edges. On a narrow
+        // viewport fit the available left column instead of jumping above it.
+        var left = typeof g.productionLeft === "number" ? g.productionLeft : 8;
+        scale = Math.min(scale, (g.x - left - 14) / width);
+        if (!(scale > 0)) return null;
+        var physicalHeight = height * scale;
+        var x = Math.max(left, g.x - width * scale - 14);
+        var y = g.y + g.height * g.scale - physicalHeight;
+        return { x: x, y: Math.max(8, y), width: width, height: height, scale: scale };
+    }
+    var model = { Rows: rows, TrainingSlots: trainingSlots, Progress: progress, PanelGeometry: panelGeometry };
     if (typeof module !== "undefined" && module.exports) { module.exports = model; return; }
 
     var cfg = GameUI.CustomUIConfig(), ctx = $.GetContextPanel();
@@ -32,7 +49,7 @@
     var markers = ctx.FindChildTraverse("SurvivalResearchAutoMarkers");
     var snapshots = {}, citySlots = {}, currentUnit = -1;
     var buttons = [], queueSlots = [], autoMarkers = [], nodes = {}, serial = 0, lastGeometry = null;
-    var lastReady = false, lastEntries = [], status = "", statusUntil = 0;
+    var lastReady = false, lastEntries = [], lastGeometryUnit = -1, status = "", statusUntil = 0;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
     function active() { return valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
     function blocked() { return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top && cfg.SurvivalUILayers.Top(); }
@@ -308,7 +325,7 @@
     }
     function refresh(g, unit, ready, entries) {
         if (!active()) return 0;
-        lastGeometry = g; lastReady = !!ready; lastEntries = entries || [];
+        lastGeometry = g; lastReady = !!ready; lastEntries = entries || []; lastGeometryUnit = Number(unit);
         unit = Number(unit);
         if (unit !== currentUnit) {
             currentUnit = unit; status = "";
@@ -318,18 +335,15 @@
         var snapshot = snapshots[unit] || {}, training = snapshot.training, research = snapshot.research;
         var showTraining = unitType(unit) === "building_main_city" && training && training.options;
         var showResearch = /^building_(advanced_)?research_lab$/.test(unitType(unit)) && research;
-        var show = !!(ready && g && (showTraining || showResearch));
+        var placement = panelGeometry(g, !!showTraining);
+        var show = !!(ready && placement && (showTraining || showResearch));
         panel.visible = show;
-        updateMarkers(g, lastEntries, !!(ready && g && showResearch));
+        updateMarkers(g, lastEntries, !!(ready && placement && showResearch));
         if (!show) return 0;
         // Dense research ability rows shrink the native HUD. Keep production
         // text legible while aligning this attachment's right edge to that row.
-        var panelScale = Math.max(g.scale, 0.5) * 1.15;
-        var width = Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / panelScale));
-        var height = showTraining ? 426 : 270;
-        var rightEdge = g.x + (g.heroWidth + g.centerWidth - 10) * g.scale;
-        place(panel, rightEdge - width * panelScale,
-            g.y - height * panelScale - 8, width, height);
+        var panelScale = placement.scale, width = placement.width, height = placement.height;
+        place(panel, placement.x, placement.y, width, height);
         style(panel, { transform: "scale3d(" + panelScale + "," + panelScale + ",1)", transformOrigin: "0% 0%" });
         // Layout measurements omit our CSS transform. World-overlay occlusion
         // consumes physical window pixels, matching GetPositionWithinWindow().
@@ -341,7 +355,7 @@
         currentWorkerIcon.visible = !!showTraining;
         place(currentWorkerIcon, 16, 66, 50, 50);
         place(currentIcon, 16, 66, 50, 50);
-        place(jobName, 76, 52, width - 192, 82);
+        place(jobName, 76, 70, width - 192, 66);
         place(remaining, width - 108, 67, 92, 44);
         place(track, 16, 139, width - 32, 13);
         place(footer, 16, height - 42, width - 32, 36);
@@ -415,9 +429,19 @@
             text(jobName, showTraining ? "选择伐木工等级加入队列" : autoEnabled ? "自动待命 · 等待资源或前置条件" : "请选择要研究的科技");
             text(remaining, ""); style(fill, { width: "0%" });
         }
-        return height * panelScale / g.scale + 8 / g.scale;
+        return 0; // Side panel leaves buffs at their normal action-bar positions.
     }
-    function repaint() { refresh(lastGeometry, selectedUnit(), lastReady, lastEntries); }
+    function repaint() {
+        var unit = selectedUnit();
+        // Private snapshots and selection events may arrive before the main HUD
+        // has laid out the newly selected unit. Never reuse another unit's anchor.
+        if (unit !== lastGeometryUnit) {
+            panel.visible = false;
+            updateMarkers(null, [], false);
+            return;
+        }
+        refresh(lastGeometry, unit, lastReady, lastEntries);
+    }
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
         if (!active() || !snapshot || Number(snapshot.success) !== 1) return;
         if (snapshot.player_id !== undefined && Number(snapshot.player_id) !== Number(Game.GetLocalPlayerID())) return;
@@ -452,6 +476,12 @@
     });
     cfg.SurvivalProductionHUD = {
         Refresh: refresh, QueueResearch: queueResearch, CancelResearch: cancelResearch, ToggleResearch: toggleResearch, GetResearchRuntime: getResearchRuntime,
-        Inspect: function () { return { unit: currentUnit, visible: panel.visible, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; }
+        Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; }
     };
+    if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
+        var inspectCommand = "survival_production_inspect_" + Date.now();
+        Game.AddCommand(inspectCommand, function () {
+            $.Msg("[PRODUCTION_POSITION] " + JSON.stringify(cfg.SurvivalProductionHUD.Inspect()));
+        }, "Inspect production panel positioning", 0);
+    }
 })();
