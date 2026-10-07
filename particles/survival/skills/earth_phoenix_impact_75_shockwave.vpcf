@@ -1,0 +1,152 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 64
+	m_flConstantRadius = 11.52
+	m_ConstantColor = [ 255, 182, 7, 255 ]
+	m_bShouldSort = false
+	m_Renderers = [ {
+		_class = "C_OP_RenderRopes"
+		m_nOrientationType = "PARTICLE_ORIENTATION_ALIGN_TO_PARTICLE_NORMAL"
+		m_flOverbrightFactor = 6.0
+		m_flAddSelfAmount = 2.0
+		m_bSaturateColorPreAlphaBlend = false
+		m_nScaleCP1 = 0
+		m_nScaleCP2 = 1
+		m_flRadiusScale = 0.5
+		m_flTextureVWorldSize = 999.9999390000003
+		m_nMaxTesselation = 4
+		m_nMinTesselation = 4
+		m_nHSVShiftControlPoint = 62
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/beam_fire_01.vtex"
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_BasicMovement"
+		m_Gravity = [ 0.0, 0.0, 2.7 ]
+		m_fDrag = 0.05
+	}, {
+		_class = "C_OP_FadeOutSimple"
+	}, {
+		_class = "C_OP_RemapDirectionToCPToVector"
+		m_nCP = 3
+		m_nFieldOutput = 21
+		m_bNormalize = true
+	}, {
+		_class = "C_OP_ColorInterpolate"
+		m_ColorFade = [ 69, 37, 25, 255 ]
+	}, {
+		_class = "C_OP_FadeOutSimple"
+		m_nFieldOutput = 16
+		m_flFadeOutTime = 1.0
+	}, {
+		_class = "C_OP_FadeInSimple"
+	}, {
+		_class = "C_OP_InterpolateRadius"
+		m_flEndScale = 0.5
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.75
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.21568629
+		}
+		m_nOutputField = 7
+	}, {
+		_class = "C_INIT_RingWave"
+		m_bEvenDistribution = true
+		m_flParticlesPerOrbit = 31.0
+		m_flInitialRadius = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 9.0
+		}
+		m_flThickness = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 1
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.0
+		}
+		m_flInitialSpeedMin = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 2
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 45.9
+		}
+		m_flInitialSpeedMax = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 1
+			m_nVectorComponent = 2
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 45.9
+		}
+		m_flYaw = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 210.0
+		}
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 2.88
+			m_flRandomMax = 11.52
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+	}, {
+		_class = "C_INIT_RemapParticleCountToScalar"
+		m_bActiveRange = true
+		m_nFieldOutput = 7
+		m_nInputMax = 1
+		m_nSetMethod = "PARTICLE_SET_SCALE_INITIAL_VALUE"
+	}, {
+		_class = "C_INIT_RemapParticleCountToScalar"
+		m_bActiveRange = true
+		m_flOutputMax = 0.0
+		m_flOutputMin = 1.0
+		m_nFieldOutput = 7
+		m_nInputMax = 32
+		m_nInputMin = 31
+		m_nSetMethod = "PARTICLE_SET_SCALE_INITIAL_VALUE"
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMax = [ 0.0, 0.0, 2.88 ]
+		m_OffsetMin = [ 0.0, 0.0, 2.88 ]
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+		m_nParticlesToEmit = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 33.0
+		}
+	} ]
+	m_Children = [ {
+		m_ChildRef = resource:"particles/survival/skills/earth_phoenix_impact_75_shockwave_dust.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/earth_phoenix_impact_75_shockwave_dust_glow.vpcf"
+	} ]
+	m_PreEmissionOperators = [  ]
+	m_nBehaviorVersion = 5
+	m_nFirstMultipleOverride_BackwardCompat = 4
+	m_Constraints = [ {
+		_class = "C_OP_ConstrainDistance"
+		m_fMinDistance = 0.0
+		m_fMaxDistance = 42.0
+		m_nControlPointNumber = 0
+		m_CenterOffset = [ 0.0, 0.0, 0.0 ]
+		m_bGlobalCenter = false
+	} ]
+	m_BoundingBoxMin = [ -76.8, -76.8, -76.8 ]
+	m_BoundingBoxMax = [ 76.8, 76.8, 76.8 ]
+}

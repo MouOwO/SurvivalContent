@@ -52,7 +52,8 @@
         var panel = $.CreatePanel("Label", container, "GoldMineIncome_" + (++nextId));
         panel.AddClass("GoldMineIncomeNumber");
         if (Number(payload.critical) === 1) panel.AddClass("Critical");
-        panel.text = "+" + String(amount);
+        var formatter = GameUI.CustomUIConfig().SurvivalNumberFormatter;
+        panel.text = "+" + (formatter && formatter.Format ? formatter.Format(amount) : String(amount));
         panel.hittest = false;
         active.push({ panel: panel, entindex: entindex, startedAt: Game.GetGameTime() });
         if (!updateScheduled) { updateScheduled = true; update(); }

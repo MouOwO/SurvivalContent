@@ -1,0 +1,107 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 100
+	m_flConstantRadius = 3.5999999999999996
+	m_flConstantLifespan = 0.5
+	m_ConstantColor = [ 0, 0, 0, 255 ]
+	m_ConstantNormal = [ 1.0, 0.0, 0.0 ]
+	m_Renderers = [ {
+		_class = "C_OP_RenderSprites"
+		m_bBlendFramesSeq0 = false
+		m_nHSVShiftControlPoint = 62
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/impact/fleks3.vtex"
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_InterpolateRadius"
+		m_flBias = 0.9500000000000001
+		m_flEndScale = 0.2
+		m_flStartScale = 5.0
+	}, {
+		_class = "C_OP_BasicMovement"
+		m_fDrag = 0.05
+		m_Gravity = [ 0.0, 0.0, -13.125 ]
+	}, {
+		_class = "C_OP_SpinUpdate"
+	}, {
+		_class = "C_OP_FadeOutSimple"
+	}, {
+		_class = "C_OP_ColorInterpolate"
+		m_ColorFade = [ 159, 37, 0, 255 ]
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.5
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 1.2
+			m_flRandomMax = 3.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.0
+			m_flRandomMax = 360.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_bHasRandomSignFlip = true
+		}
+		m_nOutputField = 4
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 80.0
+			m_flRandomMax = 120.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_bHasRandomSignFlip = true
+		}
+		m_nOutputField = 5
+	}, {
+		_class = "C_INIT_CreateWithinSphere"
+		m_fSpeedMax = 26.25
+		m_fSpeedMin = 13.125
+		m_fRadiusMax = 14.399999999999999
+		m_fRadiusMin = 14.399999999999999
+	}, {
+		_class = "C_INIT_InitialVelocityNoise"
+		m_flNoiseScaleLoc = 0.8500000000000001
+		m_vecOutputMin = [ -18.375, -18.375, 0.0 ]
+		m_vecOutputMax = [ 18.375, 18.375, 18.375 ]
+		m_nControlPointNumber = 1
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMax = [ 0.0, 0.0, 22.2 ]
+		m_OffsetMin = [ 0.0, 0.0, 22.2 ]
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+	} ]
+	m_nBehaviorVersion = 5
+	m_nFirstMultipleOverride_BackwardCompat = 5
+	m_PreEmissionOperators = [  ]
+	m_Constraints = [ {
+		_class = "C_OP_ConstrainDistance"
+		m_fMinDistance = 0.0
+		m_fMaxDistance = 51.0
+		m_nControlPointNumber = 0
+		m_CenterOffset = [ 0.0, 0.0, 0.0 ]
+		m_bGlobalCenter = false
+	} ]
+	m_BoundingBoxMin = [ -76.8, -76.8, -76.8 ]
+	m_BoundingBoxMax = [ 76.8, 76.8, 76.8 ]
+}

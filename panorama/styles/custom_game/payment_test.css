@@ -1,41 +1,55 @@
+/* Original 960 x 740 commerce confirmation shell, backed by real payment state. */
 .PaymentRoot { width:100%; height:100%; }
 .PaymentEntry { horizontal-align:right; margin-top:230px; margin-right:22px; padding:10px 18px; background-color:#173d39ef; border:1px solid #64c9a288; border-radius:6px; visibility:collapse; }
 .PaymentEntry Label { font-size:17px; color:#beffe7; }
 .PaymentScrim { width:100%; height:100%; background-color:#00000088; visibility:collapse; z-index:1; }
 .PaymentScrim.Open { visibility:visible; }
-.PaymentDialog { width:850px; horizontal-align:center; vertical-align:center; flow-children:down; padding:22px; background-color:#101b2afa; border:1px solid #8faccc88; border-radius:12px; box-shadow:0 8px 35px #000000aa; visibility:collapse; z-index:2; }
+.PaymentDialog { width:960px; height:740px; horizontal-align:center; vertical-align:center; flow-children:none; padding:0px; background-color:#f2f0e8; visibility:collapse; z-index:2; }
 .PaymentDialog.Open { visibility:visible; }
 .PaymentInputShield { width:100%; height:100%; position:0px 0px 0px; horizontal-align:left; vertical-align:top; ignore-parent-flow:true; z-index:-1000; background-color:transparent; background-image:none; border:0px; margin:0px; padding:0px; }
-.PaymentHeader { width:100%; height:68px; }
-.PaymentHeading { font-size:30px; color:#fff1cf; }
-.PaymentSubtitle { margin-top:39px; font-size:14px; color:#97a9c4; }
-.PaymentClose { horizontal-align:right; width:30px; height:30px; }
-.PaymentClose Label { color:#b9c7da; font-size:27px; }
-.PaymentBody { width:100%; height:640px; flow-children:right; }
-.PaymentCatalog { width:320px; padding:16px 18px 16px 0; flow-children:down; }
-.PaymentSection { color:#97a9c4; font-size:14px; margin-bottom:12px; }
-.PaymentProducts { width:100%; height:550px; flow-children:down; overflow:squish scroll; margin-top:12px; }
-.PaymentProduct { width:100%; height:80px; margin-bottom:10px; padding:14px; background-color:#1c2d40; border:1px solid #40526955; border-radius:6px; }
-.PaymentProduct:hover { brightness:1.2; }
-.PaymentProduct.Selected { background-color:#23443f; border:1px solid #77d6b6; }
-.PaymentProductNumber { color:#8ba6bd; font-size:13px; width:27px; }
-.PaymentProductTitle { color:#eff5ff; font-size:19px; margin-left:29px; }
-.PaymentProductOwned { color:#e4c997; font-size:15px; margin-left:29px; margin-top:29px; }
-.PaymentCheckout { width:484px; height:100%; padding:12px 22px; background-color:#17273b; flow-children:down; border-radius:8px; overflow:squish scroll; }
-.PaymentRewards { width:100%; max-height:150px; overflow:squish scroll; }
-.PaymentTitle { width:100%; text-align:center; font-size:27px; color:#fff1cf; }
-.PaymentDescription { width:100%; text-align:center; font-size:16px; color:#d1dbee; margin-top:10px; white-space:normal; }
-.PaymentPrice { horizontal-align:center; color:#ffd68a; font-size:34px; margin:10px 0; }
-.PaymentValues { width:100%; color:#a6f0ce; font-size:16px; text-align:center; white-space:normal; margin-bottom:10px; }
-.PaymentAction { width:100%; padding:10px 6px; margin-top:10px; background-color:#25725e; border-radius:5px; }
-.PaymentAction:hover { brightness:1.3; }
-.PaymentAction:disabled { opacity:0.4; }
-.PaymentAction Label { width:100%; text-align:center; color:#ffffff; font-size:17px; }
-.PaymentAction.Secondary { width:205px; background-color:#263e59; margin-right:8px; }
-.PaymentActions { width:100%; flow-children:right; }
-#PaymentOpen,#PaymentLink,#PaymentCancel { visibility:collapse; }
-.PaymentAction.Channel.Selected { border:1px solid #77d6b6; background-color:#23443f; }
-.PaymentLink { width:100%; height:32px; margin-top:10px; font-size:12px; color:#97a9c4; }
-.PaymentHint { width:100%; color:#97a9c4; font-size:13px; margin-top:12px; white-space:normal; }
-.PaymentQR { horizontal-align:center; background-color:#ffffff; flow-children:down; visibility:collapse; }
+.PaymentHeader { width:960px; height:84px; position:0px 0px 0px; z-index:3; }
+.PaymentDialog .PaymentHeading { width:100%; height:60px; position:0px 12px 0px; text-align:center; font-family:"Source Han Serif SC"; font-size:38px; color:#f4e8cc; }
+.PaymentClose { position:894px 22px 0px; width:38px; height:38px; }
+.PaymentBody { position:45px 108px 0px; width:870px; height:538px; flow-children:none; z-index:2; }
+.PaymentDialog .PaymentTitle { width:100%; height:48px; text-align:center; font-size:30px; text-overflow:shrink; color:#294d5b; }
+.PaymentDialog .PaymentPrice { position:0px 52px 0px; width:100%; height:40px; font-size:28px; text-align:center; color:#294d5b; }
+.PaymentSummary { position:0px 108px 0px; width:870px; height:176px; }
+.PaymentProductArt { position:30px 0px 0px; width:140px; height:140px; }
+.PaymentRewardCopy { position:190px 0px 0px; width:640px; height:176px; flow-children:down; overflow:squish scroll; }
+.PaymentDialog .PaymentDescription,.PaymentDialog .PaymentValues { width:610px; font-size:19px; color:#294d5b; white-space:normal; }
+.PaymentValues { margin-top:8px; }
+.PaymentQuantity { position:302px 294px 0px; width:265px; height:48px; flow-children:right; }
+.PaymentQuantityStep { width:70px; height:48px; }
+.PaymentQuantityStep Label { align:center center; font-size:24px; }
+.PaymentDialog .PaymentQuantityValue { width:125px; height:48px; font-size:26px; text-align:center; vertical-align:center; color:#294d5b; }
+.PaymentMethods { position:215px 350px 0px; width:440px; height:60px; flow-children:right; }
+.PaymentMethod { width:210px; height:60px; margin-right:10px; background-color:transparent; }
+.PaymentMethodBase,.PaymentMethodSelected { width:100%; height:100%; z-index:0; }
+.PaymentMethodSelected { opacity:0; }
+.PaymentMethod.Selected .PaymentMethodSelected { opacity:1; }
+.PaymentMethod:hover { brightness:1.12; }
+.PaymentMethod:disabled { opacity:0.55; }
+.PaymentDialog .PaymentMethod Label { align:center center; font-size:23px; color:#294d5b; z-index:2; }
+.PaymentFooter { position:0px 440px 0px; width:fit-children; max-width:870px; height:64px; horizontal-align:center; flow-children:right; }
+.PaymentAction { width:260px; height:64px; margin:0px 12px; }
+.PaymentDialog .PaymentAction Label { width:100%; align:center center; text-align:center; font-size:23px; color:#294d5b; z-index:2; }
+.PaymentAction:hover { brightness:1.12; }
+.PaymentQRStage { position:0px 96px 0px; width:870px; height:326px; visibility:collapse; }
+.PaymentDialog .PaymentQRChannel { width:100%; height:32px; text-align:center; font-size:20px; color:#294d5b; }
+.PaymentQRFrame { position:293px 36px 0px; width:284px; height:284px; background-color:#ffffff; }
+.PaymentQR { align:center center; background-color:#ffffff; flow-children:down; visibility:collapse; }
 .PaymentQRRow { flow-children:right; }
+.PaymentDialog .PaymentQRState { width:240px; align:center center; white-space:normal; text-align:center; font-size:22px; color:#375462; }
+.PaymentBrowser { position:0px 510px 0px; width:100%; height:28px; visibility:collapse; }
+.PaymentDialog .PaymentBrowser Label { width:100%; text-align:center; font-size:17px; color:#385c6c; text-decoration:underline; }
+.PaymentDialog .PaymentHint { position:48px 648px 0px; width:864px; height:26px; text-align:center; font-size:16px; color:#657a81; z-index:2; }
+.PaymentDialog .PaymentStatus { position:48px 679px 0px; width:864px; height:43px; text-align:center; font-size:18px; color:#294d5b; white-space:normal; text-overflow:shrink; z-index:2; }
+.PaymentProducts,.PaymentLink { visibility:collapse; }
+#PaymentRefresh,#PaymentCancel { visibility:collapse; }
+.HasOrder .PaymentSummary,.HasOrder .PaymentQuantity,.HasOrder .PaymentMethods,.HasOrder #PaymentBuy { visibility:collapse; }
+.HasOrder .PaymentQRStage,.HasOrder #PaymentRefresh { visibility:visible; }
+.HasOrder .PaymentAction { width:250px; margin:0px 10px; }
+.Receipt .PaymentSummary { visibility:visible; height:300px; }
+.Receipt .PaymentRewardCopy { height:300px; }
+.Receipt .PaymentQRStage { visibility:collapse; }
+.Receipt #PaymentBuy { visibility:visible; }

@@ -1,0 +1,62 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+ _class = "CParticleSystemDefinition" m_nBehaviorVersion = 12
+ m_nMaxParticles = 17 m_flConstantLifespan = 999999.0 m_ConstantColor = [255,255,255,255]
+ m_BoundingBoxMin = [-180.0,-180.0,-16.0] m_BoundingBoxMax = [180.0,180.0,64.0]
+ m_Renderers = [{
+			_class = "C_OP_RenderRopes"
+			m_nOrientationType = "PARTICLE_ORIENTATION_ALIGN_TO_PARTICLE_NORMAL"
+			m_flOverbrightFactor = 3.0
+			m_flRadiusScale = 0.5
+			m_flTextureVWorldSize = 150.0
+			m_nMaxTesselation = 2
+			m_nMinTesselation = 2
+			VisibilityInputs = 
+			{
+				m_flCameraBias = 8.0
+			}
+			m_vecTexturesInput = 
+			[
+				{
+					m_hTexture = resource:"materials/particle/beam_blood_02.vtex"
+				},
+			]
+		},
+		{
+			_class = "C_OP_RenderRopes"
+			m_nOrientationType = "PARTICLE_ORIENTATION_ALIGN_TO_PARTICLE_NORMAL"
+			m_flOverbrightFactor = 4.0
+			m_flAddSelfAmount = 1.0
+			m_bSaturateColorPreAlphaBlend = false
+			m_flRadiusScale = 0.20
+			m_flTextureVWorldSize = 60.0
+			m_nMaxTesselation = 2
+			m_nMinTesselation = 2
+			VisibilityInputs = 
+			{
+				m_flCameraBias = 8.0
+			}
+			m_vecTexturesInput = 
+			[
+				{
+					m_hTexture = resource:"materials/particle/beam_plasma_03.vtex"
+				},
+			]
+			m_nOutputBlendMode = "PARTICLE_OUTPUT_BLEND_MODE_ADD"
+		},
+	]
+ m_Initializers = [{ _class = "C_INIT_RingWave" m_bEvenDistribution = true m_flParticlesPerOrbit = 16.0 m_flInitialRadius = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.000 } m_flInitialSpeedMin = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 0.000 } m_flInitialSpeedMax = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 0.000 } },
+{ _class = "C_INIT_PositionOffset" m_OffsetMin = [0.0,0.0,12.0] m_OffsetMax = [0.0,0.0,12.0] },
+{ _class = "C_INIT_InitFloat" m_nOutputField = 3 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.16 } },
+{ _class = "C_INIT_InitFloat" m_nOutputField = 7 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 2 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.8 } },
+{ _class = "C_INIT_InitFloat" m_nOutputField = 1 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 999999.000 } }]
+ m_Operators = [{ _class = "C_OP_PositionLock" },
+{ _class = "C_OP_RemapCPtoVector" m_nCPInput = 2 m_nFieldOutput = 6 m_vInputMax = [255.0,255.0,255.0] m_vOutputMax = [1.0,1.0,1.0] },
+{ _class = "C_OP_SetFloat" m_nOutputField = 3 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.16 } },
+{ _class = "C_OP_SetFloat" m_nOutputField = 7 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 2 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.8 } },
+{ _class = "C_OP_MovementRotateParticleAroundAxis" m_flRotRate = 12.0 },
+{ _class = "C_OP_EndCapTimedDecay" m_flDecayTime = 0.15 }]
+ m_Emitters = [{ _class = "C_OP_InstantaneousEmitter" m_nParticlesToEmit = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 17.000 } }]
+ m_Constraints = [ { _class = "C_OP_ConstrainDistance" m_nControlPointNumber = 0 m_CenterOffset = [0.0,0.0,12.0] m_bGlobalCenter = false m_fMinDistance = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 160.0 m_flOutput0 = 1.0 m_flOutput1 = 145.0 } m_fMaxDistance = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 160.0 m_flOutput0 = 1.0 m_flOutput1 = 145.0 } } ]
+ m_Children = []
+}

@@ -590,7 +590,8 @@
 
         var localizedTitle = localize("DOTA_Tooltip_ability_" + abilityName, "");
         var researchMode = runtime.research_upgrade === 1;
-        setText("CustomAbilityTitle", runtime.display_name || localizedTitle
+        setText("CustomAbilityTitle", runtime.display_name
+            || (abilityName === "ability_destroy_arrow_tower" ? tooltipDefinition.name : localizedTitle)
             || tooltipDefinition.name || definition.abilityname || abilityName);
         var abilityLevel = 0;
         try { abilityLevel = Number(Abilities.GetLevel(abilityIndex) || 0); } catch (error) {}
@@ -605,7 +606,9 @@
                 + " " + displayedLevel : "");
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(abilityIndex) || 0); } catch (error) {}
-        var description = researchMode
+        var description = abilityName === "ability_destroy_arrow_tower"
+            ? runtime.upgrade_description || tooltipDefinition.desc || localizedAbilityDescription(abilityName)
+            : researchMode
             ? runtime.upgrade_description
             : localizedAbilityDescription(abilityName)
             || (upgradeMode ? runtime.upgrade_description : "") || tooltipDefinition.desc

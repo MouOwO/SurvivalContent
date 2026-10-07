@@ -1,0 +1,66 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+ _class = "CParticleSystemDefinition"
+ m_nBehaviorVersion = 12
+ m_bShouldHitboxesFallbackToRenderBounds = false
+ m_nMaxParticles = 12
+ m_flConstantLifespan = 0.55
+ m_flConstantRadius = 2.0
+ m_ConstantColor = [ 160, 220, 255, 255 ]
+ m_Emitters = [ {
+ _class = "C_OP_ContinuousEmitter"
+ m_flEmitRate = {
+ m_nType = "PF_TYPE_LITERAL"
+ m_flLiteralValue = 18.0
+}
+} ]
+ m_Operators = [ {
+ _class = "C_OP_BasicMovement"
+ m_fDrag = 0.1
+}, {
+ _class = "C_OP_FadeInSimple"
+ m_flFadeInTime = 0.08
+}, {
+ _class = "C_OP_FadeOutSimple"
+ m_flFadeOutTime = 0.8
+}, {
+ _class = "C_OP_Decay"
+} ]
+ m_PreEmissionOperators = [ {
+ _class = "C_OP_SetControlPointPositions"
+ m_nHeadLocation = 0
+ m_nCP1 = 3
+ m_nCP2 = 4
+ m_nCP3 = 5
+ m_nCP4 = 6
+ m_vecCP1Pos = [ 0.0, 0.0, 70.0 ]
+ m_vecCP2Pos = [ 0.0, 0.0, 185.0 ]
+ m_vecCP3Pos = [ 0.0, 0.0, 0.0 ]
+ m_vecCP4Pos = [ 0.0, 0.0, 0.0 ]
+} ]
+ m_Initializers = [ {
+ _class = "C_INIT_CreateWithinSphere"
+ m_nControlPointNumber = 3
+ m_fRadiusMin = 12.0
+ m_fRadiusMax = 35.0
+ m_LocalCoordinateSystemSpeedMin = [ -12.0, -12.0, 90.0 ]
+ m_LocalCoordinateSystemSpeedMax = [ 12.0, 12.0, 140.0 ]
+} ]
+ m_ForceGenerators = [ {
+ _class = "C_OP_AttractToControlPoint"
+ m_nControlPointNumber = 4
+ m_fForceAmount = {
+ m_nType = "PF_TYPE_LITERAL"
+ m_flLiteralValue = 240.0
+}
+ m_fFalloffPower = 0.0
+} ]
+ m_Renderers = [ {
+ _class = "C_OP_RenderSprites"
+ m_flOverbrightFactor = 1.2
+ m_nOutputBlendMode = "PARTICLE_OUTPUT_BLEND_MODE_ADD"
+ m_vecTexturesInput = [ {
+ m_hTexture = resource:"materials/particle/particle_glow_05.vtex"
+} ]
+} ]
+}

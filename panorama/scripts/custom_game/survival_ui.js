@@ -44,12 +44,8 @@
     }
 
     function compactNumber(value) {
-        var number = Number(value || 0);
-        var sign = number < 0 ? "-" : "";
-        var absolute = Math.abs(number);
-        if (absolute >= 100000000) return sign + (absolute / 100000000).toFixed(2) + "亿";
-        if (absolute >= 10000) return sign + (absolute / 10000).toFixed(2) + "万";
-        return numberValue(number);
+        var formatter = GameUI.CustomUIConfig().SurvivalNumberFormatter;
+        return formatter && formatter.Format ? formatter.Format(value) : numberValue(value);
     }
 
     function sequenceOf(snapshot) {

@@ -1,0 +1,12 @@
+"Layer0"
+{
+"shader" "cables.vfx"
+"F_RENDER_BACKFACES" "1"
+"F_ADDITIVE_BLEND" "1"
+"F_TRANSLUCENT" "1"
+"g_flOpacityScale" "1"
+"g_flOverbrightFactor" "12"
+"g_vColorTint" "[1.0 0.78 0.12 0]"
+"g_vTexCoordScale" "[1 1 0 0]"
+"TextureColor" "materials/survival/tinker_growth/cable.png"
+}

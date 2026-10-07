@@ -1,52 +1,79 @@
 (function () {
     "use strict";
-    var PATH="file://{images}/custom_game/titles/peak_mountain_";
+    var PATH="file://{images}/custom_game/titles/peak_clean_";
+    var CLIMB_SECONDS=3, PERIOD=5;
+    function panel(parent,cls) {
+        var p=$.CreatePanel("Panel",parent,"");p.AddClass(cls);p.hittest=false;p.hittestchildren=false;return p;
+    }
     function image(parent,cls,file) {
-        var p=$.CreatePanel("Image",parent,"");p.AddClass(cls);
-        p.hittest=false;p.hittestchildren=false;
-        if (p.SetScaling) p.SetScaling("stretch-to-fit-preserve-aspect");
-        p.SetImage(PATH+file+".png");return p;
+        var p=$.CreatePanel("Image",parent,"");p.AddClass(cls);p.hittest=false;p.hittestchildren=false;
+        if(p.SetScaling)p.SetScaling("stretch-to-fit-preserve-aspect");p.SetImage(PATH+file+".png");return p;
     }
-    function create(parent) {
+    function dragon(parent,depth) {
+        var root=panel(parent,"SurvivalTitleDragon");root.AddClass(depth);
+        root.mouth=panel(root,"SurvivalTitleDragonPiece");root.mouth.AddClass("SurvivalTitleDragonMouth");
+        root.body=image(root,"SurvivalTitleDragonPiece","dragon_coiled");root.body.AddClass("SurvivalTitleDragonBody");
+        root.claw=image(root,"SurvivalTitleDragonPiece","dragon_coiled");root.claw.AddClass("SurvivalTitleDragonClaw");
+        root.jaw=image(root,"SurvivalTitleDragonPiece","dragon_coiled");root.jaw.AddClass("SurvivalTitleDragonJaw");
+        root.cheek=image(root,"SurvivalTitleDragonPiece","dragon_coiled");root.cheek.AddClass("SurvivalTitleDragonCheek");
+        return root;
+    }
+    function create(parent,animated) {
         parent.hittest=false;parent.hittestchildren=false;
-        var back=image(parent,"SurvivalTitleDragon","dragon");back.AddClass("SurvivalTitleDragonBack");
+        // Two registered copies of ONE complete painted dragon. The mountain
+        // silhouette occludes only the far arch; the foreground stays intact.
+        // No reconstructed scale strips or independently floating head.
+        var back=dragon(parent,"SurvivalTitleDragonBack");
         var mountain=image(parent,"SurvivalTitleMountains","mountains");
-        var front=image(parent,"SurvivalTitleDragon","dragon");front.AddClass("SurvivalTitleDragonFront");
+        // Shadow is received only by opaque mountain pixels, never the sky/text.
+        var receiver=panel(parent,"SurvivalTitleShadowReceiver");
+        var shadow=panel(receiver,"SurvivalTitleContactShadow");
+        image(shadow,"SurvivalTitleShadowCore","dragon_coiled");
+        image(shadow,"SurvivalTitleShadowSoft","dragon_coiled");
+        var front=dragon(parent,"SurvivalTitleDragonFront");
         var art=image(parent,"SurvivalTitleBase","letters");
-        var mask=$.CreatePanel("Panel",parent,"");mask.AddClass("SurvivalTitleShineMask");mask.hittest=false;
-        var sweep=$.CreatePanel("Panel",mask,"");sweep.AddClass("SurvivalTitleSweep");sweep.hittest=false;
-        return {back:back,mountain:mountain,front:front,art:art,mask:mask,sweep:sweep};
+        var mask=panel(parent,"SurvivalTitleShineMask"),sweep=panel(mask,"SurvivalTitleSweep");
+        return {back:back,mountain:mountain,front:front,shadow:shadow,art:art,mask:mask,sweep:sweep,animated:!!animated};
     }
-    // x/y are fractions of the 224 x 96 world-title canvas. Front/back weight
-    // moves the same dragon around the mountains; lettering always stays ahead.
-    var keys=[
-        [0.00,0.34,0.48,0.40,-36,1],
-        [0.22,0.07,0.25,0.56,-24,0],
-        [0.46,0.22,-0.13,0.72,12,0],
-        [0.68,0.53,-0.15,0.88,18,0.75],
-        [0.86,0.60,-0.07,1.02,6,1],
-        [1.00,0.55,-0.05,1.00,0,1]
-    ];
     function smooth(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
-    function pose(now) {
-        var cycle=((now%5)+5)%5,t=Math.min(1,cycle/1.8),a=keys[0],b=keys[1];
-        for(var i=1;i<keys.length;i++){a=keys[i-1];b=keys[i];if(t<=b[0])break;}
-        var f=smooth((t-a[0])/(b[0]-a[0]));
-        function mix(n){return a[n]+(b[n]-a[n])*f;}
-        // Fade only at the cycle boundary, so resetting to the foot of the peak
-        // never teleports a fully visible dragon across the title.
-        var alpha=cycle<0.16?smooth(cycle/0.16):cycle>4.78?1-smooth((cycle-4.78)/0.22):1;
-        return {x:mix(1),y:mix(2),scale:mix(3),angle:mix(4),front:mix(5),alpha:alpha,phase:cycle<1.8?"ascending":"resting",period:5};
+    function pose(now){
+        var cycle=((now%PERIOD)+PERIOD)%PERIOD;
+        var q=smooth(Math.min(1,cycle/CLIMB_SECONDS)),angle=q*Math.PI*2;
+        var radius=26;
+        // A full curved pass around the peak, with a real lateral reversal and
+        // depth change. Arrives at the coiled illustration, never a corner badge.
+        var x=Math.sin(angle)*radius,y=32*(1-q)+Math.sin(angle)*6;
+        var depth=Math.cos(angle),near=smooth((depth+.6)/1.2);
+        // Only after the 3s ascent: reach, open the jaw, hold, then recover.
+        // Both actions finish before the existing end-of-cycle fade starts.
+        var claw=smooth((cycle-3.12)/.38)*(1-smooth((cycle-4.12)/.45));
+        var roar=smooth((cycle-3.30)/.36)*(1-smooth((cycle-4.12)/.45));
+        return {claw:claw,roar:roar,cycle:cycle,q:q,duration:CLIMB_SECONDS,period:PERIOD,
+            phase:cycle<CLIMB_SECONDS?"ascending":"resting",
+            alpha:cycle<.22?smooth(cycle/.22):cycle>4.75?1-smooth((cycle-4.75)/.25):1,
+            near:near,climb:{tx:x,ty:y,scale:.88+.12*q,tilt:-9*Math.sin(angle)*(1-q)}};
     }
-    function animate(fx,now) {
-        var p=pose(now);fx.pose=p;
-        [fx.back,fx.front].forEach(function(panel,index){
-            panel.style.position=(p.x*224).toFixed(2)+"px "+(p.y*96).toFixed(2)+"px 0px";
-            panel.style.transform="rotateZ("+p.angle.toFixed(2)+"deg) scale3d("+p.scale.toFixed(4)+", "+p.scale.toFixed(4)+", 1)";
-            panel.style.opacity=(p.alpha*(index?p.front:1-p.front)).toFixed(4);
+    function transformOf(c){
+        return "translate3d("+c.tx.toFixed(2)+"px, "+c.ty.toFixed(2)+"px, 0px) "
+            +"rotateZ("+c.tilt.toFixed(2)+"deg) scale3d("+c.scale.toFixed(4)+", "+c.scale.toFixed(4)+", 1)";
+    }
+    function animate(fx,now){
+        if(!fx.animated)return;
+        var state=pose(now);fx.pose=state;
+        var transform=transformOf(state.climb);
+        fx.back.style.transform=transform;fx.front.style.transform=transform;
+        fx.back.style.opacity=state.alpha.toFixed(4);
+        // When the dragon circles to the far side its front planes retreat
+        // behind the mountain. Its actual painted silhouette stays intact.
+        fx.front.style.opacity=(state.alpha*state.near).toFixed(4);
+        fx.shadow.style.transform=transform;
+        fx.shadow.style.opacity=(state.alpha*state.near).toFixed(4);
+        [fx.back,fx.front].forEach(function(layer){
+            layer.jaw.style.transform="rotateZ("+(13*state.roar).toFixed(3)+"deg)";
+            layer.claw.style.transform="rotateZ("+(-12*state.claw).toFixed(3)+"deg) scale3d("+(1+.15*state.claw).toFixed(4)+", "+(1+.06*state.claw).toFixed(4)+", 1)";
+            layer.mouth.style.opacity=(state.roar*.95).toFixed(4);
+            layer.cheek.style.opacity=(state.roar*.85).toFixed(4);
         });
-        // Sub-pixel parallax supplies depth without rocking the lettering.
-        fx.mountain.style.transform="translateX("+(Math.sin(now*.72)*0.65).toFixed(3)+"px)";
     }
     GameUI.CustomUIConfig().SurvivalTitleLayeredArt={Create:create,Animate:animate,Pose:pose};
 })();

@@ -1,0 +1,64 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_nBehaviorVersion = 12
+	m_nMaxParticles = 0
+	m_Children = [ {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_light.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_outer.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_bloom.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_directional.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_shockwave.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_burst.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_steam.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_ring.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_embers.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_flames.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_glow.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_splash_liquid.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_splash.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_snapfire_linger_bubble.vpcf"
+	} ]
+	m_PreEmissionOperators = [ {
+		_class = "C_OP_StopAfterCPDuration"
+		m_flDuration = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_nMapType = "PF_MAP_TYPE_DIRECT"
+			m_flLiteralValue = 3.1
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [  ]
+				m_tangents = [  ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 0.0, 0.0 ]
+			}
+		}
+	} ]
+}

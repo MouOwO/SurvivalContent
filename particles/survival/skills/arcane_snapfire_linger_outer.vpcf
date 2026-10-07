@@ -1,0 +1,224 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 1
+	m_Renderers = [ {
+		_class = "C_OP_RenderModels"
+		m_ModelList = [ {
+			m_model = resource:"models/heroes/snapfire/fx/snapfire_pool.vmdl"
+		} ]
+		m_bOrientZ = true
+		m_nBodyGroupField = 19
+		m_nSubModelField = 19
+		m_nAnimationField = 19
+		m_nManualFrameField = 19
+		m_hOverrideMaterial = resource:"materials/particle/snapfire_magma_splat_edge.vmat"
+		m_bSuppressTint = true
+		m_szRenderAttribute = "D_ALPHATINT 0"
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_SetFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_PARTICLE_AGE_NORMALIZED"
+			m_nMapType = "PF_MAP_TYPE_CURVE"
+			m_flLiteralValue = 0.0
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [ {
+					x = 0.0
+					y = 7.695239000000003
+					m_flSlopeIncoming = 349.4351500000001
+					m_flSlopeOutgoing = 349.4351500000001
+				}, {
+					x = 0.09244900000000002
+					y = 40.0
+					m_flSlopeIncoming = 32.30476000000001
+					m_flSlopeOutgoing = 32.30476000000001
+				}, {
+					x = 1.0
+					y = 40.0
+					m_flSlopeIncoming = 0.0
+					m_flSlopeOutgoing = 0.0
+				} ]
+				m_tangents = [ {
+					m_nIncomingTangent = "CURVE_TANGENT_SPLINE"
+					m_nOutgoingTangent = "CURVE_TANGENT_SPLINE"
+				}, {
+					m_nIncomingTangent = "CURVE_TANGENT_SPLINE"
+					m_nOutgoingTangent = "CURVE_TANGENT_SPLINE"
+				}, {
+					m_nIncomingTangent = "CURVE_TANGENT_SPLINE"
+					m_nOutgoingTangent = "CURVE_TANGENT_SPLINE"
+				} ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 1.0, 40.0 ]
+			}
+		}
+	}, {
+		_class = "C_OP_SetFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_PARTICLE_AGE"
+			m_nMapType = "PF_MAP_TYPE_CURVE"
+			m_flLiteralValue = 0.0
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [ {
+					x = 0.0
+					y = 0.3655240000000001
+					m_flSlopeIncoming = 1.4883330000000006
+					m_flSlopeOutgoing = 1.4883330000000006
+				}, {
+					x = 0.20875400000000008
+					y = 1.0
+					m_flSlopeIncoming = 0.11971700000000003
+					m_flSlopeOutgoing = 0.11971700000000003
+				}, {
+					x = 2.3331310000000007
+					y = 1.0
+					m_flSlopeIncoming = 0.018939000000000008
+					m_flSlopeOutgoing = 0.018939000000000008
+				}, {
+					x = 4.0
+					y = 0.0
+					m_flSlopeIncoming = 0.02761000000000001
+					m_flSlopeOutgoing = 0.02761000000000001
+				} ]
+				m_tangents = [ {
+					m_nIncomingTangent = "CURVE_TANGENT_FREE"
+					m_nOutgoingTangent = "CURVE_TANGENT_MIRROR"
+				}, {
+					m_nIncomingTangent = "CURVE_TANGENT_FREE"
+					m_nOutgoingTangent = "CURVE_TANGENT_MIRROR"
+				}, {
+					m_nIncomingTangent = "CURVE_TANGENT_FREE"
+					m_nOutgoingTangent = "CURVE_TANGENT_MIRROR"
+				}, {
+					m_nIncomingTangent = "CURVE_TANGENT_FREE"
+					m_nOutgoingTangent = "CURVE_TANGENT_MIRROR"
+				} ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 4.0, 1.0 ]
+			}
+		}
+		m_nOutputField = 7
+	}, {
+		_class = "C_OP_SetFloat"
+		m_nOutputField = 3
+		m_nSetMethod = "PARTICLE_SET_SCALE_CURRENT_VALUE"
+		m_InputValue = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 20
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.002357021755427291
+		}
+	}, {
+		_class = "C_OP_ClampScalar"
+		m_nFieldOutput = 3
+		m_flOutputMin = 0.0
+		m_flOutputMax = 14.142130532563746
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 3.0
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_CreateWithinSphereTransform"
+		m_TransformInput = {
+			m_nType = "PT_TYPE_CONTROL_POINT"
+			m_nControlPoint = 0
+		}
+	}, {
+		_class = "C_INIT_PositionPlaceOnGround"
+		m_CollisionGroupName = "DEBRIS"
+		m_bIncludeWater = true
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMax = [ 0.0, 0.0, 5.3032989497114045 ]
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.0
+			m_flRandomMax = 360.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_bHasRandomSignFlip = true
+		}
+		m_nOutputField = 12
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_nOutputField = 3
+		m_nSetMethod = "PARTICLE_SET_SCALE_CURRENT_VALUE"
+		m_InputValue = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 20
+			m_nVectorComponent = 0
+			m_nMapType = "PF_MAP_TYPE_MULT"
+			m_flMultFactor = 0.002357021755427291
+		}
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+		m_nParticlesToEmit = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_nMapType = "PF_MAP_TYPE_DIRECT"
+			m_flLiteralValue = 1.0
+			m_nControlPoint = 0
+			m_nScalarAttribute = 3
+			m_nVectorAttribute = 6
+			m_nVectorComponent = 0
+			m_flRandomMin = 0.0
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+			m_flMultFactor = 1.0
+			m_flInput0 = 0.0
+			m_flInput1 = 1.0
+			m_flOutput0 = 0.0
+			m_flOutput1 = 1.0
+			m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+			m_flBiasParameter = 0.0
+			m_Curve = {
+				m_spline = [  ]
+				m_tangents = [  ]
+				m_vDomainMins = [ 0.0, 0.0 ]
+				m_vDomainMaxs = [ 0.0, 0.0 ]
+			}
+		}
+	} ]
+	m_nBehaviorVersion = 12
+}

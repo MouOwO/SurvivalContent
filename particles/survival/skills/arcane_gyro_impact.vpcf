@@ -1,0 +1,166 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 32
+	m_flConstantRadius = 0.6
+	m_ConstantColor = [ 255, 193, 163, 255 ]
+	m_nConstantSequenceNumber = 3
+	m_flNoDrawTimeToGoToSleep = 100000.0
+	m_Renderers = [ {
+		_class = "C_OP_RenderTrails"
+		m_flOverbrightFactor = 3.0
+		m_flMaxLength = 38.4
+		m_bIgnoreDT = true
+		m_nHSVShiftControlPoint = 62
+		m_flRadiusScale = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.5
+		}
+		m_flTailAlphaScale = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.0
+		}
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/sparks/sparks.vtex"
+			m_TextureControls = {
+				m_flFinalTextureScaleV = {
+					m_nType = "PF_TYPE_LITERAL"
+					m_flLiteralValue = -1.0
+				}
+				m_flFinalTextureOffsetV = {
+					m_nType = "PF_TYPE_LITERAL"
+					m_flLiteralValue = 1.0
+				}
+			}
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_InterpolateRadius"
+		m_flEndScale = 0.0
+		m_flBias = 0.25
+	}, {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_FadeOutSimple"
+	}, {
+		_class = "C_OP_ClampScalar"
+		m_nFieldOutput = 3
+		m_flOutputMin = 0.0
+		m_flOutputMax = 150.0
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.1
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_CreateWithinSphere"
+		m_vecDistanceBiasAbs = [ 0.0, 0.0, 1.0 ]
+		m_fRadiusMax = 76.5
+		m_fRadiusMin = 76.5
+		m_nControlPointNumber = 3
+		m_LocalCoordinateSystemSpeedMin = [ 99.0, 0.0, 0.0 ]
+		m_LocalCoordinateSystemSpeedMax = [ 39.0, 0.0, 0.0 ]
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 2.4
+			m_flRandomMax = 7.199999999999999
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 1.0
+		}
+		m_nOutputField = 7
+	}, {
+		_class = "C_INIT_RandomYawFlip"
+	}, {
+		_class = "C_INIT_InitVec"
+		m_InputValue = {
+			m_nType = "PVEC_TYPE_RANDOM_UNIFORM_OFFSET"
+			m_vRandomMin = [ -210.0, -210.0, -210.0 ]
+			m_vRandomMax = [ 210.0, 210.0, 210.0 ]
+			m_nVectorAttribute = 0
+			m_vVectorAttributeScale = [ 1.0, 1.0, 1.0 ]
+		}
+		m_nOutputField = 2
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+		m_nParticlesToEmit = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 32.0
+		}
+	} ]
+	m_ForceGenerators = [ {
+		_class = "C_OP_AttractToControlPoint"
+		m_fForceAmount = {
+			m_flLiteralValue = 210.0
+		}
+		m_fFalloffPower = 0.0
+	} ]
+	m_Children = [ {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_impact_a.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_d.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_e.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_g.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_light.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flameouts.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_b.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_f.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_sphere.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_flash_core.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_sparks.vpcf"
+	} ]
+	m_nBehaviorVersion = 12
+	m_nFirstMultipleOverride_BackwardCompat = 4
+	m_controlPointConfigurations = [ {
+		m_name = "preview"
+		m_drivers = [ {
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_entityName = "self"
+		}, {
+			m_iControlPoint = 3
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_entityName = "self"
+		}, {
+			m_iControlPoint = 5
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_vecOffset = [ 150.0, 0.0, 0.0 ]
+			m_entityName = "self"
+		}, {
+			m_iControlPoint = 60
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_vecOffset = [ 255.0, 255.0, 255.0 ]
+			m_entityName = "self"
+		}, {
+			m_iControlPoint = 61
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_vecOffset = [ 1.0, 0.0, 0.0 ]
+			m_entityName = "self"
+		}, {
+			m_iControlPoint = 62
+			m_iAttachType = "PATTACH_WORLDORIGIN"
+			m_entityName = "self"
+		} ]
+	} ]
+}

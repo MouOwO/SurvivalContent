@@ -182,8 +182,9 @@
             if (field) addField(fields, field.label, field.value);
         });
         var quantity = Number(dynamic.quantity || 0);
+        var formatter = GameUI.CustomUIConfig().SurvivalNumberFormatter;
         setText("CustomInventoryItemStatus", quantity > 1
-            ? ("持有数量：" + String(quantity))
+            ? ("持有数量：" + (formatter && formatter.Format ? formatter.Format(quantity) : String(quantity)))
             : (contentId !== itemName ? "项目物品 · 实例数据已同步" : "背包物品"));
 
         var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;

@@ -1,0 +1,120 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 16
+	m_nInitialParticles = 1
+	m_BoundingBoxMin = [ -3.0, -3.0, 0.0 ]
+	m_flConstantRadius = 4.5
+	m_flNoDrawTimeToGoToSleep = 100000.0
+	m_Renderers = [ {
+		_class = "C_OP_RenderSprites"
+		VisibilityInputs = {
+			m_flProxyRadius = 16.0
+		}
+		m_flStartFadeSize = 0.5750000000000001
+		m_flEndFadeSize = 0.65
+		m_flMaxSize = 0.75
+		m_flOverbrightFactor = 5.0
+		m_flAddSelfAmount = 1.5
+		m_bSaturateColorPreAlphaBlend = false
+		m_flAnimationRate = 10.0
+		m_nHSVShiftControlPoint = 62
+		m_vecTexturesInput = [ {
+			m_hTexture = resource:"materials/particle/fire_particle_4/fire_particle_4_flat.vtex"
+		} ]
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_BasicMovement"
+		m_Gravity = [ 0.0, 0.0, -9840.0 ]
+		m_fDrag = 0.1
+	}, {
+		_class = "C_OP_FadeOutSimple"
+		m_flFadeOutTime = 1.0
+	}, {
+		_class = "C_OP_PositionLock"
+		m_flStartTime_min = 0.0
+		m_flStartTime_max = 0.0
+		m_nControlPointNumber = 3
+	}, {
+		_class = "C_OP_RampScalarLinearSimple"
+		m_nOpEndCapState = "PARTICLE_ENDCAP_ENDCAP_ON"
+		m_Rate = 450.0
+		m_flEndTime = 99999.0
+	}, {
+		_class = "C_OP_ClampScalar"
+		m_nFieldOutput = 3
+		m_flOutputMin = 0.0
+		m_flOutputMax = 150.0
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.0
+			m_flRandomMax = 360.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+			m_bHasRandomSignFlip = true
+		}
+		m_nOutputField = 4
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.8999999999999999
+			m_flRandomMax = 1.5
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 0.125
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_CreateWithinSphere"
+		m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 300.0 ]
+		m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 600.0 ]
+		m_fSpeedMax = 2400.0
+		m_fSpeedMin = 2100.0
+		m_vecDistanceBiasAbs = [ 0.0, 0.0, 1.0 ]
+		m_fRadiusMax = 30.0
+		m_nControlPointNumber = 3
+	}, {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.2509804
+			m_flRandomMax = 1.0
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+		m_nOutputField = 7
+	}, {
+		_class = "C_INIT_RandomColor"
+		m_nFieldOutput = 22
+		m_ColorMax = [ 202, 81, 0, 255 ]
+		m_ColorMin = [ 202, 128, 0, 255 ]
+	}, {
+		_class = "C_INIT_RandomYawFlip"
+	} ]
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+		m_nParticlesToEmit = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 16.0
+		}
+	} ]
+	m_ForceGenerators = [ {
+		_class = "C_OP_RandomForce"
+		m_MinForce = [ -18.0, -18.0, -18.0 ]
+		m_MaxForce = [ 18.0, 18.0, 18.0 ]
+	} ]
+	m_Children = [ {
+		m_ChildRef = resource:"particles/survival/skills/arcane_gyro_impact_smoke.vpcf"
+	} ]
+	m_nBehaviorVersion = 12
+	m_nFirstMultipleOverride_BackwardCompat = 6
+}

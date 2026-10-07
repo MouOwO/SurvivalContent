@@ -1,0 +1,17 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+    Survival.Tower.Coins =
+    {
+        type = "dota_src1_3d"
+        volume = 0.22
+        pitch = 1.0
+        soundlevel = 60.0
+        limiter_on = 1.0
+        limiter_match_entity = 0.0
+        limiter_event_name = "Survival.Tower.Coins"
+        limiter_max = 1.0
+        limiter_stop_oldest = false
+        vsnd_files = "sounds/ui/coins.vsnd"
+        vsnd_duration = 1.5899093
+    }
+}

@@ -158,11 +158,14 @@
     }
 
     function runtimeFor(abilityIndex) {
-        var runtime = CustomNetTables.GetTableValue("survival_ability_runtime", String(abilityIndex)) || {};
-        var summonGuard = GameUI.CustomUIConfig().SurvivalHeroSummonAvailability;
-        if (summonGuard) runtime = summonGuard(abilityIndex, runtime);
-        var queue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-        return queue && queue.Decorate ? queue.Decorate(abilityIndex, runtime) : runtime;
+        var runtime = CustomNetTables.GetTableValue(
+            "survival_ability_runtime", String(abilityIndex)
+        ) || {};
+        var guard = GameUI.CustomUIConfig().SurvivalHeroSummonAvailability;
+        runtime = guard ? guard(abilityIndex, runtime) : runtime;
+        var production = config.SurvivalProductionHUD;
+        return production && production.GetResearchRuntime
+            ? production.GetResearchRuntime(abilityIndex, selectedUnit(), runtime) : runtime;
     }
 
     function unitAbilityCount(unit) {
@@ -1160,8 +1163,6 @@
         try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
         if ((behavior & 2) !== 0) return; // PASSIVE
         var runtime = runtimeFor(entry.ability);
-        var queue = config.SurvivalLumberjackFusionQueue;
-        if (queue && queue.Cast && queue.Cast(entry.ability, Number(runtime.owner_entindex))) return;
         if (runtime.removed === 1 || runtime.available === 0) return;
         var input = config.SurvivalAbilityInput;
         if (input && input.ExecuteAbility) input.ExecuteAbility(entry.ability);
@@ -1209,9 +1210,7 @@
             if (slot.entry) activate(slot.entry);
         });
         panel.SetPanelEvent("oncontextmenu", function () {
-            if (!slot.entry) return false;
-
-            if (!/^ability_research_/.test(slot.entry.name)) return false;
+            if (!slot.entry || !/^ability_research_/.test(slot.entry.name)) return false;
             var production = config.SurvivalProductionHUD;
             return !!(production && production.ToggleResearch
                 && production.ToggleResearch(slot.entry.ability, selectedUnit()));
@@ -1256,17 +1255,6 @@
         var unavailable = runtime.removed === 1 || runtime.available === 0;
         slot.panel.SetHasClass("Passive", passive);
         slot.panel.SetHasClass("Unavailable", unavailable);
-        if (runtime.tower_auto_upgrade === 1) {
-            slot.image.style.saturation = unavailable ? "0" : "1";
-            slot.image.style.brightness = "1";
-            slot.panel.style.boxShadow = runtime.auto_upgrade_enabled === 1
-                ? "inset #a6c47caa 0px 0px 4px 2px" : "none";
-        } else {
-            var fusionDisabled = /^ability_fuse_lumberjack_\d+$/.test(entry.name) && (unavailable || runtime.can_afford === 0);
-            slot.image.style.saturation = fusionDisabled ? "0" : "1";
-            slot.image.style.brightness = fusionDisabled ? "0.5" : "1";
-            slot.panel.style.boxShadow = "none";
-        }
         slot.panel.SetHasClass("ResourceLow", runtime.can_afford === 0 && !unavailable);
         // Keep every slot enabled for hover, including passive/unavailable
         // abilities. onactivate performs the guarded rejection instead.

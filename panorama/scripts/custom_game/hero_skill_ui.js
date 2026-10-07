@@ -49,6 +49,14 @@
         var list = panel("HeroSkillChoiceList");
         clear(list);
         if (pending) rows(currentChoice.candidates).forEach(function (item) { createCandidate(list, item); });
+        if (pending && Number(currentChoice.rerolls || 0) > 0) {
+            var reroll = $.CreatePanel("Button", list, "");
+            reroll.AddClass("HeroSkillChoiceCard");
+            addLabel(reroll, "HeroSkillChoiceName", "焕天印：重抽（剩余 " + currentChoice.rerolls + " 次）");
+            reroll.SetPanelEvent("onactivate", function () {
+                GameEvents.SendCustomGameEventToServer("ui_hero_skill_choice_select", {choice_token: currentChoice.choice_token, reroll: 1});
+            });
+        }
     }
     function showResult(payload) {
         panel("HeroSkillChoiceResult").text = payload && payload.ok

@@ -5,8 +5,8 @@
  m_bShouldHitboxesFallbackToRenderBounds = false
  m_nMaxParticles = 12
  m_flConstantLifespan = 999999.0
- m_flConstantRadius = 38.0
- m_ConstantColor = [ 25, 125, 255, 255 ]
+ m_flConstantRadius = 90.0
+ m_ConstantColor = [ 255, 255, 255, 255 ]
  m_Emitters = [ {
  _class = "C_OP_InstantaneousEmitter"
  m_nParticlesToEmit = {
@@ -15,6 +15,12 @@
 }
 } ]
  m_Operators = [ {
+ _class = "C_OP_RemapCPtoVector"
+ m_nCPInput = 2
+ m_nFieldOutput = 6
+ m_vInputMax = [ 255.0, 255.0, 255.0 ]
+ m_vOutputMax = [ 1.0, 1.0, 1.0 ]
+}, {
  _class = "C_OP_MaintainSequentialPath"
  m_flNumToAssign = 12.0
  m_PathParams = {
@@ -37,7 +43,7 @@
  m_nOutputField = 7
  m_InputValue = {
  m_nType = "PF_TYPE_LITERAL"
- m_flLiteralValue = 0.8
+ m_flLiteralValue = 0.65
 }
 } ]
  m_Renderers = [ {
