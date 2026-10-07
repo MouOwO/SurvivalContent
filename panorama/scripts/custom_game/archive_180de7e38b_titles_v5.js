@@ -146,6 +146,9 @@
                 if (item.id==="peak_perfection" && layeredArt) {
                     var titleArt=$.CreatePanel("Panel",card,"");titleArt.AddClass("ArchiveTitleArt");
                     layeredArt.Create(titleArt);
+                } else if(GameUI.CustomUIConfig().SurvivalTitleSeriesArt && GameUI.CustomUIConfig().SurvivalTitleSeriesArt.Config[item.id]) {
+                    var titleArt=$.CreatePanel("Panel",card,"");titleArt.AddClass("ArchiveTitleArt");
+                    GameUI.CustomUIConfig().SurvivalTitleSeriesArt.Create(titleArt,item.id,false);
                 } else {
                     var titleArt=$.CreatePanel("Image",card,"");titleArt.AddClass("ArchiveTitleArt");
                     titleArt.SetImage(item.icon);titleArt.hittest=false;
@@ -169,7 +172,7 @@
             card.SetPanelEvent("onmouseout", hideTooltip);
             if (current === "titles") {
                 var equipped=Number(item.equipped)===1;
-                var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 点击卸下":"点击穿戴","ArchiveTitleAction");
+                var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 点击卸下":Number(item.preview_only)===1?"点击试穿":"点击穿戴","ArchiveTitleAction");
                 card.SetPanelEvent("onactivate",function() {
                     if (unlocked!==true || titleSubmitting) return;
                     if (Number(data.pending)===1 && Number(data.title_preview)!==1) {
