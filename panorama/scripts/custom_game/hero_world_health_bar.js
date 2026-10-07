@@ -13,6 +13,11 @@
         config.SurvivalWorldHealthBars.Stop();
     }
 
+    function barWidth(state) {
+        var width = Number(state && state.bar_width);
+        return width === 120 || width === 156 ? width : 62;
+    }
+
     function localTeam() {
         try {
             return Number(Players.GetTeam(Game.GetLocalPlayerID()));
@@ -131,6 +136,7 @@
         states[key] = value;
         var bar = ensurePanel(key);
         if (!bar) return;
+        bar.style.width = barWidth(value) + "px";
         var health = Math.max(0, Number(value.health) || 0);
         var maximum = Math.max(1, Number(value.max_health) || 1);
         var unitTeam = Number(value.team);
@@ -207,6 +213,11 @@
                 hide(key);
                 return;
             }
+            var width = barWidth(state);
+            var extraHalf = (width - anchor.width) / 2;
+            anchor.left -= extraHalf;
+            anchor.screen_left -= extraHalf * anchor.scale_x;
+            anchor.width = width;
             var localX = anchor.left, localY = anchor.top;
             if (!isFinite(localX) || !isFinite(localY)) {
                 hide(key);

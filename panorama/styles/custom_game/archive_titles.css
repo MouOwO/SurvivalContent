@@ -1,0 +1,72 @@
+/* Foreground world HUD: above combat visuals. Window/tooltip occlusion is handled by title_world.js. */
+#SurvivalWorldTitles { width:100%; height:100%; position:0px 0px 0px; flow-children:none; z-index:100; }
+.SurvivalWorldTitle { width:224px; height:96px; position:0px 0px 0px; }
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveCard.ArchiveTitleCard {
+    width:142px; height:154px; flow-children:down; padding:6px;
+    margin:0px 8px 8px 0px; border:1px solid #766d52;
+}
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleCard:hover { border-color:#e5bc65; brightness:1.12; }
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleCard.ArchiveTitleEquipped { border:2px solid #ebc66f; }
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleArt { width:128px; height:55px; horizontal-align:center; margin-top:24px; }
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleCard .ArchiveTitleName {
+    width:100%; height:24px; position:0px 0px 0px; margin:0px; text-align:center; font-size:18px; white-space:nowrap; text-overflow:shrink;
+}
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleAction {
+    width:128px; height:26px; horizontal-align:center; margin-top:6px;
+    text-align:center; padding-top:3px; font-size:15px; color:#f4d58f; white-space:nowrap; text-overflow:shrink;
+    border:1px solid #9b8251; background-color:#25424c;
+}
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleCard.ArchiveContentLocked .ArchiveTitleArt { saturation:0; brightness:0.4; }
+.ArchiveRoot #ArchiveWindow #ArchiveGrid .ArchiveTitleCard .ArchiveStateIcon { visibility:collapse; }
+
+/* Animated light is separate from the clean title artwork. */
+.SurvivalWorldTitle { overflow:noclip; }
+.SurvivalTitleBase { width:92%; height:90%; position:4% 10% 0px; }
+.SurvivalTitleShineMask {
+    width:92%; height:90%; position:4% 10% 0px; overflow:clip;
+    opacity-mask:url("file://{images}/custom_game/titles/peak_clean_letters.png");
+}
+.SurvivalTitleSweep {
+    width:100%; height:24px; position:0px 0px 0px; opacity:0;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#fff6cd00),color-stop(0.40,#fff4c877),color-stop(0.53,#ffffffed),to(#fff6cd00));
+}
+.SurvivalTitleStar { width:20px; height:20px; overflow:noclip; }
+.SurvivalTitleStarHorizontal {
+    width:20px; height:2px; align:center center;
+    background-color:gradient(linear,0% 0%,100% 0%,from(#ffc05200),color-stop(0.45,#fff7d6),color-stop(0.55,#ffffff),to(#ffc05200));
+    box-shadow:#ffd57066 0px 0px 5px 0px;
+}
+.SurvivalTitleStarVertical {
+    width:2px; height:20px; align:center center;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#ffc05200),color-stop(0.45,#fff7d6),color-stop(0.55,#ffffff),to(#ffc05200));
+    box-shadow:#ffe8a777 0px 0px 4px 0px;
+}
+.SurvivalTitleEmber {
+    width:3px; height:5px; background-color:#ffe5a0;
+    box-shadow:#ffb83b99 0px 0px 4px 1px; border-radius:1px;
+}
+
+/* Two registered depth planes. Only the far shoulder arch passes behind
+   the mountain; belly, claws and neck remain continuous in the foreground. */
+.SurvivalTitleMountains { width:100%; height:100%; position:0px 0px 0px; brightness:0.82; saturation:0.85; }
+.SurvivalTitleDragon { width:76%; height:118.222%; position:12% -40% 0px; transform-origin:50% 65%; }
+.SurvivalTitleDragonBack { opacity:1; }
+.SurvivalTitleDragonFront { opacity:1; opacity-mask:url("file://{images}/custom_game/titles/peak_clean_depth_front.svg"); }
+.ArchiveTitleArt { flow-children:none; overflow:noclip; }
+.ArchiveTitleArt .SurvivalTitleShineMask { visibility:collapse; }
+
+/* Rigged parts sample the unchanged original illustration; all masks share the
+   exact source canvas. Anchored pivots keep the jaw and wrist attached. */
+.SurvivalTitleDragonPiece { width:100%; height:100%; position:0px 0px 0px; }
+.SurvivalTitleDragonBody { opacity-mask:url("file://{images}/custom_game/titles/peak_clean_rig_body.svg"); }
+.SurvivalTitleDragonJaw { opacity-mask:url("file://{images}/custom_game/titles/peak_clean_rig_jaw.svg"); transform-origin:67.578125% 26.367188%; }
+.SurvivalTitleDragonClaw { opacity-mask:url("file://{images}/custom_game/titles/peak_clean_rig_claw.svg"); transform-origin:77.734375% 41.015625%; }
+.SurvivalTitleDragonMouth { opacity-mask:url("file://{images}/custom_game/titles/peak_clean_rig_mouth.svg"); background-color:gradient(linear, 68% 26%, 74% 37%, from(#391707), to(#130906)); opacity:0; }
+
+/* The feathered cheek stays on the skull while the mandible turns beneath it. */
+.SurvivalTitleDragonCheek { opacity-mask:url("file://{images}/custom_game/titles/peak_clean_rig_cheek.svg"); opacity:0; }
+/* Two low-opacity offsets soften the contact shadow without a screen-wide halo. */
+.SurvivalTitleShadowReceiver { width:100%; height:100%; position:0px 0px 0px; opacity-mask:url("file://{images}/custom_game/titles/peak_clean_mountains.png"); }
+.SurvivalTitleContactShadow { width:76%; height:118.222%; position:12% -40% 0px; transform-origin:50% 65%; opacity-mask:url("file://{images}/custom_game/titles/peak_clean_depth_front.svg"); }
+.SurvivalTitleShadowCore { width:100%; height:100%; position:1px 2px 0px; brightness:0; opacity:0.18; }
+.SurvivalTitleShadowSoft { width:100%; height:100%; position:2px 3px 0px; brightness:0; opacity:0.07; }

@@ -98,8 +98,8 @@
         if (data.category_id !== current) return;
         hideTooltip(); lastData=data; A.Observe(data);
         ["all","unlocked","locked"].forEach(function(mode){panel("ArchiveFilter_"+mode).checked=mode===filterMode;});
-        var order=["clear","shadow","points","starjoy_points","gift","fragment","pet","endless","friend","ex","beast"];
-        categories = array(data.categories).sort(function(a,b){var ai=a.id==="titles"?1000:order.indexOf(a.id),bi=b.id==="titles"?1000:order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
+        var order=["clear","shadow","points","starjoy_points","gift","titles","fragment","pet","endless","friend","ex","beast"];
+        categories = array(data.categories).sort(function(a,b){var ai=order.indexOf(a.id),bi=order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
         tabs();
         var social = data.social, socialPage = isDrawPage();
         showDrawBar();
@@ -146,9 +146,6 @@
                 if (item.id==="peak_perfection" && layeredArt) {
                     var titleArt=$.CreatePanel("Panel",card,"");titleArt.AddClass("ArchiveTitleArt");
                     layeredArt.Create(titleArt);
-                } else if(GameUI.CustomUIConfig().SurvivalTitleSeriesArt && GameUI.CustomUIConfig().SurvivalTitleSeriesArt.Config[item.id]) {
-                    var titleArt=$.CreatePanel("Panel",card,"");titleArt.AddClass("ArchiveTitleArt");
-                    GameUI.CustomUIConfig().SurvivalTitleSeriesArt.Create(titleArt,item.id,false);
                 } else {
                     var titleArt=$.CreatePanel("Image",card,"");titleArt.AddClass("ArchiveTitleArt");
                     titleArt.SetImage(item.icon);titleArt.hittest=false;
@@ -172,7 +169,7 @@
             card.SetPanelEvent("onmouseout", hideTooltip);
             if (current === "titles") {
                 var equipped=Number(item.equipped)===1;
-                var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 卸下":Number(item.preview_only)===1?"点击试穿":"点击穿戴","ArchiveTitleAction");
+                var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 点击卸下":"点击穿戴","ArchiveTitleAction");
                 card.SetPanelEvent("onactivate",function() {
                     if (unlocked!==true || titleSubmitting) return;
                     if (Number(data.pending)===1 && Number(data.title_preview)!==1) {
