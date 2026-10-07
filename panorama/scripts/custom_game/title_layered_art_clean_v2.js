@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     "use strict";
     var PATH="file://{images}/custom_game/titles/peak_clean_";
     function image(parent,cls,file) {
