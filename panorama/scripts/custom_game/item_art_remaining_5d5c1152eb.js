@@ -52,6 +52,8 @@
         return old[0]==='shop'?shop[old[1]]:old[0]==='swords'?swords[Math.floor(old[1]/5)]:challenges[old[1]];
     }
     function create(parent,item,className){
+        var native=cfg.SurvivalNativeIcons;
+        if(native){var icon=native.Create(parent,item,className);if(icon)return icon;}
         var keys=item?[item.content_id,item.item_id,item.id,item.entry_id,item.shop_entry_id,item.icon]:[];
         var nativeKey=null;
         for(var n=0;n<keys.length&&!nativeKey;n++)nativeKey=nativeArt(keys[n]);

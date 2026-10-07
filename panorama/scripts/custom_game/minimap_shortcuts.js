@@ -47,7 +47,7 @@
     }
     var actions = [
         { id: "SurvivalSelectBuilderShortcut", key: "空格", api: "SurvivalBuilderSelection", can: "CanSelect", run: "Select", hero: "npc_dota_hero_ogre_magi" },
-        { id: "SurvivalReturnHomeShortcut", key: "F2", api: "SurvivalReturnHomeInput", can: "CanRequest", run: "Request", image: "file://{images}/spellicons/survival/native/skill_return.png" }
+        { id: "SurvivalReturnHomeShortcut", key: "F2", api: "SurvivalReturnHomeInput", can: "CanRequest", run: "Request", image: "file://{images}/spellicons/furion_teleportation.png" }
     ];
     function canActivate(action) {
         if (!ready || !valid(panel) || panel.visible === false) return false;

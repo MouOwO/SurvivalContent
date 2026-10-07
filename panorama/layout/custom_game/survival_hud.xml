@@ -17,10 +17,10 @@
         <include src="file://{resources}/styles/custom_game/production_progress.css" />
         <include src="file://{resources}/styles/custom_game/minimap_shortcuts.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
-    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /></styles>
+    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/></styles>
     <scripts><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" />
-        <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
+        <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/native_ui_icons.js"/><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
         <include src="file://{resources}/scripts/custom_game/lumberjack_fusion_queue.js" />
         <include src="file://{resources}/scripts/custom_game/world_overlay_visibility.js" />
@@ -51,7 +51,7 @@
         <include src="file://{resources}/scripts/custom_game/production_progress.js" />
         <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
         <include src="file://{resources}/scripts/custom_game/topnav_remaining_5d5c1152eb.js" />
-    <include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/></scripts>
+    <include src="file://{resources}/scripts/custom_game/common/commerce_art_manifest.js"/><include src="file://{resources}/scripts/custom_game/common/commerce_components.js"/><include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/></scripts>
     <Panel class="SurvivalHUDRoot Theme_Native UnifiedWindowsV4 HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated" hittest="false">
         <!-- The top navigation treasure icon must compile with the HUD as well as the archive window. -->
         <Image id="HandoffTreasureIconPreload" src="file://{images}/custom_game/handoff_v1/top/treasure_64.png" style="visibility: collapse;" hittest="false" />
@@ -153,7 +153,7 @@
             <Label id="LotteryTicketValue" text="抽奖券 —" hittest="false" />
             <Button id="LotteryTicketPurchase" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Feature('purchase')"><Panel class="LHPlus" hittest="false" /></Button>
         </Panel>
-        <Button id="LotteryCloseButton" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Close()"><Panel class="LHClose" hittest="false" /></Button>
+        <Button id="LotteryCloseButton" hittest="true" hittestchildren="false" onactivate="GameUI.CustomUIConfig().SurvivalLottery.Close()"><Label class="LHCloseGlyph" text="×" hittest="false" /></Button>
     </Panel>
     <Panel id="LotteryPoolTabs" class="LHControls" />
     <Panel id="LotteryHeroCopy" class="LHControls">

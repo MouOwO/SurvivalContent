@@ -418,10 +418,10 @@
                 // DOTAItemImage renders its texture internally. background-size
                 // on its wrapper does not resize that texture. Use a real Image
                 // inside the same visual layer, below native cooldown overlays.
-                var art=cfg.SurvivalItemArt;
-                var resolved=art&&art.ResolveOriginal&&(
-                    identity&&identity.removed!==1&&art.ResolveOriginal(identity.content_id)
-                    ||art.ResolveOriginal(name));
+                var art=cfg.SurvivalNativeIcons;
+                var resolved=art&&(
+                    identity&&identity.removed!==1&&art.Resolve(identity.content_id)
+                    ||art.Resolve(name));
                 var fitted=imageHost.FindChildTraverse("SurvivalInventoryFittedIcon");
                 if(resolved&&!valid(fitted)){
                     fitted=$.CreatePanel("Image",imageHost,"SurvivalInventoryFittedIcon");
@@ -432,7 +432,7 @@
                 if(valid(fitted)){
                     fitted.visible=!!resolved;
                     if(resolved){
-                        var uri="file://{images}/items/survival_shop_v2/"+resolved[0]+"_"+("0"+resolved[1]).slice(-2)+".png";
+                        var uri=resolved.uri;
                         if(fitted.__survivalImageUri!==uri){fitted.SetImage(uri);fitted.__survivalImageUri=uri;}
                     }
                 }
@@ -453,8 +453,8 @@
         place(mini,2,2,size,size);style(mini,{transform:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none"});
         place(live,0,0,size,size);style(live,{transform:"none"});
         // Keep the live map and its native input; hide only stock skin/side controls.
-        ["HUDSkinMinimap","GlyphScanContainer","RoshanTimerContainer","TormentorTimerContainer"].forEach(function(id){
-            var p=map.FindChildTraverse(id);if(!valid(p))return;
+        ["HUDSkinMinimap","GlyphScanContainer","HUDSkinFXGlyph","RadarButton","glyph","RoshanTimerContainer","TormentorTimerContainer"].forEach(function(id){
+            var p=native(id);if(!valid(p))return;
             style(p,{visibility:"collapse",opacity:"0"});p.hittest=false;p.hittestchildren=false;
         });
     }

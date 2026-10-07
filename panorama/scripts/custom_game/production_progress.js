@@ -141,9 +141,11 @@
         return name.replace(/\s*LV\.?\s*\d+$/i, "") + "LV" + Number(job && job.level || 1);
     }
     function workerIcon(job) {
-        var level = Math.max(1, Math.min(8, Number(job && job.level || 1)));
-        var id = String(job && job.training_id || ("train_lumberjack_0" + level));
-        return "file://{images}/spellicons/survival/native/" + id + ".png";
+        var id = String(job && job.training_id || "");
+        var name = id.indexOf("repairer") >= 0
+            ? (id.indexOf("advanced") >= 0 ? "omniknight_purification" : "treant_living_armor")
+            : "furion_force_of_nature";
+        return "file://{images}/spellicons/" + name + ".png";
     }
     var currentWorkerIcon = create("Image", panel, "ProductionCurrentWorkerIcon", "ProductionCurrentIcon");
     var currentIcon = create("DOTAAbilityImage", panel, "ProductionCurrentIcon", "ProductionCurrentIcon");

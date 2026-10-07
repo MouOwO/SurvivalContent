@@ -434,12 +434,12 @@
 
     function propertyIcon(label) {
         var icons = {
-            "生命": { type: "image", name: "file://{images}/spellicons/survival/native/vitality_booster.png" },
-            "护甲": { type: "image", name: "file://{images}/spellicons/survival/native/platemail.png" },
-            "攻击提升": { type: "image", name: "file://{images}/spellicons/survival/native/broadsword.png" },
-            "攻击速度": { type: "image", name: "file://{images}/spellicons/survival/native/gloves.png" },
+            "生命": { type: "image", name: "file://{images}/items/vitality_booster.png" },
+            "护甲": { type: "image", name: "file://{images}/items/platemail.png" },
+            "攻击提升": { type: "image", name: "file://{images}/items/broadsword.png" },
+            "攻击速度": { type: "image", name: "file://{images}/items/gloves.png" },
             "人口上限": { type: "ability", name: "ability_train_population" },
-            "每秒金币": { type: "image", name: "file://{images}/spellicons/survival/native/hand_of_midas.png" },
+            "每秒金币": { type: "image", name: "file://{images}/items/hand_of_midas.png" },
             "效率": { type: "ability", name: "ability_upgrade_gold_mine_efficiency" },
             "暴击率": { type: "ability", name: "ability_upgrade_gold_mine_crit" },
             "暴击倍率": { type: "ability", name: "ability_upgrade_gold_mine_crit" }

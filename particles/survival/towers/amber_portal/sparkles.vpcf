@@ -6,7 +6,7 @@
  m_Renderers = [
 		{
 			_class = "C_OP_RenderSprites"
-			m_flOverbrightFactor = 10.0
+			m_flOverbrightFactor = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 10.000 }
 			m_vecTexturesInput = 
 			[
 				{
@@ -16,14 +16,15 @@
 			m_nOutputBlendMode = "PARTICLE_OUTPUT_BLEND_MODE_ADD"
 		},
 	]
- m_Initializers = [{ _class = "C_INIT_RingWave" m_flInitialRadius = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.000 } },
-{ _class = "C_INIT_PositionOffset" m_OffsetMin = [0.0,0.0,12.0] m_OffsetMax = [0.0,0.0,12.0] },
+ m_Initializers = [{ _class = "C_INIT_RingWave" m_TransformInput = { m_nType = "PT_TYPE_CONTROL_POINT" m_nControlPoint = 0 m_bUseOrientation = false } m_flPitch = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 0.000 } m_flInitialRadius = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.000 } },
+{ _class = "C_INIT_PositionOffset" m_OffsetMin = { m_nType = "PVEC_TYPE_LITERAL" m_vLiteralValue = [0.0,0.0,12.0] } m_OffsetMax = { m_nType = "PVEC_TYPE_LITERAL" m_vLiteralValue = [0.0,0.0,12.0] } },
 { _class = "C_INIT_InitFloat" m_nOutputField = 1 m_InputValue = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.200 } },
 { _class = "C_INIT_InitFloat" m_nOutputField = 3 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.035 } }]
  m_Operators = [{ _class = "C_OP_PositionLock" },
+{ _class = "C_OP_BasicMovement" },
 { _class = "C_OP_RemapCPtoVector" m_nCPInput = 2 m_nFieldOutput = 6 m_vInputMax = [255.0,255.0,255.0] m_vOutputMax = [1.0,1.0,1.0] },
-{ _class = "C_OP_SetFloat" m_nOutputField = 3 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.035 } },
-{ _class = "C_OP_SetFloat" m_nOutputField = 7 m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 2 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.7 } },
+{ _class = "C_OP_SetFloat" m_nOutputField = 3 m_nSetMethod = "PARTICLE_SET_REPLACE_VALUE" m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.035 } },
+{ _class = "C_OP_SetFloat" m_nOutputField = 7 m_nSetMethod = "PARTICLE_SET_REPLACE_VALUE" m_InputValue = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 1 m_nVectorComponent = 2 m_nMapType = "PF_MAP_TYPE_MULT" m_flMultFactor = 0.7 } },
 { _class = "C_OP_FadeInSimple" m_flFadeInTime = 0.1 },
 { _class = "C_OP_FadeOutSimple" m_flFadeOutTime = 0.4 },
 { _class = "C_OP_Decay" },

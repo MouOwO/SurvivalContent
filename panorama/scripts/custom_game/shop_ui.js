@@ -222,6 +222,8 @@
     }
 
     function createEntryIcon(parent, entry, className) {
+        var native = GameUI.CustomUIConfig().SurvivalNativeIcons;
+        if (native && native.Create(parent, entry, className)) return;
         var panel;
         if (entry.icon_type === "ability") {
             panel = $.CreatePanel("DOTAAbilityImage", parent, "");

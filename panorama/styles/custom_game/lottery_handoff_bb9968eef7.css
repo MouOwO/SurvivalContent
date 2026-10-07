@@ -17,12 +17,13 @@
 #LotteryMainCanvas #LotteryPoolTabs .LotteryTabMark { visibility:collapse; }
 #LotteryMainCanvas .LHTabGlow { width:155px;height:46px;position:0px 54px 0px;background-image:url("file://{images}/custom_game/lottery_handoff_v1/tab_glow.png");background-size:100% 100%;visibility:collapse; }
 #LotteryMainCanvas .Selected .LHTabGlow { visibility:visible; }
-#LotteryMainCanvas #LotteryWallet { position:1308px 26px 0px;width:260px;height:44px;padding:0px;margin:0px;flow-children:none;vertical-align:top;background-color:#193949dd;border:0px;border-radius:8px; }
+#LotteryMainCanvas #LotteryWallet { position:0px 0px 0px;width:260px;height:44px;padding:0px;margin:26px 88px 0px 0px;flow-children:none;align:right top;background-color:#193949dd;border:0px;border-radius:8px; }
 #LotteryMainCanvas .LHTicket { position:1px -1px 0px;width:53px;height:47px;background-image:url("file://{images}/custom_game/lottery_handoff_v1/ticket_illustrated.png");background-size:contain;opacity-mask:url("file://{images}/custom_game/lottery_handoff_v1/ticket_silhouette.svg"); }
 #LotteryMainCanvas #LotteryTicketValue { position:55px 6px 0px;width:165px;height:36px;font-size:20px;text-overflow:shrink; }
 #LotteryMainCanvas #LotteryTicketPurchase { position:220px 2px 0px;width:32px;height:39px; }
 #LotteryMainCanvas .LHPlus { width:100%;height:100%;background-image:url("file://{images}/custom_game/lottery_handoff_v1/currency_plus_normal.png");background-size:100% 100%; }
-#LotteryMainCanvas #LotteryCloseButton { position:1602px 28px 0px;width:38px;height:38px;align:left top;margin:0px; }
+#LotteryMainCanvas #LotteryCloseButton { position:0px 0px 0px;width:48px;height:48px;align:right top;ignore-parent-flow:true;margin:22px 22px 0px 0px;z-index:20;background-color:#122d3aee;border:1px solid #cfbb86; }
+#LotteryMainCanvas #LotteryCloseButton .LHCloseGlyph { visibility:visible;align:center center;width:100%;height:100%;text-align:center;font-size:40px;line-height:44px;color:#f0e7d0; }
 #LotteryMainCanvas .LHClose { width:100%;height:100%;background-image:url("file://{images}/custom_game/lottery_handoff_v1/close_normal.png");background-size:100% 100%; }
 #LotteryMainCanvas #LotteryHeroCopy { position:202px 230px 0px;width:690px;height:330px;margin:0px;flow-children:none; }
 #LotteryMainCanvas #LotteryAnnouncement { position:8px 0px 0px;height:38px;padding:0px;background-color:transparent; }
