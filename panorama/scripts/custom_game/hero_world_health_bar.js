@@ -5,6 +5,7 @@
     var PREFIX = "unit_";
     var panels = {};
     var states = {};
+    var seenEntities = {};
     var container = $("#SurvivalHeroWorldHealthBars");
     var config = GameUI.CustomUIConfig(), context = $.GetContextPanel();
     var frame = null, listener = null, stopped = false;
@@ -47,7 +48,7 @@
 
     function hide(key) {
         var bar = panels[key];
-        if (validPanel(bar)) bar.style.visibility = "collapse";
+        if (validPanel(bar) && bar.style.visibility !== "collapse") bar.style.visibility = "collapse";
     }
 
     function removePanel(key) {
@@ -63,6 +64,7 @@
         if (listener !== null) CustomNetTables.UnsubscribeNetTableListener(listener);
         Object.keys(panels).forEach(removePanel);
         states = {};
+        seenEntities = {};
     }
 
     function predictedLoss(forecasts, now) {
@@ -122,6 +124,7 @@
     function applyState(key, value) {
         if (!value || Number(value.removed) === 1) {
             delete states[key];
+            delete seenEntities[key];
             removePanel(key);
             return;
         }
@@ -161,14 +164,27 @@
         if (!validPanel(container)) return;
         var visibility=config.SurvivalWorldOverlayVisibility;
         var occlusion=visibility?visibility.Capture():null;
+        var helper = config.SurvivalWorldHealthBarAnchor;
+        var geometry = helper && helper.Capture ? helper.Capture(container) : null;
         Object.keys(states).forEach(function (key) {
             try {
             var state = states[key];
+            // Dead snapshots can outlive their corpse. They need no native
+            // origin/projection calls until a fresh alive packet arrives.
+            if (Number(state.alive) !== 1) { hide(key); return; }
             var entindex = Number(state.entindex);
             if (!isFinite(entindex) || entindex < 0 || !Entities.IsValidEntity(entindex)) {
+                // Net tables can arrive before the client's spawn replication.
+                // Prune only handles that were actually seen and disappeared;
+                // pending first spawns must retain their stable full-HP packet.
+                if (seenEntities[key] !== undefined || !isFinite(entindex) || entindex < 0) {
+                    delete states[key];
+                    delete seenEntities[key];
+                }
                 removePanel(key);
                 return;
             }
+            seenEntities[key] = entindex;
             var bar = ensurePanel(key);
             // A net-table update may arrive before XML creates the container.
             // Restore the saved health when the first drawable panel is made.
@@ -186,8 +202,7 @@
                 hide(key);
                 return;
             }
-            var helper = config.SurvivalWorldHealthBarAnchor;
-            var anchor = helper && helper.Project(entindex, origin, container);
+            var anchor = helper && helper.Project(entindex, origin, container, geometry);
             if (!anchor) {
                 hide(key);
                 return;
@@ -203,9 +218,10 @@
             }
             if (bar.__forecasts && bar.__forecasts.length) renderHealth(bar, state);
             bar.__healthAnchor = anchor;
-            bar.style.position = localX.toFixed(2) + "px "
+            var position = localX.toFixed(2) + "px "
                 + localY.toFixed(2) + "px 0px";
-            bar.style.visibility = "visible";
+            if (bar.style.position !== position) bar.style.position = position;
+            if (bar.style.visibility !== "visible") bar.style.visibility = "visible";
             } catch (error) {
                 hide(key);
             }

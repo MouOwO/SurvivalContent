@@ -113,7 +113,9 @@
         },
         Close:function(){if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);timer=null;},
         CloseButton:function(button,action){
-            button.hittestchildren=false;button.SetPanelEvent("onactivate",action);
+            button.RemoveAndDeleteChildren();
+            var glyph=$.CreatePanel("Label",button,"");glyph.AddClass("LHCloseGlyph");glyph.text="×";glyph.hittest=false;
+            button.enabled=true;button.hittest=true;button.hittestchildren=false;button.SetPanelEvent("onactivate",action);
         },
         Tab:function(button,pool,hostId){
             if(hostId==="LotteryInfoTabs")return;

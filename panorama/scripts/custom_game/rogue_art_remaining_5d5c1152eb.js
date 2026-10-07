@@ -10,7 +10,8 @@
         var source=make('Panel',clip,'RogueFrameSource');rect(source,-x,-y,290,672);source.style.backgroundImage='url("'+base+'")';source.style.backgroundSize='100% 100%';source.style.backgroundPosition='0px 0px';source.style.backgroundRepeat='no-repeat';
     }
     cfg.SurvivalRogueArt={Apply:function(front,data){
-        var entry=entries[String(data.card_id)];if(!entry)return false;
+        var native=cfg.SurvivalNativeIcons&&cfg.SurvivalNativeIcons.Resolve(data.card_id);
+        var entry=native||entries[String(data.card_id)];if(!entry)return false;
         front.style.backgroundImage='none';front.style.backgroundColor='transparent';
         var skin=make('Panel',front,'RogueArtSkin');rect(skin,0,0,290,672);
         // Layer 1: complete parchment base; explicit background sizing avoids Image native-size cropping.
@@ -21,7 +22,7 @@
         framePart(skin,0,0,290,38);framePart(skin,0,38,14,376);
         framePart(skin,276,38,14,376);framePart(skin,0,414,290,258);
         // Layer 2: illustration only, confined above the text compartment.
-        var art=make('Image',front,'RogueOptionIllustration');rect(art,29,50,232,348);art.style.zIndex='1';
+        var art=make('Image',front,'RogueOptionIllustration');rect(art,29,native?108:50,232,native?232:348);art.style.zIndex='1';
         art.SetImage(entry.uri);art.SetScaling('stretch-to-fit-preserve-aspect');
         return true;
     }};

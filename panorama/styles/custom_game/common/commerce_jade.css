@@ -1,0 +1,63 @@
+/* Shared geometry: 1920x1080 stage / 1600x920 modal / 296x348 product. */
+@define CJText: #244554;
+@define CJPriceText: #426269;
+.CommerceJade {flow-children:none;padding:0px;overflow:noclip;}
+.CommerceJade Label {font-family:"Source Han Sans SC";color:CJText;text-shadow:none;letter-spacing:0px;}
+.CJBackdrop {background-color:#102c3ac4;}
+.CommerceJade .RCHeader {padding:0px;border:0px;z-index:3;}
+.CommerceJade .RCTitle {font-family:"Source Han Serif SC";font-size:48px;font-weight:bold;letter-spacing:8px;text-align:center;vertical-align:top;horizontal-align:left;z-index:2;}
+.CJHeaderArt {z-index:0;}.CJTitleLeft,.CJTitleRight {z-index:1;}.CJTitleRight {transform:scaleX(-1);}
+.CJWindowBase {z-index:0;}.CJSidebarArt {z-index:1;}.CJHeaderMist {z-index:4;}.CJSidebarSeam {z-index:2;}.CJFrame {z-index:20;}
+.CommerceJade .CJClose {background-image:none;background-color:transparent;border:0px;box-shadow:none;z-index:4;padding:0px;margin:0px;}
+.CJCloseArt {opacity:0;}.CJClose_normal {opacity:1;}
+.CJClose:hover .CJClose_hover {opacity:1;}.CJClose:active .CJClose_pressed {opacity:1;}
+.CommerceJade .RCTabs {position:0px 128px 0px;width:320px;height:768px;flow-children:none;overflow:noclip;z-index:3;}
+.CommerceJade .CJNav {margin:0px;padding:0px;flow-children:none;border:0px;overflow:noclip;background-color:transparent;background-size:100% 100%;background-image:url("file://{images}/custom_game/commerce_jade_v1/nav_normal.png");}
+.CommerceJade .CJNav:hover {background-image:url("file://{images}/custom_game/commerce_jade_v1/nav_hover.png");}
+.CommerceJade .CJNav.UISelected {background-image:url("file://{images}/custom_game/commerce_jade_v1/nav_selected.png");border:0px;}
+.CommerceJade .CJNav .RCTabText {font-family:"Source Han Serif SC";font-size:24px;color:#eeeedf;text-align:left;horizontal-align:left;vertical-align:top;z-index:3;text-overflow:shrink;white-space:nowrap;}
+.CommerceJade .CJNav.UISelected .RCTabText {color:CJText;}
+.CJNavIcon {z-index:2;}.CJNavIconSelected {opacity:0;}.UISelected .CJNavIconNormal {opacity:0;}.UISelected .CJNavIconSelected {opacity:1;}
+.CJNavGlow {opacity:0;z-index:0;}.CJNavLine {opacity:0;z-index:1;}.UISelected .CJNavGlow,.UISelected .CJNavLine {opacity:1;}
+.CommerceJade .RCNotice {position:346px 121px 0px;width:760px;height:38px;font-size:18px;color:#627e82;text-overflow:shrink;white-space:nowrap;z-index:4;}
+.CommerceJade .CJEmpty {position:0px 42px 0px;width:1232px;height:60px;font-size:23px;text-align:center;color:#627e82;}
+.CommerceJade .RCGrid,.CommerceJade .RCGrid.RCBundles {position:344px 174px 0px;width:1232px;height:714px;flow-children:none;overflow:noclip;z-index:5;}
+.CommerceJade .CJProduct {width:296px;height:348px;margin:0px;padding:0px;flow-children:none;overflow:noclip;box-shadow:none;background-image:none;background-color:transparent;border:0px;transition-property:transform;transition-duration:.18s;}
+.CommerceJade .CJProduct:hover,.CommerceJade .CJProduct.CJVisualHover {transform:translateY(-2px);z-index:6;}
+.CJCardShadow {z-index:-3;opacity:.62;}.CJCardHalo {z-index:-2;opacity:0;}
+.CJCardBase {z-index:0;}.CJCardHover {z-index:1;opacity:0;}
+.CJProduct:hover .CJCardHalo,.CJProduct:hover .CJCardHover,.CJProduct.CJVisualHover .CJCardHalo,.CJProduct.CJVisualHover .CJCardHover {opacity:1;}
+.CJArtWell {z-index:2;overflow:noclip;}.CJWellTexture {z-index:0;}
+.CommerceJade .RCProductArt {z-index:2;horizontal-align:left;vertical-align:top;transition-property:transform;transition-duration:.18s;}
+.CJItemShadow {z-index:1;opacity:.55;transition-property:transform;transition-duration:.18s;}
+.CJProduct:hover .RCProductArt,.CJProduct:hover .CJItemShadow,.CJProduct.CJVisualHover .RCProductArt,.CJProduct.CJVisualHover .CJItemShadow {transform:translateY(-3px) scale3d(1.035,1.035,1);}
+.CommerceJade .RCProductHover {flow-children:none;z-index:3;opacity:0;visibility:collapse;transition-property:opacity;transition-duration:.18s;}
+.CommerceJade .CJProduct:hover .RCProductHover,.CommerceJade .CJProduct.CJVisualHover .RCProductHover {visibility:visible;opacity:1;}
+.CJHoverShade {z-index:0;}
+.CommerceJade .RCProductEffect {font-size:17px;text-align:center;white-space:normal;text-overflow:shrink;overflow:clip;color:#fbf7e8;z-index:1;padding:0px;text-shadow:0px 1px 3px 1.0 #112e38;}
+.CommerceJade .RCProductEffect.CJLongEffect {font-size:16px;text-overflow:clip;overflow:squish scroll;text-align:left;padding:5px 6px;background-color:transparent;}
+.CommerceJade .RCProductName {font-family:"Source Han Serif SC";font-size:24px;font-weight:normal;letter-spacing:.2px;color:#214551;white-space:nowrap;text-overflow:shrink;overflow:clip;text-align:center;z-index:3;margin:0px;}
+.CJNameRegion {z-index:3;overflow:clip;}
+.CJPrice {background-image:url("file://{images}/custom_game/commerce_jade_v1/price_strip.png");background-size:100% 100%;z-index:3;flow-children:none;}
+.CJPriceRow {align:center center;flow-children:right;max-width:100%;height:38px;}
+.CJPriceIcon {width:26px;height:26px;vertical-align:center;margin-right:8px;}
+.CommerceJade .CJPriceValue {font-size:21px;color:CJPriceText;vertical-align:center;white-space:nowrap;text-overflow:shrink;max-width:230px;}
+.CommerceJade .CJYuanIcon {width:26px;height:28px;font-size:23px;text-align:center;color:#a27f45;vertical-align:center;margin-right:8px;}
+.CommerceJade .CJBuy {background-image:url("file://{images}/custom_game/commerce_jade_v1/buy_button.png");background-size:100% 100%;background-color:transparent;border:0px;flow-children:none;padding:0px;transition-property:brightness;transition-duration:.1s;z-index:2;}
+.CommerceJade .CJBuy:hover {background-image:url("file://{images}/custom_game/commerce_jade_v1/buy_button_hover.png");}
+.CommerceJade .CJBuy:active {background-image:url("file://{images}/custom_game/commerce_jade_v1/buy_button_pressed.png");}
+.CommerceJade .CJBuy Label {align:center center;margin:0px;padding:0px;font-family:"Source Han Serif SC";font-size:20px;color:#fff9e7;text-align:center;text-overflow:shrink;max-width:180px;}
+.CommerceJade .RCStockState {background-color:#244d52c4;color:#f7efdc;font-size:16px;text-align:center;z-index:4;}
+.CommerceJade .CJBundle {width:608px;height:348px;margin:0px;padding:0px;border:1px solid #b1beb7;border-radius:7px;background-color:#f1f3eaf5;background-image:none;flow-children:none;}
+.CommerceJade .RCBundleContents {flow-children:right-wrap;overflow:squish scroll;}
+.CommerceJade .RCBundleItem {width:262px;height:94px;flow-children:none;margin:0px 12px 8px 0px;background-color:#dce6dd42;border-bottom:1px solid #d0d9cf;}
+.CommerceJade .RCBundleArt {position:8px 5px 0px;width:80px;height:80px;horizontal-align:left;}
+.CommerceJade .RCBundleName {position:98px 12px 0px;width:154px;height:42px;font-size:18px;white-space:normal;text-overflow:shrink;text-align:left;}
+.CommerceJade .RCBundleQuantity {position:98px 57px 0px;width:160px;height:28px;horizontal-align:left;font-size:19px;color:CJPriceText;}
+.CommerceJade .CJPager {position:1240px 892px 0px;width:328px;height:28px;flow-children:right;z-index:6;}
+.CommerceJade .CJPageAction {width:76px;height:28px;border:0px;background-color:transparent;}
+.CommerceJade .CJPageAction:hover {background-color:#d3dfd2;}
+.CommerceJade .CJPageAction Label {align:center center;font-size:17px;}
+.CommerceJade .CJPageLabel {width:158px;height:28px;text-align:center;font-size:16px;vertical-align:center;}
+.CommerceJade VerticalScrollBar {width:6px;background-color:#dae4d7;}
+.CommerceJade VerticalScrollBar .ScrollThumb {background-color:#93ada6;min-height:24px;}
