@@ -7,6 +7,7 @@
     var contextShutdown = false;
     var scheduledJobs = [];
     var combatSubscriptions = [];
+    var clientCallbackProbe = null;
     var previousHotkeyController = customConfig.SurvivalAbilityHotkeys;
     if (previousHotkeyController && previousHotkeyController.Shutdown) {
         try { previousHotkeyController.Shutdown("replacement_context"); } catch (error) {}
@@ -106,6 +107,11 @@
     var activePortraitKey = "";
     var activePortraitEntity = -1;
     var activePortraitScene = null;
+    // Visibility/selection ownership can change while the same Scene keeps its
+    // loaded unit. Hiding it must not reload that unit on the next selection.
+    var loadedPortraitKey = "";
+    var loadedPortraitScene = null;
+    var portraitSceneProbe = null;
     var portraitAnchorDiagnostic = "";
     var portraitGeometrySignature = "";
     var portraitGeometryDiagnosticSignature = "";
@@ -167,7 +173,7 @@
         ability_survival_pickup_materials: 30
     };
     var builderHotkeysBySlotOrder = {
-        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A", 7: "G"
+        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "C", 7: "G"
     };
 
     var officialAbilityMappings = [];
@@ -377,6 +383,10 @@
 
     function towerPortraitScenePanel() {
         if (validPortraitPanel(towerPortraitScene)) return towerPortraitScene;
+        if (loadedPortraitScene === towerPortraitScene) {
+            loadedPortraitKey = "";
+            loadedPortraitScene = null;
+        }
         var overlay = towerPortraitOverlayPanel();
         var candidate = overlay && overlay.FindChildTraverse
             ? overlay.FindChildTraverse("SurvivalTowerPortraitScene") : null;
@@ -468,8 +478,9 @@
         } catch (error) {}
     }
 
-    function clearLegacyPortraitLeafOpacity() {
-        var current = officialPortraitPanel();
+    function clearLegacyPortraitLeafOpacity(current) {
+        // Reuse only within this synchronous restore; never cache a missing leaf.
+        if (arguments.length === 0) current = officialPortraitPanel();
         if (!current || current.__survivalPortraitDimmed === true) return;
         // The former global path could also leave the visual leaf at 0.01 after
         // Valve rebuilt PortraitGroup. Clear that exact stale value as well.
@@ -521,7 +532,7 @@
         var current = officialPortraitPanel();
         if (current) restoreNativePortraitEntry({ panel: current });
         clearLegacyPortraitGroupOpacity();
-        clearLegacyPortraitLeafOpacity();
+        clearLegacyPortraitLeafOpacity(current);
     }
 
     function restoreNativePortraitsExcept(anchor) {
@@ -640,6 +651,7 @@
         if (!isFinite(unit) || unit < 0) return false;
         try {
         var unitName = String(Entities.GetUnitName(unit) || "");
+        if (unitName === "npc_survival_builder_proxy") return true;
         if (unitName === "building_arrow_tower") {
             return true;
         }
@@ -810,11 +822,14 @@
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
+        var isBuilderPortrait = modelAssetId === "builder_io_benevolent_companion"
+            && portraitUnit === "npc_dota_hero_wisp"
+            && String(Entities.GetUnitName(Number(displayUnit())) || "") === "npc_survival_builder_proxy";
         var isTowerPortrait = /^(tower_|monster_boss_|monster_wave_|monster_archive_|hero_permanent_hero_(blademaster|doom)$|challenge_monster_(beastmaster_legacy|morphling|ember_searing_path|primal_beast_svarog|spectre_phantom_advent|terrorblade_fractal_horns)$)/
             .test(modelAssetId)
             && /^npc_dota_hero_/.test(portraitUnit);
         if (!snapshot || Number(snapshot.entindex) !== Number(displayUnit())
-            || !isTowerPortrait) {
+            || !(isTowerPortrait || isBuilderPortrait)) {
             hideCosmeticPortrait("unsupported_portrait");
             return false;
         }
@@ -842,16 +857,21 @@
         }
         setPortraitAnchorDiagnostic("ready:" + String(anchor.id || "anonymous"));
         var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
-        if (activePortraitKey !== portraitKey || activePortraitScene !== scene) {
+        if (loadedPortraitKey !== portraitKey || loadedPortraitScene !== scene) {
             try {
+                if (portraitSceneProbe && portraitSceneProbe.enabled) portraitSceneProbe.setUnitCalls += 1;
                 var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
                 if (setUnitResult === false) throw new Error("SetUnit returned false");
             } catch (error) {
+                loadedPortraitKey = "";
+                loadedPortraitScene = null;
                 $.Warning("[SURVIVAL_PORTRAIT] SCENE_FAILED unit=" + portraitUnit
                     + " asset=" + modelAssetId);
                 hideCosmeticPortrait("scene_failed");
                 return false;
             }
+            loadedPortraitKey = portraitKey;
+            loadedPortraitScene = scene;
             $.Msg("[SURVIVAL_PORTRAIT] SCENE_SET unit=", portraitUnit,
                 " asset=", modelAssetId, " item_def=", portraitItemDef,
                 " scene_rect=", formatPortraitRect(portraitRect(scene)));
@@ -1368,6 +1388,8 @@
         }).map(function (key) { return value[key]; });
     }
 
+    var combatTechnologyList = null;
+    var combatTechnologySignature = null;
     function renderCombatDebug(snapshot) {
         if (!snapshot) return;
         setText("HeroCombatTotalDamage", formatNumber(snapshot.total_damage));
@@ -1401,17 +1423,22 @@
                 heroSummary.push("攻击减甲 -"
                     + formatNumber(heroStats.armor_reduction_per_attack));
             }
-            if (heroSummary.length > 0) {
-                var summary = panel("HeroCombatTechnologySummary");
-                if (summary) summary.text = heroSummary.join(" · ");
-            }
-            var emptySummary = panel("HeroCombatTechnologySummary");
-            if (emptySummary && heroSummary.length === 0) emptySummary.text = "";
         }
+        setText("HeroCombatTechnologySummary", heroStats ? heroSummary.join(" · ") : "");
         var list = panel("HeroTechnologyList");
         if (!list) return;
-        list.RemoveAndDeleteChildren();
         var technologies = asArray(snapshot.technologies);
+        // Combat counters change on every hit; the technology rows do not.
+        // Keep the native panels until their displayed contents or owner change.
+        var signature = JSON.stringify(technologies.map(function (technology) {
+            return [String(technology.name || technology.group || "科技"),
+                String(technology.level || 0), String(technology.effect || "已激活")];
+        }));
+        if (list === combatTechnologyList && signature === combatTechnologySignature
+            && list.GetChildCount() === (technologies.length || 1)) return;
+        combatTechnologyList = list;
+        combatTechnologySignature = signature;
+        list.RemoveAndDeleteChildren();
         if (technologies.length === 0) {
             var empty = $.CreatePanel("Label", list, "HeroTechnologyEmpty");
             empty.text = "暂无已激活科技";
@@ -1620,10 +1647,7 @@
 
     function refreshHeroVitalsTick() {
         refreshHeroVitals(displayUnit());
-        var unit = selectedUnit();
-        refreshOfficialUtilityHotkeys(
-            unit === undefined || unit < 0 ? [] : visibleAbilityEntries(unit)
-        );
+        refreshAbilityHotkeysIfChanged(false);
         scheduleActive(0.25, refreshHeroVitalsTick);
     }
 
@@ -1769,50 +1793,123 @@
         return queue && queue.Decorate ? queue.Decorate(abilityIndex, runtime) : runtime;
     }
 
-    function setAbilityRuntimeDisabled(panel, unavailable) {
-        panel.SetHasClass("DOTADisabled", unavailable);
+    function setAbilityRuntimeDisabled(panel, unavailable, runtime, abilityIndex) {
+        if (!panel.BHasClass || panel.BHasClass("DOTADisabled") !== unavailable) panel.SetHasClass("DOTADisabled", unavailable);
         panel.__survivalRuntimeDisabled = unavailable;
+        var managed = runtime && (runtime.prerequisite_met !== undefined
+            || Number(runtime.ability_entindex) === Number(abilityIndex));
         // Native skins do not all style DOTADisabled. Shade the icon explicitly
         // while leaving the tooltip and native input hierarchy intact.
         var image = panel.FindChildTraverse("AbilityImage");
         if (validPortraitPanel(image)) {
-            if (unavailable && image.__survivalDisabledImage !== true) {
-                image.__survivalOriginalSaturation = abilityPanelStyleValue(image, "saturation");
-                image.__survivalOriginalBrightness = abilityPanelStyleValue(image, "brightness");
-                image.__survivalDisabledImage = true;
-            }
-            if (unavailable) {
-                image.style.saturation = "0";
-                image.style.brightness = "0.45";
-            } else if (image.__survivalDisabledImage === true) {
-                image.style.saturation = image.__survivalOriginalSaturation || "1";
-                image.style.brightness = image.__survivalOriginalBrightness || "1";
-                image.__survivalDisabledImage = false;
-            }
+            if (!managed && image.__survivalRuntimeManaged) restoreAbilityRuntimeVisual(image);
+            image.__survivalRuntimeManaged = !!managed;
+            if (unavailable || managed) {
+                // Valve reuses these images between units. A previously gray
+                // image is not a valid baseline for an unlocked managed action.
+                var hovered = managed && image.__survivalRuntimeHoverAbility === Number(abilityIndex);
+                setAbilityRuntimeVisual(image, "saturation", unavailable ? "0" : (hovered ? "1.35" : "1"));
+                setAbilityRuntimeVisual(image, "brightness", unavailable ? "0.45" : (hovered ? "1.25" : "1"));
+                // no_level, can_cast_again and other native states also apply
+                // wash-color. Resetting saturation alone leaves their gray or
+                // black tint, even while our runtime says the skill is learned.
+                // Unlike a stylesheet declaration, the Panorama JS setter
+                // requires a color: "none" throws and aborts HUD assembly.
+                if (managed) setAbilityRuntimeVisual(image, "washColor", "#ffffffff");
+            } else restoreAbilityRuntimeVisual(image);
         }
+        // The native unlearned bevel is a separate dark layer over the image.
+        // Override it only for an unlocked managed skill, not native/unknown
+        // abilities or a real prerequisite lock. Keep actual cooldown overlays.
+        var staleLevel = managed && !unavailable && panel.BHasClass && panel.BHasClass("no_level");
+        var bevel = panel.FindChildTraverse("AbilityBevel");
+        var border = panel.FindChildTraverse("ActiveAbilityBorder");
+        if (staleLevel) {
+            if (validPortraitPanel(bevel)) setAbilityRuntimeVisual(bevel, "washColor", "#00000000");
+            if (validPortraitPanel(border)) setAbilityRuntimeVisual(border, "brightness", "1");
+        } else {
+            restoreAbilityRuntimeVisual(bevel);
+            restoreAbilityRuntimeVisual(border);
+        }
+    }
+
+    function setAbilityRuntimeVisual(panel, property, value) {
+        var values = panel.__survivalRuntimeVisual || (panel.__survivalRuntimeVisual = {});
+        var state = values[property];
+        var current = abilityPanelStyleValue(panel, property);
+        if (!state) state = values[property] = { original: current };
+        // Panorama canonicalizes scalar/color strings after assignment. Cache
+        // its returned value so stable refreshes do not keep rewriting styles.
+        var numeric = property === "saturation" || property === "brightness";
+        if (numeric ? parseFloat(current) !== parseFloat(value)
+            : state.value !== value || state.applied !== current) panel.style[property] = value;
+        state.value = value;
+        state.applied = abilityPanelStyleValue(panel, property);
+    }
+
+    function restoreAbilityRuntimeVisual(panel) {
+        if (!validPortraitPanel(panel) || !panel.__survivalRuntimeVisual) return;
+        var values = panel.__survivalRuntimeVisual;
+        for (var property in values) {
+            var original = String(values[property].original || "").trim();
+            // An unset inline getter (or state retained from the old "none"
+            // assignment) is not a valid color/number for the JS setter either.
+            if (property === "washColor" && (!original || original.toLowerCase() === "none")) original = "#ffffffff";
+            if ((property === "saturation" || property === "brightness")
+                && (!original || !isFinite(Number(original)))) original = "1";
+            if (abilityPanelStyleValue(panel, property) !== original)
+                panel.style[property] = original;
+        }
+        panel.__survivalRuntimeVisual = null;
     }
 
     function restoreAbilityRuntime(panel) {
         if (!panel || !panel.__survivalRuntime) return;
-        if (panel.__survivalRuntimeDisabled) setAbilityRuntimeDisabled(panel, false);
+        setAbilityRuntimeDisabled(panel, false);
+        if (panel.__survivalCompleted) {
+            panel.style.opacity = panel.__survivalCompletedOpacity || "1";
+            panel.hittest = panel.__survivalCompletedHitTest;
+            panel.hittestchildren = panel.__survivalCompletedHitChildren;
+            panel.__survivalCompleted = false;
+        }
         panel.__survivalRuntime = null;
         panel.__survivalRuntimeStatus = "";
     }
 
     function applyAbilityRuntime(panel, abilityIndex) {
         var runtime = abilityRuntime(abilityIndex);
+        // Queue capacity, an active job and the wallet are execution state;
+        // only the explicit learning prerequisite controls the locked tint.
         var unavailable = runtime.removed === 1
-            || runtime.available === 0;
-        setAbilityRuntimeDisabled(panel, unavailable);
+            || (runtime.prerequisite_met !== undefined
+                ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);
+        setAbilityRuntimeDisabled(panel, unavailable, runtime, abilityIndex);
         var fusion = /^ability_fuse_lumberjack_\d+$/.test(String(runtime.ability_name || ""));
         if (fusion || panel.__survivalFusionTint) {
             var image = panel.FindChildTraverse("AbilityImage");
-            if (image) { image.style.saturation = fusion && (unavailable || runtime.can_afford === 0) ? "0" : "1"; image.style.brightness = fusion && unavailable ? "0.45" : "1"; }
+            var tint = fusion ? (unavailable ? "disabled" : "available") : "normal";
+            if (image && image.__survivalFusionTintState !== tint) {
+                image.style.saturation = unavailable ? "0" : "1";
+                image.style.brightness = unavailable ? "0.45" : "1";
+                image.__survivalFusionTintState = tint;
+            }
             panel.__survivalFusionTint = fusion;
         }
         // Affordability is advisory client data. Keep the button interactive and
         // let the authoritative server spend decide against the latest account.
-        panel.hittest = true;
+        var completed = Number(runtime.completed) === 1;
+        if (completed && !panel.__survivalCompleted) {
+            panel.__survivalCompletedOpacity = String(panel.style.opacity || "1");
+            panel.__survivalCompletedHitChildren = panel.hittestchildren;
+            panel.__survivalCompletedHitTest = panel.hittest;
+            panel.style.opacity = "0";
+            panel.hittestchildren = false;
+        } else if (!completed && panel.__survivalCompleted) {
+            panel.style.opacity = panel.__survivalCompletedOpacity || "1";
+            panel.hittestchildren = panel.__survivalCompletedHitChildren;
+        }
+        panel.__survivalCompleted = completed;
+        panel.hittest = !completed;
         panel.__survivalRuntimeStatus = runtime.status_text || "";
         panel.__survivalRuntime = runtime;
         // Keep the native button and its input handlers. Only overlay its image.
@@ -1860,6 +1957,7 @@
             if (!panel || seen.indexOf(panel) >= 0 || belongsToLegacyHud(panel)) continue;
             seen.push(panel);
             if (panel.IsValid && !panel.IsValid()) continue;
+            if (panel.__survivalCompleted === true) continue;
             var anchor = officialAbilityButtonAnchor(panel);
             if (!anchor || !anchor.GetPositionWithinWindow) continue;
             if (anchor.IsValid && !anchor.IsValid()) continue;
@@ -1959,8 +2057,13 @@
 
     function nativeAbilityHotkeySuppressed(panel) {
         var hotkey = nativeAbilityHotkeyContainer(panel);
+        var opacity = abilityPanelStyleValue(hotkey, "opacity");
+        // Panorama may serialize an assigned 0 as 0.0. Do not mistake that
+        // equivalent native value for a restored hotkey; unset is not zero.
+        var hidden = opacity.trim() !== "" && isFinite(Number(opacity))
+            && Number(opacity) === 0;
         return !!hotkey && hotkey.__survivalHotkeySuppressed === true
-            && abilityPanelStyleValue(hotkey, "opacity") === "0"
+            && hidden
             && hotkey.hittest === false
             && hotkey.hittestchildren === false;
     }
@@ -2019,7 +2122,9 @@
                 " status=", String(runtime.status_text || ""));
             if (current >= 0
                 && runtime.removed !== 1
-                && runtime.available !== 0) {
+                && Number(runtime.completed) !== 1
+                && (runtime.prerequisite_met !== undefined
+                    ? Number(runtime.prerequisite_met) !== 0 : runtime.available !== 0)) {
                 executeAbility(current);
             }
         });
@@ -2033,41 +2138,12 @@
 
     function refreshAbilities() {
         hideDeferredHudFeatures();
-        var unit = selectedUnit();
-        if (unit === undefined || unit < 0) {
-            refreshOfficialUtilityHotkeys([]);
-            scheduleActive(1.0, refreshAbilities);
-            return;
-        }
-        var seen = [];
-        for (var i = 0; i < unitAbilityCount(unit); i++) {
-            var abilityIndex = Entities.GetAbility(unit, i);
-            if (abilityIndex !== undefined && abilityIndex >= 0) {
-                var abilityName = Abilities.GetAbilityName(abilityIndex);
-                var hidden = false;
-                try { hidden = Abilities.IsHidden(abilityIndex); } catch (error) {}
-                if (abilityName && !hidden) {
-                    seen.push({ name: abilityName, slot: i, ability: abilityIndex });
-                }
-            }
-        }
-        seen = orderVisibleAbilities(seen);
-        var mappings = resolveOfficialAbilityMappings(seen);
-        var signature = seen.map(function (entry) {
-            return entry.slot + ":" + entry.name;
-        }).join("|");
-        refreshAbilities.signature = signature;
         // Valve reuses Ability0/Ability1 panels and may restore DOTADisabled
         // after a selection change. Reapply the authoritative runtime state for
         // the currently selected unit instead of relying only on NetTable events.
-        refreshOfficialAbilityRuntime(mappings);
-        var hotkeysRefreshed = refreshOfficialUtilityHotkeys(seen, mappings);
-        if (hotkeysRefreshed) {
-            refreshAbilities.signature = visibleAbilitySignature(unit, seen)
-                + "#" + officialAbilityMappingSignature(mappings);
-        } else {
-            refreshAbilities.signature = "";
-        }
+        // The shared check still enumerates current abilities and live native
+        // bindings, but clears/rebinds only when either actually changed.
+        refreshAbilityHotkeysIfChanged(false);
         scheduleActive(1.0, refreshAbilities);
     }
 
@@ -2100,7 +2176,11 @@
 
     function shutdownCombatContext(reason) {
         if (contextShutdown) return;
+        if (clientCallbackProbe) clientCallbackProbe.Stop();
+        if (portraitSceneProbe) portraitSceneProbe.enabled=false;
         contextShutdown = true;
+        loadedPortraitKey = "";
+        loadedPortraitScene = null;
         combatSubscriptions.forEach(function (subscription) {
             try {
                 if (subscription.table) {
@@ -2186,7 +2266,7 @@
         clearOfficialAbilityHotkeys(abilities);
 
         var unit = selectedUnit();
-        if (unit === undefined || unit < 0) return;
+        if (unit === undefined || unit < 0) return true;
         if (visibleAbilities.length === 0) return true;
         var unitName = "";
         try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
@@ -2343,23 +2423,33 @@
         return standard.concat(utility);
     }
 
-    function visibleAbilityEntries(unit) {
+    function nativeAbilityEntries(unit) {
         var unitName=String(Entities.GetUnitName(unit)||"");
         var repairer=/^npc_survival_repairer(?:_|$)/.test(unitName);
         var lumberjack=/^npc_survival_(?:super_)?lumberjack(?:_|$)/.test(unitName);
         var entries = [];
-        for (var slot = 0; slot < unitAbilityCount(unit); slot++) {
-            var ability = abilityIndexForSlot(unit, slot);
+        // A synchronous enumeration needs one count snapshot. Read again on
+        // every refresh so learning/removing abilities never uses a stale count.
+        var count = unitAbilityCount(unit);
+        for (var slot = 0; slot < count; slot++) {
+            var ability = -1;
+            try { ability = Entities.GetAbility(unit, slot); } catch (error) {}
             if (ability === undefined || ability < 0) continue;
             var name = Abilities.GetAbilityName(ability) || "";
             var hidden = false;
             try { hidden = Abilities.IsHidden(ability); } catch (error) {}
             if (!name || hidden || name.indexOf("special_bonus_") === 0) continue;
             if(repairer && name!=="ability_repairer_suicide")continue;
-            if(lumberjack && !/^ability_fuse_lumberjack_/.test(name))continue;
+            if(lumberjack && !/^ability_(?:fuse_lumberjack_\d+|lumberjack_personality_.+)$/.test(name))continue;
             entries.push({ ability: ability, name: name, slot: slot });
         }
         return orderVisibleAbilities(entries);
+    }
+
+    function visibleAbilityEntries(unit) {
+        return nativeAbilityEntries(unit).filter(function(entry) {
+            return Number(abilityRuntime(entry.ability).completed) !== 1;
+        });
     }
 
     function refreshInventory() {
@@ -2506,6 +2596,8 @@
         }
         if (!unitOwnsAbility(unit, abilityIndex)) return false;
         var name = "";
+        var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
+        if (actionResources && actionResources.Reject(abilityRuntime(abilityIndex))) return false;
         try { name = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
         if (name === "ability_building_blink" && Abilities.GetCooldownTimeRemaining(abilityIndex) > 0) {
             var towerTools = GameUI.CustomUIConfig().SurvivalArrowTowerTools;
@@ -2558,6 +2650,8 @@
                 String(abilityIndex), " source=", String(source || "unknown"));
             return false;
         }
+        var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
+        if (actionResources && actionResources.Reject(runtime)) return false;
         var screen = GameUI.GetCursorPosition();
         var world = GameUI.GetScreenWorldPosition(screen);
         if (!world) {
@@ -2626,7 +2720,10 @@
             var production = GameUI.CustomUIConfig().SurvivalProductionHUD;
             return !!(production && production.QueueResearch && production.QueueResearch(abilityIndex, unit));
         }
-        if (runtime.removed === 1 || runtime.available === 0 || isPassiveAbility(abilityIndex)) {
+        if (runtime.removed === 1 || Number(runtime.completed) === 1
+            || (runtime.prerequisite_met !== undefined
+                ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0)
+            || isPassiveAbility(abilityIndex)) {
             $.Msg("[SURVIVAL_CAST][CLIENT] reject unavailable ability=", String(abilityIndex),
                 " available=", String(runtime.available), " status=", String(runtime.status_text || ""));
             return false;
@@ -2814,6 +2911,10 @@
             $.Msg("[SURVIVAL_INPUT] KEY generation=", inputGeneration,
                 " key=", normalized, " down=", String(down));
             if (!down) return false;
+            if (normalized === "C") {
+                var buildGuard = GameUI.CustomUIConfig().SurvivalShortcutGuard;
+                if (buildGuard && buildGuard.IsBlocked && buildGuard.IsBlocked()) return false;
+            }
             if (normalized === "F2") {
                 var guard = GameUI.CustomUIConfig().SurvivalShortcutGuard;
                 if (guard && guard.IsTextInputActive && guard.IsTextInputActive()) return false;
@@ -2865,6 +2966,341 @@
             portrait.SetPanelEvent("onmouseover", function () {});
             portrait.SetPanelEvent("onmouseout", function () {});
         });
+    }
+
+    function registerToolsProbeCommandOnce(name, callback, help) {
+        var registry=customConfig.SurvivalToolsProbeCommandRegistry;
+        if (!registry) registry=customConfig.SurvivalToolsProbeCommandRegistry={};
+        if (registry[name]) return;
+        // ConCommands can outlive a Panorama context. A duplicate native command
+        // must never abort the HUD's remaining subscriptions and initialization.
+        registry[name]=true;
+        try {Game.AddCommand(name,callback,help,0);}
+        catch(error) {$.Msg("[TOOLS_PROBE_COMMAND_ERROR] ",name," ",String(error&&error.message||error));}
+    }
+
+    function toolsProbeChecksum(text) {
+        var hash=2166136261;
+        for(var i=0;i<text.length;i++)hash=((hash^text.charCodeAt(i))*16777619)>>>0;
+        return ("00000000"+hash.toString(16)).slice(-8);
+    }
+    function emitToolsProbeReport(tag,value,nonce) {
+        // Console truncates long native PRINT lines. Escape to ASCII so the
+        // bound is bytes, then print completion only after all fixed-size blocks.
+        var text=JSON.stringify(value).replace(/[\u007f-\uffff]/g,function(c){return "\\u"+("0000"+c.charCodeAt(0).toString(16)).slice(-4);});
+        var prefix="["+tag+"] ";
+        if(prefix.length+text.length<=8000){$.Msg(prefix,text);return;}
+        if(text.length>524288)throw new Error("Tools probe report exceeds bounded transport");
+        var sequence=Number(customConfig.SurvivalToolsProbeReportSequence||0)+1;
+        customConfig.SurvivalToolsProbeReportSequence=sequence;
+        if(!/^[0-9a-f]{24}$/.test(String(nonce||"")))nonce="manual_"+Date.now()+"_"+sequence;
+        var commandId=String(value.commandId||"");
+        if(!/^\d+_\d+_\d+$/.test(commandId)||commandId.length>96)throw new Error("Tools probe report commandId unavailable");
+        var serial=Number(value.captureSerial);
+        if(!isFinite(serial)||serial<0||Math.floor(serial)!==serial)throw new Error("Tools probe report serial unavailable");
+        var size=3000,count=Math.ceil(text.length/size),checksum=toolsProbeChecksum(text);
+        var metadata={chunked:true,protocol:"survival_probe_chunks_v1",nonce:nonce,commandId:commandId,captureSerial:serial,count:count,chars:text.length,checksum:checksum};
+        for(var index=0;index<count;index++){
+            var line=JSON.stringify({protocol:metadata.protocol,nonce:nonce,commandId:commandId,captureSerial:serial,index:index,count:count,chars:text.length,checksum:checksum,data:text.slice(index*size,(index+1)*size)});
+            if(line.length+tag.length+10>8000)throw new Error("Tools probe block exceeds console bound");
+            $.Msg("["+tag+"_CHUNK] ",line);
+        }
+        $.Msg(prefix,JSON.stringify(metadata));
+    }
+
+    function registerToolsProbeCommands(apiKey, prefix, tag) {
+        var sequence=Number(customConfig.SurvivalToolsProbeCommandSequence||0)+1;
+        customConfig.SurvivalToolsProbeCommandSequence=sequence;
+        var id=String(lifecycleGeneration)+"_"+sequence+"_"+Date.now();
+        var commands={start:prefix+"_probe_v2_"+id,report:prefix+"_report_v2_"+id,stop:prefix+"_stop_v2_"+id};
+        function currentApi() {return GameUI.CustomUIConfig()[apiKey];}
+        function start() {
+            var current=currentApi();if (!current || !current.Start) return;
+            var state=current.Start()||current.Inspect();
+            $.Msg("["+tag+"] "+(state&&state.enabled?"started ":"start_failed "),
+                JSON.stringify({commandId:current.CommandId,generation:state&&state.generation!==undefined?state.generation:lifecycleGeneration,
+                    reason:state&&state.reason||"",scheduleHooked:!!(state&&state.schedule&&state.schedule.hooked),
+                    captureSerial:state&&state.captureSerial}));
+        }
+        function report() {
+            var current=currentApi(),args=Array.prototype.slice.call(arguments);
+            if(current&&current.Stop)emitToolsProbeReport(tag,current.Stop(),args.length?args[args.length-1]:"");
+        }
+        function stop() {var current=currentApi();if(current&&current.Stop)current.Stop();}
+        [[prefix+"_probe_v2",start],[prefix+"_report_v2",report],[prefix+"_stop_v2",stop],
+            [commands.start,start],[commands.report,report],[commands.stop,stop]].forEach(function(entry) {
+                registerToolsProbeCommandOnce(entry[0],entry[1],"Tools: explicit latest-context probe; default off");
+            });
+        var current=currentApi();current.CommandId=id;current.Commands=commands;
+        // Unique commands remain available even if an old native binding refers
+        // to a destroyed context; stable v2 aliases dynamically resolve the API.
+        $.Msg("[TOOLS_PROBE_COMMANDS] ",JSON.stringify({api:apiKey,commandId:id,commands:commands}));
+    }
+
+    if (typeof Game !== "undefined" && typeof Game.IsInToolsMode === "function"
+        && Game.IsInToolsMode()) {
+        portraitSceneProbe = {enabled:false, setUnitCalls:0};
+        var portraitProbeApi = {
+            Start:function () {
+                if(!contextActive())return {enabled:false,reason:"context_inactive"};
+                portraitSceneProbe.enabled=true;portraitSceneProbe.setUnitCalls=0;return this.Inspect();
+            },
+            Stop:function () {portraitSceneProbe.enabled=false;return this.Inspect();},
+            Inspect:function () {return {enabled:portraitSceneProbe.enabled,
+                setUnitCalls:portraitSceneProbe.setUnitCalls,loadedKey:loadedPortraitKey,
+                sceneValid:validPortraitPanel(loadedPortraitScene),
+                activeKey:activePortraitKey,activeEntity:activePortraitEntity,
+                probeVersion:2,commandId:this.CommandId||"",generation:lifecycleGeneration};}
+        };
+        customConfig.SurvivalPortraitSceneProbe = portraitProbeApi;
+        if (typeof Game.AddCommand === "function") {
+            registerToolsProbeCommands("SurvivalPortraitSceneProbe","survival_portrait_cache","PORTRAIT_CACHE_PROBE");
+        }
+    }
+
+    function installClientCallbackProbe() {
+        if (typeof Game === "undefined" || typeof Game.IsInToolsMode !== "function"
+            || !Game.IsInToolsMode()) return;
+        // Functions are rebound only during an explicit Tools capture. Inclusive
+        // time includes nested measured functions; selfMs subtracts those children.
+        // Date.now has integer-ms resolution: count>0 with ms=0 is below resolution.
+        var enabled = false, started = 0, ended = 0, frames = [], slow = [];
+        var captureSerial = 0, originalSchedule = null, scheduleWrapper = null;
+        var handoffOwner=customConfig.HandoffCombat;
+        var scheduleRows = {}, scheduleKeys = [], scheduleLimit = 48;
+        var scheduleTotals = null, scheduleError = "";
+        var targets = [
+            {name:"refreshOfficialUtilityHotkeys",get:function(){return refreshOfficialUtilityHotkeys;},set:function(fn){refreshOfficialUtilityHotkeys=fn;}},
+            {name:"clearOfficialAbilityHotkeys",get:function(){return clearOfficialAbilityHotkeys;},set:function(fn){clearOfficialAbilityHotkeys=fn;}},
+            {name:"resolveOfficialAbilityMappings",get:function(){return resolveOfficialAbilityMappings;},set:function(fn){resolveOfficialAbilityMappings=fn;}},
+            {name:"refreshAbilityHotkeysIfChanged",get:function(){return refreshAbilityHotkeysIfChanged;},set:function(fn){refreshAbilityHotkeysIfChanged=fn;}},
+            {name:"positionCosmeticPortrait",get:function(){return positionCosmeticPortrait;},set:function(fn){positionCosmeticPortrait=fn;}},
+            {name:"updateCosmeticPortrait",get:function(){return updateCosmeticPortrait;},set:function(fn){updateCosmeticPortrait=fn;}},
+            {name:"refreshHeroPanel",get:function(){return refreshHeroPanel;},set:function(fn){refreshHeroPanel=fn;}},
+            {name:"refreshHeroVitalsTick",get:function(){return refreshHeroVitalsTick;},set:function(fn){refreshHeroVitalsTick=fn;}},
+            {name:"refreshAbilities",get:function(){return refreshAbilities;},set:function(fn){refreshAbilities=fn;}},
+            {name:"beginUnitNameTransition",get:function(){return beginUnitNameTransition;},set:function(fn){beginUnitNameTransition=fn;}},
+            {name:"writeOfficialAttackText",get:function(){return writeOfficialAttackText;},set:function(fn){writeOfficialAttackText=fn;}},
+            {name:"writeOfficialSecondaryStats",get:function(){return writeOfficialSecondaryStats;},set:function(fn){writeOfficialSecondaryStats=fn;}},
+            {name:"nativeAbilityEntries",get:function(){return nativeAbilityEntries;},set:function(fn){nativeAbilityEntries=fn;}},
+            {name:"visibleAbilityEntries",get:function(){return visibleAbilityEntries;},set:function(fn){visibleAbilityEntries=fn;}},
+            {name:"applyAbilityRuntime",get:function(){return applyAbilityRuntime;},set:function(fn){applyAbilityRuntime=fn;}},
+            {name:"refreshOfficialAbilityRuntime",get:function(){return refreshOfficialAbilityRuntime;},set:function(fn){refreshOfficialAbilityRuntime=fn;}},
+            {name:"updateStatsSnapshot",get:function(){return update;},set:function(fn){update=fn;}},
+            {name:"handoffRefreshSelection",get:function(){return handoffOwner.RefreshSelection;},set:function(fn){handoffOwner.RefreshSelection=fn;}},
+            {name:"handoffMirrorBoundValues",get:function(){return customConfig.HandoffBoundValuesChanged;},set:function(fn){customConfig.HandoffBoundValuesChanged=fn;}},
+            {name:"setOfficialUnitName",get:function(){return setOfficialUnitName;},set:function(fn){setOfficialUnitName=fn;}},
+            {name:"ensureOfficialUnitNameOverlay",get:function(){return ensureOfficialUnitNameOverlay;},set:function(fn){ensureOfficialUnitNameOverlay=fn;}},
+            {name:"updateOfficialStatsVisibility",get:function(){return updateOfficialStatsVisibility;},set:function(fn){updateOfficialStatsVisibility=fn;}},
+            {name:"transitionCosmeticPortrait",get:function(){return transitionCosmeticPortrait;},set:function(fn){transitionCosmeticPortrait=fn;}},
+            {name:"hideCosmeticPortrait",get:function(){return hideCosmeticPortrait;},set:function(fn){hideCosmeticPortrait=fn;}},
+            {name:"resolveUnitDisplayName",get:function(){return resolveUnitDisplayName;},set:function(fn){resolveUnitDisplayName=fn;}},
+            {name:"displayNameWithTreeLevel",get:function(){return displayNameWithTreeLevel;},set:function(fn){displayNameWithTreeLevel=fn;}},
+            {name:"refreshHeroVitals",get:function(){return refreshHeroVitals;},set:function(fn){refreshHeroVitals=fn;}},
+            {name:"requestSelectedUnitStats",get:function(){return requestSelectedUnitStats;},set:function(fn){requestSelectedUnitStats=fn;}},
+            {name:"unitAbilityCount",get:function(){return unitAbilityCount;},set:function(fn){unitAbilityCount=fn;}}
+        ];
+        function newRow(name) {return {name:name,count:0,ms:0,selfMs:0,maxMs:0};}
+        function measure(row, fn, receiver, args, isSchedule) {
+            var frame={start:Date.now(),children:0};
+            frames.push(frame);
+            try {return fn.apply(receiver,args);}
+            finally {
+                var elapsed=Math.max(0,Date.now()-frame.start);
+                frames.pop();
+                if (frames.length) frames[frames.length-1].children+=elapsed;
+                row.count+=1;row.ms+=elapsed;
+                row.selfMs+=Math.max(0,elapsed-frame.children);
+                row.maxMs=Math.max(row.maxMs,elapsed);
+                if (isSchedule) {
+                    scheduleTotals.count+=1;scheduleTotals.ms+=elapsed;
+                    scheduleTotals.selfMs+=Math.max(0,elapsed-frame.children);
+                    scheduleTotals.maxMs=Math.max(scheduleTotals.maxMs,elapsed);
+                }
+                if (elapsed>10 && slow.length<12) slow.push({name:row.name,ms:elapsed,atMs:frame.start-started});
+            }
+        }
+        function copyProperties(from, to) {
+            Object.keys(from).forEach(function(key){if(key!=="__survivalCallbackProbeName")to[key]=from[key];});
+        }
+        function syncHandoffAliases() {
+            var combat=customConfig.HandoffCombat;
+            if (!combat || combat!==handoffOwner) return;
+            combat.NativeEntries=nativeAbilityEntries;
+            combat.Entries=visibleAbilityEntries;
+            combat.ApplyRuntime=applyAbilityRuntime;
+        }
+        function wrap(target) {
+            target.original=target.get();
+            target.row=newRow(target.name);
+            target.wrapper=null;target.preparedSerial=0;target.capturedType="not_prepared";
+            if (typeof target.original!=="function") return;
+            var captured=target.capture?target.capture(target.original,captureSerial):target.original;
+            target.capturedType=typeof captured;if(target.capture)target.preparedSerial=captureSerial;
+            target.wrapper=function() {
+                if (!enabled) return target.original.apply(this,arguments);
+                return measure(target.row,captured,this,arguments,false);
+            };
+            copyProperties(target.original,target.wrapper);
+            target.wrapper.__survivalCallbackProbeName=target.name;
+            target.set(target.wrapper);
+        }
+        function scheduleBucket(fn) {
+            var source="";
+            try {source=Function.prototype.toString.call(fn);} catch (error) {source="unavailable";}
+            var name=String(fn.__survivalCallbackProbeName||fn.name||"");
+            if (!name) {var match=/^function\s+([^\s(]+)/.exec(source);name=match?match[1]:"anonymous";}
+            var hash=2166136261;
+            for (var i=0;i<source.length;i++) hash=((hash^source.charCodeAt(i))*16777619)>>>0;
+            var key=name+":"+hash;
+            if (scheduleRows[key]) return scheduleRows[key];
+            if (scheduleKeys.length>=scheduleLimit) {
+                scheduleTotals.overflowed+=1;
+                return scheduleTotals.overflow;
+            }
+            var row=newRow("scheduled:"+key);
+            row.source=source.replace(/\s+/g," ").slice(0,160);
+            scheduleRows[key]=row;scheduleKeys.push(key);
+            return row;
+        }
+        function installScheduleHook() {
+            originalSchedule=$.Schedule;
+            if (typeof originalSchedule!=="function") {scheduleError="Schedule unavailable";return;}
+            var serial=captureSerial, scheduler=originalSchedule;
+            scheduleWrapper=function(delay,callback) {
+                if (!enabled || serial!==captureSerial || typeof callback!=="function")
+                    return scheduler.apply(this,arguments);
+                var row=scheduleBucket(callback), args=Array.prototype.slice.call(arguments);
+                scheduleTotals.scheduled+=1;
+                args[1]=function() {
+                    // Pending callbacks from a finished capture remain functional,
+                    // but never contaminate the next capture's buckets or totals.
+                    if (!enabled || serial!==captureSerial) return callback.apply(this,arguments);
+                    return measure(row,callback,this,arguments,true);
+                };
+                return scheduler.apply(this,args);
+            };
+            try {
+                $.Schedule=scheduleWrapper;
+                if ($.Schedule!==scheduleWrapper) scheduleError="Schedule binding not writable";
+            } catch (error) {scheduleError=String(error&&error.message||error);}
+        }
+        var api={
+            CaptureToken:function(){return enabled?captureSerial:0;},
+            RegisterModule:function(name,entries,ownerGeneration) {
+                // Modules register their private callbacks during Tools setup.
+                // No wrappers or timing run until the existing explicit Start.
+                if (enabled || !name || !entries || !entries.length) return false;
+                var prefix=String(name)+".", retained=targets.filter(function(target){return target.name.indexOf(prefix)!==0;});
+                if (retained.length+entries.length>96) return false;
+                var additions=[];
+                for(var i=0;i<entries.length;i++) {
+                    var entry=entries[i];
+                    if(!entry || !entry.name || typeof entry.get!=="function" || typeof entry.set!=="function")return false;
+                    if(entry.capture!==undefined&&typeof entry.capture!=="function")return false;
+                    additions.push({name:prefix+entry.name,get:entry.get,set:entry.set,capture:entry.capture,ownerGeneration:ownerGeneration===undefined?null:ownerGeneration});
+                }
+                targets=retained.concat(additions);return true;
+            },
+            Start:function() {
+                if (!contextActive()) return {enabled:false,reason:"context_inactive"};
+                this.Stop();
+                // Other layouts can survive this HUD's resource reload. Resolve
+                // their live private callbacks only for an explicit capture.
+                ["SurvivalVIP", "SurvivalArchive", "SurvivalArchiveVoidV1",
+                    "SurvivalPurpleShell", "SurvivalWorldHealthBars"].forEach(function(key) {
+                    var module=customConfig[key];
+                    if (module && typeof module.RegisterToolsProbe==="function") module.RegisterToolsProbe();
+                });
+                started=Date.now();ended=0;frames=[];slow=[];
+                captureSerial+=1;scheduleRows={};scheduleKeys=[];scheduleError="";
+                scheduleTotals={scheduled:0,count:0,ms:0,selfMs:0,maxMs:0,overflowed:0,overflow:newRow("scheduled:overflow")};
+                targets.forEach(wrap);syncHandoffAliases();enabled=true;
+                installScheduleHook();
+                return this.Inspect();
+            },
+            Stop:function() {
+                if (enabled) ended=Date.now();
+                enabled=false;
+                if (scheduleWrapper && $.Schedule===scheduleWrapper) $.Schedule=originalSchedule;
+                targets.forEach(function(target) {
+                    if (!target.wrapper || target.get()!==target.wrapper) return;
+                    copyProperties(target.wrapper,target.original);
+                    target.set(target.original);
+                });
+                syncHandoffAliases();
+                return this.Inspect();
+            },
+            Inspect:function() {
+                // Cross-script return values can be native proxies. Build the
+                // report here instead of adding fields to a module's object.
+                var diagnostics={}, cacheDiagnostics=customConfig.SurvivalMainHUD&&customConfig.SurvivalMainHUD.CacheInspect
+                    ?customConfig.SurvivalMainHUD.CacheInspect():null;
+                if (cacheDiagnostics) Object.keys(cacheDiagnostics).forEach(function(key) {
+                    diagnostics[key]=cacheDiagnostics[key];
+                });
+                var worldBarsApi=customConfig.SurvivalWorldHealthBars;
+                var worldBarsMethod=worldBarsApi&&worldBarsApi.ProbeInspect;
+                var worldBarsProbe={apiType:typeof worldBarsApi,methodType:typeof worldBarsMethod,returnType:"not_called"};
+                diagnostics.worldBars=null;
+                if (typeof worldBarsMethod==="function") {
+                    try {
+                        var worldBars=worldBarsMethod.call(worldBarsApi);
+                        worldBarsProbe.returnType=typeof worldBars;
+                        if (worldBars&&typeof worldBars==="object") diagnostics.worldBars=worldBars;
+                        else worldBarsProbe.reason=worldBars===null?"inspect_return_null":"inspect_return_"+typeof worldBars;
+                    } catch(error) {
+                        worldBarsProbe.reason="inspect_failed";
+                        worldBarsProbe.error=String(error&&error.message||error).slice(0,240);
+                    }
+                } else {
+                    worldBarsProbe.reason=worldBarsApi?"inspect_unavailable":"api_unavailable";
+                }
+                diagnostics.worldBarsProbe=worldBarsProbe;
+                return {enabled:enabled,clock:"Date.now integer wall milliseconds",
+                    probeVersion:2,commandId:this.CommandId||"",captureSerial:captureSerial,
+                    probeFeatures:{moduleCaptureFactories:1,targetOwnerGeneration:true},
+                    zeroMeans:"count=0 unobserved; count>0 ms=0 below clock resolution",
+                    elapsedMs:started?Math.max(0,(ended||Date.now())-started):0,
+                    generation:lifecycleGeneration,contextActive:contextActive(),
+                    diagnostics:diagnostics,
+                    rows:targets.map(function(target) {
+                        var row=target.row||{name:target.name,count:0,ms:0,selfMs:0,maxMs:0};
+                        return {name:row.name,count:row.count,ms:row.ms,selfMs:row.selfMs,
+                            maxMs:row.maxMs,observed:row.count>0,
+                            captureFactoryType:typeof target.capture,capturedType:target.capturedType||"not_prepared",
+                            preparedSerial:target.preparedSerial||0,ownerGeneration:target.ownerGeneration===undefined?null:target.ownerGeneration,
+                            hooked:!!target.wrapper&&target.get()===target.wrapper};
+                    }).sort(function(a,b){return b.selfMs-a.selfMs||b.ms-a.ms;}),
+                    schedule:{hooked:!!scheduleWrapper&&$.Schedule===scheduleWrapper,error:scheduleError,
+                        scope:"shared $ in survival_hud context; other Panorama contexts unconfirmed",
+                        note:"callbacks already queued at Start are captured after their next reschedule; probe adds measurement overhead",
+                        limit:scheduleLimit,scheduled:scheduleTotals?scheduleTotals.scheduled:0,
+                        count:scheduleTotals?scheduleTotals.count:0,ms:scheduleTotals?scheduleTotals.ms:0,
+                        selfMs:scheduleTotals?scheduleTotals.selfMs:0,maxMs:scheduleTotals?scheduleTotals.maxMs:0,
+                        overflowed:scheduleTotals?scheduleTotals.overflowed:0,
+                        rows:scheduleKeys.map(function(key){return scheduleRows[key];})
+                            .concat(scheduleTotals&&scheduleTotals.overflow.count?[scheduleTotals.overflow]:[])
+                            .map(function(row){return {name:row.name,count:row.count,ms:row.ms,selfMs:row.selfMs,maxMs:row.maxMs,source:row.source||""};})
+                            .sort(function(a,b){return b.ms-a.ms||b.count-a.count;})},slow:slow.slice()};
+            }
+        };
+        clientCallbackProbe=api;
+        customConfig.SurvivalClientCallbackProbe=api;
+        api.RegisterModule("hudDetail",[
+            {name:"renderCombatDebug",get:function(){return renderCombatDebug;},set:function(fn){renderCombatDebug=fn;}},
+            {name:"hideDeferredHudFeatures",get:function(){return hideDeferredHudFeatures;},set:function(fn){hideDeferredHudFeatures=fn;}},
+            {name:"collapseOfficialPanel",get:function(){return collapseOfficialPanel;},set:function(fn){collapseOfficialPanel=fn;}},
+            {name:"officialPanel",get:function(){return officialPanel;},set:function(fn){officialPanel=fn;}},
+            {name:"portraitRefresh",get:function(){var current=customConfig.SurvivalPortraitPresentation;return current&&current.Refresh;},set:function(fn){var current=customConfig.SurvivalPortraitPresentation;if(current)current.Refresh=fn;}},
+            {name:"heroCornerRefresh",get:function(){var current=customConfig.SurvivalPortraitPresentation;return current&&current.RefreshLocalHeroPortrait;},set:function(fn){var current=customConfig.SurvivalPortraitPresentation;if(current)current.RefreshLocalHeroPortrait=fn;}},
+            {name:"multiApply",get:function(){var current=customConfig.SurvivalMultiSelectionPortraits;return current&&current.Apply;},set:function(fn){var current=customConfig.SurvivalMultiSelectionPortraits;if(current)current.Apply=fn;}},
+            {name:"productionRefresh",get:function(){var current=customConfig.SurvivalProductionHUD;return current&&current.Refresh;},set:function(fn){var current=customConfig.SurvivalProductionHUD;if(current)current.Refresh=fn;}},
+            {name:"minimapShortcutsRefresh",get:function(){var current=customConfig.SurvivalMinimapShortcuts;return current&&current.Refresh;},set:function(fn){var current=customConfig.SurvivalMinimapShortcuts;if(current)current.Refresh=fn;}}
+        ]);
+        if (typeof Game.AddCommand === "function") {
+            registerToolsProbeCommands("SurvivalClientCallbackProbe","survival_client_callback","CLIENT_CALLBACK_PROBE");
+        }
     }
 
     // NetTable is the single regular synchronization path. Filter by the
@@ -2980,10 +3416,14 @@
         }, "building_refresh_350ms");
     });
     GameUI.CustomUIConfig().HandoffCombat = {
+        NativeEntries: nativeAbilityEntries,
+        IsCompleted: function(ability){return Number(abilityRuntime(ability).completed)===1;},
+        ApplyRuntime: applyAbilityRuntime,
         Entries: visibleAbilityEntries,
         Snapshot: function(unit){return selectedUnitSnapshot && Number(selectedUnitSnapshot.entindex)===Number(unit) ? selectedUnitSnapshot : null;},
         RefreshSelection: function(){refreshHeroPanel();refreshAbilityHotkeysIfChanged(false);}
     };
+    installClientCallbackProbe();
     bindHeroPortrait();
     bindHotkeys();
     $.Msg("[SURVIVAL_SCENE_PANEL] READY tower_portrait=true native_non_tower=true");

@@ -1,4 +1,4 @@
-<Panel id="LotteryWindow" class="LotteryWindow LotteryClosed" hittest="true" oncancel="GameUI.CustomUIConfig().SurvivalUILayers.CloseTop()">
+<Panel id="LotteryWindow" class="LotteryWindow LotteryClosed" hittest="true" oncancel="(function(){var cfg=GameUI.CustomUIConfig(),layers=cfg.SurvivalUILayers;if(layers &amp;&amp; typeof layers.HandleEscape==='function')return layers.HandleEscape('lottery');if(cfg.SurvivalLottery &amp;&amp; cfg.SurvivalLottery.Close){cfg.SurvivalLottery.Close();return true;}return false;})()">
     <Panel id="LotteryReadingMask" hittest="false" />
     <Panel id="LotteryCelestialHeader">
         <Label id="LotteryBrand" text="地图抽奖" />

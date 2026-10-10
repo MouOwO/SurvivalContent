@@ -5,7 +5,8 @@
     var config = GameUI.CustomUIConfig(), states = {}, panels = {};
     var session = "", listener = null, frame = null, stopped = false;
     var debugListener = null, reasons = {};
-    // The fixed-width centered name and stars share the health bar's center.
+    // The measured name and stars share the health bar's center. The fixed
+    // outer caption reserves space for long names and HUD occlusion checks.
     // Keep a 20px name row above the bar for the larger 18px font.
     // The 20px rarity image
     // sits two pixels to its left and extends 4.5px below the 11px bar.
@@ -70,7 +71,10 @@
     }
     function paint(panel, state) {
         var name = String(state.display_name || "");
-        if (panel.__name.text !== name) panel.__name.text = name;
+        if (panel.__name.text !== name) {
+            panel.__name.text = name;
+            panel.__nameLayoutChecks = 3;
+        }
         ["N", "R", "SR", "SSR", "UR"].forEach(function (rarity) {
             panel.SetHasClass("Rank" + rarity, state.rarity === rarity);
         });
@@ -91,6 +95,30 @@
             star.SetHasClass("ActiveStar", index < count);
             star.SetHasClass("RedStar", index < red);
         });
+    }
+    function alignName(panel, scale) {
+        if (panel.__nameLayoutScale !== scale) {
+            panel.__nameLayoutScale = scale;
+            panel.__nameLayoutChecks = 3;
+        }
+        if (!(panel.__nameLayoutChecks > 0)) return;
+        // Read after native layout, not from character counts. Dividing by the
+        // caption's measured width handles both screen and logical-pixel APIs.
+        // Retry subsequent frames when creation/text changes still report the
+        // previous layout. Stable frames do no name measurements or style writes.
+        var measured = Number(panel.__name.actuallayoutwidth);
+        var parentWidth = Number(panel.__caption.actuallayoutwidth);
+        if (!isFinite(measured) || measured <= 0 || measured > 1000000
+            || !isFinite(parentWidth) || parentWidth <= 0 || parentWidth > 1000000) return;
+        panel.__nameLayoutChecks--;
+        var width = Math.min(ROW_WIDTH, measured * ROW_WIDTH / parentWidth);
+        var left = (ROW_WIDTH - width) / 2;
+        var position = left.toFixed(2) + "px 14px 0px";
+        if (panel.__namePosition !== position) {
+            panel.__name.style.position = position;
+            panel.__namePosition = position;
+        }
+        panel.__measuredNameWidth = width;
     }
     function ensure(key, state) {
         if (valid(panels[key])) return panels[key];
@@ -160,6 +188,9 @@
         var offset = container.GetPositionWithinWindow ? container.GetPositionWithinWindow() : { x: 0, y: 0 };
         diagnostics.viewport = { width: width, height: height, scale_x: sx, scale_y: sy,
             x: Number(offset.x || 0), y: Number(offset.y || 0) };
+        var helper = config.SurvivalWorldHealthBarAnchor;
+        var geometry = {sx:sx, sy:sy, ox:Number(offset.x)||0, oy:Number(offset.y)||0,
+            right:(Number(offset.x)||0)+width*sx, bottom:(Number(offset.y)||0)+height*sy};
         stateKeys.forEach(function (key) {
             try {
                 var state = states[key], entindex = Number(state.entindex);
@@ -173,7 +204,7 @@
                 var origin = Entities.GetAbsOrigin(entindex);
                 if (!origin || origin.length < 3 || Number(origin[2]) < -5000) { hide(key, "invalid_origin"); return; }
                 var helper = config.SurvivalWorldHealthBarAnchor;
-                var anchor = helper && helper.Project(entindex, origin, container);
+                var anchor = helper && helper.Project(entindex, origin, container, geometry);
                 if (!anchor) { hide(key, "invalid_projection"); return; }
                 var lx = anchor.left + (anchor.width - ROW_WIDTH) / 2;
                 var ly = anchor.top - BAR_TOP;
@@ -195,6 +226,7 @@
                     panel.__rankPosition = position;
                 }
                 setRowVisibility(panel, "visible");
+                alignName(panel, sx);
                 reasons[key] = "visible";
             } catch (error) { diagnostics.lastError = String(error); hide(key, "entity_exception"); }
         });
@@ -223,7 +255,11 @@
                 css_visibility:valid(panels[key]) ? String(panels[key].style.visibility) : ""});
             if (valid(panels[key])) {
                 rows[rows.length - 1].name_label = {text:String(panels[key].__name.text),
-                    width:Number(panels[key].__name.actuallayoutwidth), height:Number(panels[key].__name.actuallayoutheight)};
+                    width:Number(panels[key].__name.actuallayoutwidth), height:Number(panels[key].__name.actuallayoutheight),
+                    measured_ui_width:panels[key].__measuredNameWidth,
+                    position:String(panels[key].__name.style.position),
+                    window_position:panels[key].__name.GetPositionWithinWindow ? panels[key].__name.GetPositionWithinWindow() : null,
+                    caption_width:Number(panels[key].__caption.actuallayoutwidth)};
                 rows[rows.length - 1].health_anchor = panels[key].__healthAnchor;
                 rows[rows.length - 1].letter = {
                     width:Number(panels[key].__letter.actuallayoutwidth),

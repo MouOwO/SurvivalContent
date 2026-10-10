@@ -7,8 +7,10 @@
     width: 64px;
     height: 76px;
     background-color: transparent;
+    background-image: none;
     border: 0px solid transparent;
-    overflow: clip;
+    box-shadow: none;
+    overflow: noclip;
 }
 .MinimapShortcutButton:hover { brightness: 1.25; }
 .MinimapShortcutButton:active { brightness: 0.85; }
@@ -16,14 +18,16 @@
     position: 6px 0px 0px;
     width: 52px;
     height: 52px;
-    border-radius: 4px;
-    border: 1px solid #c6ab6e80;
-    box-shadow: #00000066 0px 1px 3px 0px;
+    background-color: transparent;
+    background-image: none;
+    border-radius: 0px;
+    border: 0px solid transparent;
+    box-shadow: none;
+    opacity-mask: url("s2r://panorama/images/masks/softedge_circle_png.vtex");
 }
-#SurvivalReturnHomeShortcutIcon { border: 0px solid transparent; background-color: transparent; box-shadow: none; }
-.MinimapShortcutButton:hover .MinimapShortcutIcon { border-color: #f0d99b; }
-.MinimapShortcutButton.Unavailable .MinimapShortcutIcon { saturation: 0.25; brightness: 0.6; border-color: #6d797480; }
+.MinimapShortcutButton.Unavailable .MinimapShortcutIcon { saturation: 0.25; brightness: 0.6; }
 #SurvivalMinimapShortcuts Label {
+    visibility: collapse;
     position: 0px 52px 0px;
     width: 64px;
     height: 24px;
@@ -43,14 +47,24 @@
     width: 64px;
     height: 64px;
     visibility: collapse;
-    border: 1px solid #b5a078;
-    border-radius: 4px;
-    background-color: #0c2029;
-    box-shadow: #00000066 0px 1px 3px 0px;
+    border: 0px solid transparent;
+    border-radius: 0px;
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+    overflow: noclip;
     z-index: 10;
 }
 .HandoffBoot #SurvivalLocalHeroPortrait { opacity: 0; }
 
-#SurvivalLocalHeroPortraitImage { width:100%; height:100%; }
-#SurvivalLocalHeroPortrait:hover { brightness:1.15; border-color:#e7cd91; }
+#SurvivalLocalHeroPortraitImage, .ShortcutHeroPortraitScene {
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    background-image: none;
+    border: 0px solid transparent;
+    box-shadow: none;
+    opacity-mask: url("s2r://panorama/images/masks/softedge_box_png.vtex");
+}
+#SurvivalLocalHeroPortrait:hover { brightness:1.15; }
 #SurvivalLocalHeroPortrait:active { brightness:0.9; }

@@ -8,13 +8,21 @@
     var closeBound = false;
     var currentMode = "shop";
     var lastShopMode = "shop";
+    var shopCategory = "equipment";
+    var shopLayoutHeight = 600;
+    var drawerOpened = false, drawerGeneration = 0;
     var researchSourceEntindex = -1;
     var unlocks = { shop: false, research: false };
     var entryCardsById = {};
     var renderedStructureSignature = "";
-    var renderedCategorySignature = "";
     var cooldownAnimationSerial = 0;
     var pendingTechnologyPurchases = {};
+    var snapshotRequest = null;
+    var snapshotRequestFailed = false;
+    var renderedSnapshotSignature = "";
+    var entriesById = {};
+    var cooldownRefreshDeadlines = {};
+    var rejectedPatchSequence = -1;
 
     function byId(id) { return $("#" + id); }
 
@@ -28,7 +36,48 @@
 
     function setText(id, value) {
         var panel = byId(id);
-        if (panel) panel.text = String(value === undefined ? "" : value);
+        setProperty(panel, "text", String(value === undefined ? "" : value));
+    }
+
+    function setProperty(panel, property, value) {
+        if (panel && panel[property] !== value) panel[property] = value;
+    }
+
+    function setClass(panel, name, enabled) {
+        if (panel && panel.BHasClass(name) !== !!enabled) panel.SetHasClass(name, !!enabled);
+    }
+
+    // Transport counters do not change presentation. Absolute cooldown deadlines
+    // drive the existing local animation; their periodically reported remainder
+    // must not redraw every item or the hovered tooltip.
+    function contentSignature(value, snapshotRoot) {
+        if (value === null || typeof value !== "object") return JSON.stringify(value);
+        if (Array.isArray(value)) return "[" + value.map(function (item) {
+            return contentSignature(item, false);
+        }).join(",") + "]";
+        return "{" + Object.keys(value).sort().filter(function (key) {
+            if (snapshotRoot && (key === "sequence" || key === "base_sequence"
+                || key === "full" || key === "reason")) return false;
+            if (key === "technology_cooldown_remaining" && Number(value.technology_cooldown_until) > 0) return false;
+            if (key === "early_final_cooldown_remaining" && Number(value.early_final_cooldown_until) > 0) return false;
+            return true;
+        }).map(function (key) {
+            return JSON.stringify(key) + ":" + contentSignature(value[key], false);
+        }).join(",") + "}";
+    }
+
+    function snapshotMatchesContext(data) {
+        if (!data) return false;
+        var mode = data.ui_mode || "shop";
+        if (mode !== currentMode) return false;
+        return mode !== "research" || Number(data.research_source_entindex) === researchSourceEntindex;
+    }
+
+    function indexEntries() {
+        entriesById = {};
+        asArray(snapshot && snapshot.entries).forEach(function (entry) {
+            if (entry && entry.entry_id) entriesById[entry.entry_id] = entry;
+        });
     }
 
     function formatNumber(value) {
@@ -38,17 +87,20 @@
     }
 
     function setStatus(text, error) {
+        if (!drawerOpened) return;
         var target = byId("ShopStatus");
         if (!target) return;
-        target.text = text || "";
-        target.SetHasClass("error", !!error);
+        setProperty(target, "text", text || "");
+        setClass(target, "error", !!error);
+        var footer = byId("ShopFooter");
+        setProperty(footer, "visible", !!error);
     }
 
     function setLoading(loading) {
         var loadingPanel = byId("ShopLoading");
         var itemList = byId("ShopItemList");
-        if (loadingPanel) loadingPanel.SetHasClass("Hidden", !loading);
-        if (itemList) itemList.SetHasClass("Hidden", loading);
+        setClass(loadingPanel, "Hidden", !loading);
+        setClass(itemList, "Hidden", loading);
     }
 
     function disableValveShop() {
@@ -79,10 +131,16 @@
             + Math.floor(Math.random() * 100000);
     }
 
-    function requestSnapshot() {
+    function requestSnapshot(resync) {
+        if (!drawerOpened) return;
+        var context = currentMode + ":" + researchSourceEntindex;
+        if (snapshotRequest && snapshotRequest.context === context
+            && Date.now() - snapshotRequest.started < 10000) return;
+        snapshotRequestFailed = false;
+        snapshotRequest = {context: context, started: Date.now(), id: requestId("shop_open"), resync: !!resync};
         // Keep existing cards alive during an in-place refresh. Hiding the list
         // dismisses Panorama hover state even when the server changes only gold.
-        setLoading(!snapshot || snapshot.ui_mode !== currentMode);
+        setLoading(!snapshotMatchesContext(snapshot));
         setStatus(
             currentMode === "research" ? "正在同步科技……"
                 : (currentMode === "challenge" ? "正在同步挑战……"
@@ -90,7 +148,7 @@
             false
         );
         GameEvents.SendCustomGameEventToServer("ui_shop_open_request", {
-            request_id: requestId("shop_open"),
+            request_id: snapshotRequest.id,
             known_sequence: latestSequence,
             mode: currentMode,
             source_entindex: researchSourceEntindex
@@ -101,10 +159,10 @@
         var research = currentMode === "research";
         var challenge = currentMode === "challenge";
         var advancedResearch = research
-            && snapshot && snapshot.research_scope === "advanced";
+            && snapshotMatchesContext(snapshot) && snapshot.research_scope === "advanced";
         setText("ShopTitle", research
             ? (advancedResearch ? "高级研究" : "科技")
-            : (challenge ? "挑战" : "生存商店"));
+            : "生存商店");
         setText(
             "ShopSubtitle",
             research
@@ -116,99 +174,106 @@
         );
         var shopToggle = byId("ShopModeShop");
         var challengeToggle = byId("ShopModeChallenge");
-        if (shopToggle) shopToggle.SetHasClass("Selected", !research && !challenge);
-        if (challengeToggle) challengeToggle.SetHasClass("Selected", challenge);
+        var otherToggle = byId("ShopModeOther");
+        setClass(shopToggle, "Selected", !research && !challenge && shopCategory === "equipment");
+        setClass(challengeToggle, "Selected", challenge);
+        setClass(otherToggle, "Selected", !research && !challenge && shopCategory === "other");
+        setProperty(byId("ShopModeToggles"), "visible", !research);
     }
 
-    var drawerCloseJob = null;
-    var drawerTransition = 0;
+    function applyShopLayout() {
+        var windowPanel = byId("CustomShopWindow");
+        if (!windowPanel) return;
+        var root = $.GetContextPanel();
+        var rootWidth = (root.actuallayoutwidth || 1920) / (root.actualuiscale_x || 1);
+        var rootHeight = (root.actuallayoutheight || 1080) / (root.actualuiscale_y || 1);
+        var scale = Math.min(rootWidth / 1920, rootHeight / 1080);
+        var top = Math.max(12, (rootHeight - shopLayoutHeight * scale) / 2);
+        windowPanel.style.width = "680px";
+        windowPanel.style.height = shopLayoutHeight + "px";
+        windowPanel.style.horizontalAlign = "left";
+        windowPanel.style.verticalAlign = "top";
+        windowPanel.style.transformOrigin = "0% 0%";
+        windowPanel.style.margin = "0px";
+        // Fit owns scale; position owns the drawer transition. They never overwrite each other.
+        windowPanel.style.position = Math.round(drawerOpened ? 16 : -700 * scale) + "px " + Math.round(top) + "px 0px";
+        if (byId("ShopHeader")) {
+            byId("ShopHeader").style.borderBottom = "0px";
+            byId("ShopHeader").style.backgroundColor = "gradient(linear,0% 0%,0% 100%,from(#282035),to(#191325))";
+        }
+        if (byId("ShopBackdrop")) byId("ShopBackdrop").style.backgroundColor = "transparent";
+        if (byId("ShopBody")) byId("ShopBody").style.height = "426px";
+        if (byId("ShopFooter")) byId("ShopFooter").style.position = "24px 548px 0px";
+    }
+
+    function updateShopLayout(entries) {
+        // The reference keeps a stable three-row viewport, including sparse categories.
+        shopLayoutHeight = 600;
+        applyShopLayout();
+    }
+
     function setOpenState(opened) {
         var windowPanel = byId("CustomShopWindow");
-        var wasOpen = windowPanel && windowPanel.BHasClass("ShopOpen");
-        var wasClosing = drawerCloseJob !== null;
-        var transition = ++drawerTransition;
-        if (drawerCloseJob !== null) {
-            $.CancelScheduled(drawerCloseJob);
-            drawerCloseJob = null;
+        var exiting = drawerOpened || !!(windowPanel && windowPanel.visible);
+        var serial = ++drawerGeneration;
+        drawerOpened = opened;
+        if (windowPanel) {
+            windowPanel.style.backgroundColor = "gradient(linear,0% 0%,100% 100%,from(#2e243d),to(#21182f))";
+            windowPanel.style.border = "2px solid #b6996e"; windowPanel.style.borderRadius = "2px";
         }
         if(shopShell){if(opened)shopShell.Open();else shopShell.Close();}
-        var backdrop = byId("ShopBackdrop");
         if (windowPanel) {
             windowPanel.SetHasClass("ShopOpen", opened);
             windowPanel.SetHasClass("Closed", !opened);
-            windowPanel.SetHasClass("Hidden", false);
-            // Keep the panel rendered only until the slide-out completes.
-            // UIClosed is deliberately visible in CSS to permit this animation.
-            windowPanel.visible = opened || wasOpen || wasClosing;
+            windowPanel.RemoveClass("Hidden");
+            windowPanel.visible = opened || exiting;
             windowPanel.hittest = opened;
             windowPanel.hittestchildren = opened;
-            windowPanel.style.horizontalAlign = 'left';
-            windowPanel.style.transformOrigin = '0% 50%';
-            var scaleMatch=String(windowPanel.style.transform||'').match(/scale3d\(([0-9.]+)/);
-            var parent=windowPanel.GetParent ? windowPanel.GetParent() : null;
-            var measuredWidth=Number(windowPanel.actuallayoutwidth||0)/Math.max(0.001,Number(parent&&parent.actualuiscale_x)||1);
-            var drawerWidth=Math.max(640*Math.max(1,scaleMatch?Number(scaleMatch[1]):1),measuredWidth+80);
-            windowPanel.style.position = opened ? '0px 0px 0px' : '-'+Math.ceil(drawerWidth)+'px 0px 0px';
-            if (!opened && (wasOpen || wasClosing)) {
-                drawerCloseJob = $.Schedule(0.32, function () {
-                    if (transition !== drawerTransition) return;
-                    drawerCloseJob = null;
-                    if (windowPanel && (!windowPanel.IsValid || windowPanel.IsValid())
-                        && !windowPanel.BHasClass("ShopOpen")) {
-                        windowPanel.visible = false;
-                    }
-                });
-            }
-        }
-        if (backdrop) {
-            backdrop.SetHasClass("ShopOpen", opened);
-            backdrop.SetHasClass("Hidden", false);
-            backdrop.hittest = false;
-            backdrop.hittestchildren = false;
-            backdrop.visible = false;
+            applyShopLayout();
+            if (!opened && exiting) $.Schedule(0.29, function () {
+                if (serial === drawerGeneration && !drawerOpened && windowPanel.IsValid()) windowPanel.visible = false;
+            });
         }
     }
 
-    function open() {
-        if (!unlocks.shop) return;
-        currentMode = lastShopMode;
-        researchSourceEntindex = -1;
+    function openMode(mode, source) {
+        if (drawerOpened && currentMode === mode && researchSourceEntindex === source) {
+            if (snapshotRequestFailed || (snapshotRequest && Date.now() - snapshotRequest.started >= 10000)) requestSnapshot();
+            return;
+        }
+        var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
+        if (drawerOpened && tooltip) tooltip.Hide();
+        currentMode = mode;
+        researchSourceEntindex = source;
+        snapshotRequest = null;
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
+        if (!drawerOpened) setOpenState(true);
         updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
-        setOpenState(true);
+        renderSnapshot(true);
         requestSnapshot();
+    }
+
+    function open() {
+        if (unlocks.shop) openMode(lastShopMode, -1);
     }
 
     function openChallenge() {
         if (!unlocks.shop) return;
-        currentMode = "challenge";
         lastShopMode = "challenge";
-        researchSourceEntindex = -1;
-        hideValveShopWindow();
-        if (!byId("CustomShopWindow")) return;
-        updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
-        setOpenState(true);
-        requestSnapshot();
+        openMode("challenge", -1);
     }
 
     function openResearch(sourceEntindex) {
         var source = Number(sourceEntindex || -1);
         if (source <= 0) return;
-        currentMode = "research";
-        researchSourceEntindex = source;
-        hideValveShopWindow();
-        if (!byId("CustomShopWindow")) return;
-        updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
-        setOpenState(true);
-        requestSnapshot();
+        openMode("research", source);
     }
 
     function close() {
+        if (!drawerOpened) return;
         cooldownAnimationSerial++;
+        snapshotRequest = null;
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (tooltip) tooltip.Hide();
         setOpenState(false);
@@ -219,12 +284,21 @@
 
     function toggle() {
         var windowPanel = byId("CustomShopWindow");
-        // The drawer is intentionally never Hidden; its visual state is driven by ShopOpen.
         if (!windowPanel || !windowPanel.BHasClass("ShopOpen")) open();
         else close();
     }
 
-    function selectShop() { lastShopMode = "shop"; open(); }
+    function selectCategory(category) {
+        if (!unlocks.shop) return;
+        var changed = shopCategory !== category;
+        shopCategory = category;
+        lastShopMode = "shop";
+        if (drawerOpened && currentMode === "shop") {
+            if (changed) renderSnapshot(true);
+        } else open();
+    }
+    function selectShop() { selectCategory("equipment"); }
+    function selectOther() { selectCategory("other"); }
 
     function toggleShop() {
         var windowPanel = byId("CustomShopWindow");
@@ -244,9 +318,9 @@
     function setUnlocks(value) {
         unlocks = value || unlocks;
         GameUI.CustomUIConfig().SurvivalShopUnlocks = unlocks;
-        updateModeText();
+        if (drawerOpened) updateModeText();
         var shopButton = byId("CustomShopButton");
-        if (shopButton) shopButton.SetHasClass("Locked", !unlocks.shop);
+        setClass(shopButton, "Locked", !unlocks.shop);
     }
 
     function onShopUnlock(payload) {
@@ -259,8 +333,7 @@
     }
 
     function refresh() {
-        var windowPanel = byId("CustomShopWindow");
-        if (windowPanel && !windowPanel.BHasClass("Hidden")) requestSnapshot();
+        if (drawerOpened) requestSnapshot();
     }
 
     function createEntryIcon(parent, entry, className) {
@@ -278,16 +351,37 @@
         panel.hittestchildren = false;
     }
 
+    function usesTechnologyPrerequisites(entry) {
+        return !!entry && entry.content_type === "technology" && entry.prerequisite_met !== undefined;
+    }
+
+    function entryUnavailable(entry) {
+        if (!entry) return true;
+        return usesTechnologyPrerequisites(entry)
+            ? Number(entry.prerequisite_met) === 0 : entry.purchasable !== 1;
+    }
+
+    function entryCompleted(entry) {
+        return usesTechnologyPrerequisites(entry)
+            && (Number(entry.completed) === 1 || Number(entry.removed) === 1);
+    }
+
+    function queuedTechnology(entry) {
+        return usesTechnologyPrerequisites(entry) && currentMode === "research"
+            && Number(researchSourceEntindex) > 0;
+    }
+
     function purchase(entry) {
+        if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
         if (earlyFinalCooldownRemaining(entry) > 0) return;
-        if (!entry || entry.purchasable !== 1) {
+        if (entryUnavailable(entry) || entryCompleted(entry)) {
             setStatus(
                 "当前不可购买：" + ((entry && entry.disabled_reason) || "条件不满足"),
                 true
             );
             return;
         }
-        if (entry.content_type === "technology"
+        if (entry.content_type === "technology" && !queuedTechnology(entry)
             && technologyCooldownRemaining() > 0) {
             setStatus("已有科技正在研究中，请稍候", true);
             return;
@@ -310,6 +404,7 @@
     }
 
     function toggleAutoResearch(entry) {
+        if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
         if (!entry || entry.auto_research_available !== 1) return;
         if (Number(researchSourceEntindex || -1) <= 0) {
             setStatus("高级研究所来源无效", true);
@@ -326,11 +421,7 @@
     }
 
     function entryById(entryId) {
-        var entries = asArray(snapshot && snapshot.entries);
-        for (var index = 0; index < entries.length; index++) {
-            if (entries[index] && entries[index].entry_id === entryId) return entries[index];
-        }
-        return null;
+        return entriesById[entryId] || null;
     }
 
     function earlyFinalCooldownRemaining(entry) {
@@ -374,8 +465,8 @@
             total = Number(entry.early_final_cooldown_total || 60);
             source = entry.entry_id;
             if (remaining <= 0 && Number(entry.early_final_cooldown_remaining) > 0
-                && !entry.__cooldownRefreshRequested) {
-                entry.__cooldownRefreshRequested = true;
+                && cooldownRefreshDeadlines[entry.entry_id] !== String(entry.early_final_cooldown_until || 0)) {
+                cooldownRefreshDeadlines[entry.entry_id] = String(entry.early_final_cooldown_until || 0);
                 requestSnapshot();
             }
         }
@@ -383,91 +474,99 @@
         var isSource = !!source && (String(entry.entry_id) === source
             || String(entry.technology_group || "") === source);
         var active = isSource && remaining > 0;
-        card.SetHasClass("CooldownSource", active);
-        mask.visible = active;
+        setClass(card, "CooldownSource", active);
+        setProperty(mask, "visible", active);
         if (!active) return;
         var progress = Math.max(0, Math.min(1, remaining / Math.max(0.01, total)));
         var endAngle = Math.max(0, Math.min(360, progress * 360));
-        mask.style.clip = "radial(50% 50%, 0deg, " + endAngle.toFixed(2) + "deg)";
+        setProperty(mask.style, "clip", "radial(50% 50%, 0deg, " + endAngle.toFixed(2) + "deg)");
     }
 
     function updateAllCooldownOverlays() {
+        if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
         var serial = ++cooldownAnimationSerial;
         var remaining = technologyCooldownRemaining();
-        var animationRemaining = remaining;
+        var animationRemaining = 0;
         var source = technologyCooldownSource();
         var total = Number(snapshot && snapshot.technology_cooldown_total || 2);
         Object.keys(entryCardsById).forEach(function (entryId) {
             var card = entryCardsById[entryId];
             var entry = entryById(entryId);
-            if (card && entry) updateCooldownOverlay(card, entry, remaining, total, source);
-            if (entry) animationRemaining = Math.max(animationRemaining, earlyFinalCooldownRemaining(entry));
+            if (card && entry) {
+                updateCooldownOverlay(card, entry, remaining, total, source);
+                setClass(card, "PurchaseCooldownLocked", remaining > 0
+                    && entry.content_type === "technology" && !queuedTechnology(entry));
+                if (card.__survivalCooldownMask && card.__survivalCooldownMask.visible) {
+                    animationRemaining = Math.max(animationRemaining, remaining, earlyFinalCooldownRemaining(entry));
+                }
+            }
         });
         if (animationRemaining <= 0) return;
         $.Schedule(0.05, function tick() {
-            if (serial !== cooldownAnimationSerial) return;
+            if (!drawerOpened || serial !== cooldownAnimationSerial) return;
             updateAllCooldownOverlays();
         });
     }
 
     function updateEntryCard(card, entry) {
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R&&card)R.UpdateShopPrices(card,entry);
         if (!card || !entry) return;
-        card.SetHasClass("Unavailable", entry.purchasable !== 1);
-        card.SetHasClass("Technology", entry.content_type === "technology");
-        card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
-        card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
+        var entrySignature = contentSignature(entry, false);
+        var signature = entrySignature + "|" + (technologyCooldownRemaining() > 0 && !queuedTechnology(entry));
+        if (card.__survivalEntrySignature === signature) return;
+        var entryChanged = card.__survivalEntryContent !== entrySignature;
+        card.__survivalEntrySignature = signature;
+        card.__survivalEntryContent = entrySignature;
+        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.UpdateShopPrices(card,entry);
+        setClass(card, "Unavailable", entryUnavailable(entry));
+        setClass(card, "Technology", entry.content_type === "technology");
+        setClass(card, "AutoResearchAvailable", entry.auto_research_available === 1);
+        setClass(card, "AutoResearchActive", entry.auto_research_enabled === 1);
         var code = String(entry.disabled_reason_code || "");
-        card.SetHasClass("PrerequisiteLocked", code === "prerequisite_not_met"
-            || code === "rebirth_level_not_met"
-            || code === "research_access_not_met");
-        card.SetHasClass("ResourceLocked", code === "insufficient_gold"
-            || code === "insufficient_wood");
-        card.SetHasClass("MaxLevel", code === "max_level_reached");
-        card.SetHasClass("PurchaseCooldownLocked", technologyCooldownRemaining() > 0
-            && entry.content_type === "technology");
-        card.hittest = true;
+        setClass(card, "PrerequisiteLocked", usesTechnologyPrerequisites(entry)
+            ? Number(entry.prerequisite_met) === 0 : (code === "prerequisite_not_met"
+                || code === "rebirth_level_not_met" || code === "research_access_not_met"));
+        setClass(card, "ResourceLocked", !usesTechnologyPrerequisites(entry)
+            && (code === "insufficient_gold" || code === "insufficient_wood"));
+        setClass(card, "MaxLevel", code === "max_level_reached");
+        setClass(card, "PurchaseCooldownLocked", technologyCooldownRemaining() > 0
+            && entry.content_type === "technology" && !queuedTechnology(entry));
+        setProperty(card, "visible", !entryCompleted(entry));
+        setProperty(card, "hittest", true);
+        setProperty(card.__survivalNameLabel, "text", entry.name || entry.content_id || "");
+        setProperty(card.__survivalLevelLabel, "text", entry.level_text || ("Lv." + Number(entry.technology_level || 0)));
         if (card.__survivalLockBadge) {
-            card.__survivalLockBadge.text = lockBadgeText(entry);
-            card.__survivalLockBadge.visible = card.__survivalLockBadge.text !== "";
+            setProperty(card.__survivalLockBadge, "text", lockBadgeText(entry));
+            setProperty(card.__survivalLockBadge, "visible", card.__survivalLockBadge.text !== "");
         }
         var stock=GameUI.CustomUIConfig().RemainingHandoff.ShopStock(entry);
         var purchaseLimitReached = entry.disabled_reason_code === "purchase_limit_reached"
             || (entry.purchasable !== 1 && Number(entry.purchase_limit || 0) > 0
                 && Number(entry.owned_count || 0) >= Number(entry.purchase_limit));
-        card.SetHasClass("StockEmpty", (!!stock && stock.count <= 0) || purchaseLimitReached);
+        setClass(card, "StockEmpty", (!!stock && stock.count <= 0) || purchaseLimitReached);
+        if (stock && !card.__survivalStockLabel) {
+            card.__survivalStockLabel = $.CreatePanel("Label", card.__survivalFrame, "");
+            card.__survivalStockLabel.AddClass("ShopStockLabel");
+            card.__survivalStockLabel.hittest = false;
+        }
         if (card.__survivalStockLabel) {
-            card.__survivalStockLabel.visible=!!stock;
-            card.__survivalStockLabel.text=stock?stock.count+"/"+stock.max:"";
+            setProperty(card.__survivalStockLabel, "visible", false);
+            setProperty(card.__survivalStockLabel, "text", stock ? stock.count+"/"+stock.max : "");
         }
         updateCooldownOverlay(card, entry, technologyCooldownRemaining(),
             Number(snapshot && snapshot.technology_cooldown_total || 2),
             technologyCooldownSource());
-    }
-
-    function updateVisibleEntryCards(changedIds) {
-        Object.keys(changedIds || {}).forEach(function (entryId) {
-            var card = entryCardsById[entryId];
-            if (card && card.IsValid && card.IsValid()) {
-                updateEntryCard(card, entryById(entryId));
-            }
-        });
-        updateAllCooldownOverlays();
-    }
-
-    function entriesFor(data, shopId) {
-        var entries = asArray(data && data.entries).filter(function (entry) {
-            return entry && entry.visible === 1;
-        });
-        entries.sort(function (a, b) {
-            return (a.sort_order || 0) - (b.sort_order || 0);
-        });
-        return entries;
+        var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
+        if (entryChanged && tooltip && tooltip.UpdateEntry) tooltip.UpdateEntry(entry);
     }
 
     function visibleEntries() {
         var entries = asArray(snapshot && snapshot.entries).filter(function (entry) {
-            return entry && entry.visible === 1;
+            if (!entry || entry.visible !== 1 || entryCompleted(entry)) return false;
+            if (currentMode !== "shop") return true;
+            // Use the real category when supplied. Older snapshots keep their
+            // equipment/items in the first tab rather than hiding unknown rows.
+            var other = (entry.shop_id || entry.category_id) === "item" || entry.content_id === "service_early_final_boss";
+            return shopCategory === "other" ? other : !other;
         });
         entries.sort(function (a, b) {
             var sectionOrder = function (entry) {
@@ -487,7 +586,7 @@
     }
 
     function structureSignature(entries) {
-        return currentMode + "|" + entries.map(function (entry) {
+        return currentMode + "|" + shopCategory + "|" + entries.map(function (entry) {
             return [
                 entry.entry_id,
                 entry.shop_id,
@@ -497,60 +596,28 @@
                 entry.content_id,
                 entry.icon_type,
                 entry.icon,
-                entry.level_text,
-                entry.name,
-                entry.stock,
-                entry.stock_max,
-                entry.purchase_limit,
-                entry.refresh_remaining
+                entry.technology_id
             ].join(":");
         }).join("|");
     }
 
-    function categorySignature(categoriesValue) {
-        var categories = asArray(categoriesValue);
-        categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-        return categories.map(function (category) {
-            return category.shopid + ":" + category.shopname + ":" + category.order;
-        }).join("|");
-    }
-
-    function compareFullSnapshot(previous, current) {
-        var previousById = {};
-        var changedIds = {};
-        asArray(previous.entries).forEach(function (entry) {
-            if (entry && entry.entry_id) previousById[entry.entry_id] = entry;
-        });
-        asArray(current.entries).forEach(function (entry) {
-            if (!entry || !entry.entry_id) return;
-            if (!previousById[entry.entry_id]
-                || JSON.stringify(previousById[entry.entry_id]) !== JSON.stringify(entry)) {
-                changedIds[entry.entry_id] = true;
-            }
-            delete previousById[entry.entry_id];
-        });
-        Object.keys(previousById).forEach(function (entryId) {
-            changedIds[entryId] = true;
-        });
-        return {
-            categories: categorySignature(previous.categories)
-                !== categorySignature(current.categories),
-            structural: structureSignature(entriesFor(previous, ""))
-                !== structureSignature(entriesFor(current, "")),
-            changedIds: changedIds
-        };
-    }
-
     var autoBookButtons = {};
     function updateAutoBookButtons() {
+        if (!drawerOpened) return;
         var values = CustomNetTables.GetTableValue("survival_shop_config", "auto_purchase_" + Game.GetLocalPlayerID()) || {};
+        var changed = false;
         Object.keys(autoBookButtons).forEach(function(id) {
             var button = autoBookButtons[id];
             if (button && button.IsValid()) {
-                button.SetHasClass("AutoBookEnabled", Number(values[id] || 0) === 1);
-                button.GetChild(0).text = Number(values[id] || 0) === 1 ? "自动 ✓" : "自动";
+                var enabled = Number(values[id] || 0) === 1;
+                if (button.__survivalAutoEnabled !== enabled) changed = true;
+                button.__survivalAutoEnabled = enabled;
+                setClass(button, "AutoBookEnabled", enabled);
+                setProperty(button.GetChild(0), "text", enabled ? "自动 ✓" : "自动");
             }
         });
+        var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
+        if (changed && tooltip && tooltip.UpdateAutoPurchaseState) tooltip.UpdateAutoPurchaseState();
     }
     if (typeof CustomNetTables !== "undefined") CustomNetTables.SubscribeNetTableListener("survival_shop_config", function(table, key) {
         if (key === "auto_purchase_" + Game.GetLocalPlayerID()) updateAutoBookButtons();
@@ -558,7 +625,7 @@
     function renderItems() {
         if (currentMode === "shop" || currentMode === "challenge") lastShopMode = currentMode;
         var list = byId("ShopItemList");
-        if (!list || !snapshot) return;
+        if (!list || !snapshot || !drawerOpened) return;
         var entries = visibleEntries();
         var nextSignature = structureSignature(entries);
         if (nextSignature === renderedStructureSignature) {
@@ -570,6 +637,7 @@
             updateAllCooldownOverlays();
             return;
         }
+        updateShopLayout(entries);
         autoBookButtons = {};
         renderedStructureSignature = nextSignature;
         entryCardsById = {};
@@ -596,7 +664,7 @@
                 sectionKey = entry.content_type === "weapon" ? "weapon" : "item";
                 sectionText = sectionKey === "weapon" ? "武器装备" : "道具材料";
             }
-            if (sectionKey !== lastSection) {
+            if (sectionKey !== lastSection && currentMode === "research") {
                 lastSection = sectionKey;
                 var section = $.CreatePanel("Label", list, "");
                 section.AddClass("ShopSectionTitle");
@@ -604,7 +672,7 @@
             }
             var card = $.CreatePanel("Panel", list, "");
             card.AddClass("ShopShelfSlot"); U.CardShell.Adopt(card,{bodyVariant:"product"});
-            card.SetHasClass("Unavailable", entry.purchasable !== 1);
+            card.SetHasClass("Unavailable", entryUnavailable(entry));
             card.SetHasClass("Technology", entry.content_type === "technology");
             card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
             card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
@@ -613,6 +681,7 @@
 
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
+            card.__survivalFrame = frame;
             createEntryIcon(frame, entry, "ShopItemIcon");
             if (entry.content_type === "technology" || entry.content_id === "service_early_final_boss") {
                 var cooldownMask = $.CreatePanel("Panel", frame, "");
@@ -635,18 +704,20 @@
                 card.__survivalLockBadge = lockBadge;
                 var level = $.CreatePanel("Label", frame, "");
                 level.AddClass("ShopTechnologyLevel");
+                card.__survivalLevelLabel = level;
                 level.text = entry.level_text || ("Lv." + Number(entry.technology_level || 0));
                 if (entry.technology_id) {
                     var code = $.CreatePanel("Label", frame, "");
                     code.AddClass("ShopTechnologyCode");
                     code.text = entry.technology_id;
                 }
-            } else if (currentMode === "challenge"
-                || entry.content_id === "service_early_final_boss") {
-                var name = $.CreatePanel("Label", frame, "");
-                name.AddClass("ShopCardName");
-                name.text = entry.name || "";
             }
+            var name = $.CreatePanel("Label", card, "");
+            name.AddClass("ShopCardName");
+            card.__survivalNameLabel = name;
+            name.text = entry.name || entry.content_id || "";
+            name.hittest = false;
+            name.visible = false; // Icon-only reference; names remain in the detail tooltip.
             if (GameUI.CustomUIConfig().RemainingHandoff.ShopStock(entry)) {
                 var stockLabel = $.CreatePanel("Label", frame, "");
                 stockLabel.AddClass("ShopStockLabel");
@@ -659,7 +730,7 @@
                 if (tooltip && current) tooltip.Show(current, card);
             });
             card.SetPanelEvent("onmouseout", function () {
-                if (tooltip) tooltip.Hide();
+                if (tooltip) (tooltip.RequestHide || tooltip.Hide)();
             });
             card.SetPanelEvent("oncontextmenu", function () {
                 var current = entryById(card.GetAttributeString("entry_id", ""));
@@ -670,9 +741,9 @@
                 }
             });
             card.SetPanelEvent("onactivate", function () {
-                if (currentMode === "research") {
-                    purchase(entryById(card.GetAttributeString("entry_id", "")));
-                }
+                var current = entryById(card.GetAttributeString("entry_id", ""));
+                if (currentMode === "research") purchase(current);
+                else if (tooltip && current) tooltip.Show(current, card, true);
             });
             var R=GameUI.CustomUIConfig().RemainingHandoff;
             if(R)R.SurvivalShopCard(card,entry,function(){purchase(entryById(card.GetAttributeString("entry_id","")));});
@@ -691,6 +762,8 @@
                     return true;
                 });
             }
+            card.style.width = "136px"; card.style.height = "132px";
+            card.style.margin = "0px 20px 10px 0px"; card.style.padding = "0px";
             updateEntryCard(card, entry);
         });
         updateAutoBookButtons();
@@ -701,11 +774,6 @@
             empty.text = "该分类当前没有可显示内容";
         }
         updateAllCooldownOverlays();
-    }
-
-    function renderCategories() {
-        renderedCategorySignature = categorySignature(snapshot && snapshot.categories);
-        renderItems();
     }
 
     function renderResources() {
@@ -719,97 +787,74 @@
 
     function mergePatch(payload) {
         if (!snapshot || Number(payload.base_sequence || 0) !== latestSequence) {
-            requestSnapshot();
+            if (drawerOpened && rejectedPatchSequence !== Number(payload.sequence || 0)) {
+                rejectedPatchSequence = Number(payload.sequence || 0);
+                if (snapshotRequest && snapshotRequest.resync && Date.now() - snapshotRequest.started < 10000) return null;
+                snapshotRequest = null;
+                requestSnapshot(true);
+            }
             return null;
         }
         var previousById = {};
         asArray(snapshot.entries).forEach(function (entry) {
             if (entry && entry.entry_id) previousById[entry.entry_id] = entry;
         });
-        var structural = false;
-        var changedIds = {};
         asArray(payload.removed_entry_ids).forEach(function (entryId) {
-            var previous = previousById[entryId];
-            if (previous) structural = true;
             delete previousById[entryId];
         });
         asArray(payload.changed_entries).forEach(function (entry) {
             if (!entry || !entry.entry_id) return;
-            var previous = previousById[entry.entry_id];
-            if (!previous
-                || previous.shop_id !== entry.shop_id
-                || previous.sort_order !== entry.sort_order
-                || previous.content_type !== entry.content_type
-                || previous.technology_track !== entry.technology_track
-                || previous.level_text !== entry.level_text
-                || previous.name !== entry.name
-                || previous.icon !== entry.icon) {
-                structural = true;
-            }
             previousById[entry.entry_id] = entry;
-            changedIds[entry.entry_id] = true;
         });
         snapshot.entries = Object.keys(previousById).map(function (entryId) {
             return previousById[entryId];
         });
-        if (payload.resources) snapshot.resources = payload.resources;
-        if (payload.refresh_stock) snapshot.refresh_stock = payload.refresh_stock;
-        if (payload.categories) snapshot.categories = payload.categories;
-        snapshot.technology_cooldown_remaining = payload.technology_cooldown_remaining;
-        snapshot.technology_cooldown_total = payload.technology_cooldown_total;
-        snapshot.technology_cooldown_until = payload.technology_cooldown_until;
-        snapshot.technology_cooldown_source_group = payload.technology_cooldown_source_group;
-        snapshot.technology_cooldown_source_entry = payload.technology_cooldown_source_entry;
-        snapshot.technology_cooldown_sequence = payload.technology_cooldown_sequence;
-        snapshot.research_scope = payload.research_scope || snapshot.research_scope;
-        snapshot.research_source_entindex = payload.research_source_entindex === undefined
-            ? snapshot.research_source_entindex : payload.research_source_entindex;
-        snapshot.sequence = payload.sequence;
-        snapshot.reason = payload.reason;
-        snapshot.ui_mode = payload.ui_mode || snapshot.ui_mode;
-        return {
-            structural: structural,
-            categories: !!payload.categories,
-            changedIds: changedIds
-        };
+        // Omitted fields retain their previous values. Carry all supplied business
+        // fields, including research queues and purchase cooldowns, without a
+        // second hand-maintained projection that can silently lose new fields.
+        Object.keys(payload).forEach(function (key) {
+            if (key !== "changed_entries" && key !== "removed_entry_ids"
+                && key !== "entries" && key !== "full" && key !== "base_sequence") {
+                snapshot[key] = payload[key];
+            }
+        });
+        return snapshot;
+    }
+
+    function renderSnapshot(force) {
+        if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
+        var signature = currentMode + "|" + shopCategory + "|" + contentSignature(snapshot, true);
+        if (!force && signature === renderedSnapshotSignature) return;
+        renderedSnapshotSignature = signature;
+        updateModeText();
+        setLoading(false);
+        renderResources();
+        renderItems();
+        updateAutoBookButtons();
     }
 
     function onSnapshot(payload) {
         if (!payload) return;
+        if (drawerOpened) {
+            var mode = payload.ui_mode || (snapshot && snapshot.ui_mode) || "shop";
+            var source = payload.research_source_entindex === undefined
+                ? snapshot && snapshot.research_source_entindex : payload.research_source_entindex;
+            if (mode !== currentMode || (mode === "research" && Number(source) !== researchSourceEntindex)) return;
+        }
         var sequence = Number(payload.sequence || 0);
         if (sequence > 0 && sequence <= latestSequence) return;
-        var patchResult = null;
         if (payload.full === 0) {
-            patchResult = mergePatch(payload);
-            if (!patchResult) return;
+            if (!mergePatch(payload)) return;
         } else {
-            if (snapshot && snapshot.ui_mode === payload.ui_mode) {
-                patchResult = compareFullSnapshot(snapshot, payload);
-            }
             snapshot = payload;
-            if (!patchResult) {
-                renderedCategorySignature = "";
-                renderedStructureSignature = "";
-            }
         }
         latestSequence = Math.max(latestSequence, sequence);
-        currentMode = payload.ui_mode === "research" ? "research"
-            : (payload.ui_mode === "challenge" ? "challenge" : "shop");
-        if (currentMode === "research") {
-            researchSourceEntindex = Number(
-                snapshot && snapshot.research_source_entindex || researchSourceEntindex
-            );
-        }
-        updateModeText();
-        setLoading(false);
-        if (!patchResult || payload.resources) renderResources();
-        if (!patchResult || patchResult.categories) {
-            renderCategories();
-        } else if (patchResult.structural) {
-            renderItems();
-        } else {
-            updateVisibleEntryCards(patchResult.changedIds);
-        }
+        rejectedPatchSequence = -1;
+        indexEntries();
+        if (!drawerOpened) return;
+        snapshotRequest = null;
+        snapshotRequestFailed = false;
+        renderSnapshot(false);
         setStatus(
             currentMode === "research"
                 ? "科技已同步"
@@ -830,9 +875,9 @@
         researchSourceEntindex = Number(payload.source_entindex || -1);
         hideValveShopWindow();
         updateModeText();
-        var R=GameUI.CustomUIConfig().RemainingHandoff;if(R)R.SurvivalShopWindow(byId("CustomShopWindow"));
         setOpenState(true);
         onSnapshot(payload.snapshot || {});
+        renderSnapshot(true);
     }
 
     function focusHero(payload) {
@@ -880,7 +925,10 @@
     function onResult(payload) {
         if (!payload) return;
         if (payload.operation === "shop_open" && payload.success !== 1) {
-            setLoading(false);
+            if (payload.request_id && (!snapshotRequest || payload.request_id !== snapshotRequest.id)) return;
+            snapshotRequest = null;
+            snapshotRequestFailed = true;
+            if (drawerOpened) setLoading(false);
             setStatus("商店同步失败：" + (payload.error || "未知错误"), true);
             return;
         }
@@ -944,6 +992,7 @@
     GameUI.CustomUIConfig().SurvivalShop = {
         Open: open,
         SelectShop: selectShop,
+        SelectOther: selectOther,
         Close: close,
         Toggle: toggle,
         ToggleShop: toggleShop,
@@ -951,12 +1000,42 @@
         OpenResearch: openResearch,
         ToggleChallenge: toggleChallenge,
         SetUnlocks: setUnlocks,
-        Refresh: refresh
+        PurchaseEntry: function (id) { var entry = entryById(id); if (entry) purchase(entry); },
+        ToggleAutoPurchaseEntry: function (id) {
+            if (id !== "shop_item_knowledge_book" && id !== "shop_item_super_knowledge_book") return;
+            GameEvents.SendCustomGameEventToServer("ui_shop_auto_purchase_toggle_request", {entry_id:id});
+        },
+        Refresh: refresh,
+        Inspect: function () { return {mode:currentMode,category:shopCategory,height:shopLayoutHeight}; }
     };
-    var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:604,height:806,onClose:close});
-    ["ShopModeShop","ShopModeChallenge"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
+    var shopWindow = byId("CustomShopWindow");
+    var purple = GameUI.CustomUIConfig().SurvivalPurpleShell;
+    if (purple && purple.Detach) purple.Detach(shopWindow);
+    else if (shopWindow.__purpleShell) { shopWindow.__purpleShell.Dispose(); shopWindow.RemoveClass("PurpleShell"); }
+    shopWindow.AddClass("ShopPurple"); shopWindow.AddClass("ShopStandalone"); shopWindow.AddClass("RHSurvivalShop");
+    var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:680,height:600,fit:{reference:[1920,1080]},onClose:close});
+    var categoryHost = byId("ShopModeToggles");
+    if (categoryHost && !byId("ShopModeOther")) {
+        var other = $.CreatePanel("Button", categoryHost, "ShopModeOther");
+        other.AddClass("ShopModeToggle"); other.hittestchildren = false;
+        var otherLabel = $.CreatePanel("Label", other, ""); otherLabel.text = "其他";
+        other.SetPanelEvent("onactivate", selectOther);
+    }
+    var shopButton = byId("ShopModeShop");
+    if (shopButton && shopButton.GetChildCount && shopButton.GetChildCount()) shopButton.GetChild(0).text = "装备";
+    ["ShopModeShop","ShopModeChallenge","ShopModeOther"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
     U.Tooltip.Adopt(byId("ShopEntryTooltip"));
-    GameUI.CustomUIConfig().RemainingHandoff.SurvivalShopWindow(byId("CustomShopWindow"));
+    byId("ShopTitle").style.color = "#ffdb82";
+    var closeButton = byId("ShopCloseButton");
+    closeButton.RemoveAndDeleteChildren();
+    var closeGlyph = $.CreatePanel("Label", closeButton, ""); closeGlyph.text = "×"; closeGlyph.hittest = false;
+    var titleDivider = $.CreatePanel("Panel", byId("ShopHeader"), "ShopTitleDivider");
+    titleDivider.hittest = false; titleDivider.hittestchildren = false;
+    ["TL","TR","BL","BR"].forEach(function(c) {
+        var corner = $.CreatePanel("Panel", shopWindow, "");
+        corner.AddClass("ShopFrameCorner"); corner.AddClass("ShopFrameCorner" + c);
+        corner.hittest = false; corner.hittestchildren = false;
+    });
     setUnlocks(GameUI.CustomUIConfig().SurvivalShopUnlocks || unlocks);
     setOpenState(false);
 })();

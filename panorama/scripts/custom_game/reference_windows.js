@@ -4,7 +4,7 @@
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function art(parent,type,cls){var n=$.CreatePanel(type,parent,"");n.AddClass(cls);n.hittest=false;n.hittestchildren=false;return n;}
     function apply(win,header,close){
-        if(!valid(win))return;
+        if(!valid(win)||win.BHasClass("PurpleShell")||win.BHasClass("ShopStandalone"))return;
         win.AddClass("ReferenceWindow");
         win.style.backgroundImage="none";
         win.style.backgroundColor="gradient(linear,0% 0%,0% 100%,from(#1b4354),color-stop(.28,#153441),to(#102b37))";

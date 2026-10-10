@@ -18,8 +18,11 @@
     function finish(){var callback=complete;cancel();if(callback)callback();}
     function build(){
         if(valid(surface))return true;
-        var canvas=$('#LotteryWindow');if(!valid(canvas))return false;
+        var canvas=$('#LotteryWindow'),popup=$('#LotteryMainCanvas');
+        if(valid(popup)&&popup.BHasClass('LotteryPurple'))canvas=popup;
+        if(!valid(canvas))return false;
         surface=$.CreatePanel('Panel',canvas,'LotteryCinematicSurface');surface.AddClass('LotteryCinematicSurface');surface.hittest=true;surface.visible=false;
+        if(canvas===popup){surface.style.position='0px 128px 0px';surface.style.height='672px';surface.style.width='1280px';}
         var backdrop=$.CreatePanel('Panel',surface,'LotteryCinematicBackdrop');backdrop.AddClass('LotteryCinematicBackdrop');backdrop.hittest=false;
         var caption=$.CreatePanel('Label',surface,'LotteryCinematicCaption');caption.AddClass('LotteryCinematicCaption');caption.hittest=false;
         var skip=$.CreatePanel('Button',surface,'LotteryCinematicSkip');skip.AddClass('LotteryCinematicSkip');skip.hittestchildren=false;
@@ -29,6 +32,10 @@
     }
     function resize(w,h){
         if(!valid(movie))return;
+        if(!(w>0&&h>0)){
+            var popup=$('#LotteryMainCanvas');
+            if(valid(popup)&&popup.BHasClass('LotteryPurple')){w=1280;h=672;}
+        }
         if(!(w>0&&h>0)){
             var viewport=cfg.LotteryHandoff&&cfg.LotteryHandoff.Viewport?cfg.LotteryHandoff.Viewport():null;
             var root=$('#LotteryWindow');

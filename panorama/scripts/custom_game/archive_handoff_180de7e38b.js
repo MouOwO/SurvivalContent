@@ -1,7 +1,7 @@
 (function () {
     'use strict';
     var cfg=GameUI.CustomUIConfig(),assets=cfg.ArchiveHandoffAssets,root=$.GetContextPanel(),generation=0,anchor=null,effectOnly=false,raisedTooltipParents=[];
-    function p(id){return root.FindChildTraverse(id);}
+    function p(id){if(root.IsValid&&!root.IsValid())return null;return root.FindChildTraverse(id);}
     function style(el,s){Object.keys(s).forEach(function(k){el.style[k]=s[k];});}
     function palette(panel, inherited) { cfg.ArchiveTheme.Apply(panel, inherited); }
     function img(parent,name,cls){var el=$.CreatePanel('Image',parent,'');el.AddClass(cls);el.SetImage(assets[name]);el.hittest=false;return el;}
@@ -44,22 +44,22 @@
     function hide(){generation++;
         raisedTooltipParents.forEach(function(e){if(e.panel.IsValid()&&String(e.panel.style.zIndex)==='100012')e.panel.style.zIndex=e.z;});raisedTooltipParents=[];if(anchor&&anchor.IsValid())anchor.RemoveClass('ArchiveHovered');anchor=null;var tip=p('ArchiveTooltip');if(tip&&tip.IsValid())tip.AddClass('ArchiveHidden');}
     function position(g){
-        if(g!==generation||!anchor||!anchor.IsValid())return;
+        if(root.IsValid&&!root.IsValid()||g!==generation||!anchor||!anchor.IsValid())return;
         var tip=p('ArchiveTooltip'),sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1;
+        if(!tip||tip.IsValid&&!tip.IsValid())return;
         var w=root.actuallayoutwidth||1920,h=root.actuallayoutheight||1080;
-        // Keep the anchor in modal-fit coordinates, but render the detached popup
-        // at native UI scale, exactly like the ability tooltip.
-        var fit=Math.min(w/sx/1672,h/sy/941);
+        // The card may be any category or modal size. Measure its transformed
+        // screen rectangle instead of assuming one historical archive grid.
         tip.style.transform='none';
         tip.style.maxHeight=Math.floor(h/sy-24)+'px';
         p('ArchiveTooltipBody').style.maxHeight=tip.style.maxHeight;
-        var pos=anchor.GetPositionWithinWindow(),r={x:pos.x,y:pos.y,w:anchor.actuallayoutwidth,h:anchor.actuallayoutheight};
-        // actual layout dimensions exclude CSS transforms; the archive's own UI scale includes its ancestor transform.
-        if(!effectOnly){r.w=(anchor.BHasClass("ArchiveFragmentCard")?144:112)*sx*fit;r.h=(anchor.BHasClass("ArchiveFragmentCard")?218:(anchor.BHasClass("ArchiveWorkCard")?158:132))*sy*fit;}
-        var t={w:(parseFloat(cfg.SurvivalArchiveColors.tooltip_width)||460)*sx,h:(tip.actuallayoutheight||274*sy)};
-        var windowPos=p('ArchiveWindow').GetPositionWithinWindow();
-        // Prefer staying inside the modal, as in the approved rightmost-card example.
-        var at=place(r,t,effectOnly?w:Math.min(w,windowPos.x+869*sx*fit),h,12*sx*fit,12*sx);
+        var pos=anchor.GetPositionWithinWindow(),scaleX=anchor.actualuiscale_x||sx,scaleY=anchor.actualuiscale_y||sy;
+        // Layout dimensions already include native UI scale, while inherited
+        // CSS transforms are represented by the panel/root scale ratio.
+        var r={x:pos.x,y:pos.y,w:(anchor.actuallayoutwidth||128*sx)*(scaleX/sx),h:(anchor.actuallayoutheight||128*sy)*(scaleY/sy)};
+        var tipWidth=parseFloat(tip.style.width)||parseFloat(cfg.SurvivalArchiveColors.tooltip_width)||460;
+        var t={w:tipWidth*sx,h:tip.actuallayoutheight||274*sy};
+        var at=place(r,t,w,h,12*sx,12*sx);
         tip.style.position=Math.round(at.x/sx)+'px '+Math.round(at.y/sy)+'px 0px';
         tip.SetAttributeString('expand_side',at.side);
         tip.style.zIndex=effectOnly?'100012':String((Number(p('ArchiveWindow').style.zIndex)||100000)+2);
@@ -119,6 +119,8 @@ function formatArchiveEffects(value) {
         if(!anchor)return;
         anchor.AddClass('ArchiveHovered');
         var state=unlocked(item,category);
+        p('ArchiveTooltip').__archiveEffectOnly=effectOnly;
+        var divider=p('ArchiveTooltipDivider');if(divider)divider.visible=!effectOnly;
         p('ArchiveTooltipState').visible=!effectOnly;
         p('ArchiveTooltipProgressRow').visible=!effectOnly;
         p('ArchiveTooltipName').text=item.name||'';
@@ -131,6 +133,29 @@ function formatArchiveEffects(value) {
         p('ArchiveTooltipProgress').text=isAchievement(category)?progress(item):(category==='building'||category==='work')?cardProgress(item,category):ownedCount(item);
         var progressLabel=p('ArchiveTooltipProgressLabel');
         if(progressLabel)progressLabel.text=isAchievement(category)?'当前进度':(category==='building'||category==='work')?'当前等级':category==='fragment'?'持有碎片':'拥有数量';
+        var track=p('ArchiveTooltipProgressTrack');
+        if(!track){
+            track=$.CreatePanel('Panel',p('ArchiveTooltipBody'),'ArchiveTooltipProgressTrack');
+            var fill=$.CreatePanel('Panel',track,'ArchiveTooltipProgressFill');
+            track.hittest=false;fill.hittest=false;
+        }
+        var maximum=Number(item.target),current=(category==='building'||category==='work')?Number(item.level):Number(item.count);
+        var progressKnown=item.count_known===undefined||Number(item.count_known)===1;
+        track.visible=!effectOnly&&progressKnown&&maximum>0&&isFinite(current)&&(isAchievement(category)||category==='building'||category==='work');
+        p('ArchiveTooltipProgressFill').style.width=(track.visible?Math.max(0,Math.min(100,current/maximum*100)):0)+'%';
+        var details=item.unlock_condition||item.condition_text||'';
+        if(!details&&isAchievement(category))details=condition(item,category);
+        if(category==='building'||category==='work')details+=(details?'\n':'')+(Number(item.completed)===1?'已达到最高等级':('点击'+(category==='building'?'升级':'激活')+' · 消耗 '+item.cost+(category==='building'?' 信仰值':' 软妹币')));
+        if(category==='titles')details+=(details?'\n':'')+(Number(item.equipped)===1?'当前已穿戴 · 点击卸下':state?'点击穿戴称号':'达成条件后解锁称号');
+        var source=p('ArchiveCurrencySource'),sourceText=source&&(source.__archivePlainText!==undefined?source.__archivePlainText:source.text);
+        if(sourceText&&['building','starjoy_points','work'].indexOf(category)>=0)details+=(details?'\n':'')+String(sourceText).replace(/<br\s*\/?\s*>/gi,'\n').replace(/<[^>]*>/g,'');
+        // The compact grid hides its former explanatory footer. Keep the
+        // category's configured earning/limit rules in the item detail instead.
+        var hint=p('ArchiveHint');
+        if(hint&&hint.text&&['clear','endless','shadow','fragment','pet','friend','ex','beast','boss','fishing','map_level','gift'].indexOf(category)>=0)details+=(details?'\n':'')+String(hint.text);
+        p('ArchiveTooltipCondition').text=details;
+        p('ArchiveTooltipCondition').visible=!effectOnly&&!!details;
+        p('ArchiveTooltipCondition').style.visibility=!effectOnly&&details?'visible':'collapse';
         if(effectOnly){
             var ancestors=[],source=card;
             while(source){ancestors.push(source);source=source.GetParent();}
@@ -141,6 +166,7 @@ function formatArchiveEffects(value) {
             }
         }
         palette(p('ArchiveTooltip'));
+        if(cfg.SurvivalArchivePurple)cfg.SurvivalArchivePurple.Apply();
         // Apply after the shared tooltip palette: locked ordinary effects are
         // plain dim text, so neither inline gold numbers nor palette refresh can relight them.
         var effect=p('ArchiveTooltipEffect');
@@ -180,7 +206,8 @@ function formatArchiveEffects(value) {
         textJob=null;
         if(!root.IsValid()||!cfg.SurvivalArchive||!cfg.SurvivalArchive.IsOpen())return;
         var win=p('ArchiveWindow'),sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1;
-        var fit=Math.min((root.actuallayoutwidth||1920)/sx/1672,(root.actuallayoutheight||1080)/sy/941);
+        var compact=win.BHasClass('ArchivePurple');
+        var fit=Math.min((root.actuallayoutwidth||1920)/sx/(compact?1920:1672),(root.actuallayoutheight||1080)/sy/(compact?1080:941));
         var key=[fit,sx,sy].join(':');
         if(textDirty||key!==textLastKey){
             textDirty=false;textLastKey=key;
@@ -190,18 +217,21 @@ function formatArchiveEffects(value) {
                 var C=cfg.SurvivalArchiveColors;
                 var role=node.id==='ArchiveTitle'?'archive_title_size':node.id==='ArchiveSubtitle'?'archive_subtitle_size':node.BHasClass('ArchiveNavLabel')?'archive_nav_size':'archive_text_size';
                 var target=role==='archive_text_size'?fontSize:role==='archive_title_size'?parseFloat(C[role]):Math.round(parseFloat(C[role])*fit*sx)/sx;
-                if(node.id==='ArchiveStatus'||node.id==='ArchiveNavScrollHint')target=Math.round(18*fit*sx)/sx;
+                if(compact){
+                    target=node.BHasClass('ArchiveCompactBadge')?16:node.BHasClass('ArchiveNavLabel')?22:node.id==='ArchivePageTitle'?23:node.id==='ArchiveStatus'||node.id==='ArchiveNavScrollHint'?16:18;
+                    target*=fit;
+                }else if(node.id==='ArchiveStatus'||node.id==='ArchiveNavScrollHint')target=Math.round(18*fit*sx)/sx;
                 if(String(node.paneltype||'').toLowerCase()==='label')node.style.fontSize=(target/fit)+'px';
                 node.Children().forEach(sizeText);
             }
-            sizeText(win);
+            sizeText(compact?p('ArchiveBody'):win);
             cardTextPairs.forEach(function(pair){
                 if(!pair.label.IsValid()||!pair.host.IsValid())return;
                 // Layout width is untransformed. Only convert font size, never position.
                 var width=pair.host.actuallayoutwidth/sx;
                 if(!width){textDirty=true;return;}
                 var units=String(pair.label.text||'').split('').reduce(function(n,c){return n+(c.charCodeAt(0)>255?1:0.55);},0);
-                var target=fontSize/fit;
+                var target=compact?(pair.label.BHasClass('ArchiveCompactBadge')?16:18):fontSize/fit;
                 if(pair.label.BHasClass('ArchiveItemName')||pair.label.BHasClass('ArchiveCount'))target=Math.max(target*0.88,Math.min(target,(width-2)/Math.max(1,units)));
                 pair.label.style.fontSize=(Math.floor(target*fit*sx)/(fit*sx))+'px';
             });
@@ -236,7 +266,7 @@ function formatArchiveEffects(value) {
     }
     cfg.ArchiveHandoff={
         HideCardText:stopNativeCardText,
-        ApplyPalette:function(){palette(p('ArchiveWindow'));nativeCardTypography();},
+        ApplyPalette:function(){var win=p('ArchiveWindow');palette(win.BHasClass('ArchivePurple')?p('ArchiveBody'):win);nativeCardTypography();},
         Observe:function(data){this.snapshot=data;},
         Unlocked:unlocked,Progress:progress,CardProgress:cardProgress,Condition:condition,Place:place,Hide:hide,Show:show,ShowEffectOnly:function(item,card){show(item,'',card,true);},Icon:icon,
         NavIcon:function(toggle,id,key){var name='archive_ui_kit_v1_'+(id==='clear'?'clear_selected':(key||'clear')+'_normal')+'.png';if(!assets[name])name='archive_ui_kit_v1_clear_selected.png';img(toggle,name,'ArchiveNavIcon');},

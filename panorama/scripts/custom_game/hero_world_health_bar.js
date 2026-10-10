@@ -9,8 +9,48 @@
     var container = $("#SurvivalHeroWorldHealthBars");
     var config = GameUI.CustomUIConfig(), context = $.GetContextPanel();
     var frame = null, listener = null, stopped = false;
+    var probeAllowed = typeof Game.IsInToolsMode === "function" && Game.IsInToolsMode();
+    var probeStats = null, probeApi = null, probeToken = 0;
     if (config.SurvivalWorldHealthBars && config.SurvivalWorldHealthBars.Stop) {
         config.SurvivalWorldHealthBars.Stop();
+    }
+
+    function captureMetrics() {
+        if (!probeAllowed) return null;
+        var api = config.SurvivalClientCallbackProbe;
+        var token = api && api.CaptureToken ? api.CaptureToken() : 0;
+        if (!token) return null;
+        if (api !== probeApi || token !== probeToken) {
+            probeApi = api; probeToken = token;
+            probeStats = {observed:false, captureSerial:token,
+                scope:"updatePositions frame loop; NetTable style writes excluded",
+                frames:0, missingContainerFrames:0, modalBlockedFrames:0,
+                statesVisited:0, peakStates:0, activeSnapshots:0, deadSnapshots:0,
+                invalidEntities:0, unrenderableEntities:0, activeEntities:0,
+                invalidOrigins:0, projected:0, offScreen:0, invalidAnchors:0,
+                occluded:0, displayed:0, errors:0,
+                positionReads:0, positionWrites:0, positionUnchanged:0,
+                equivalentPositionWrites:0, visibilityWrites:0, healthWidthWrites:0,
+                getterSamples:[]};
+        }
+        return probeStats;
+    }
+
+    function samplePosition(metrics, expected, actual) {
+        var a = String(actual).trim().split(/\s+/), b = expected.split(/\s+/);
+        var equivalent = a.length === b.length && a.every(function (value, index) {
+            return /^-?\d+(?:\.\d+)?px$/.test(value)
+                && Math.abs(parseFloat(value) - parseFloat(b[index])) <= 0.001;
+        });
+        if (equivalent) metrics.equivalentPositionWrites += 1;
+        var samples = metrics.getterSamples;
+        for (var index = 0; index < samples.length; index++) {
+            if (samples[index].expected === expected && samples[index].actual === String(actual)) {
+                samples[index].count += 1; return;
+            }
+        }
+        if (samples.length < 12) samples.push({expected:expected.slice(0,160),
+            actual:String(actual).slice(0,160), equivalent:equivalent, count:1});
     }
 
     function barWidth(state) {
@@ -51,9 +91,12 @@
         return bar;
     }
 
-    function hide(key) {
+    function hide(key, metrics) {
         var bar = panels[key];
-        if (validPanel(bar) && bar.style.visibility !== "collapse") bar.style.visibility = "collapse";
+        if (validPanel(bar) && bar.style.visibility !== "collapse") {
+            bar.style.visibility = "collapse";
+            if (metrics) metrics.visibilityWrites += 1;
+        }
     }
 
     function removePanel(key) {
@@ -107,7 +150,7 @@
         }
     }
 
-    function renderHealth(bar, value) {
+    function renderHealth(bar, value, metrics) {
         var fraction = bar.__healthFraction;
         var forecasts = bar.__forecasts || [];
         var now = Game.GetGameTime ? Number(Game.GetGameTime()) : NaN;
@@ -123,6 +166,7 @@
         if (width !== bar.__width) {
             bar.__fill.style.width = width;
             bar.__width = width;
+            if (metrics) metrics.healthWidthWrites += 1;
         }
     }
 
@@ -166,20 +210,41 @@
         // IsValidEntity check and a native API call during hero replacement.
         // Such an exception must never freeze every overhead bar on screen.
         frame = $.Schedule(0.0, updatePositions);
+        var metrics = captureMetrics();
+        if (metrics) { metrics.observed = true; metrics.frames += 1; }
         if (!validPanel(container)) container = $("#SurvivalHeroWorldHealthBars");
-        if (!validPanel(container)) return;
+        if (!validPanel(container)) {
+            if (metrics) metrics.missingContainerFrames += 1;
+            return;
+        }
         var visibility=config.SurvivalWorldOverlayVisibility;
         var occlusion=visibility?visibility.Capture():null;
+        if (occlusion && occlusion.blocked) {
+            // Skip invisible native projections while a full-screen window is open.
+            if (metrics) metrics.modalBlockedFrames += 1;
+            Object.keys(panels).forEach(function (key) { hide(key, metrics); });
+            return;
+        }
         var helper = config.SurvivalWorldHealthBarAnchor;
         var geometry = helper && helper.Capture ? helper.Capture(container) : null;
-        Object.keys(states).forEach(function (key) {
+        var stateKeys = Object.keys(states);
+        if (metrics) {
+            metrics.statesVisited += stateKeys.length;
+            metrics.peakStates = Math.max(metrics.peakStates, stateKeys.length);
+        }
+        stateKeys.forEach(function (key) {
             try {
             var state = states[key];
             // Dead snapshots can outlive their corpse. They need no native
             // origin/projection calls until a fresh alive packet arrives.
-            if (Number(state.alive) !== 1) { hide(key); return; }
+            if (Number(state.alive) !== 1) {
+                if (metrics) metrics.deadSnapshots += 1;
+                hide(key, metrics); return;
+            }
+            if (metrics) metrics.activeSnapshots += 1;
             var entindex = Number(state.entindex);
             if (!isFinite(entindex) || entindex < 0 || !Entities.IsValidEntity(entindex)) {
+                if (metrics) metrics.invalidEntities += 1;
                 // Net tables can arrive before the client's spawn replication.
                 // Prune only handles that were actually seen and disappeared;
                 // pending first spawns must retain their stable full-HP packet.
@@ -200,17 +265,22 @@
                 || (Entities.IsDormant && Entities.IsDormant(entindex))
                 || (state.unit_name && Entities.GetUnitName
                     && Entities.GetUnitName(entindex) !== state.unit_name)) {
-                hide(key);
+                if (metrics) metrics.unrenderableEntities += 1;
+                hide(key, metrics);
                 return;
             }
+            if (metrics) metrics.activeEntities += 1;
             var origin = Entities.GetAbsOrigin(entindex);
             if (!origin || origin.length < 3 || Number(origin[2]) < -5000) {
-                hide(key);
+                if (metrics) metrics.invalidOrigins += 1;
+                hide(key, metrics);
                 return;
             }
+            if (metrics) metrics.projected += 1;
             var anchor = helper && helper.Project(entindex, origin, container, geometry);
             if (!anchor) {
-                hide(key);
+                if (metrics) metrics.offScreen += 1;
+                hide(key, metrics);
                 return;
             }
             var width = barWidth(state);
@@ -220,21 +290,41 @@
             anchor.width = width;
             var localX = anchor.left, localY = anchor.top;
             if (!isFinite(localX) || !isFinite(localY)) {
-                hide(key);
+                if (metrics) metrics.invalidAnchors += 1;
+                hide(key, metrics);
                 return;
             }
             if(visibility&&visibility.Overlaps(occlusion,anchor.screen_left,anchor.screen_top,
                 anchor.width*anchor.scale_x,anchor.height*anchor.scale_y)){
-                hide(key);return;
+                if (metrics) metrics.occluded += 1;
+                hide(key, metrics);return;
             }
-            if (bar.__forecasts && bar.__forecasts.length) renderHealth(bar, state);
+            if (metrics) metrics.displayed += 1;
+            if (bar.__forecasts && bar.__forecasts.length) renderHealth(bar, state, metrics);
             bar.__healthAnchor = anchor;
             var position = localX.toFixed(2) + "px "
                 + localY.toFixed(2) + "px 0px";
-            if (bar.style.position !== position) bar.style.position = position;
-            if (bar.style.visibility !== "visible") bar.style.visibility = "visible";
+            // These panels are owned by this module. Panorama normalizes an
+            // assigned 836.60px to 836.599976px, so reading it back as text
+            // dirties every stationary bar on every frame. Cache the exact
+            // projected value, as renderHealth already does for fill width.
+            if (bar.__position !== position) {
+                if (metrics) {
+                    var actualPosition = bar.style.position;
+                    metrics.positionReads += 1;
+                    metrics.positionWrites += 1;
+                    samplePosition(metrics, position, actualPosition);
+                }
+                bar.style.position = position;
+                bar.__position = position;
+            } else if (metrics) metrics.positionUnchanged += 1;
+            if (bar.style.visibility !== "visible") {
+                bar.style.visibility = "visible";
+                if (metrics) metrics.visibilityWrites += 1;
+            }
             } catch (error) {
-                hide(key);
+                if (metrics) metrics.errors += 1;
+                hide(key, metrics);
             }
         });
         // Run once per Panorama frame. The previous fixed 30 Hz layout update
@@ -242,10 +332,23 @@
         // or the camera were moving.
     }
 
-    config.SurvivalWorldHealthBars = {Stop:stop, Refresh:function () {
+    function registerToolsProbe() {
+        if (stopped || !validPanel(context) || !Game.IsInToolsMode || !Game.IsInToolsMode()) return false;
+        var probe=config.SurvivalClientCallbackProbe;
+        if (!probe || !probe.RegisterModule) return false;
+        return probe.RegisterModule("worldBars",[
+            {name:"applyState",get:function(){return applyState;},set:function(fn){applyState=fn;}},
+            {name:"ensurePanel",get:function(){return ensurePanel;},set:function(fn){ensurePanel=fn;}},
+            {name:"setForecast",get:function(){return setForecast;},set:function(fn){setForecast=fn;}}
+        ]);
+    }
+    config.SurvivalWorldHealthBars = {Stop:stop, RegisterToolsProbe:registerToolsProbe, Refresh:function () {
         if (stopped) return;
         if (frame !== null) $.CancelScheduled(frame);
         updatePositions();
+    }, ProbeInspect:function () {
+        captureMetrics();
+        return probeStats || {observed:false, frames:0};
     }, DebugSnapshot:function () {
         return {stopped:stopped, units:Object.keys(panels).map(function (key) {
             var panel = panels[key];
@@ -254,6 +357,7 @@
                 anchor:panel.__healthAnchor};
         })};
     }};
+    registerToolsProbe();
 
     var initialValues = CustomNetTables.GetAllTableValues(TABLE) || {};
     Object.keys(initialValues).forEach(function (indexOrKey) {

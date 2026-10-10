@@ -1,0 +1,17 @@
+/* Component pack geometry is one 1672×941 canvas. Other archive pages are unchanged. */
+#ArchiveWindow.ArchiveVoidPage { flow-children: none; overflow: noclip; transform-origin: 50% 50%; }
+.ArchiveVoidPage #ArchiveHeader, .ArchiveVoidPage #ArchiveBody,
+.ArchiveVoidPage .PurpleChrome, .ArchiveVoidPage .PurpleCorner,
+.ArchiveVoidPage #ArchiveFrame, .ArchiveVoidPage #ArchiveAtmosphere { visibility: collapse; }
+#ArchiveVoidCanvas { width: 1672px; height: 941px; flow-children: none; overflow: noclip; }
+.VoidShadowImage, .VoidShadowItemIcon, .VoidShadowQuantityPlate { margin: 0px; padding: 0px; }
+.VoidShadowText { font-family: "Source Han Sans SC"; font-weight: normal; letter-spacing: 0px; text-shadow: none; vertical-align: top; horizontal-align: left; white-space: nowrap; text-overflow: ellipsis; padding: 0px; margin: 0px; }
+.VoidShadowCount { text-overflow: shrink; overflow: clip; }
+.VoidShadowName { overflow: clip; }
+.VoidShadowGrid, .VoidShadowSidebar { flow-children: none; overflow: squish scroll; padding: 0px; margin: 0px; }
+.VoidShadowItem { flow-children: none; overflow: noclip; background-color: transparent; border: 0px; }
+.VoidShadowNavButton { flow-children: none; background-color: transparent; border: 0px; }
+.VoidShadowNavButton:hover { brightness: 1.12; }
+.VoidShadowNavButton:active { brightness: 0.95; }
+.VoidShadowItem.ArchiveHovered .VoidShadowItemIcon { brightness: 1.10; }
+.VoidShadowExtraIcon { background-color: #17142c; overflow: clip; }

@@ -1,0 +1,30 @@
+.ArchiveRoot #VIPWindow.VIPPurple { width:1280px; height:800px; padding:0px; overflow:clip; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPHeader { visibility:collapse; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPBody { position:0px 132px 0px; width:1280px; height:668px; flow-children:none; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPSidebar { position:0px 10px 0px; width:216px; height:612px; border-right:1px solid #59417166; }
+.ArchiveRoot #VIPWindow.VIPPurple .VIPTab { width:212px; height:46px; padding:0px; margin:0px; background-image:none; background-color:transparent; border:0px; border-left:3px solid transparent; }
+.ArchiveRoot #VIPWindow.VIPPurple .VIPTab.VIPTabSelected { background-color:gradient(linear,0% 0%,100% 0%,from(#6c4517),color-stop(.8,#39243b),to(#261935)); border-left:3px solid #f0c463; }
+.ArchiveRoot #VIPWindow.VIPPurple .VIPTab Image { visibility:collapse; }
+.ArchiveRoot #VIPWindow.VIPPurple .VIPTab Label { position:18px 7px 0px; width:188px; height:31px; padding:0px; margin:0px; text-align:center; color:#d7c7e6; font-size:22px; white-space:nowrap; text-overflow:clip; }
+.ArchiveRoot #VIPWindow.VIPPurple .VIPTab.VIPTabSelected Label { color:#ffdd87; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPRewardCard { width:128px; height:128px; margin:0px 12px 2px 0px; padding:0px; background-image:none; background-color:transparent; border:0px; flow-children:none; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPRewardIcon { position:18px 6px 0px; width:92px; height:92px; border:1px solid #63518b; background-color:#171023; saturation:0; brightness:.6; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPOwned .VIPRewardIcon { saturation:1; brightness:1; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPSelected .VIPRewardIcon,
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPHovered .VIPRewardIcon { border:1px solid #efd079; box-shadow:#d9ac4c55 0px 0px 7px 0px; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPRewardRank { position:84px 0px 0px; width:39px; height:23px; padding:1px 4px; color:#ead8f7; background-color:#100b22ee; font-size:16px; text-align:right; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPRewardName { position:0px 101px 0px; width:128px; height:26px; padding:0px; margin:0px; color:#b6a3c8; font-size:18px; text-align:center; white-space:nowrap; text-overflow:ellipsis; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPOwned .VIPRewardName { color:#eed085; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPGrid .VIPRewardState { visibility:collapse; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPAction:disabled { opacity:1; saturation:1; }
+.ArchiveRoot #VIPWindow.VIPPurple #VIPActionText { width:100%; height:38px; align:center center; font-size:19px; margin:0px; padding:0px; text-align:center; white-space:nowrap; text-overflow:clip; }
+.ArchiveRoot #VIPWindow.VIPPurple VerticalScrollBar { width:6px; background-color:#160e28; }
+.ArchiveRoot #VIPWindow.VIPPurple VerticalScrollBar .ScrollThumb { background-color:#7959a3; border-radius:3px; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip Label { width:100%; height:fit-children; font-size:19px; line-height:25px; white-space:normal; color:#d8c9e8; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip #VIPTooltipName { font-size:24px; line-height:30px; color:#f2ce6c; margin-bottom:6px; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip #VIPTooltipState { color:#b8a4c9; margin-bottom:12px; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip .VIPTooltipHeading { color:#e7d2a4; margin:8px 0px 5px; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip .VIPTooltipEffectsHeading { margin-top:14px; padding-top:10px; border-top:1px solid #625071; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip #VIPTooltipCondition { color:#bfb0d0; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip #VIPTooltipPrice { color:#e8cc85; margin-top:8px; }
+.ArchiveRoot #VIPTooltip.VIPPurpleTooltip #VIPTooltipNote { color:#a996bd; font-size:16px; line-height:22px; margin-top:12px; }

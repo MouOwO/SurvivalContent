@@ -117,6 +117,13 @@
             editor.visible = state.visible;
             editor.SetHasClass("Hidden", !state.visible);
         }
+        if (config.SurvivalUILayers) {
+            if (state.visible && editor) {
+                config.SurvivalUILayers.Open("portrait_camera_editor", editor, function () {
+                    setVisible(false);
+                });
+            } else config.SurvivalUILayers.Close("portrait_camera_editor");
+        }
         // This is the standalone calibration preview, not the live HUD portrait.
         var preview = panel("SurvivalJuggernautPortraitOverlay");
         if (preview) preview.visible = state.visible;

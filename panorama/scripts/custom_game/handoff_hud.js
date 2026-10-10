@@ -18,9 +18,38 @@
     var stats = [["attack","CombatAttackValue"],["armor","CombatArmorValue"],["attack_speed","CombatAttackSpeedValue"],
         ["strength","CombatStrengthValue"],["agility","CombatAgilityValue"],["intelligence","CombatIntellectValue"]];
     function valid(p) {return p && (!p.IsValid || p.IsValid());}
+    function nativeWithin(panel,parent) {
+        if(!valid(parent))return false;
+        for(var depth=0;valid(panel)&&depth<32;depth++){
+            if(panel===parent)return true;
+            if(!panel.GetParent)return false;
+            panel=panel.GetParent();
+        }
+        return false;
+    }
     function native(id) {
-        if (!valid(natives[id])) {var parent=scopes[id]?native(scopes[id]):root; natives[id]=valid(parent)?parent.FindChildTraverse(id):null;}
+        // Valve can retain a valid old subtree after replacing its scope.
+        // Resolve the current parent first; IsValid alone cannot own this cache.
+        var parent=scopes[id]?native(scopes[id]):root;
+        if(!nativeWithin(natives[id],parent)){
+            var panel=valid(parent)?parent.FindChildTraverse(id):null;
+            natives[id]=nativeWithin(panel,parent)?panel:null;
+        }
         return natives[id];
+    }
+    function nativeAbilityWrappers(list,branch) {
+        if(!valid(list)||!valid(branch)||list===branch)return null;
+        var wrappers=[],panel=list.GetParent();
+        for(var depth=0;valid(panel)&&depth<16;depth++){
+            if(panel===branch)return wrappers;
+            // Never let a stale/mismatched row turn the outer HUD into a slot.
+            if(panel===root||panel.id==="lower_hud"||panel.id==="center_with_stats"
+                ||panel.id==="center_block"||wrappers.indexOf(panel)>=0)return null;
+            wrappers.push(panel);
+            if(!panel.GetParent)return null;
+            panel=panel.GetParent();
+        }
+        return null;
     }
     function style(p, values) {if(valid(p)) Object.keys(values).forEach(function(k){if(String(p.style[k])!==String(values[k]))p.style[k]=values[k];});}
     function cssNumber(value, precision) {
@@ -150,8 +179,19 @@
             // Include our collapsed overflow slots without showing and hiding them every tick.
             if(p.__handoffOverflow||(p.visible!==false&&String(p.style.visibility)!=="collapse"))candidates.push(p);
         }
-        skillPanels=candidates.slice(0,currentEntries.length);
-        candidates.forEach(function(p,index){if(index>=currentEntries.length){style(p,{visibility:"collapse",width:"0px",marginRight:"0px"});p.__handoffOverflow=true;}else{if(p.__handoffOverflow){style(p,{visibility:"visible"});p.__handoffOverflow=false;}square(p);style(p,{marginRight:"4px"});}});
+        var combat=cfg.HandoffCombat;
+        var allEntries=combat&&combat.NativeEntries?combat.NativeEntries(selectedUnit()):currentEntries;
+        skillPanels=[];
+        candidates.forEach(function(p,index){
+            var entry=allEntries[index];
+            if(!entry){style(p,{visibility:"collapse",width:"0px",marginRight:"0px"});p.__handoffOverflow=true;return;}
+            if(p.__handoffOverflow){style(p,{visibility:"visible"});p.__handoffOverflow=false;}
+            if(combat&&combat.ApplyRuntime)combat.ApplyRuntime(p,entry.ability);
+            if(combat&&combat.IsCompleted&&combat.IsCompleted(entry.ability)){
+                style(p,{width:"0px",marginRight:"0px"});return;
+            }
+            skillPanels.push(p);square(p);style(p,{marginRight:"4px"});
+        });
     }
     function canvas(p,g) {style(p,{transitionProperty:"none",transitionDuration:"0s",animationName:"none"});place(p,g.x,g.y,g.width,g.height);style(p,{transformOrigin:"0% 0%",transform:"scale3d("+cssNumber(g.scale)+","+cssNumber(g.scale)+",1)",overflow:"noclip",maxWidth:"10000px"});p.hittest=false;p.hittestchildren=true;}
     // Called synchronously by the existing hotkey writer, not by the HUD polling loop.
@@ -172,13 +212,49 @@
             if(bounds.visible){centered(bottom,id,geometry.heroWidth+13+i*120,138,43,33,25);style(bounds,{backgroundImage:'url("file://{images}/'+assets.key_plate.file+'")',backgroundSize:"100% 100%",zIndex:"100"});text(id,binding.text);}
         }
     }
+    function styleAbilityLevelPips(container) {
+        if(!valid(container))return;
+        var pips=[];
+        for(var i=0;i<container.GetChildCount();i++){
+            var pip=container.GetChild(i);
+            if(valid(pip)&&pip.BHasClass("LevelPanel")&&!pip.BHasClass("Hidden")&&pip.visible!==false)pips.push(pip);
+        }
+        var state=container.__handoffLevelPips;
+        if(pips.length<2){
+            if(state){
+                container.__handoffLevelPips=null;
+                style(container,state.original);
+                state.pips.forEach(function(saved){if(valid(saved.panel))style(saved.panel,saved.original);});
+            }
+            return;
+        }
+        function snapshot(panel,keys){
+            var values={};keys.forEach(function(key){values[key]=String(panel.style[key]||"");});return values;
+        }
+        if(!state)state=container.__handoffLevelPips={
+            original:snapshot(container,["position","width","height","horizontalAlign","verticalAlign","margin","padding","flowChildren","overflow","transitionDuration","minWidth","minHeight","maxWidth","maxHeight"]),pips:[]
+        };
+        state.pips=state.pips.filter(function(saved){return valid(saved.panel);});
+        // Keep native active/next/hidden states; only enlarge the existing dots.
+        // Below the 116px button keeps them clear of the lower-left hotkey.
+        place(container,6,118,104,12);
+        style(container,{horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",flowChildren:"right",overflow:"noclip"});
+        var width=cssNumber((104-3*(pips.length-1))/pips.length)+"px";
+        pips.forEach(function(pip,index){
+            if(!state.pips.some(function(saved){return saved.panel===pip;}))state.pips.push({
+                panel:pip,original:snapshot(pip,["width","height","minWidth","minHeight","margin","marginRight"])
+            });
+            style(pip,{width:width,height:"12px",minWidth:"0px",minHeight:"0px",margin:"0px",marginRight:index===pips.length-1?"0px":"3px"});
+        });
+    }
     function child(p,id,values) {if(valid(p))style(p.FindChildTraverse(id),values);}
     function square(slot) {
         // Style only: no SetParent, new descendants, event replacement or key rebinding in native slots.
-        style(slot,{width:"116px",height:"116px",minWidth:"0px",minHeight:"0px",margin:"0px",padding:"0px",transform:"none"});
+        style(slot,{width:"116px",height:"116px",minWidth:"0px",minHeight:"0px",margin:"0px",padding:"0px",transform:"none",overflow:"noclip"});
         ["ButtonAndLevel","ButtonWithLevelUpTab","ButtonWell","ButtonSize","AbilityButton"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p)){place(p,0,0,116,116);style(p,{transform:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",minWidth:"0px",minHeight:"0px",maxWidth:"116px",maxHeight:"116px",overflow:"noclip"});}});
         ["AbilityImage","ItemImage"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p)){place(p,6,6,104,104);style(p,{transform:"none"});}});
         ["Cooldown","CooldownOverlay"].forEach(function(id){var p=slot.FindChildTraverse(id);if(valid(p))place(p,6,6,104,104);});
+        styleAbilityLevelPips(slot.FindChildTraverse("AbilityLevelContainer"));
         var keyContainer=slot.FindChildTraverse("HotkeyContainer"),key=slot.FindChildTraverse("Hotkey");
         if(valid(keyContainer)){place(keyContainer,3,85,43,31);style(keyContainer,{backgroundImage:"none",border:"0px",minWidth:"0px",minHeight:"0px"});}
         if(valid(key)){place(key,valid(keyContainer)?0:3,valid(keyContainer)?0:85,43,31);style(key,{backgroundImage:'url("file://{images}/'+assets.key_plate.file+'")',backgroundSize:"100% 100%",border:"0px",minWidth:"0px",minHeight:"0px"});}
@@ -190,6 +266,10 @@
     function nativeLayout(g) {
         var required=["lower_hud","center_with_stats","center_block","PortraitGroup","AbilitiesAndStatBranch","abilities","inventory","minimap"];
         missing=required.filter(function(id){return !valid(native(id));});if(missing.length)return false;
+        var branch=native("AbilitiesAndStatBranch"),list=native("abilities");
+        var wrappers=nativeAbilityWrappers(list,branch);
+        // Prove the complete chain before any geometry writes, including canvas.
+        if(!wrappers){missing=["abilities_parent_chain"];return false;}
         canvas(native("lower_hud"),g);
         ["center_with_stats","center_block"].forEach(function(id){var n=native(id);place(n,0,0,g.width,g.height);style(n,{transitionProperty:"none",animationName:"none",transform:"none",flowChildren:"none",overflow:"noclip"});n.hittest=false;n.hittestchildren=true;});
         var block=native("center_block"),portrait=native("PortraitGroup");
@@ -217,12 +297,11 @@
 
         place(native("portraitHUD"),0,0,g.portraitSize,g.portraitSize);style(native("portraitHUD"),{transform:"none"});
         ["stats_container","unitname","health_mana","center_bg","left_flare","right_flare","PortraitBacker","PortraitBackerColor"].forEach(function(id){var n=block.FindChildTraverse(id);style(n,{opacity:"0"});if(valid(n)){n.hittest=false;n.hittestchildren=false;}});
-        var branch=native("AbilitiesAndStatBranch"),list=native("abilities");
         place(branch,g.heroWidth+10,61,g.centerWidth-20,116);style(branch,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
         // Valve inserts an anonymous talent/ability wrapper; clear its stock left gutter.
-        for(var wrapper=list.GetParent();valid(wrapper)&&wrapper!==branch;wrapper=wrapper.GetParent()) {
+        wrappers.forEach(function(wrapper){
             place(wrapper,0,0,g.centerWidth-20,116);style(wrapper,{flowChildren:"none",transform:"none",overflow:"noclip"});
-        }
+        });
         place(native("StatBranch"),g.heroWidth+10,-85,74,74);
         style(native("InnateIcon"),{visibility:"collapse"});
         // Hiding the icon alone leaves its anonymous framing Image visible.

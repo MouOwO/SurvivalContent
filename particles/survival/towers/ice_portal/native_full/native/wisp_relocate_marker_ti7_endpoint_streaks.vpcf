@@ -4,7 +4,7 @@
 	m_bShouldHitboxesFallbackToRenderBounds = false
 	m_nMaxParticles = 12
 	m_nInitialParticles = 1
-	m_flConstantRadius = 1.0
+	m_flConstantRadius = 0.75
 	m_flConstantLifespan = 3.0
 	m_ConstantColor = [ 255, 214, 25, 255 ]
 	m_Renderers = 
@@ -14,7 +14,7 @@
 			m_flOverbrightFactor = 4.0
 			m_flAddSelfAmount = 1.0
 			m_bSaturateColorPreAlphaBlend = false
-			m_flMaxLength = 200.0
+			m_flMaxLength = 150.0
 			m_bIgnoreDT = true
 			m_flTailAlphaScale = 
 			{
@@ -85,9 +85,9 @@
 	[
 {
 			_class = "C_INIT_CreateWithinSphere"
-			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 750.0 ]
-			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 1000.0 ]
-			m_fRadiusMax = 65.0
+			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 562.5 ]
+			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 750.0 ]
+			m_fRadiusMax = 48.75
 			m_vecDistanceBiasAbs = [ 0.0, 0.0, 1.0 ]
 			m_bDisableOperator = true
 		},
@@ -96,8 +96,8 @@
 			m_InputValue = 
 			{
 				m_nType = "PF_TYPE_RANDOM_UNIFORM"
-				m_flRandomMin = 10.0
-				m_flRandomMax = 15.0
+				m_flRandomMin = 7.5
+				m_flRandomMax = 11.25
 				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
 			}
 		},
@@ -134,17 +134,17 @@
 			m_flInitialRadius = 
 			{
 				m_nType = "PF_TYPE_LITERAL"
-				m_flLiteralValue = 60.0
+				m_flLiteralValue = 45.0
 			}
 			m_flInitialSpeedMin = 
 			{
 				m_nType = "PF_TYPE_LITERAL"
-				m_flLiteralValue = 100.0
+				m_flLiteralValue = 75.0
 			}
 			m_flInitialSpeedMax = 
 			{
 				m_nType = "PF_TYPE_LITERAL"
-				m_flLiteralValue = 100.0
+				m_flLiteralValue = 75.0
 			}
 		},
 {
@@ -153,13 +153,13 @@
 		},
 {
 			_class = "C_INIT_VelocityRandom"
-			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 750.0 ]
-			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 1000.0 ]
+			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 562.5 ]
+			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 750.0 ]
 		},
 {
 			_class = "C_INIT_PositionOffset"
-			m_OffsetMin = [ 0.0, 0.0, 8.0 ]
-			m_OffsetMax = [ 0.0, 0.0, 8.0 ]
+			m_OffsetMin = [ 0.0, 0.0, 6.0 ]
+			m_OffsetMax = [ 0.0, 0.0, 6.0 ]
 		}
 ]
 	m_Emitters = 

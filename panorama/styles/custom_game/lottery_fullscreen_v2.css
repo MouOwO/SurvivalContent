@@ -5,6 +5,18 @@
 #LotterySceneBackground.LotteryScene_cultivation { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/cultivation.png"); }
 #LotterySceneBackground.LotteryScene_dragon_knight { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/dragon_knight.png"); }
 #LotterySceneBackground.LotteryScene_summer { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/summer.png"); }
+/* All four scenes share a single clipped horizontal strip. */
+#LotteryWindow #LotterySceneBackground.LotterySceneCarousel { background-image:none; overflow:clip; }
+#LotteryWindow #LotterySceneTrack { width:400%; height:100%; flow-children:right; overflow:noclip; transition-property:transform; transition-duration:0.2s; transition-timing-function:linear; }
+#LotterySceneTrack .LotteryScenePage { width:25%; height:100%; background-size:cover; background-position:center; background-repeat:no-repeat; }
+#LotteryScenePage_map { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/map.png"); }
+#LotteryScenePage_cultivation { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/cultivation.png"); }
+#LotteryScenePage_dragon_knight { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/dragon_knight.png"); }
+#LotteryScenePage_summer { background-image:url("file://{images}/custom_game/lottery_cinematic_v1/summer.png"); }
+#LotteryMainCanvas.LotteryPoolFadeA { animation-name:LotteryPoolFadeA; animation-duration:0.2s; animation-timing-function:linear; animation-iteration-count:1; }
+#LotteryMainCanvas.LotteryPoolFadeB { animation-name:LotteryPoolFadeB; animation-duration:0.2s; animation-timing-function:linear; animation-iteration-count:1; }
+@keyframes 'LotteryPoolFadeA' { 0% { opacity:0; } 100% { opacity:1; } }
+@keyframes 'LotteryPoolFadeB' { 0% { opacity:0; } 100% { opacity:1; } }
 #LotteryWindow #LotterySceneShade { width:100%; height:100%; background-color:gradient(linear,0% 0%,0% 100%,from(#030710c9),color-stop(.22,#03071012),color-stop(.65,#03071000),to(#030710e8)); }
 #LotteryWindow.LotteryResultsShown #LotterySceneShade { background-color:#030710a3; }
 #LotteryWindow #LotteryMainCanvas { width:1600px; height:900px; align:center center; border:0px; border-radius:0px; overflow:noclip; background-image:none; background-color:transparent; box-shadow:none; }

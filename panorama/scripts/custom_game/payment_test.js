@@ -2,7 +2,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
 (function () {
     "use strict";
     var cfg = GameUI.CustomUIConfig(), disposed = false, subscriptions = [];
-    if (cfg.SurvivalPayments && cfg.SurvivalPayments.Dispose) cfg.SurvivalPayments.Dispose();
+    if (cfg.SurvivalPayments && cfg.SurvivalPayments.Dispose){try{cfg.SurvivalPayments.Dispose();}catch(error){if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;$.Msg("[CheckoutPurple] Previous payment panel was already deleted.");}}
     var products = [], selected = "", orders = {}, busy = false, opened = false, generation = 0, lastMatrix = "", ticks = 0;
     var gameValues={}, gameEntitlements={}, wallet={}, matchFrozen=false, catalog={products:[],categories:[]};
     // Cache only this HUD/session's authoritative snapshot, never another account's data.
@@ -12,25 +12,32 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     var channel="wechat";
     var entry = $("#PaymentEntry"), dialog = $("#PaymentDialog"), status = $("#PaymentStatus"), buy = $("#PaymentBuy");
     var scrim=$("#PaymentScrim"), inputShield=$("#PaymentInputShield");
-    var shell=null, shellShield=null;
+    var shell=null, shellShield=null,root=$.GetContextPanel?$.GetContextPanel():null;
+    function valid(p){return p&&(!p.IsValid||p.IsValid());}
+    function alive(){return !disposed&&(!root||valid(root))&&valid(dialog);}
+    function escapedLines(v){return String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g,"<br>");}
+    function paintActions(){if(!alive())return;["PaymentBack","PaymentBuy","PaymentRefresh","PaymentCancel","PaymentQuantityMinus","PaymentQuantityPlus","PaymentWeChat","PaymentAlipay"].forEach(function(id){var b=$("#"+id);if(!valid(b))return;var primary=id==="PaymentBuy"||b.BHasClass&&b.BHasClass("Selected"),disabled=b.enabled===false;b.style.backgroundImage="none";b.style.backgroundColor=disabled?"#21172f":primary?"gradient(linear,0% 0%,0% 100%,from(#734a9e),to(#382346))":"#281b3e";b.style.border="1px solid "+(disabled?"#594363":"#b18a50");function paint(n){if(n.paneltype==="Label")n.style.color=disabled?"#a795b8":"#ffdc87";if(n.Children)n.Children().forEach(paint);}if(b.Children)b.Children().forEach(paint);});}
     function setText(id,value){var panel=$("#"+id);if(panel)panel.text=value;}
     function prepareShell(){
+        if(!alive())return;
         var U=cfg.SurvivalUI,R=cfg.RemainingHandoff,header=$("#PaymentHeader");
         // Shared HUD helpers may load after the payment controller during live editing.
         if(shell || !U || !U.ModalShell || !R || !header)return;
         shell=U.ModalShell.Adopt({id:"payment_shop",root:$.GetContextPanel(),panel:dialog,header:header,
             titlePanel:$("#PaymentHeading"),closeButton:$("#PaymentClose"),scrim:scrim,
-            width:960,height:740,fit:{reference:[1672,941]},onClose:closeShop});
+            width:960,height:740,fit:{reference:[1920,1080]},onClose:closeShop});
         shellShield=dialog.Children().filter(function(p){return p.BHasClass("UIModalInputShield");}).slice(-1)[0];
         if(dialog._rhFrame && dialog._rhFrame.IsValid())dialog._rhFrame.DeleteAsync(0);
         header.Children().forEach(function(p){if(p.BHasClass("RHTitleOrnamentLeft") || p.BHasClass("RHTitleOrnamentRight"))p.DeleteAsync(0);});
         R.Window(dialog,header,$("#PaymentClose"));
         R.SizeWindow(dialog,960,740);R.Box(header,0,0,960,84);R.Box($("#PaymentClose"),894,22,38,38);
+        dialog.AddClass("CheckoutPurple");scrim.AddClass("CheckoutPurpleBackdrop");dialog.style.backgroundImage="none";dialog.style.backgroundColor="gradient(linear,0% 0%,0% 100%,from(#211631),to(#0d091b))";dialog.style.border="1px solid #b18a50";dialog.style.borderRadius="4px";header.style.backgroundImage="none";header.style.backgroundColor="#21162e";header.style.borderBottom="1px solid #806340";$("#PaymentHeading").style.color="#f0d18a";R.Box($("#PaymentHeading"),32,22,820,40);$("#PaymentHeading").style.fontSize="30px";$("#PaymentHeading").style.textAlign="left";header.Children().forEach(function(c){if(c.BHasClass("ReferenceHeaderEmblem"))c.visible=false;});
+        dialog.Children().forEach(function(p){if(p.BHasClass("ReferenceAtmosphere")||p.BHasClass("ReferenceFrame")||p.BHasClass("RHFrame"))p.visible=false;});
         ["PaymentBack","PaymentBuy","PaymentRefresh","PaymentCancel"].forEach(function(id){R.Action($("#"+id),id==="PaymentBuy",[260,64]);});
         ["PaymentQuantityMinus","PaymentQuantityPlus"].forEach(function(id){R.Action($("#"+id),false,[70,48]);});
         ["PaymentWeChat","PaymentAlipay"].forEach(function(id){
-            var button=$("#"+id);if(button._paymentSkin)return;
-            R.Image(button,"shop_payment_normal","PaymentMethodBase");R.Image(button,"shop_payment_selected","PaymentMethodSelected");button._paymentSkin=true;
+            var button=$("#"+id);if(!button._paymentSkin){R.Image(button,"shop_payment_normal","PaymentMethodBase");R.Image(button,"shop_payment_selected","PaymentMethodSelected");button._paymentSkin=true;}
+            button.Children().forEach(function(c){if(c.BHasClass("PaymentMethodBase")||c.BHasClass("PaymentMethodSelected"))c.visible=false;});
         });
         if(opened)shell.Open();else shell.Close();
     }
@@ -107,7 +114,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         return true;
     }
     function render() {
-        if (disposed) return;
+        if (!alive()) return;
         prepareShell();
         var p = current(), order = orders[selected];
         var active=order && !terminal(order.state), shownChannel=active?(order.provider||"wechat"):channel;
@@ -127,7 +134,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         if(art){var validIcon=typeof icon==="string" && /^custom_game\/[A-Za-z0-9_\/-]+\.png$/.test(icon) && icon.indexOf("..")<0;
             art.style.visibility=validIcon?"visible":"collapse";if(validIcon && art.SetImage)art.SetImage("file://{images}/"+icon);}
         $("#PaymentPrice").text = shown ? money(shown.amount_fen) : "";
-        $("#PaymentValues").text = valuesText(shown,order);
+        $("#PaymentValues").html=true;$("#PaymentValues").text = escapedLines(valuesText(shown,order));
         buy.enabled = !busy && !!p && !!p.enabled && (!order || order.state === "closed" || order.state==="delivered");
         buy.enabled=buy.enabled && channelAvailable(shownChannel);
         $("#PaymentBuyLabel").text = p ? (shownChannel==="alipay"?"支付宝购买 ":"微信购买 ")+money(active?order.amount_fen:p.amount_fen) : "加载中";
@@ -162,9 +169,10 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
                 item.ownedLabel.text = (item.owned>0?"已购 "+item.owned+" · ":"")+(item.enabled?money(item.amount_fen):"暂不可购买");
             }
         });
+        paintActions();
     }
     function request(action, sku) {
-        if (disposed || busy) return false;
+        if (!alive() || busy) return false;
         busy = true; render();
         var ticket = ++generation, body = {action:action,request_id:requestEpoch+"_"+(++requestSerial)};
         activeRequest=body;
@@ -173,7 +181,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         if(action==="catalog")catalogRequests++;
         GameEvents.SendCustomGameEventToServer("survival_payment_request", body);
         $.Schedule(32, function() {
-            if (!disposed && ticket === generation && busy) {
+            if (alive() && ticket === generation && busy) {
                 busy=false;activeRequest=null;render();status.text="请求超时，请查询结果后重试。";
                 if(action==="catalog")catalogFailed("商品同步超时，稍后自动重试。");
             }
@@ -181,7 +189,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         return true;
     }
     function refreshCatalog(force) {
-        if(disposed)return false;
+        if(!alive())return false;
         if(force===true){catalogDirty=true;catalogRetryAt=0;}
         if(busy || Date.now()<catalogRetryAt)return false;
         if(!catalogDirty && catalogReady && Date.now()-catalogCheckedAt<CATALOG_TTL_MS)return false;
@@ -231,6 +239,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         render();
     }
     function setOpen(value) {
+        if(!alive()){opened=false;if(shell)shell.Close();return;}
         prepareShell();
         opened=value;
         if (dialog && (!dialog.IsValid || dialog.IsValid())) {
@@ -246,22 +255,23 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     }
     function closeShop() { setOpen(false); }
     PaymentToggle=function(){setOpen(!opened);if(opened)refreshCatalog();};
-    function openShop() { closeShop();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();else {setOpen(true);refreshCatalog();} }
+    function openShop() { if(!alive())return;closeShop();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();else {setOpen(true);refreshCatalog();} }
     PaymentShop=openShop;
     function inspectCache(){return {ready:catalogReady,dirty:catalogDirty,pending:activeRequest?activeRequest.action:"",catalogRequests:catalogRequests,
         ageSeconds:catalogReady?Math.floor((Date.now()-catalogCheckedAt)/1000):null};}
     cfg.SurvivalPayments={Open:openShop,GetCatalog:function(){return catalog;},RefreshCatalog:refreshCatalog,Inspect:inspectCache,
-        Checkout:function(sku){selected=sku;setOpen(true);render();refreshCatalog();},
-        Dispose:function(){closeShop();disposed=true;if(shell)shell.Dispose();if(shellShield && shellShield.IsValid())shellShield.DeleteAsync(0);subscriptions.forEach(function(id){GameEvents.Unsubscribe(id);});}};
+        Checkout:function(sku){if(!alive())return false;selected=sku;setOpen(true);render();refreshCatalog();},
+        Dispose:function(){if(disposed)return;closeShop();disposed=true;if(shell)shell.Dispose();if(valid(shellShield))shellShield.DeleteAsync(0);subscriptions.forEach(function(id){GameEvents.Unsubscribe(id);});}};
     PaymentBuy=function(){
+        if(!alive())return;
         var p=current(), order=orders[selected];
         if (!p || !p.enabled || busy || (order && order.state!=="closed" && order.state!=="created" && order.state!=="delivered")) return;
         if(!channelAvailable(channel))return;
         if (request("create",selected)) status.text="正在创建 " + money(p.amount_fen) + (channel==="alipay"?" 支付宝":" 微信")+"订单…";
     };
-    PaymentChannel=function(value){var order=orders[selected];if(busy || (order && !terminal(order.state)))return;if((value==="wechat" || value==="alipay") && channelAvailable(value)){channel=value;render();}};
+    PaymentChannel=function(value){if(!alive())return;var order=orders[selected];if(busy || (order && !terminal(order.state)))return;if((value==="wechat" || value==="alipay") && channelAvailable(value)){channel=value;render();}};
     PaymentCancel=function(){var order=orders[selected];if(order && !terminal(order.state) && request("cancel",selected))status.text="正在核对并关闭订单，请稍候…";};
-    PaymentOpen=function(){var order=orders[selected];if(order && order.state==="pending" && !order.expired && validURL(order.checkout_url))$.DispatchEvent("ExternalBrowserGoToURL",order.checkout_url);};
+    PaymentOpen=function(){if(!alive())return;var order=orders[selected];if(order && order.state==="pending" && !order.expired && validURL(order.checkout_url))$.DispatchEvent("ExternalBrowserGoToURL",order.checkout_url);};
     PaymentRefresh=function(){if(orders[selected])request("status",selected);else refreshCatalog(true);};
     var messages={test_account_required:"商城当前仅对指定测试账号开放。",already_owned:"你已经拥有此商品。",
         payment_channel_unavailable:"此支付方式尚未开放，请选择已开放的方式。",
@@ -276,7 +286,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         product_unavailable:"此商品暂不可购买，请刷新列表。",order_not_in_session:"请重新点击购买，服务器会恢复已有订单。",
         test_reset_disabled:"测试清理功能未开启。",pending_payment_unresolved:"尚有订单需要核对，请再次输入清理命令重试。"};
     subscriptions.push(GameEvents.Subscribe("survival_payment_result",function(data) {
-        if(disposed)return;
+        if(!alive())return;
         // A late response cannot unlock or replace a newer request (including after a HUD reload).
         if(data.request_id && (!activeRequest || data.request_id!==activeRequest.request_id))return;
         if(activeRequest && data.action===activeRequest.action){busy=false;activeRequest=null;generation++;}
@@ -323,7 +333,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
             store:cfg.SurvivalCommerceView?cfg.SurvivalCommerceView.Inspect():null}));
     },"Open the authenticated shop UI without creating an order",0);
     function tick() {
-        if (disposed) return;
+        if (!alive()) return;
         ticks++;
         if (!busy) {
             var order=orders[selected];

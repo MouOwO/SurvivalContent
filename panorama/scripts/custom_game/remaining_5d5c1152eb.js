@@ -149,6 +149,7 @@
     };
     R.SurvivalShopWindow=function(window){
         var w=window||$("#CustomShopWindow");if(!valid(w))return;
+        if(w.BHasClass("PurpleShell") || w.BHasClass("ShopStandalone"))return;
         cfg.ReferenceWindows.Apply(w,w.FindChildTraverse("ShopHeader"),w.FindChildTraverse("ShopCloseButton"));
         ["ShopBody","ShopShelfArea"].forEach(function(id){var p=w.FindChildTraverse(id);if(valid(p)){p.style.backgroundColor="transparent";p.style.backgroundImage="none";}});
         if(w._rhSurvivalShop==="archive_dark_v6")return;

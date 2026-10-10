@@ -1,10 +1,22 @@
 (function () {
     "use strict";
+    var config = GameUI.CustomUIConfig();
+    if (config.SurvivalHeroSkillChoice && config.SurvivalHeroSkillChoice.Dispose) config.SurvivalHeroSkillChoice.Dispose();
     var playerId = Game.GetLocalPlayerID();
     var key = "player_" + playerId;
-    var currentChoice = {};
+    var currentChoice = {}, choiceToken = "", dismissed = false, opened = false, disposed = false;
+    var subscriptions = [], tableSubscription;
+    var resume = $.CreatePanel("Button", panel("HeroSkillChoiceBackdrop").GetParent(), "HeroSkillChoiceResume");
+    resume.hittest = true; resume.hittestchildren = false;
+    resume.style.width = "200px"; resume.style.height = "44px"; resume.style.horizontalAlign = "right"; resume.style.verticalAlign = "center";
+    resume.style.marginRight = "28px"; resume.style.marginTop = "20px"; resume.style.backgroundColor = "#23414d"; resume.style.border = "1px solid #b59d69";
+    var resumeText = addLabel(resume, "", "继续选择技能");
+    resumeText.hittest = false; resumeText.style.horizontalAlign = "center"; resumeText.style.verticalAlign = "center";
+    resumeText.style.fontSize = "20px"; resumeText.style.color = "#eee0b7";
+    resume.SetPanelEvent("onactivate", open);
 
     function panel(id) { return $("#" + id); }
+    function valid(p) { return p && (!p.IsValid || p.IsValid()); }
     function rows(value) {
         if (!value) return [];
         if (Array.isArray(value)) return value;
@@ -12,6 +24,25 @@
             .map(function (index) { return value[index]; });
     }
     function clear(parent) { if (parent) parent.RemoveAndDeleteChildren(); }
+    function pending() { return !disposed && Number(currentChoice.pending || 0) === 1; }
+    function show() {
+        var backdrop = panel("HeroSkillChoiceBackdrop");
+        if (valid(backdrop)) {
+            backdrop.SetHasClass("Hidden", !opened); backdrop.visible = opened;
+            backdrop.hittest = opened; backdrop.hittestchildren = opened;
+        }
+        if (valid(resume)) resume.visible = pending() && dismissed;
+    }
+    function close() {
+        if (disposed) return;
+        dismissed = pending(); opened = false; show();
+        if (config.SurvivalUILayers) config.SurvivalUILayers.Close("hero_skill_choice");
+    }
+    function open() {
+        if (!pending() || opened) return;
+        dismissed = false; opened = true; show();
+        if (config.SurvivalUILayers) config.SurvivalUILayers.Open("hero_skill_choice", panel("HeroSkillChoiceBackdrop"), close);
+    }
     function addLabel(parent, className, text) {
         var item = $.CreatePanel("Label", parent, "");
         if (className) item.AddClass(className);
@@ -35,6 +66,7 @@
         addLabel(button, owned ? "HeroSkillNextEffect" : "HeroSkillEffect",
             (owned ? "升级强化：" : "效果：") + (item.effect || ""));
         button.SetPanelEvent("onactivate", function () {
+            if (!opened || !pending()) return;
             GameEvents.SendCustomGameEventToServer("ui_hero_skill_choice_select", {
                 choice_token: currentChoice.choice_token,
                 skill_id: item.skill_id
@@ -43,30 +75,44 @@
     }
 
     function renderChoice(choice) {
+        if (disposed) return;
         currentChoice = choice || {};
-        var pending = Number(currentChoice.pending || 0) === 1;
-        panel("HeroSkillChoiceBackdrop").SetHasClass("Hidden", !pending);
+        var nextToken = pending() ? String(currentChoice.choice_token || "") : "";
+        if (nextToken !== choiceToken) dismissed = false;
+        choiceToken = nextToken;
+        var shouldShow = pending() && !dismissed;
+        if (shouldShow && !opened) open();
+        else if (!shouldShow) { opened = false; if (config.SurvivalUILayers) config.SurvivalUILayers.Close("hero_skill_choice"); }
+        show();
         var list = panel("HeroSkillChoiceList");
         clear(list);
-        if (pending) rows(currentChoice.candidates).forEach(function (item) { createCandidate(list, item); });
-        if (pending && Number(currentChoice.rerolls || 0) > 0) {
+        if (pending()) rows(currentChoice.candidates).forEach(function (item) { createCandidate(list, item); });
+        if (pending() && Number(currentChoice.rerolls || 0) > 0) {
             var reroll = $.CreatePanel("Button", list, "");
             reroll.AddClass("HeroSkillChoiceCard");
             addLabel(reroll, "HeroSkillChoiceName", "焕天印：重抽（剩余 " + currentChoice.rerolls + " 次）");
             reroll.SetPanelEvent("onactivate", function () {
+                if (!opened || !pending()) return;
                 GameEvents.SendCustomGameEventToServer("ui_hero_skill_choice_select", {choice_token: currentChoice.choice_token, reroll: 1});
             });
         }
     }
     function showResult(payload) {
+        if (disposed) return;
         panel("HeroSkillChoiceResult").text = payload && payload.ok
             ? "操作成功" : "操作失败：" + String(payload && payload.error || "unknown");
     }
 
-    GameEvents.Subscribe("ui_hero_skill_choice", renderChoice);
-    GameEvents.Subscribe("ui_hero_skill_choice_result", showResult);
-    CustomNetTables.SubscribeNetTableListener("survival_hero_skill_choice", function (_, changedKey, data) {
+    subscriptions.push(GameEvents.Subscribe("ui_hero_skill_choice", renderChoice));
+    subscriptions.push(GameEvents.Subscribe("ui_hero_skill_choice_result", showResult));
+    tableSubscription = CustomNetTables.SubscribeNetTableListener("survival_hero_skill_choice", function (_, changedKey, data) {
         if (changedKey === key) renderChoice(data);
     });
+    config.SurvivalHeroSkillChoice = { Open: open, Close: close, IsOpen: function () { return !disposed && opened; }, Dispose: function () {
+        disposed = true; opened = false; show(); if (valid(resume)) resume.DeleteAsync(0);
+        subscriptions.forEach(function (id) { if (GameEvents.Unsubscribe) GameEvents.Unsubscribe(id); });
+        if (CustomNetTables.UnsubscribeNetTableListener) CustomNetTables.UnsubscribeNetTableListener(tableSubscription);
+        if (config.SurvivalUILayers) config.SurvivalUILayers.Close("hero_skill_choice");
+    }};
     renderChoice(CustomNetTables.GetTableValue("survival_hero_skill_choice", key) || {});
 })();

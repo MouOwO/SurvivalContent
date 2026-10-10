@@ -32,6 +32,12 @@
         return {color:color, fill:backdropCache[color], entity:entity, unit:unitName,
             portrait:identity.portrait_unit_name || "", asset:identity.model_asset_id || "", model:identity.portrait_model_name || ""};
     }
+    function opacityCSS(value) {
+        value = Number(value);
+        if (!isFinite(value)) value = 0;
+        // Panorama rejects exponent notation at the ends of the sine fade.
+        return Math.max(0, Math.min(1, value)).toFixed(6);
+    }
     function updateBackdropMotes(parent, foreground, backdrop, enabled) {
         if (!valid(parent) || typeof $ === "undefined" || !$.CreatePanel) return;
         var layer=parent.FindChildTraverse("SurvivalPortraitMotes");
@@ -61,7 +67,7 @@
             var x=positions[i]+Math.sin(progress*4+i)*2,y=92-progress*(34+i*3);
             style(mote,{position:x+"% "+y+"% 0px",width:(fire?4:3)+"px",height:(fire?9:4)+"px",
                 borderRadius:fire?"70% 30% 65% 35%":"50%",backgroundColor:tint,
-                boxShadow:"0px 0px 5px 1px "+tint,opacity:String(opacity),
+                boxShadow:"0px 0px 5px 1px "+tint,opacity:opacityCSS(opacity),
                 transform:"rotateZ("+(fire?(-14+i*9):0)+"deg)"});
         });
     }
@@ -164,6 +170,25 @@
     }
     // This is the screen-corner portrait, not the native team scoreboard.
     // Bind to the local player's summoned hero, never the selected unit.
+    function bindShortcutScene(scene, key, unitName) {
+        if (!valid(scene)) return false;
+        scene.hittest=false;scene.hittestchildren=false;
+        var camera="shortcut_soft",profileVersion=1;
+        if (scene.__survivalSceneKey===key && scene.__survivalSceneCamera===camera && scene.__survivalSceneProfileVersion===profileVersion) return true;
+        // Keep a failed asset/API from triggering another load every HUD tick.
+        if (scene.__survivalSceneAttemptKey===key && Date.now()-scene.__survivalSceneAttemptAt<5000) return false;
+        scene.__survivalSceneAttemptKey=key;scene.__survivalSceneAttemptAt=Date.now();
+        // The econ/showcase APIs take a hero type or a match/loadout, not the
+        // currently assigned game entity. Bind the validated actual hero name.
+        var loaded=false,method="SetUnit";
+        try {loaded=scene.SetUnit(unitName,camera,false)!==false;} catch (error) {}
+        if (!loaded) {$.Warning("[SHORTCUT_SCENE] Load failed: "+unitName);return false;}
+        scene.__survivalSceneKey=key;scene.__survivalSceneMethod=method;
+        scene.__survivalSceneCamera=camera;
+        scene.__survivalSceneProfileVersion=profileVersion;
+        scene.__survivalSceneLoads=(Number(scene.__survivalSceneLoads)||0)+1;
+        return true;
+    }
     function refreshLocalHeroPortrait(root) {
         if (!valid(root)) return;
         var image=root.FindChildTraverse("SurvivalLocalHeroPortrait");
@@ -177,12 +202,12 @@
                 if (selection && selection.Select) selection.Select("top_left_portrait");
             });
         }
-        var name="";
+        var name="", hero=-1;
         if (typeof Game !== "undefined" && Game.GetLocalPlayerID
             && typeof CustomNetTables !== "undefined" && typeof Entities !== "undefined") {
             var player=Number(Game.GetLocalPlayerID());
             var snapshot=player>=0 ? CustomNetTables.GetTableValue("survival_hero_skills","player_"+player) || {} : {};
-            var hero=Number(snapshot.unit_entindex);
+            hero=snapshot.unit_entindex===undefined || snapshot.unit_entindex===null ? -1 : Number(snapshot.unit_entindex);
             var assigned=typeof Players!=="undefined" && Players.GetPlayerHeroEntityIndex
                 ? Number(Players.GetPlayerHeroEntityIndex(player)) : -1;
             if (Number(snapshot.hero_ready)===1 && snapshot.hero_id && isFinite(hero) && hero>=0 && hero===assigned) {
@@ -192,19 +217,17 @@
                 } catch(error) {}
             }
         }
-        // Same textures as the six ability_summon_* buttons in the hero altar.
+        // Limit this entry to the project's six actual summoned hero types.
         var altarHeroes={npc_dota_hero_axe:"axe",npc_dota_hero_doom_bringer:"doom_bringer",
             npc_dota_hero_nevermore:"nevermore",npc_dota_hero_drow_ranger:"drow_ranger",
             npc_dota_hero_monkey_king:"monkey_king",npc_dota_hero_juggernaut:"juggernaut"};
         var icon=altarHeroes[name],ready=!!icon;
-        if (ready && portrait.__survivalHeroIcon!==icon) {
-            portrait.SetImage("file://{images}/spellicons/survival/native/portrait_"+icon+".png");
-            portrait.__survivalHeroIcon=icon;
-        }
+        if (ready) ready=bindShortcutScene(portrait,"hero:"+hero+":"+name,name);
+        if (ready) portrait.__survivalHeroIcon=icon;
         var selection=cfg.SurvivalHeroSelection;
         image.enabled=!!(ready && selection && selection.CanSelect && selection.CanSelect());
         image.visible=ready;image.hittest=image.enabled;
-        if(!ready && portrait.__survivalHeroIcon){portrait.SetImage("");portrait.__survivalHeroIcon="";}
+        if(!ready && portrait.__survivalHeroIcon)portrait.__survivalHeroIcon="";
         style(image,{visibility:ready ? "visible" : "collapse"});
     }
     // Read-only Tools diagnostic: enumerate the actual portrait and nearby HUD
@@ -227,7 +250,7 @@
         var root = diagnosticRoot(), group = root.FindChildTraverse("PortraitGroup");
         var corner=root.FindChildTraverse("SurvivalLocalHeroPortrait"),cornerImage=corner && corner.FindChildTraverse("SurvivalLocalHeroPortraitImage");
         $.Msg("[HERO_CORNER_INSPECT] ",JSON.stringify({button:valid(corner)?{type:corner.paneltype,enabled:corner.enabled,visible:corner.visible,visibility:corner.style.visibility,opacity:corner.style.opacity,xy:corner.GetPositionWithinWindow(),width:corner.actuallayoutwidth,height:corner.actuallayoutheight,bound:corner.__survivalHeroButtonBound}:null,
-            icon:valid(cornerImage)?{asset:cornerImage.__survivalHeroIcon,visible:cornerImage.visible,width:cornerImage.actuallayoutwidth,height:cornerImage.actuallayoutheight}:null,
+            icon:valid(cornerImage)?{asset:cornerImage.__survivalHeroIcon,type:cornerImage.paneltype,sceneKey:cornerImage.__survivalSceneKey,sceneMethod:cornerImage.__survivalSceneMethod,sceneCamera:cornerImage.__survivalSceneCamera,sceneProfileVersion:cornerImage.__survivalSceneProfileVersion,sceneLoads:cornerImage.__survivalSceneLoads,visible:cornerImage.visible,width:cornerImage.actuallayoutwidth,height:cornerImage.actuallayoutheight}:null,
             identity:CustomNetTables.GetTableValue("survival_hero_skills","player_"+Game.GetLocalPlayerID()),canSelect:!!(cfg.SurvivalHeroSelection&&cfg.SurvivalHeroSelection.CanSelect()),hud:cfg.SurvivalMainHUD&&cfg.SurvivalMainHUD.Inspect()}));
         $.Msg("[PORTRAIT_BACKDROP] ", JSON.stringify(currentBackdrop()));
         function dump(p, depth) {
@@ -264,6 +287,32 @@
         var probeSuffix = "_" + Date.now();
         $.Msg("[PORTRAIT_PROBE_COMMANDS] suffix=",probeSuffix);
         Game.AddCommand("survival_portrait_inspect"+probeSuffix,inspectPortrait,"Inspect actual portrait layers",0);
+        // Tools-only, noninteractive native renderer comparison. No units,
+        // selection, camera movement or game-state changes are involved.
+        Game.AddCommand("survival_shortcut_scene_review"+probeSuffix,function () {
+            var args=Array.prototype.slice.call(arguments);
+            if(String(args[0]).indexOf("survival_shortcut_scene_review_")===0)args.shift();
+            var mode=args[0];
+            var context=$.GetContextPanel(),previous=context.FindChildTraverse("ShortcutSceneReview");
+            if(valid(previous))previous.DeleteAsync(0);
+            if(mode!=="show")return;
+            var review=$.CreatePanel("Panel",context,"ShortcutSceneReview");
+            review.hittest=false;review.hittestchildren=false;
+            style(review,{position:"88px 112px 0px",width:"352px",height:"250px",overflow:"noclip",zIndex:"6000"});
+            var label=$.CreatePanel("Label",review,"");label.text="方形          竖幅          长竖幅        原版 true";
+            label.hittest=false;
+            style(label,{fontSize:"15px",color:"#ffffff",textShadow:"0px 1px 2px 2 #000000ee"});
+            ["npc_dota_hero_wisp","npc_dota_hero_doom_bringer"].forEach(function(name,row) {
+                [64,96,128,64].forEach(function(height,column) {
+                    var scene=$.CreatePanel("DOTAScenePanel",review,"");
+                    scene.AddClass(row===0?"MinimapShortcutIcon":"ShortcutHeroPortraitScene");
+                    scene.hittest=false;scene.hittestchildren=false;
+                    style(scene,{position:(column*88+8)+"px "+(26+row*76)+"px 0px",width:"64px",height:(row===0?64:height)+"px"});
+                    scene.SetUnit(name,"default",column===3);
+                });
+            });
+            $.Schedule(10,function(){if(valid(review))review.DeleteAsync(0);});
+        },"Show/close native shortcut camera comparison in Tools",0);
         Game.AddCommand("survival_hero_corner_select"+probeSuffix,function () {
             var button=diagnosticRoot().FindChildTraverse("SurvivalLocalHeroPortrait");
             if (valid(button) && button.enabled) $.DispatchEvent("Activated",button,"mouse");
@@ -273,5 +322,5 @@
             });
         },"Activate local hero corner button in Tools",0);
     }
-    cfg.SurvivalPortraitPresentation = {Refresh:refresh, SetSnapshot:setSnapshot, InspectBackdrop:currentBackdrop, RefreshLocalHeroPortrait:refreshLocalHeroPortrait};
+    cfg.SurvivalPortraitPresentation = {Refresh:refresh, SetSnapshot:setSnapshot, InspectBackdrop:currentBackdrop, RefreshLocalHeroPortrait:refreshLocalHeroPortrait, BindShortcutScene:bindShortcutScene};
 })();

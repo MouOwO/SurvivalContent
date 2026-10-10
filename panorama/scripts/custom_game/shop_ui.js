@@ -237,15 +237,35 @@
         panel.hittestchildren = false;
     }
 
+    function usesTechnologyPrerequisites(entry) {
+        return !!entry && entry.content_type === "technology" && entry.prerequisite_met !== undefined;
+    }
+
+    function entryUnavailable(entry) {
+        if (!entry) return true;
+        return usesTechnologyPrerequisites(entry)
+            ? Number(entry.prerequisite_met) === 0 : entry.purchasable !== 1;
+    }
+
+    function entryCompleted(entry) {
+        return usesTechnologyPrerequisites(entry)
+            && (Number(entry.completed) === 1 || Number(entry.removed) === 1);
+    }
+
+    function queuedTechnology(entry) {
+        return usesTechnologyPrerequisites(entry) && currentMode === "research"
+            && Number(researchSourceEntindex) > 0;
+    }
+
     function purchase(entry) {
-        if (!entry || entry.purchasable !== 1) {
+        if (entryUnavailable(entry) || entryCompleted(entry)) {
             setStatus(
                 "当前不可购买：" + ((entry && entry.disabled_reason) || "条件不满足"),
                 true
             );
             return;
         }
-        if (entry.content_type === "technology"
+        if (entry.content_type === "technology" && !queuedTechnology(entry)
             && technologyCooldownRemaining() > 0) {
             setStatus("已有科技正在研究中，请稍候", true);
             return;
@@ -350,19 +370,20 @@
 
     function updateEntryCard(card, entry) {
         if (!card || !entry) return;
-        card.SetHasClass("Unavailable", entry.purchasable !== 1);
+        card.SetHasClass("Unavailable", entryUnavailable(entry));
         card.SetHasClass("Technology", entry.content_type === "technology");
         card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
         card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
         var code = String(entry.disabled_reason_code || "");
-        card.SetHasClass("PrerequisiteLocked", code === "prerequisite_not_met"
-            || code === "rebirth_level_not_met"
-            || code === "research_access_not_met");
-        card.SetHasClass("ResourceLocked", code === "insufficient_gold"
-            || code === "insufficient_wood");
+        card.SetHasClass("PrerequisiteLocked", usesTechnologyPrerequisites(entry)
+            ? Number(entry.prerequisite_met) === 0 : (code === "prerequisite_not_met"
+                || code === "rebirth_level_not_met" || code === "research_access_not_met"));
+        card.SetHasClass("ResourceLocked", !usesTechnologyPrerequisites(entry)
+            && (code === "insufficient_gold" || code === "insufficient_wood"));
         card.SetHasClass("MaxLevel", code === "max_level_reached");
         card.SetHasClass("PurchaseCooldownLocked", technologyCooldownRemaining() > 0
-            && entry.content_type === "technology");
+            && entry.content_type === "technology" && !queuedTechnology(entry));
+        card.visible = !entryCompleted(entry);
         card.hittest = true;
         if (card.__survivalLockBadge) {
             card.__survivalLockBadge.text = lockBadgeText(entry);
@@ -389,7 +410,7 @@
 
     function entriesFor(data, shopId) {
         var entries = asArray(data && data.entries).filter(function (entry) {
-            return entry && entry.visible === 1;
+            return entry && entry.visible === 1 && !entryCompleted(entry);
         });
         entries.sort(function (a, b) {
             return (a.sort_order || 0) - (b.sort_order || 0);
@@ -399,7 +420,7 @@
 
     function visibleEntries() {
         var entries = asArray(snapshot && snapshot.entries).filter(function (entry) {
-            return entry && entry.visible === 1;
+            return entry && entry.visible === 1 && !entryCompleted(entry);
         });
         entries.sort(function (a, b) {
             var sectionOrder = function (entry) {
@@ -510,7 +531,7 @@
             }
             var card = $.CreatePanel("Panel", list, "");
             card.AddClass("ShopShelfSlot"); U.CardShell.Adopt(card,{bodyVariant:"product"});
-            card.SetHasClass("Unavailable", entry.purchasable !== 1);
+            card.SetHasClass("Unavailable", entryUnavailable(entry));
             card.SetHasClass("Technology", entry.content_type === "technology");
             card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
             card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);

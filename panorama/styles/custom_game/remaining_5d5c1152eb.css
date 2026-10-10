@@ -497,6 +497,8 @@ RadioButton:selected .ArchiveFilter_selected {visibility:visible;}
 /* Approved original-icon drawer, scoped to survival shop only. */
 #CustomShopWindow.RHSurvivalShop .ShopShelfSlot.Unavailable,
 #CustomShopWindow.RHSurvivalShop .ShopShelfSlot.Unavailable:hover { wash-color:none; saturation:1; brightness:1; }
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.Technology.PrerequisiteLocked .ShopItemIcon,
+#CustomShopWindow.RHSurvivalShop .ShopShelfSlot.Technology.PrerequisiteLocked:hover .ShopItemIcon { saturation:0; brightness:0.45; }
 #CustomShopWindow.RHSurvivalShop .ShopShelfSlot.StockEmpty .ShopItemIcon { saturation:0; brightness:0.55; }
 #CustomShopWindow.UIModal.RHSurvivalShop,
 #CustomShopWindow.UIModal.RHSurvivalShop.UIClosed { visibility:visible; opacity:1; transition-property:position; transition-duration:0.28s; transition-timing-function:ease-out; }
@@ -506,6 +508,7 @@ RadioButton:selected .ArchiveFilter_selected {visibility:visible;}
 #CustomShopWindow.RHSurvivalShop .RHShopPrices,
 #CustomShopWindow.RHSurvivalShop .ShopCardName { visibility:collapse; }
 #ShopEntryTooltip.UITooltip { width:300px; min-height:0px; padding:14px; background-color:#19262dfc; wash-color:none; }
+#ShopEntryTooltip.PrerequisiteLocked .ShopTooltipMainIcon { saturation:0; brightness:0.45; }
 #ShopTooltipHeader { height:50px; }
 #ShopTooltipIconHost,.ShopTooltipMainIcon { width:48px; height:48px; }
 #ShopTooltipTitle { font-size:19px; max-width:210px; white-space:normal; }

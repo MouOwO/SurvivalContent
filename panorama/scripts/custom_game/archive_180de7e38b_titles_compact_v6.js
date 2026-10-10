@@ -1,7 +1,23 @@
 (function () {
     "use strict";
     // UI_REUSE_V1
-    var U=GameUI.CustomUIConfig().SurvivalUI, A=GameUI.CustomUIConfig().ArchiveHandoff;
+    var cfg=GameUI.CustomUIConfig(), root=$.GetContextPanel(), U=cfg.SurvivalUI, A=cfg.ArchiveHandoff;
+    // A native context root may survive while all of its layout children reload.
+    var previous=cfg.SurvivalArchive;
+    if(previous&&previous.Dispose)previous.Dispose();
+    else if(previous&&previous.Close){try{previous.Close();}catch(e){/* Deleted legacy layout: build the replacement normally. */}}
+    var disposed=false,api=null,lifetimeMarker=null,subscriptions=[],timers=[];
+    var resyncQueued=false,syncRetry=null,resyncPages={};
+    function valid(node){return node&&(!node.IsValid||node.IsValid());}
+    function active(){return !disposed&&valid(root)&&valid(lifetimeMarker)&&(!api||cfg.SurvivalArchive===api);}
+    function later(delay,callback){
+        var timer=$.Schedule(delay,function(){timers=timers.filter(function(id){return id!==timer;});if(active())callback();});
+        timers.push(timer);return timer;
+    }
+    function subscribe(name,callback){subscriptions.push(GameEvents.Subscribe(name,function(data){if(active())callback(data);}));}
+    if(!valid(root)||!valid(root.FindChildTraverse("ArchiveWindow")))return;
+    lifetimeMarker=$.CreatePanel("Panel",root.FindChildTraverse("ArchiveWindow"),"");
+    lifetimeMarker.visible=false;lifetimeMarker.hittest=false;lifetimeMarker.hittestchildren=false;
     var current = "clear", opened = false, latest = 0, assembly = null;
     var filterMode = "all", lastData = null, fitGeneration = 0;
     var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",beast:"blessing"};
@@ -9,6 +25,10 @@
     var pageCache = {}, pageAssemblies = {}, pageVersions = {};
     var rowCards = {};
     var titleSubmitting = false;
+    var renderedTabs = null, tabsSignature = "", lastPaletteKey = "";
+    var latestEndlessState = null, endlessStatusPanel = null;
+    var endlessStatusText = "", endlessStatusHidden = null, endlessRequestKey = "";
+    var panelCache = {};
     // Match the actual archive definitions, not the example names in the style reference.
     var buildingIcons = {
         building_01: "item_octarine_core", building_02: "item_rapier", building_03: "item_crimson_guard",
@@ -29,7 +49,7 @@
         var source=panel("ArchiveCurrencySource");if(source)source.visible=false;
         panel("ArchiveContent").SetHasClass("ArchiveHasCurrencySource",false);
     }
-    function panel(id) { return $("#" + id); }
+    function panel(id) { if(!valid(root))return null;var node=panelCache[id];if(!valid(node))node=panelCache[id]=root.FindChildTraverse(id);return valid(node)?node:null; }
     function array(value) {
         if (!value) return [];
         if (Array.isArray(value)) return value;
@@ -44,17 +64,37 @@
         return result;
     }
     function hideTooltip() {
+        if(!active())return;
         A.Hide();
         tooltipGeneration += 1;
         tooltipVisible = false;
         panel("ArchiveTooltip").AddClass("ArchiveHidden");
     }
-    function tooltip(item, card) { A.Show(item, current, card); }
-    function request(prefetch) {
-        GameEvents.SendCustomGameEventToServer("survival_archive_request", { category_id: current, prefetch:prefetch===true?1:0 });
+    function tooltip(item, card) { if(active()&&valid(card))A.Show(item, current, card); }
+    function needsSync(){return !pageCache[current]||Object.keys(resyncPages).length>0;}
+    function retrySync(){
+        if(syncRetry)return;
+        syncRetry=later(.75,function(){syncRetry=null;if(opened&&needsSync())request(true);});
     }
+    function queueFullSync(category){
+        resyncPages[category]=true;
+        if(resyncQueued)return;
+        resyncQueued=true;
+        later(.2,function(){resyncQueued=false;request(true);});
+    }
+    function request(prefetch) {
+        if(!active())return;
+        GameEvents.SendCustomGameEventToServer("survival_archive_request", { category_id: current, prefetch:prefetch===true?1:0 });
+        // The server silently throttles requests on game time, which can stand
+        // still while paused. Keep one retry until a real baseline arrives.
+        if(prefetch===true)retrySync();
+    }
+    var archiveFit={reference:[1920,1080]},voidView=cfg.SurvivalArchiveVoidV1;
+    function renderVoid(data){return voidView&&voidView.Render(data,current,filterMode,categories,archiveFit);}
     function tabs() {
-        panel("ArchiveTabs").RemoveAndDeleteChildren();
+        var container = panel("ArchiveTabs"), signature = JSON.stringify([current, categories]);
+        if (container === renderedTabs && signature === tabsSignature) return false;
+        container.RemoveAndDeleteChildren();
         categories.forEach(function (category) {
             var toggle = $.CreatePanel("RadioButton", panel("ArchiveTabs"), "ArchiveTab_" + category.id);
             toggle.group = "ArchiveCategories";
@@ -67,8 +107,10 @@
             toggle.enabled = Number(category.disabled) !== 1;
             label(toggle, category.id === "building" ? "存档神器" : category.name, "ArchiveNavLabel");
             toggle.__archiveActivate = function () {
+                if(!active()||!valid(toggle))return;
                 if (Number(category.disabled) === 1 || current === category.id) return;
                 current = category.id; filterMode="all"; lastData=pageCache[current]||null;
+                panel("ArchiveGrid").ScrollToTop();
                 if(lastData){tabs();render(lastData);return;}
                 hideTooltip();
                 Object.keys(rowCards).forEach(function(key){rowCards[key].panel.visible=false;});
@@ -85,22 +127,30 @@
                 panel("ArchiveTickets").text = "正在读取抽奖券…";
                 panel("ArchiveDrawResult").text = "";
                 tabs();
+                renderVoid(null);
                 // Coalesce fast toggle changes and respect the server throttle.
                 var generation = ++requestGeneration;
                 request(true);
             };
             toggle.SetPanelEvent("onactivate", toggle.__archiveActivate);
         });
+        renderedTabs = container; tabsSignature = signature;
+        return true;
     }
     function icon(parent, item) { A.Icon(parent,item,current,buildingIcons); }
     function cardFrame(card) { A.Card(card); }
     function render(data) {
+        // Background archive updates keep their authoritative page cache. Cards,
+        // fonts and palettes are assembled only when the player opens the view.
+        if(!active()||!opened)return;
         if (data.category_id !== current) return;
-        hideTooltip(); lastData=data; A.Observe(data);
-        ["all","unlocked","locked"].forEach(function(mode){panel("ArchiveFilter_"+mode).checked=mode===filterMode;});
+        lastData=data; A.Observe(data);
         var order=["clear","shadow","points","starjoy_points","gift","fragment","pet","endless","friend","ex","beast"];
         categories = array(data.categories).sort(function(a,b){var ai=a.id==="titles"?1000:order.indexOf(a.id),bi=b.id==="titles"?1000:order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
-        tabs();
+        var paletteDirty = tabs();
+        if(renderVoid(data))return;
+        hideTooltip();
+        ["all","unlocked","locked"].forEach(function(mode){panel("ArchiveFilter_"+mode).checked=mode===filterMode;});
         var social = data.social, socialPage = isDrawPage();
         showDrawBar();
         if (socialPage && social) {
@@ -108,13 +158,14 @@
             panel("ArchiveDraw").enabled = Number(social.tickets) >= Number(social.draw_cost) && Number(social.remaining) > 0 && Number(data.pending) !== 1;
             panel("ArchiveDrawResult").text = data.last_draw && data.last_draw.pool_id === current ? "获得：" + data.last_draw.name : "每次消耗 " + social.draw_cost + " 张 · 重复获得叠加效果";
             panel("ArchiveDraw").SetPanelEvent("onactivate", function () {
+                if(!active())return;
                 if (!panel("ArchiveDraw").enabled) return;
                 panel("ArchiveDraw").enabled = false;
                 panel("ArchiveDrawResult").text = "抽奖结算中…";
                 GameEvents.SendCustomGameEventToServer("survival_archive_social_draw", {
                     pool_id: current, request_id: "social_" + Date.now() + "_" + (++requestGeneration)
                 });
-                $.Schedule(0.5, request);
+                later(0.5, request);
             });
         }
         var rows = array(data.rows), done = 0, ownedTypes = 0, visibleCount=0;
@@ -136,6 +187,7 @@
             card.SetHasClass("ArchiveArtAlwaysBright",["fragment","friend","ex","beast","fishing","shadow","points","pet","work","building"].indexOf(current)>=0);
             // Cached rows still need current visual policy when artwork stays unchanged.
             if(cached&&cached.fingerprint===fingerprint)return;
+            paletteDirty = true;
             if(cached)card.RemoveAndDeleteChildren();
             rowCards[key]={panel:card,fingerprint:fingerprint};
             card.hittestchildren = false;
@@ -174,15 +226,17 @@
                 var equipped=Number(item.equipped)===1;
                 var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 卸下":Number(item.preview_only)===1?"点击试穿":"点击穿戴","ArchiveTitleAction");
                 card.SetPanelEvent("onactivate",function() {
+                    if(!active()||!valid(card))return;
                     if (unlocked!==true || titleSubmitting) return;
                     if (Number(data.pending)===1 && Number(data.title_preview)!==1) {
                         panel("ArchiveStatus").text="正在保存进度，请稍候再试";return;
                     }
                     titleSubmitting=true;actionLabel.text="正在切换…";
+                    panel("ArchiveStatus").text="正在切换称号…";
                     rowCards[key].fingerprint=null;
                     GameEvents.SendCustomGameEventToServer("survival_archive_title_equip",{title_id:equipped?"":item.id});
                     // Server result releases rejected/unchanged actions as well.
-                    $.Schedule(2,function(){titleSubmitting=false;request(true);});
+                    later(2,function(){titleSubmitting=false;request(true);});
                 });
             }
             if (current === "work" || current === "building") {
@@ -196,6 +250,7 @@
                 var costLabel = label(card, Number(item.completed) === 1 ? (current === "building" ? "已满级" : "已激活") : item.cost + (current === "building" ? "信仰值" : "软妹币"), "ArchiveWorkCost");
                 var submitted = false;
                 card.SetPanelEvent("onactivate", function () {
+                    if(!active()||!valid(card))return;
                     if (submitted) return;
                     if (!canUpgrade) {
                         panel("ArchiveStatus").text = upgradePending ? "正在保存进度，请稍候…"
@@ -215,7 +270,7 @@
                     GameEvents.SendCustomGameEventToServer(cardCategory === "building" ? "survival_archive_building_upgrade" : "survival_archive_work_upgrade", {
                         item_id: item.id, expected_level: Number(item.level) || 0
                     });
-                    $.Schedule(0.5, request);
+                    later(0.5, request);
                 });
             }
             if (current === "fragment") {
@@ -225,19 +280,25 @@
                     var promote = $.CreatePanel("Button", card, "");
                     promote.AddClass("ArchivePromote");
                     promote.enabled = Number(item.can_promote) === 1;
-                    label(promote, "晋升兑换");
+                    label(promote, "晋升");
                     // ArchivePromote owns its dark enabled/disabled palette; shared ivory buttons write an inline text color.
                     promote.SetPanelEvent("onmouseover", function () {
-                        tooltip({name:"晋升兑换", description:"消耗" + item.promotion_cost + "片，兑换" + item.promotion_target + "碎片×1。累计获得超过200片后解锁。"}, promote);
+                        if(!active()||!valid(promote))return;
+                        var targetRow=rows.filter(function(row){return row.id===item.promotion_target;})[0];
+                        var targetName=targetRow?String(targetRow.name||"").replace(/^神兵[-－·]/,""):"下一阶神兵";
+                        A.ShowEffectOnly({name:"晋升兑换", description:"消耗" + item.promotion_cost + "片，兑换" + targetName + "碎片×1。累计获得超过200片后解锁。"}, promote);
                     });
                     promote.SetPanelEvent("onmouseout", hideTooltip);
                     promote.SetPanelEvent("onactivate", function () {
+                        if(!active()||!valid(promote))return;
                         if (!promote.enabled) return;
                         promote.enabled = false;
+                        panel("ArchiveStatus").text="正在兑换神兵碎片…";
+                        if(GameUI.CustomUIConfig().SurvivalArchivePurple)GameUI.CustomUIConfig().SurvivalArchivePurple.Apply();
                         GameEvents.SendCustomGameEventToServer("survival_archive_promote", {
                             fragment_id:item.id, request_id:"promotion_" + Date.now() + "_" + (++requestGeneration)
                         });
-                        $.Schedule(0.5, request);
+                        later(0.5, request);
                     });
                 }
             }
@@ -245,7 +306,7 @@
             if (Number(item.count) > 0) ownedTypes += 1;
             if (Number(item.completed) === 1) done += 1;
         });
-        done=rows.filter(function(item){return Number(item.completed)===1;}).length;
+        done=rows.filter(function(item){return A.Unlocked(item,current)===true;}).length;
         ownedTypes=rows.filter(function(item){return Number(item.count)>0;}).length;
         var title = categories.filter(function (category) { return category.id === current; })[0];
         panel("ArchivePageTitle").text = current === "building" ? "存档神器" : title ? title.name : "存档";
@@ -256,7 +317,7 @@
             current === "pet" ? "秘法牢笼挑战掉落材料 · 每日30件，通行证90件" : "展示已拥有的积分道具";
         panel("ArchiveEmpty").SetHasClass("ArchiveHidden", visibleCount > 0);
         panel("ArchiveEmpty").text = filterMode !== "all" ? "当前筛选下暂无存档" : current === "shadow" ? "尚未获得虚空之影道具" :
-            current === "pet" ? "尚未获得秘法牢笼材料" : "尚未拥有积分道具";
+            current === "pet" ? "尚未获得秘法牢笼材料" : current === "points" ? "尚未拥有积分道具" : "当前分类暂无存档";
         panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" :
             current === "shadow" ? (Number(data.has_pass) === 1 ? "通行证生效 · 每次掉落 3 件" : "每次掉落 2 件") : "效果自动生效";
         if (socialPage && social) {
@@ -321,6 +382,7 @@
             : current === "gift" ? "累计胜利 " + (rows.length ? Number(rows[0].count) || 0 : 0) + " 次 · 合作 " + (cooperationRows.length ? Number(cooperationRows[0].count) || 0 : 0) + " 次"
             : current === "building" && data.buildings ? "信仰值 " + data.buildings.faith
             : current === "work" && data.online ? "软妹币 " + data.online.coins
+            : socialPage && social ? "收藏 " + social.total + " 件"
             : current === "endless" ? "累计积分 " + (rows.length ? Number(rows[0].count) || 0 : 0)
             : current === "map_level" && data.online ? "等级 " + data.online.level + "/" + data.online.max_level : "";
         panel("ArchiveContext").text = contextText;
@@ -340,26 +402,31 @@
                 + "\n余额永久累积 · 通行证不加成";
         } else if (current === "starjoy_points" && data.starjoy) {
             sourceText = "累计星悦积分 " + data.starjoy.earned + " · 可用余额 " + data.starjoy.balance
-                + "\n图标下方数字为解锁门槛 · 达标后自动点亮"
+                + "\n图标右上数字为解锁门槛 · 达标后自动点亮"
                 + "\n不消耗积分 · 各等级奖励永久叠加";
         } else if (current === "work") {
             sourceText = "软妹币来源：实际在线每满 1 分钟 +1"
-                + "\n不足一分钟的时间累计计算"
-                + "\n点击卡片消耗软妹币解锁 · 通行证不翻倍";
+                + "\n不足一分钟累计计算"
+                + "\n解锁消耗软妹币 · 通行证不翻倍";
         }
-        if (source) {source.html=true;source.text=sourceText.replace(/\d+/g,function(n){return '<font color="'+GameUI.CustomUIConfig().SurvivalArchiveColors.number+'">'+n+'</font>';}).replace(/\n/g,'<br>');source.visible=!!sourceText;}
+        if (source) {source.__archivePlainText=sourceText;source.html=true;source.text=sourceText.replace(/\d+/g,function(n){return '<font color="'+GameUI.CustomUIConfig().SurvivalArchiveColors.number+'">'+n+'</font>';}).replace(/\n/g,'<br>');source.visible=!!sourceText;}
         panel("ArchiveContent").SetHasClass("ArchiveHasCurrencySource",!!sourceText);
 
-        // Cards and promotion buttons are created after Init: style them now.
-        A.ApplyPalette();
+        // New card children, navigation and theme changes need the recursive
+        // palette. Countdown/score updates do not change that structure.
+        var paletteKey = JSON.stringify([current, filterMode, cfg.SurvivalArchiveColors || {},
+            panel("ArchiveWindow").BHasClass("ArchivePurple"), panel("ArchiveDraw").enabled]);
+        if (paletteDirty || paletteKey !== lastPaletteKey) {
+            A.ApplyPalette(); lastPaletteKey = paletteKey;
+        }
     }
-    GameEvents.Subscribe("survival_archive_snapshot", function (data) {
+    function onArchiveSnapshot(data) {
         var sequence = Number(data.sequence) || 0;
         var category = data.category_id;
         if(sequence <= (pageVersions[category]||0))return;
         if (!(data.ok === true || Number(data.ok) === 1)) {
-            panel("ArchiveStatus").text = "存档尚未就绪，正在等待玩家档案";
-            if (opened) $.Schedule(2, function () { if (opened) request(); });
+            if (opened) panel("ArchiveStatus").text = "存档尚未就绪，正在等待玩家档案";
+            if (opened) later(2, function () { if (opened) request(); });
             return;
         }
         var assembly=pageAssemblies[category];
@@ -374,60 +441,118 @@
         for (var i = 1; i <= assembly.count; i++) complete.rows = complete.rows.concat(assembly.chunks[i]);
         delete pageAssemblies[category];
         if(Number(complete.delta)===1){
-            if(!pageCache[category]||pageVersions[category]!==Number(complete.base_sequence)){request(true);return;}
+            if(!pageCache[category]||pageVersions[category]!==Number(complete.base_sequence)){queueFullSync(category);return;}
             complete=GameUI.CustomUIConfig().SurvivalSnapshotCache.Apply(pageCache[category],complete.rows);
-        }
+        }else delete resyncPages[category];
         pageVersions[category]=sequence;
         pageCache[category]=complete;
-        array(complete.rows).forEach(function(item){
+        // The void gallery already renders its fixed catalog artwork. Warming
+        // another hidden copy on unrelated profile revisions adds native work.
+        if (opened && category === current && category !== "shadow") array(complete.rows).forEach(function(item){
             if(!item)return;
-            GameUI.CustomUIConfig().SurvivalSnapshotCache.Warm("archive:"+category+":"+(item.id||item.name)+":"+(item.icon||item.icon_path||""),function(host){A.Icon(host,item,category,buildingIcons);});
+            GameUI.CustomUIConfig().SurvivalSnapshotCache.Warm("archive:"+category+":"+(item.id||item.name)+":"+(item.icon||item.icon_path||""),function(host){if(active()&&valid(host))A.Icon(host,item,category,buildingIcons);});
         });
         render(complete);
-    });
-    GameEvents.Subscribe("survival_archive_title_result",function(data) {
+    }
+    subscribe("survival_archive_snapshot", function(data){onArchiveSnapshot(data);});
+    subscribe("survival_archive_title_result",function(data) {
         titleSubmitting=false;
         if (!(data.ok===true || Number(data.ok)===1)) {
             panel("ArchiveStatus").text=data.error || "称号切换失败，请重试";
         }
     });
-    GameEvents.Subscribe("survival_endless_state", function (data) {
-        var status = panel("EndlessStatus");
-        status.SetHasClass("ArchiveHidden", data.status === "idle");
-        status.text = data.status === "running" ? "无尽第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
+    function refreshEndlessStatus() {
+        if (!latestEndlessState) return;
+        var data = latestEndlessState;
+        var status = valid(endlessStatusPanel) ? endlessStatusPanel : panel("EndlessStatus");
+        if (!status) return;
+        var hidden = data.status === "idle";
+        var text = data.status === "running" ? "无尽第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
             : "无尽结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
-        if (opened && current === "endless" && data.remaining === 0) request();
-        A.ApplyPalette();
+        // This standalone HUD label remains live while the archive is closed.
+        // It never invalidates the archive's cards, typography or palette.
+        if (status !== endlessStatusPanel || hidden !== endlessStatusHidden) status.SetHasClass("ArchiveHidden", hidden);
+        if (status !== endlessStatusPanel || text !== endlessStatusText) status.text = text;
+        endlessStatusPanel = status; endlessStatusHidden = hidden; endlessStatusText = text;
+    }
+    subscribe("survival_endless_state", function (data) {
+        if (!data) return;
+        latestEndlessState = data;
+        refreshEndlessStatus();
+        if (opened && current === "endless" && Number(data.remaining) === 0) {
+            var key = JSON.stringify([data.status, data.wave, data.cleared, data.score]);
+            if (key !== endlessRequestKey) { endlessRequestKey = key; request(); }
+        }
     });
     function close() {
         opened = false; fitGeneration++;
+        if(voidView)voidView.Leave();
         if(A.HideCardText)A.HideCardText();
-        panel("ArchiveScrim").AddClass("ArchiveHidden");
-        archiveShell.Close();
-        panel("ArchiveWindow").AddClass("ArchiveHidden");
-        hideTooltip();
+        if(active()){
+            panel("ArchiveScrim").AddClass("ArchiveHidden");
+            if(archiveShell)archiveShell.Close();
+            panel("ArchiveWindow").AddClass("ArchiveHidden");
+            hideTooltip();
+        }
     }
-    var archiveShell=U.ModalShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),root:$.GetContextPanel(),scrim:panel("ArchiveScrim"),header:panel("ArchiveHeader"),titlePanel:panel("ArchiveTitle"),closeButton:panel("ArchiveClose"),width:869,height:816,fit:{reference:[1672,941]},onClose:close});
+    function dispose(){
+        if(disposed)return;
+        close();disposed=true;
+        timers.forEach(function(timer){if($.CancelScheduled)$.CancelScheduled(timer);});timers=[];
+        subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];
+        if(archiveShell&&archiveShell.Dispose)archiveShell.Dispose();
+        if(purpleShell&&purpleShell.Dispose)purpleShell.Dispose();
+        if(voidView)voidView.Dispose();
+        if(valid(lifetimeMarker))lifetimeMarker.DeleteAsync(0);
+    }
+    function registerToolsProbe(){
+        if(!active()||!Game.IsInToolsMode||!Game.IsInToolsMode())return false;
+        var probe=cfg.SurvivalClientCallbackProbe;
+        if(!probe||!probe.RegisterModule)return false;
+        var registered=probe.RegisterModule("archive",[
+            {name:"snapshot",get:function(){return onArchiveSnapshot;},set:function(fn){onArchiveSnapshot=fn;}},
+            {name:"render",get:function(){return render;},set:function(fn){render=fn;}},
+            {name:"tabs",get:function(){return tabs;},set:function(fn){tabs=fn;}}
+        ],Number(cfg.HandoffGeneration||0));
+        if(voidView&&voidView.RegisterToolsProbe)voidView.RegisterToolsProbe();
+        return registered;
+    }
+    // Re-evaluating only this controller must not retain the previous row tree.
+    panel("ArchiveGrid").RemoveAndDeleteChildren();
+    var archiveShell=U.ModalShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),root:$.GetContextPanel(),scrim:panel("ArchiveScrim"),header:panel("ArchiveHeader"),titlePanel:panel("ArchiveTitle"),closeButton:panel("ArchiveClose"),width:1280,height:800,fit:archiveFit,onClose:close});
     U.ActionButton.Adopt(panel("ArchiveDraw"),{variant:"gold"}); U.Tooltip.Adopt(panel("ArchiveTooltip"));
     A.Init();
-    GameUI.CustomUIConfig().SurvivalArchive = {
-        IsOpen: function () { return opened; },
+    var purpleShell=cfg.SurvivalPurpleShell?cfg.SurvivalPurpleShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),width:1280,height:800,onClose:close}):null;
+    GameUI.CustomUIConfig().SurvivalArchive = api = {
+        IsOpen: function () { return active()&&opened; },
+        Open: function () { if(active()&&!opened)this.Toggle(); },
         SelectCategory: function(id) {
+            if(!active())return;
             var tab=panel("ArchiveTab_"+id);
             if(tab && tab.enabled && tab.__archiveActivate)tab.__archiveActivate();
         },
         Toggle: function () {
+            if(!active())return;
             if (opened) { close(); return; }
             opened = true;
             panel("ArchiveScrim").RemoveClass("ArchiveHidden");
             archiveShell.Open();
             panel("ArchiveWindow").RemoveClass("ArchiveHidden");
-            if(pageCache[current])render(pageCache[current]);else request(true);
+            if(pageCache[current]){render(pageCache[current]);if(needsSync())request(true);}else {renderVoid(null);request(true);}
         },
-        Filter: function(mode){if(["all","unlocked","locked"].indexOf(mode)<0)return;filterMode=mode;if(lastData)render(lastData);},
+        Filter: function(mode){if(!active()||["all","unlocked","locked"].indexOf(mode)<0)return;filterMode=mode;if(lastData)render(lastData);else renderVoid(null);},
         Close: close,
-        Refresh: request
+        Dispose: dispose,
+        Refresh: request,
+        RegisterToolsProbe: registerToolsProbe
     };
-    $.RegisterEventHandler("Cancelled", panel("ArchiveWindow"), close);
-    $.Schedule(0.2,function(){request(true);});
+    $.RegisterEventHandler("Cancelled", panel("ArchiveWindow"), function () {
+        if(!active())return true;
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers;
+        if (layers && typeof layers.HandleEscape === "function") return layers.HandleEscape("archive");
+        close();
+        return true;
+    });
+    later(0.2,function(){if(!pageCache[current])request(true);});
+    registerToolsProbe();
 })();

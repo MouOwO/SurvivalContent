@@ -2,7 +2,7 @@
 {
 	_class = "CParticleSystemDefinition"
 	m_bShouldHitboxesFallbackToRenderBounds = false
-	m_flConstantRadius = 15.0
+	m_flConstantRadius = 11.25
 	m_Renderers = 
 	[
 {
@@ -24,7 +24,6 @@
 	m_Operators = 
 	[
 { _class = "C_OP_PositionLock" },
-
 {
 			_class = "C_OP_BasicMovement"
 			m_fDrag = 0.05
@@ -63,7 +62,7 @@
 			m_InputValue = 
 			{
 				m_nType = "PF_TYPE_LITERAL"
-				m_flLiteralValue = 100.0
+				m_flLiteralValue = 75.0
 			}
 		},
 {
@@ -80,8 +79,8 @@
 		},
 {
 			_class = "C_INIT_PositionOffset"
-			m_OffsetMin = [ 0.0, 0.0, 8.0 ]
-			m_OffsetMax = [ 0.0, 0.0, 8.0 ]
+			m_OffsetMin = [ 0.0, 0.0, 6.0 ]
+			m_OffsetMax = [ 0.0, 0.0, 6.0 ]
 		}
 ]
 	m_Emitters = 

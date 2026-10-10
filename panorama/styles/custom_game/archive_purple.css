@@ -1,0 +1,94 @@
+/* Dense archive cells: artwork, one counter and one name. Business details live in the tooltip. */
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveBody { flow-children:none; overflow:clip; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs { flow-children:down; overflow:squish scroll; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveTab {
+    width:216px; height:46px; min-height:46px; margin:0px 0px 4px; padding:0px;
+    background-image:none; background-color:transparent; border:0px; border-left:3px solid transparent; border-radius:0px;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveTab:hover { background-color:#332042; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveTab:selected {
+    background-image:none; background-color:gradient(linear,0% 0%,100% 0%,from(#765223),to(#30203e)); border-left:3px solid #e4b85e;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveTab .ArchiveNavIcon,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveNavSeparator,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveNavSelectedFrame { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveTab .ArchiveNavLabel {
+    position:20px 8px 0px; width:176px; height:30px; margin:0px; padding:0px; align:left top;
+    font-size:22px; line-height:30px; color:#d7c8eb; text-align:center; white-space:nowrap; text-overflow:ellipsis;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveTabs .ArchiveTab:selected .ArchiveNavLabel { color:#ffe190; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveNavScrollHint { position:12px 622px 0px; width:194px; height:25px; font-size:15px; color:#917fa8; text-align:center; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchivePageHeader { position:24px 606px 0px; width:1000px; height:26px; flow-children:none; visibility:visible; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchivePageTitle { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveSummary { position:0px 0px 0px; width:1000px; height:26px; text-align:center; color:#bdb0d3; font-size:18px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFilters { position:24px 12px 0px; width:600px; height:35px; flow-children:right; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFilters RadioButton {
+    width:124px; height:35px; margin:0px 10px 0px 0px; padding:0px;
+    background-image:none; background-color:#18112b; border:1px solid #58417a; border-radius:3px; box-shadow:none;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFilters #ArchiveFilter_all { width:178px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFilters RadioButton:selected {
+    background-image:none; background-color:gradient(linear,0% 0%,0% 100%,from(#7545bc),to(#452579)); border:1px solid #a27ce0;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFilters .ArchiveFilterFrame { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFilters Label { position:0px 0px 0px; width:100%; height:35px; margin:0px; padding:0px; font-size:19px; color:#e7dcf5; align:center center; text-align:center; white-space:nowrap; text-overflow:clip; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveContext { position:648px 17px 0px; width:376px; height:27px; color:#e4c174; font-size:18px; text-align:right; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveContent #ArchiveGrid,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveContent.ArchiveHasCurrencySource #ArchiveGrid {
+    position:24px 60px 0px; width:1000px; height:522px; margin:0px; padding:0px 8px 0px 0px;
+    flow-children:right-wrap; overflow:squish scroll; background-image:none; background-color:transparent;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveContent.ArchiveHasDraw #ArchiveGrid { height:522px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCard.ArchiveCompactCell {
+    width:128px; height:128px; flow-children:none; margin:0px 12px 2px 0px; padding:0px;
+    background-image:none; background-color:transparent; border:0px; border-radius:0px; box-shadow:none;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCard.ArchiveCompactCell .ArchiveArt {
+    position:18px 6px 0px; width:92px; height:92px; margin:0px; align:left top; overflow:clip;
+    background-image:none; background-color:#110b25; border:1px solid #63518b; border-radius:3px; box-shadow:none;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell:hover .ArchiveArt,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell.ArchiveHovered .ArchiveArt {
+    border:1px solid #efd079; box-shadow:#d9ac4c66 0px 0px 7px 0px;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveNameHost {
+    position:0px 101px 0px; width:128px; height:26px; margin:0px; align:left top;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveNameHost .ArchiveItemName {
+    position:0px 0px 0px; width:128px; max-width:128px; height:26px; line-height:25px; margin:0px; padding:0px;
+    align:center center; text-align:center; font-size:18px; color:#e4d7f1; white-space:nowrap; text-overflow:ellipsis;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveCountHost {
+    position:0px 0px 0px; width:128px; height:25px; margin:0px; align:left top; z-index:6;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveCountHost .ArchiveCompactBadge {
+    width:fit-children; max-width:108px; height:23px; position:0px 0px 0px; align:right top;
+    margin:0px 5px 0px 0px; padding:1px 5px; border-radius:2px; background-color:#100a23ed;
+    font-size:16px; line-height:21px; text-align:right; color:#ecdbfa; white-space:nowrap; text-overflow:ellipsis;
+}
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveNormalFrame,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveSelectedFrame,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveStateIcon,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveCostHost,
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchiveLevelHost { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell .ArchivePromote Label { font-size:15px; width:100%; height:22px; text-align:center; align:center center; margin:0px; padding:0px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveCompactCell.ArchiveTitleCard { width:268px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveTitleCard .ArchiveTitleArt { position:8px 12px 0px; width:252px; height:76px; margin:0px; align:left top; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveTitleCard .ArchiveTitleName { position:0px 98px 0px; width:268px; height:28px; margin:0px; text-align:center; color:#e6d4ed; font-size:18px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveTitleCard .ArchiveTitleAction { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveGrid .ArchiveTitleCard.ArchiveTitleEquipped .ArchiveTitleName { color:#f2d27e; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFooter { position:24px 635px 0px; width:1000px; height:24px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveStatus { width:100%; height:24px; font-size:16px; line-height:24px; color:#a997c0; text-align:center; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveFaith { visibility:collapse; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple #ArchiveEmpty { position:24px 120px 0px; width:1000px; height:38px; font-size:20px; color:#b9a6cc; text-align:center; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple VerticalScrollBar { width:6px; background-image:none; background-color:#160e28; border:0px; }
+.ArchiveRoot #ArchiveWindow.ArchivePurple VerticalScrollBar .ScrollThumb { background-image:none; background-color:#7959a3; border:0px; border-radius:3px; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip { width:380px; height:fit-children; flow-children:down; background-image:none; background-color:#181024; border:1px solid #b58d47; border-radius:5px; overflow:clip; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip #ArchiveTooltipBody { width:100%; height:fit-children; flow-children:down; padding:16px 18px; overflow:squish scroll; background-image:none; background-color:transparent; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip Label { font-size:19px; line-height:25px; color:#d8c9e8; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip #ArchiveTooltipName { font-size:24px; line-height:30px; color:#f2ce6c; margin-bottom:6px; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip #ArchiveTooltipCondition { color:#bfb0d0; margin:8px 0px 12px; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip .ArchiveDetailHeading { width:100%; color:#e7d2a4; font-size:19px; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip .ArchiveCompactDetailHeading { width:100%; height:fit-children; margin:8px 0px 0px; color:#c9b6dd; font-size:19px; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip #ArchiveTooltipProgressTrack { width:100%; height:9px; margin-top:5px; background-color:#0b0815; border:1px solid #48345f; border-radius:5px; }
+.ArchiveRoot #ArchiveTooltip.ArchivePurpleTooltip #ArchiveTooltipProgressFill { height:100%; width:0%; background-color:gradient(linear,0% 0%,100% 0%,from(#c32add),to(#a649ed)); border-radius:4px; }

@@ -65,6 +65,9 @@
             return dispatch(keyHandlers, keyHandlerOrder, [key, down]);
         }
     };
+    if (inputConfig.SurvivalUILayers && inputConfig.SurvivalUILayers.BindInput) {
+        inputConfig.SurvivalUILayers.BindInput(inputConfig.SurvivalInputDispatcher);
+    }
 
     function validUnit(unit) {
         return isFinite(Number(unit)) && Number(unit) >= 0
@@ -455,7 +458,7 @@
         return consumed;
     });
     if (Game.AddCommand && Game.CreateCustomKeyBind) {
-        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "S", "D", "F", "G", "H", "F1", "F2", "TAB", "SPACE"];
+        var fallbackKeys = ["Q", "W", "E", "R", "T", "Y", "U", "S", "D", "F", "G", "H", "C", "F1", "F2", "TAB", "SPACE"];
         var fallbackCommands = {};
         fallbackKeys.forEach(function (key) {
             var command = "survival_input_" + inputContextId + "_"
@@ -630,7 +633,7 @@
         if(runtime.hero_summon===1 && Number(runtime.summon_player_id)===Game.GetLocalPlayerID())return runtime;
         // Absence of an explicit per-player decision never grants paid access.
         var locked={};Object.keys(runtime).forEach(function(key){locked[key]=runtime[key];});
-        locked.ability_name=name;locked.available=0;locked.status_text='英雄权限同步中';
+        locked.ability_name=name;locked.available=0;locked.prerequisite_met=0;locked.status_text='英雄权限同步中';
         return locked;
     };
 })();

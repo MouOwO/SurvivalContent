@@ -84,6 +84,8 @@
         confirmEnt = -1;
         var panel = confirmPanel();
         if (panel) panel.AddClass("Hidden");
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers;
+        if (layers) layers.Close("building_destroy_confirm");
     }
 
     function openDestroyConfirm(unit) {
@@ -93,6 +95,8 @@
         confirmEnt = unit;
         var panel = confirmPanel();
         if (panel) panel.RemoveClass("Hidden");
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers;
+        if (layers && panel) layers.Open("building_destroy_confirm", panel, closeDestroyConfirm);
         return true;
     }
 

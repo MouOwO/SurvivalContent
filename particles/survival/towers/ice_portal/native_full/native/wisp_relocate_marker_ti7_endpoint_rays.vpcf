@@ -9,7 +9,7 @@
 {
 			_class = "C_OP_RenderTrails"
 			m_flOverbrightFactor = 2.0
-			m_flMaxLength = 700.0
+			m_flMaxLength = 525.0
 			m_flLengthFadeInTime = 0.25
 			m_bIgnoreDT = true
 			m_flRadiusScale = 
@@ -47,7 +47,6 @@
 	m_Operators = 
 	[
 { _class = "C_OP_PositionLock" },
-
 {
 			_class = "C_OP_Decay"
 		},
@@ -98,20 +97,20 @@
 {
 			_class = "C_INIT_CreateWithinSphere"
 			m_vecDistanceBias = [ 1.0, 1.0, 0.0 ]
-			m_fSpeedMax = 2000.0
-			m_fSpeedMin = 1500.0
-			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, -2000.0 ]
-			m_fRadiusMax = -10.0
-			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, -2000.0 ]
-			m_fRadiusMin = -10.0
+			m_fSpeedMax = 1500.0
+			m_fSpeedMin = 1125.0
+			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, -1500.0 ]
+			m_fRadiusMax = -7.5
+			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, -1500.0 ]
+			m_fRadiusMin = -7.5
 		},
 {
 			_class = "C_INIT_InitFloat"
 			m_InputValue = 
 			{
 				m_nType = "PF_TYPE_RANDOM_UNIFORM"
-				m_flRandomMin = 100.0
-				m_flRandomMax = 150.0
+				m_flRandomMin = 75.0
+				m_flRandomMax = 112.5
 				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
 			}
 		},

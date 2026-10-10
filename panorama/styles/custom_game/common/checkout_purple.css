@@ -1,0 +1,31 @@
+/* Real exchange/payment controls and QR state; decoration never starts an order. */
+.RCWindow.CheckoutPurple { padding:0px;flow-children:none;overflow:noclip;background-image:none;background-color:#100b21fb;border:1px solid #b18a50;border-radius:4px;box-shadow:#000000aa 0px 10px 30px 0px; }
+.CheckoutPurpleBackdrop { background-color:#07040eb8; }
+.CheckoutPurple .ReferenceAtmosphere,.CheckoutPurple .ReferenceFrame,.CheckoutPurple .RHFrame,.CheckoutPurple .ReferenceHeaderEmblem,.CheckoutPurple .PaymentMethodBase,.CheckoutPurple .PaymentMethodSelected { visibility:collapse; }
+.CheckoutPurple Label { font-family:"Source Han Sans SC";color:#d9c7ee;text-shadow:none; }
+.CheckoutPurple .RCHeader { background-image:none;background-color:#21162e;border-bottom:1px solid #806340; }
+.CheckoutPurple .RCTitle { font-size:30px;color:#f0d18a;text-shadow:none; }
+.CheckoutPurple .RCClose { background-image:none;background-color:transparent;border:0px; }
+.CheckoutPurple .RCClose Label { align:center center;font-size:32px;color:#e2bd76;text-shadow:none; }
+.CommerceConfirm.CheckoutPurple .CommerceConfirmCopy { position:42px 106px 0px;width:676px;height:402px;font-size:20px;font-weight:normal;line-height:28px;color:#ddd0ed;white-space:normal;overflow:squish scroll; }
+.CommerceConfirm.CheckoutPurple .CommerceConfirmStatus { position:42px 526px 0px;width:676px;height:68px;font-size:18px;line-height:26px;color:#d9bd80;white-space:normal; }
+.CommerceConfirm.CheckoutPurple .CommerceConfirmBuy { position:415px 614px 0px;width:260px;height:48px; }
+.CommerceConfirm.CheckoutPurple .CommerceConfirmBack { position:85px 614px 0px;width:260px;height:48px; }
+.CommerceConfirm.CheckoutPurple .CommerceConfirmBuy Label,.CommerceConfirm.CheckoutPurple .CommerceConfirmBack Label { align:center center;font-size:21px;text-align:center;color:#ffdc87; }
+#PaymentDialog.CheckoutPurple .PaymentTitle { color:#f0d18a;font-size:27px; }
+#PaymentDialog.CheckoutPurple .PaymentPrice { color:#ffda80;font-size:26px; }
+#PaymentDialog.CheckoutPurple .PaymentDescription,#PaymentDialog.CheckoutPurple .PaymentValues { color:#d9c7ee;font-size:18px;line-height:26px;font-weight:normal;white-space:normal; }
+#PaymentDialog.CheckoutPurple .PaymentRewardCopy { width:640px; }
+#PaymentDialog.CheckoutPurple .PaymentQuantityValue { color:#d9c7ee;font-size:24px; }
+#PaymentDialog.CheckoutPurple .PaymentQuantityStep Label { font-size:22px;color:#a795b8; }
+#PaymentDialog.CheckoutPurple .PaymentMethod Label { color:#ffdc87;font-size:21px; }
+#PaymentDialog.CheckoutPurple .PaymentAction { height:48px;margin-top:8px; }
+#PaymentDialog.CheckoutPurple .PaymentAction Label { color:#ffdc87;font-size:21px; }
+#PaymentDialog.CheckoutPurple .PaymentQRChannel { color:#d9c7ee;font-size:19px; }
+#PaymentDialog.CheckoutPurple .PaymentQRFrame { background-color:#ffffff;border:1px solid #b18a50; }
+#PaymentDialog.CheckoutPurple .PaymentQR { background-color:#ffffff; }
+#PaymentDialog.CheckoutPurple .PaymentQRState { color:#3b3150;font-size:20px; }
+#PaymentDialog.CheckoutPurple .PaymentBrowser Label { color:#c3a3eb;font-size:17px; }
+#PaymentDialog.CheckoutPurple .PaymentHint { color:#a994bd;font-size:16px; }
+#PaymentDialog.CheckoutPurple .PaymentStatus { color:#dcc68f;font-size:18px;line-height:25px; }
+.CheckoutPurple Button:disabled { brightness:1;saturation:.4; }

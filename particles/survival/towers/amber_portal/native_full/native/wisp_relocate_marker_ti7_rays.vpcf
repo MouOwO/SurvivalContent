@@ -9,7 +9,7 @@
 {
 			_class = "C_OP_RenderTrails"
 			m_flOverbrightFactor = 2.0
-			m_flMaxLength = 400.0
+			m_flMaxLength = 300.0
 			m_flLengthFadeInTime = 0.25
 			m_bIgnoreDT = true
 			m_flRadiusScale = 
@@ -47,7 +47,6 @@
 	m_Operators = 
 	[
 { _class = "C_OP_PositionLock" },
-
 {
 			_class = "C_OP_Decay"
 		},
@@ -98,12 +97,12 @@
 {
 			_class = "C_INIT_CreateWithinSphere"
 			m_vecDistanceBias = [ 1.0, 1.0, 0.0 ]
-			m_fSpeedMax = 2000.0
-			m_fSpeedMin = 1500.0
-			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, -2000.0 ]
-			m_fRadiusMax = -65.0
-			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, -2000.0 ]
-			m_fRadiusMin = -65.0
+			m_fSpeedMax = 1500.0
+			m_fSpeedMin = 1125.0
+			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, -1500.0 ]
+			m_fRadiusMax = -48.75
+			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, -1500.0 ]
+			m_fRadiusMin = -48.75
 			m_nControlPointNumber = 1
 		},
 {
@@ -111,8 +110,8 @@
 			m_InputValue = 
 			{
 				m_nType = "PF_TYPE_RANDOM_UNIFORM"
-				m_flRandomMin = 50.0
-				m_flRandomMax = 100.0
+				m_flRandomMin = 37.5
+				m_flRandomMax = 75.0
 				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
 			}
 		},
@@ -132,8 +131,8 @@
 		},
 {
 			_class = "C_INIT_PositionOffset"
-			m_OffsetMin = [ 0.0, 0.0, 8.0 ]
-			m_OffsetMax = [ 0.0, 0.0, 8.0 ]
+			m_OffsetMin = [ 0.0, 0.0, 6.0 ]
+			m_OffsetMax = [ 0.0, 0.0, 6.0 ]
 		}
 ]
 	m_Emitters = 

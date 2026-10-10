@@ -17,9 +17,9 @@
         <include src="file://{resources}/styles/custom_game/production_progress.css" />
         <include src="file://{resources}/styles/custom_game/minimap_shortcuts.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
-    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/></styles>
+    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/><include src="file://{resources}/styles/custom_game/common/purple_shell.css"/><include src="file://{resources}/styles/custom_game/shop_purple.css"/><include src="file://{resources}/styles/custom_game/common/commerce_purple.css"/><include src="file://{resources}/styles/custom_game/menu_purple.css"/><include src="file://{resources}/styles/custom_game/common/checkout_purple.css"/></styles>
     <scripts><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
-        <include src="file://{resources}/scripts/custom_game/ui_layers.js" />
+        <include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/common/purple_shell.js"/>
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/native_ui_icons.js"/><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
         <include src="file://{resources}/scripts/custom_game/lumberjack_fusion_queue.js" />
@@ -35,14 +35,14 @@
         <include src="file://{resources}/scripts/custom_game/hero_skill_upgrade.js" />
         <include src="file://{resources}/scripts/custom_game/ability_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/inventory_tooltip.js" />
-        <include src="file://{resources}/scripts/custom_game/shop_tooltip_remaining_5d5c1152eb.js" />
+        <include src="file://{resources}/scripts/custom_game/reference_windows.js"/><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/shop_tooltip_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/shop_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/multiselect_portraits.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_palette.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_presentation.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
-        <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/reference_windows.js"/><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_cinematic_v1.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
+        <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_scene_transition.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/lottery_cinematic_v1.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
 
         <include src="file://{resources}/scripts/custom_game/hud_takeover.js" />
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
@@ -51,8 +51,8 @@
         <include src="file://{resources}/scripts/custom_game/production_progress.js" />
         <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
         <include src="file://{resources}/scripts/custom_game/topnav_remaining_5d5c1152eb.js" />
-    <include src="file://{resources}/scripts/custom_game/common/commerce_art_manifest.js"/><include src="file://{resources}/scripts/custom_game/common/commerce_components.js"/><include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/></scripts>
-    <Panel class="SurvivalHUDRoot Theme_Native UnifiedWindowsV4 HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated" hittest="false">
+    <include src="file://{resources}/scripts/custom_game/common/commerce_art_manifest.js"/><include src="file://{resources}/scripts/custom_game/common/commerce_components.js"/><include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/menu_purple.js"/></scripts>
+    <Panel class="SurvivalHUDRoot Theme_Native UnifiedWindowsV4 HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated PurpleMenusContext" hittest="false">
         <!-- The top navigation treasure icon must compile with the HUD as well as the archive window. -->
         <Image id="HandoffTreasureIconPreload" src="file://{images}/custom_game/handoff_v1/top/treasure_64.png" style="visibility: collapse;" hittest="false" />
         <Panel hittest="false" style="visibility: collapse;">
@@ -140,8 +140,15 @@
             <DOTAItemImage id="LotteryButtonIcon" itemname="item_treasure_chest" />
             <Label id="LotteryButtonLabel" text="抽奖" />
         </Button>
-        <Panel id="LotteryWindow" class="LotteryWindow LotteryClosed" hittest="true" oncancel="GameUI.CustomUIConfig().SurvivalUILayers.CloseTop()">
-<Panel id="LotterySceneBackground" class="LotteryScene_map" hittest="false" hittestchildren="false" />
+        <Panel id="LotteryWindow" class="LotteryWindow LotteryClosed" hittest="true" oncancel="(function(){var cfg=GameUI.CustomUIConfig(),layers=cfg.SurvivalUILayers;if(layers &amp;&amp; typeof layers.HandleEscape==='function')return layers.HandleEscape('lottery');if(cfg.SurvivalLottery &amp;&amp; cfg.SurvivalLottery.Close){cfg.SurvivalLottery.Close();return true;}return false;})()">
+<Panel id="LotterySceneBackground" class="LotteryScene_map LotterySceneCarousel" hittest="false" hittestchildren="false">
+    <Panel id="LotterySceneTrack" hittest="false" hittestchildren="false">
+        <Panel id="LotteryScenePage_map" class="LotteryScenePage" hittest="false" />
+        <Panel id="LotteryScenePage_cultivation" class="LotteryScenePage" hittest="false" />
+        <Panel id="LotteryScenePage_dragon_knight" class="LotteryScenePage" hittest="false" />
+        <Panel id="LotteryScenePage_summer" class="LotteryScenePage" hittest="false" />
+    </Panel>
+</Panel>
 <Panel id="LotterySceneShade" hittest="false" hittestchildren="false" />
 <Panel id="LotteryMainCanvas" hittest="true">
     <Panel id="LotteryReadingMask" hittest="false" hittestchildren="false" />
@@ -273,28 +280,31 @@
         </Panel>
 
         <Panel id="ShopEntryTooltip" class="Hidden" hittest="false" hittestchildren="false">
+          <Panel id="ShopTooltipFrame">
             <Panel id="ShopTooltipHeader">
                 <Panel id="ShopTooltipIconHost" />
                 <Panel id="ShopTooltipTitleBlock">
                     <Label id="ShopTooltipTitle" text="商品" />
                     <Label id="ShopTooltipType" text="物品" />
+                    <Panel id="ShopTooltipCostRow">
+                        <Panel class="TooltipCostBlock">
+                            <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/gold.png" />
+                            <Label id="ShopTooltipGoldCost" class="TooltipCostValue" text="0" />
+                        </Panel>
+                        <Panel class="TooltipCostBlock">
+                            <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/wood.png" />
+                            <Label id="ShopTooltipWoodCost" class="TooltipCostValue" text="0" />
+                        </Panel>
+                    </Panel>
                 </Panel>
             </Panel>
+            <Label id="ShopTooltipEffectHeading" text="效果" />
             <Label id="ShopTooltipDescription" text="" />
-            <Panel id="ShopTooltipCostRow">
-                <Panel class="TooltipCostBlock">
-                    <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/wood.png" />
-                    <Label id="ShopTooltipWoodCost" class="TooltipCostValue" text="0" />
-                </Panel>
-                <Panel class="TooltipCostBlock">
-                    <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/gold.png" />
-                    <Label id="ShopTooltipGoldCost" class="TooltipCostValue" text="0" />
-                </Panel>
-            </Panel>
             <Label id="ShopTooltipCondition" text="" />
             <Label id="ShopTooltipOwned" text="" />
             <Panel id="ShopTooltipFields" />
             <Label id="ShopTooltipStatus" text="" />
+          </Panel>
         </Panel>
 
         <Panel id="CustomAbilityTooltip" class="Hidden" hittest="false" hittestchildren="false">
@@ -475,11 +485,10 @@
       <Panel id="SurvivalProductionPanel" visible="false" hittest="true" hittestchildren="true" />
       <Panel id="SurvivalResearchAutoMarkers" hittest="false" hittestchildren="false" />
       <Button id="SurvivalLocalHeroPortrait" visible="false" hittest="false" hittestchildren="false">
-        <Image id="SurvivalLocalHeroPortraitImage" scaling="stretch-to-fit-preserve-aspect" hittest="false" hittestchildren="false" />
+        <DOTAScenePanel id="SurvivalLocalHeroPortraitImage" hittest="false" hittestchildren="false" />
       </Button>
-      <Image id="SurvivalReturnCastleAsset" src="file://{images}/custom_game/minimap_shortcuts/return_castle.svg" style="visibility: collapse;" hittest="false" hittestchildren="false" />
       <Panel id="SurvivalMinimapShortcuts" visible="false" hittest="false" hittestchildren="true" />
-      <Panel id="NotificationContainer" />
+      <Panel id="NotificationContainer" hittest="false" hittestchildren="false" />
     </Panel>
 </root>
 

@@ -1,0 +1,33 @@
+/* Real reward history, within the shared purple menu. */
+.ArchiveRoot #TreasureWindow.TreasurePurple { overflow:clip; }
+.ArchiveRoot #TreasureWindow.TreasurePurple #TreasureContent { align:left top; overflow:clip; }
+.ArchiveRoot #TreasureWindow.TreasurePurple #TreasureCards { align:left top; flow-children:right-wrap; }
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureCard {
+    width:128px; height:128px; margin:0px 12px 2px 0px; flow-children:none;
+    background-image:none; background-color:transparent; border:0px;
+}
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureArt {
+    position:18px 6px 0px; width:92px; height:92px; margin:0px; padding:0px; align:left top;
+    background-image:none; background-color:#110b25; border:1px solid #63518b; border-radius:3px; overflow:clip;
+}
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureCard.TreasureLatest .TreasureArt { border-color:#a58a53; }
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureCard:hover .TreasureArt,
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureCard.TreasureHovered .TreasureArt { border:1px solid #efd079; box-shadow:#d9ac4c66 0px 0px 7px 0px; }
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureIcon { position:0px 0px 0px; width:100%; height:100%; margin:0px; padding:0px; }
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureGlyph { width:100%; height:100%; align:center center; text-align:center; font-size:36px; color:#c7addf; }
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureName {
+    position:0px 101px 0px; width:128px; height:26px; margin:0px; padding:0px; align:left top;
+    font-size:18px; line-height:25px; color:#e4d7f1; text-align:center; white-space:nowrap; text-overflow:ellipsis;
+}
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureQuantity {
+    position:0px 0px 0px; width:fit-children; max-width:108px; height:23px; align:right top; z-index:6;
+    margin:0px 5px 0px 0px; padding:1px 5px; background-color:#100a23ed; border-radius:2px;
+    font-size:16px; line-height:21px; color:#ecdbfa; text-align:right;
+}
+.ArchiveRoot #TreasureWindow.TreasurePurple .TreasureEmpty { position:80px 265px 0px; width:1120px; height:36px; font-size:24px; color:#ad99c2; text-align:center; }
+.ArchiveRoot #TreasureWindow.TreasurePurple #TreasureDetailHint { position:0px 0px 0px; width:1120px; height:24px; align:left top; font-size:16px; line-height:24px; color:#a997c0; text-align:center; margin:0px; }
+.ArchiveRoot #TreasureTooltip.TreasurePurpleTooltip Label { width:100%; height:fit-children; font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif; font-weight:normal; font-size:19px; line-height:25px; color:#d8c9e8; text-shadow:none; white-space:normal; }
+.ArchiveRoot #TreasureTooltip.TreasurePurpleTooltip #TreasureTooltipName { font-size:24px; line-height:30px; color:#f2ce6c; margin-bottom:8px; }
+.ArchiveRoot #TreasureTooltip.TreasurePurpleTooltip #TreasureTooltipCount { color:#bfb0d0; margin-bottom:10px; }
+.ArchiveRoot #TreasureTooltip.TreasurePurpleTooltip .TreasureTooltipHeading { padding-top:10px; margin-top:6px; margin-bottom:8px; border-top:1px solid #625071; color:#e7d2a4; }
+.ArchiveRoot #TreasureTooltip.TreasurePurpleTooltip #TreasureTooltipEffect { color:#d8c9e8; }

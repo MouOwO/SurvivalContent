@@ -105,7 +105,7 @@
         var raw = String(option.reason || "");
         var reasons = { city_level_too_low: "需要主城 LV" + option.requires_city_level,
             city_level_required: "需要主城 LV" + option.requires_city_level,
-            insufficient_resources: "资源不足", insufficient_gold: "金币不足", insufficient_wood: "木材不足",
+            insufficient_resources: "资源不足", insufficient_gold: "金币不足", insufficient_wood: "木材不足", insufficient_population: "人口不足",
             population_limit: "人口不足", population_limit_reached: "人口不足",
             training_limit_reached: "训练名额已满", training_reserved_limit: "剩余名额已在队列中",
             training_queue_full: "训练队列已满", training_max_count_reached: "本级训练名额已满",
@@ -200,7 +200,9 @@
         var entry = { panel: button, icon: icon, level: level, count: count, cost: cost, lock: lock, option: null };
         button.SetPanelEvent("onactivate", function () {
             if (!active() || blocked() || !entry.option || selectedUnit() !== currentUnit) return;
-            if (Number(entry.option.available) !== 1) { notify(reason(entry.option)); return; }
+            var locked = entry.option.prerequisite_met !== undefined
+                ? Number(entry.option.prerequisite_met) === 0 : Number(entry.option.available) !== 1;
+            if (locked || completed(entry.option)) { notify(reason(entry.option)); return; }
             GameEvents.SendCustomGameEventToServer("ui_worker_train_request", {
                 request_id: requestId("train"), source_entindex: currentUnit, training_id: entry.option.training_id
             });
@@ -220,15 +222,25 @@
         var snapshot = snapshots[unit], research = snapshot && snapshot.research;
         var personal = research && research.abilities_by_name && research.abilities_by_name[name];
         var result = { ability_name: name, owner_entindex: unit,
+            ability_entindex: Number(ability),
             technology_group: original.technology_group, research_building_id: original.research_building_id,
             research_slot_order: original.research_slot_order };
         if (personal) Object.keys(personal).forEach(function (key) { result[key] = personal[key]; });
         else {
-            result.research_upgrade = 1; result.available = 0; result.can_afford = 0;
+            result.research_upgrade = 1; result.available = 0; result.can_afford = 1;
+            // Until the viewer's snapshot arrives, no learning prerequisite
+            // has been confirmed. Never flash the building owner's unlocked
+            // state when opening a shared research lab.
+            result.prerequisite_met = 0; result.resource_check_on_cast = 1;
             result.current_level = "—"; result.cost_gold = 0; result.cost_wood = 0;
             result.research_status_code = "syncing"; result.status_text = "正在同步科技信息";
             result.upgrade_description = "正在同步科技信息"; result.fields = [];
         }
+        // Private rows describe technology values, not engine entities. Keep
+        // the current binding identity so native HUD refreshes do not restore
+        // the icon to its original tint between private snapshot updates.
+        result.ability_entindex = Number(ability);
+        result.owner_entindex = unit;
         return result;
     }
     function toggleResearch(ability, unit) {
@@ -259,9 +271,13 @@
         if (runtime.owner_entindex !== undefined && Number(runtime.owner_entindex) !== unit) return false;
         // Shared labs use the viewer's authoritative projection, not the owner.
         var personal = getResearchRuntime(ability, unit, runtime);
-        if (Number(personal.available) !== 1) {
+        var locked = personal.prerequisite_met !== undefined
+            ? Number(personal.prerequisite_met) === 0 : Number(personal.available) !== 1;
+        if (locked || Number(personal.completed) === 1 || personal.research_status_code === "syncing") {
             notify(personal.status_text || "当前不可研究"); return false;
         }
+        // The server checks the current resources before accepting the task.
+        // A delayed wallet projection must not swallow a valid click.
         GameEvents.SendCustomGameEventToServer("ui_research_queue_request", {
             request_id: requestId("research"), technology_group: runtime.technology_group, source_entindex: unit
         });
@@ -368,7 +384,8 @@
             options.forEach(function (option) { byId[option.training_id] = option; });
             citySlots[unit] = trainingSlots(options);
             job = training.active_job && training.active_job.training_id ? training.active_job : null;
-            currentWorkerIcon.SetImage(workerIcon(job || byId[citySlots[unit][0]]));
+            blockedJob = !job && training.blocked_head && training.blocked_head.training_id ? training.blocked_head : null;
+            currentWorkerIcon.SetImage(workerIcon(job || blockedJob || byId[citySlots[unit][0]]));
             renderQueue(rows(training.queued), training.queue_capacity, null);
             var cellWidth = (width - 56) / 4;
             buttons.forEach(function (button, slot) {
@@ -380,16 +397,19 @@
                 place(button.count, 8, 54, cellWidth - 16, 32);
                 place(button.cost, 8, 86, cellWidth - 16, 32);
                 place(button.lock, 8, 118, cellWidth - 16, 30);
-                button.panel.SetHasClass("Unavailable", Number(option.available) !== 1);
+                var locked = option.prerequisite_met !== undefined
+                    ? Number(option.prerequisite_met) === 0 : Number(option.available) !== 1;
+                button.panel.SetHasClass("Unavailable", locked);
                 text(button.level, "LV" + Number(option.level || 1));
                 text(button.count, Number(option.count || 0) + "/" + (Number(option.max_count) > 0 ? option.max_count : "∞")
                     + (Number(option.queued_count) > 0 ? " +" + option.queued_count : ""));
                 text(button.cost, "木 " + formatResource(option.cost_wood));
-                text(button.lock, Number(option.available) === 1 ? "训练"
-                    : option.reason === "training_city_level_required" ? "锁定" : "未就绪");
+                text(button.lock, locked ? "锁定" : "训练");
             });
-            text(badge, job ? "训练中" : "空闲");
-            text(footer, status && now < statusUntil ? status : "点击训练 · 满额后自动显示后续等级");
+            var trainingBlockedText = blockedJob ? reason({reason: training.blocked_reason || "等待资源"}) : "";
+            text(badge, blockedJob ? (trainingBlockedText.match(/(?:木材|金币|人口|资源)不足/) || ["等待"])[0] : job ? "训练中" : "空闲");
+            text(footer, status && now < statusUntil ? status : blockedJob ? trainingBlockedText
+                : "点击加入队列 · 开始训练时扣费 · 满额后显示后续等级");
         } else {
             buttons.forEach(function (button) { button.panel.visible = false; button.option = null; });
             job = Number(research.researching) === 1 ? research : null;
@@ -409,12 +429,14 @@
             });
             text(badge, autoEnabled ? "自动研究" : "手动研究");
             var blockedText = blockedJob ? reason({reason: research.blocked_reason || "等待资源或前置条件"}) : "";
+            if (blockedJob) text(badge, (blockedText.match(/(?:木材|金币|人口|资源)不足/) || ["等待"])[0]);
             if (blockedText && blockedText.indexOf("扣费") < 0) blockedText += " · 开始时扣费";
             text(footer, status && now < statusUntil ? status
                 : blockedJob ? blockedText
                 : autoEnabled ? "自动：完成后间隔 1 秒 · 队列图标可取消" : "左键加入队列 · 右键自动研究 · 队列图标可取消");
         }
         badge.SetHasClass("Automatic", autoEnabled);
+        track.visible = !!job;
         if (job) {
             var clock = progress(job, now);
             text(jobName, (showTraining ? "正在训练：伐木工" : "正在研究：" + (job.display_name || job.name || "科技"))
@@ -422,7 +444,9 @@
             text(remaining, clock.remaining > 0 ? Math.ceil(clock.remaining) + "s" : "完成中");
             style(fill, { width: (clock.fraction * 100).toFixed(1) + "%" });
         } else if (blockedJob) {
-            text(jobName, "等待研究：" + (blockedJob.display_name || "科技") + " LV" + Number(blockedJob.target_level || 1));
+            text(jobName, (showTraining ? "等待训练：" + (blockedJob.name || "伐木工")
+                : "等待研究：" + (blockedJob.display_name || "科技"))
+                + " LV" + Number(blockedJob.level || blockedJob.target_level || 1));
             text(remaining, "等待"); style(fill, { width: "0%" });
         } else if (autoEnabled && waitUntil > now) {
             text(jobName, "下一次自动研究"); text(remaining, Math.ceil(waitUntil - now) + "s");

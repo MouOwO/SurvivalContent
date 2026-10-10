@@ -6,20 +6,24 @@
     var playerId = Game.GetLocalPlayerID();
     var hotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
     var builderHotkeysBySlotOrder = {
-        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "A", 7: "G"
+        1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "C", 7: "G"
     };
     var researchHotkeys = ["Q", "W", "E", "R", "T", "S"];
     var advancedResearchHotkeys = ["Q", "W", "E", "R", "T", "S", "D", "F", "G", "H"];
     var utilityHotkeys = {
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
+        ability_building_blink: "D",
         ability_survival_rogue_reward: "G",
+        ability_destroy_arrow_tower: "G",
         ability_survival_pickup_materials: "F",
         ability_survival_return_home: "F2"
     };
     var utilityDisplayOrder = {
         ability_survival_hero_ball_lightning: 10,
         ability_survival_builder_blink: 10,
+        ability_building_blink: 10,
+        ability_destroy_arrow_tower: 20,
         ability_survival_return_home: 20,
         ability_survival_pickup_materials: 30
     };
@@ -61,6 +65,8 @@
     };
     var storedCalibration = config.SurvivalAbilityCalibrationState;
     var calibration = storedCalibration || { visible: false, last: null };
+    var calibrationLayerPanel = null;
+    var calibrationLayerManager = null;
 
     function applyCalibrationPreset(source, visible) {
         calibration.presetVersion = calibrationPreset.version;
@@ -305,18 +311,26 @@
         return takeover.abilities && !researchLabSelected();
     }
 
+    function isPassiveAbility(ability, runtime, behavior) {
+        if (runtime && Number(runtime.passive) === 1) return true;
+        try {
+            if (Abilities.IsPassive && Abilities.IsPassive(ability)) return true;
+        } catch (error) {}
+        if (behavior === undefined) {
+            try { behavior = Number(Abilities.GetBehavior(ability) || 0); } catch (error) {}
+        }
+        return (Number(behavior || 0) & 2) !== 0;
+    }
+
     function hotkeyForEntry(entry) {
-        var behavior = 0;
-        try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
-        if ((behavior & 2) !== 0) return "";
+        var runtime = runtimeFor(entry.ability);
+        if (isPassiveAbility(entry.ability, runtime)) return "";
         if (utilityHotkeys[entry.name]) return utilityHotkeys[entry.name];
         if (selectedUnitName() === "npc_survival_builder_proxy") {
-            var builderRuntime = runtimeFor(entry.ability);
             return builderHotkeysBySlotOrder[
-                Number(builderRuntime.builder_slot_order || 0)
+                Number(runtime.builder_slot_order || 0)
             ] || "";
         }
-        var runtime = runtimeFor(entry.ability);
         var slot = Number(runtime.research_slot_order || 0) - 1;
         if (slot >= 0) {
             return runtime.research_building_id === "building_advanced_research_lab"
@@ -354,9 +368,7 @@
         });
         var standardHotkeyIndex = 0;
         standard.forEach(function (entry) {
-            var behavior = 0;
-            try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
-            entry.standardHotkeyIndex = (behavior & 2) !== 0
+            entry.standardHotkeyIndex = isPassiveAbility(entry.ability, runtimeFor(entry.ability))
                 ? -1 : standardHotkeyIndex++;
         });
         return standard.concat(utility);
@@ -897,6 +909,22 @@
     function updateCalibrationPanel(rowAnchorGeometry, visualBounds, rowGeometry) {
         var panel = byId("SurvivalAbilityCalibrationPanel");
         if (panel) panel.SetHasClass("Hidden", !calibration.visible);
+        var layers = config.SurvivalUILayers;
+        if (layers) {
+            if (calibration.visible && panel) {
+                if (calibrationLayerPanel !== panel || calibrationLayerManager !== layers) {
+                    layers.Open("ability_calibration", panel, function () {
+                        setCalibrationVisible(false);
+                    });
+                    calibrationLayerPanel = panel;
+                    calibrationLayerManager = layers;
+                }
+            } else if (calibrationLayerPanel) {
+                layers.Close("ability_calibration");
+                calibrationLayerPanel = null;
+                calibrationLayerManager = null;
+            }
+        }
         updateCalibrationButtons();
         var status = byId("AbilityCalibrationStatus");
         var details = byId("AbilityCalibrationDetails");
@@ -1096,6 +1124,7 @@
         }
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
+        if (isPassiveAbility(entry.ability, runtime, behavior)) behavior |= 2;
         setText("CustomAbilityExtensionLabel", "生存防守 · 自定义技能详情");
         setText("CustomAbilityTitle", runtime.display_name || tooltipDefinition.name
             || definition.abilityname || localizedName(entry.name));
@@ -1125,8 +1154,9 @@
         asArray(runtime.fields).forEach(function (field) {
             if (field) addField(fields, field.label, field.value);
         });
-        var unavailable = runtime.removed === 1 || runtime.available === 0;
-        var lacksResources = !unavailable && runtime.can_afford === 0;
+        var unavailable = runtime.removed === 1 || (runtime.prerequisite_met !== undefined
+            ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);
+        var lacksResources = !unavailable && runtime.resource_check_on_cast !== 1 && runtime.can_afford === 0;
         var passive = (behavior & 2) !== 0;
         setText("CustomAbilityType", unavailable ? "不可施法技能"
             : (passive ? "被动技能"
@@ -1143,6 +1173,8 @@
     }
 
     function activate(entry) {
+        var runtime = runtimeFor(entry.ability);
+        if (isPassiveAbility(entry.ability, runtime)) return;
         if (/^ability_research_/.test(entry.name)) {
             var production = config.SurvivalProductionHUD;
             if (production && production.QueueResearch) production.QueueResearch(entry.ability, selectedUnit());
@@ -1161,13 +1193,11 @@
             if (returnHome && returnHome.Request) returnHome.Request("takeover_button");
             return;
         }
-        var behavior = 0;
-        try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
-        if ((behavior & 2) !== 0) return; // PASSIVE
-        var runtime = runtimeFor(entry.ability);
         var queue = config.SurvivalLumberjackFusionQueue;
         if (queue && queue.Cast && queue.Cast(entry.ability, Number(runtime.owner_entindex))) return;
-        if (runtime.removed === 1 || runtime.available === 0) return;
+        if (runtime.removed === 1 || Number(runtime.completed) === 1
+            || (runtime.prerequisite_met !== undefined
+                ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0)) return;
         var input = config.SurvivalAbilityInput;
         if (input && input.ExecuteAbility) input.ExecuteAbility(entry.ability);
     }
@@ -1216,6 +1246,11 @@
         panel.SetPanelEvent("oncontextmenu", function () {
             if (!slot.entry) return false;
 
+            if (/^ability_upgrade_tower(?:_lv01)?$/.test(slot.entry.name)) {
+                var input = config.SurvivalAbilityInput;
+                return !!(input && input.ToggleTowerAutoUpgrade
+                    && input.ToggleTowerAutoUpgrade(slot.entry.ability));
+            }
             if (!/^ability_research_/.test(slot.entry.name)) return false;
             var production = config.SurvivalProductionHUD;
             return !!(production && production.ToggleResearch
@@ -1256,9 +1291,10 @@
         slot.mana.text = mana > 0 ? String(Math.round(mana)) : "";
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
-        var passive = (behavior & 2) !== 0;
         var runtime = runtimeFor(entry.ability);
-        var unavailable = runtime.removed === 1 || runtime.available === 0;
+        var passive = isPassiveAbility(entry.ability, runtime, behavior);
+        var unavailable = runtime.removed === 1 || (runtime.prerequisite_met !== undefined
+            ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);
         slot.panel.SetHasClass("Passive", passive);
         slot.panel.SetHasClass("Unavailable", unavailable);
         if (runtime.tower_auto_upgrade === 1) {
@@ -1267,12 +1303,12 @@
             slot.panel.style.boxShadow = runtime.auto_upgrade_enabled === 1
                 ? "inset #a6c47caa 0px 0px 4px 2px" : "none";
         } else {
-            var fusionDisabled = /^ability_fuse_lumberjack_\d+$/.test(entry.name) && (unavailable || runtime.can_afford === 0);
+            var fusionDisabled = /^ability_fuse_lumberjack_\d+$/.test(entry.name) && unavailable;
             slot.image.style.saturation = fusionDisabled ? "0" : "1";
             slot.image.style.brightness = fusionDisabled ? "0.5" : "1";
             slot.panel.style.boxShadow = "none";
         }
-        slot.panel.SetHasClass("ResourceLow", runtime.can_afford === 0 && !unavailable);
+        slot.panel.SetHasClass("ResourceLow", runtime.resource_check_on_cast !== 1 && runtime.can_afford === 0 && !unavailable);
         // Keep every slot enabled for hover, including passive/unavailable
         // abilities. onactivate performs the guarded rejection instead.
         slot.panel.enabled = true;

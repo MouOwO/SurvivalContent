@@ -36,7 +36,7 @@
             var match = /^ability_fuse_lumberjack_(\d+)$/.exec(Abilities.GetAbilityName(ability));
             if (!match) continue;
             var runtime = CustomNetTables.GetTableValue('survival_ability_runtime', String(ability)) || {};
-            return {id:id, ability:ability, level:Number(match[1]), count:Number(runtime.fusion_required_count) || 0, cityReady:runtime.fusion_city_ready !== 0, affordable:runtime.can_afford !== 0};
+            return {id:id, ability:ability, level:Number(match[1]), count:Number(runtime.fusion_required_count) || 0, cityReady:runtime.fusion_city_ready !== 0};
         }
         return null;
     }
@@ -46,7 +46,7 @@
             var row = info(id);
             if (row) { rows.push(row); counts[row.level] = (counts[row.level] || 0) + 1; }
         });
-        rows.forEach(function (row) { row.ready = row.count > 0 && counts[row.level] >= row.count && row.cityReady && row.affordable; });
+        rows.forEach(function (row) { row.ready = row.count > 0 && counts[row.level] >= row.count && row.cityReady; });
         rows.sort(function (a,b) { return Number(b.ready)-Number(a.ready) || a.level-b.level || a.id-b.id; });
         return rows;
     }

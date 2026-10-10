@@ -1,6 +1,6 @@
 (function () {
     "use strict";
-    var BASE_WIDTH = 64, BASE_HEIGHT = 158;
+    var BASE_WIDTH = 64, BASE_HEIGHT = 76;
     function overlaps(a, b) {
         return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
     }
@@ -46,8 +46,7 @@
         return node;
     }
     var actions = [
-        { id: "SurvivalSelectBuilderShortcut", key: "空格", api: "SurvivalBuilderSelection", can: "CanSelect", run: "Select", hero: "npc_dota_hero_ogre_magi" },
-        { id: "SurvivalReturnHomeShortcut", key: "F2", api: "SurvivalReturnHomeInput", can: "CanRequest", run: "Request", image: "file://{images}/spellicons/furion_teleportation.png" }
+        { id: "SurvivalSelectBuilderShortcut", key: "空格", api: "SurvivalBuilderSelection", can: "CanSelect", run: "Select", hero: "npc_dota_hero_wisp" }
     ];
     function canActivate(action) {
         if (!ready || !valid(panel) || panel.visible === false) return false;
@@ -63,9 +62,11 @@
     actions.forEach(function (action, index) {
         var button = create("Button", panel, action.id, "MinimapShortcutButton");
         button.style.position = "0px " + (index * 82) + "px 0px";
-        var icon = create(action.hero ? "DOTAHeroImage" : "Image", button, action.id + "Icon", "MinimapShortcutIcon");
-        if (action.hero) { icon.heroname = action.hero; icon.heroimagestyle = "icon"; }
-        else icon.SetImage(action.image);
+        var icon = create("DOTAScenePanel", button, action.id + "Icon", "MinimapShortcutIcon");
+        var presentation=cfg.SurvivalPortraitPresentation;
+        if (presentation && typeof presentation.BindShortcutScene==="function")
+            presentation.BindShortcutScene(icon, "builder_io", action.hero, false);
+        else icon.SetUnit(action.hero,"shortcut_soft",false);
         var key = create("Label", button, action.id + "Key", "MinimapShortcutKey"); key.text = action.key;
         button.SetPanelEvent("onactivate", function () { activate(action); });
         action.button = button;

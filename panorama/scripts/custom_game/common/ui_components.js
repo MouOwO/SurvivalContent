@@ -2,9 +2,13 @@
     "use strict";
     var cfg=GameUI.CustomUIConfig(),registry=cfg.SurvivalUIRegistry;
     if(!registry)throw new Error("Shared UI registry must load before components");
-    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.2")return;
-    var U={version:"1.0.2",Tokens:registry.tokens},serial=0,modals={};
+    // Native roots can survive a layout reload; their child marker cannot.
+    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.3"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
+    var U={version:"1.0.3",Tokens:registry.tokens},serial=0,modals={};
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
+    var lifetimeMarker=$.CreatePanel("Panel",$.GetContextPanel(),"");
+    lifetimeMarker.hittest=false;lifetimeMarker.hittestchildren=false;lifetimeMarker.visible=false;
+    U.IsAlive=function(){return valid(lifetimeMarker);};
     function apply(p,s){if(valid(p))Object.keys(s).forEach(function(k){p.style[k]=s[k];});}
     function create(type,parent,id,cls){var p=$.CreatePanel(type,parent,id||"");if(cls)p.AddClass(cls);return p;}
     function label(parent,text,cls){var p=create("Label",parent,"",cls);p.text=text===undefined?"":String(text);p.hittest=false;return p;}
@@ -47,7 +51,7 @@
     U.ModalShell={Adopt:function(props){var panel=props.panel,life=U.Lifecycle(),open=false;panel.AddClass("UIModal");apply(panel,{backgroundImage:"none",backgroundColor:U.Tokens.colors.surface_ivory,border:"1px solid "+U.Tokens.colors.border_champagne,boxShadow:"#00000050 0px 5px 18px 0px",width:props.width+"px",height:props.height+"px",horizontalAlign:"center",verticalAlign:"center",position:"0px 0px 0px",margin:"0px"});
         var header=props.header;if(valid(header)){header.AddClass("UIModalHeader");apply(header,{backgroundImage:"none",backgroundColor:U.Tokens.colors.surface_teal});}if(valid(props.titlePanel)){props.titlePanel.AddClass("UIFontTitle");apply(props.titlePanel,{color:U.Tokens.colors.text_on_dark});}
         var scrim=props.scrim||create("Button",panel.GetParent(),"","UIModalScrim");scrim.AddClass("UIModalScrim");apply(scrim,{backgroundImage:"none",backgroundColor:"#0000008c"});
-        function requestClose(){if(U.ModalManager.Top()!==props.id||props.closePolicy==="mandatory")return;if(props.onClose)props.onClose();else api.Close();}
+        function requestClose(reason){if(U.ModalManager.Top()!==props.id||(props.closePolicy==="mandatory"&&reason!=="escape"))return false;if(props.onClose)props.onClose();else api.Close();return true;}
         var click=props.scrimButton||scrim;
         if(!props.scrimButton&&panel.GetParent()===scrim){click=create("Button",scrim,"","UIModalHitArea");apply(click,{width:"100%",height:"100%",zIndex:"0",backgroundColor:"transparent"});}
         // The visible window is the input boundary, including transparent artwork

@@ -1,0 +1,88 @@
+/* Standalone survival shop: reference proportions, original server-owned actions. */
+#CustomShopWindow.UIModal.RHSurvivalShop.ShopPurple,
+#CustomShopWindow.UIModal.RHSurvivalShop.ShopPurple.UIClosed {
+ width:680px;height:600px;flow-children:none;overflow:noclip;
+ background-image:none;background-color:gradient(linear,0% 0%,100% 100%,from(#2e243d),to(#21182f));
+ border:2px solid #b6996e;border-radius:2px;box-shadow:#000000aa 0px 6px 22px 0px;
+ visibility:visible;opacity:1;transition-property:position;transition-duration:.28s;transition-timing-function:ease-out;
+}
+#CustomShopWindow.ShopPurple .RHFrame,#CustomShopWindow.ShopPurple .ReferenceAtmosphere,#CustomShopWindow.ShopPurple .ReferenceFrame,#CustomShopWindow.ShopPurple .ReferenceHeaderArt,#CustomShopWindow.ShopPurple .ReferenceHeaderEmblem,#CustomShopWindow.ShopPurple .RHTitleOrnamentLeft,#CustomShopWindow.ShopPurple .RHTitleOrnamentRight { visibility:collapse; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopHeader {
+ visibility:visible;position:0px 0px 0px;width:100%;height:138px;padding:0px;margin:0px;overflow:noclip;
+ background-image:none;background-color:transparent;border:0px;flow-children:none;z-index:5;
+}
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopTitleBlock { visibility:visible;position:24px 13px 0px;width:540px;height:58px;margin:0px;padding:0px;align:left top;flow-children:none; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopTitle { position:0px 0px 0px;align:left center;width:100%;height:48px;margin:0px;padding:0px;color:#ffdb82;font-size:36px;font-family:"Source Han Sans SC", "Microsoft YaHei";font-weight:normal;text-align:left;text-shadow:none; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopSubtitle { visibility:collapse; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopCloseButton { visibility:visible;position:606px 12px 0px;width:48px;height:48px;margin:0px;padding:0px;align:left top;background-image:none;background-color:transparent;border:0px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopCloseButton Label { align:center center;margin:0px;padding:0px;color:#ddbb7f;font-size:42px;text-shadow:#08040d 0px 2px 2px 2; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopCloseButton:hover { brightness:1.3; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeToggles { position:10px 78px 0px;width:656px;height:56px;margin:0px;padding:0px;flow-children:right; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopModeToggle,#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeShop,#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeChallenge,#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeOther {
+ width:216px;height:56px;margin:0px 4px 0px 0px;padding:0px;background-image:none;
+ background-color:gradient(linear,0% 0%,0% 100%,from(#4c3e60),to(#352840));
+ border:1px solid #9d8aa8;border-radius:2px;box-shadow:none;brightness:1;transform:none;
+}
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopModeToggle Label { align:center center;margin:0px;padding:0px;color:#f2e9f8;font-size:27px;text-shadow:none; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopModeToggle:hover { border-color:#e3c380;brightness:1.08; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopModeToggle.Selected,#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeShop.Selected,#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeChallenge.Selected,#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopModeOther.Selected {
+ background-color:gradient(linear,0% 0%,0% 100%,from(#974b3e),to(#602d2b));border-color:#d6b77d;border-bottom:2px solid #d6b77d;
+}
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopModeToggle.Selected Label { color:#fff2df; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopBody { position:24px 156px 0px;width:632px;height:426px;margin:0px;padding:0px;align:left top; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopShelfArea { width:100%;height:100%;background-color:transparent;border:0px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopItemList { width:100%;height:100%;padding:0px;flow-children:right-wrap;overflow:squish scroll; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopShelfSlot.UICardProduct,#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopShelfSlot.UICardProduct:hover,#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopShelfSlot.UICardProduct.AutoBookCard { width:136px;height:132px;min-width:0px;min-height:0px;margin:0px 20px 10px 0px;padding:0px;flow-children:none;border:0px;background-image:none;background-color:transparent;box-shadow:none;transform:none;brightness:1; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopItemFrame { position:0px 0px 0px;width:136px;height:132px;margin:0px;padding:0px;border:4px solid #171320;border-radius:2px;background-color:#08060e;box-shadow:#bbaa9955 0px 0px 1px 1px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopItemIcon { position:0px 0px 0px;width:128px;height:124px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopShelfSlot:hover .ShopItemFrame,#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopShelfSlot.ShopSelected .ShopItemFrame { border-color:#e5ad52;box-shadow:#edab5877 0px 0px 9px 1px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopCardName,#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopStockLabel,#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopTechnologyCode,#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopTechnologyLockBadge { visibility:collapse; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopTechnologyLevel { align:right top;position:0px 0px 0px;margin:3px 4px 0px 0px;padding:0px;width:fit-children;height:23px;color:#fff4d1;font-size:17px;text-shadow:0px 1px 2px 3 #050309;background-color:transparent;border:0px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .ShopSectionTitle { width:100%;height:26px;margin:2px 0px 6px;color:#ccafee;font-size:18px; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopFooter { position:24px 548px 0px;width:632px;height:34px;margin:0px;padding:4px 8px;border:1px solid #b96f62;flow-children:none;background-color:#211322;z-index:20; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopResourceSummary { visibility:collapse; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple #ShopStatus { width:100%;height:26px;margin:0px;padding:0px;color:#efa69f;font-size:17px;text-align:left;white-space:nowrap;text-overflow:shrink; }
+#CustomShopWindow.RHSurvivalShop.ShopPurple .AutoBookButton { visibility:collapse; }
+#CustomShopWindow.ShopPurple VerticalScrollBar { width:6px;background-color:#21172f; }
+#CustomShopWindow.ShopPurple VerticalScrollBar .ScrollThumb { background-color:#8c75a4;min-height:28px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip {
+ width:370px;min-height:0px;max-height:680px;padding:0px;flow-children:down;overflow:noclip;
+ background-image:none;background-color:transparent;border:0px;border-radius:0px;box-shadow:none;
+}
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipFrame {
+ width:348px;height:fit-children;max-height:680px;margin:0px 0px 0px 22px;padding:20px;flow-children:down;overflow:noclip;
+ background-color:gradient(linear,0% 0%,100% 100%,from(#282036),to(#191224));border:2px solid #b6996e;border-radius:2px;box-shadow:#000000aa 0px 6px 22px 0px;
+}
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip.Unavailable { wash-color:none; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipHeader { width:100%;height:108px;padding:0px;margin:0px;flow-children:right;border:0px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipIconHost,#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipMainIcon { width:92px;height:92px;margin:0px;padding:0px;border:1px solid #b6996e; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipTitleBlock { width:fill-parent-flow(1);height:108px;margin:0px 0px 0px 18px;padding:0px;flow-children:down; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipTitle { width:100%;max-width:196px;height:34px;margin:0px;padding:0px;color:#ffdb82;font-size:27px;white-space:nowrap;text-overflow:shrink; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipType { visibility:visible;width:100%;height:26px;margin:2px 0px 0px;padding:0px;color:#eee5f4;font-size:22px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipCostRow { width:100%;height:32px;margin:3px 0px 0px;padding:0px;flow-children:right; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .TooltipCostBlock { width:fit-children;height:32px;margin:0px 10px 0px 0px;padding:0px;flow-children:right; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .TooltipCostIcon { width:27px;height:27px;margin:1px 5px 0px 0px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .TooltipCostValue { width:fit-children;max-width:105px;height:32px;margin:0px;padding:0px;color:#ffdb82;font-size:26px;text-overflow:shrink; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipEffectHeading { width:100%;height:39px;margin:0px;padding:8px 0px 0px;border-top:1px solid #a48657;color:#ffdb82;font-size:25px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipDescription { width:100%;height:fit-children;max-height:340px;margin:0px;padding:0px;border:0px;color:#eee5f4;font-size:22px;line-height:28px;white-space:normal;overflow:squish scroll; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipPurchase,#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipAutoPurchase { width:100%;height:48px;margin:14px 0px 0px;padding:0px;background-image:none;background-color:gradient(linear,0% 0%,0% 100%,from(#944c3e),to(#5f2c29));border:1px solid #b68b61;border-radius:2px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipPurchase:hover,#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipAutoPurchase:hover { brightness:1.15;border-color:#eac670; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipPurchase.UIDisabled { saturation:.25;opacity:.65; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipPurchase Label,#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipAutoPurchase Label { align:center center;width:100%;text-align:center;color:#fff0dc;font-size:27px;text-overflow:shrink; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipAutoPurchase { height:36px;margin-top:8px;background-color:#362840;border-color:#917b9e; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopTooltipAutoPurchase Label { font-size:19px;color:#eadbf5; }
+.ShopFrameCorner { width:12px;height:12px;ignore-parent-flow:true;background-color:gradient(linear,0% 0%,100% 100%,from(#e6d1ab),to(#a07c50));border:1px solid #322334;transform:rotateZ(45deg);z-index:30; }
+.ShopFrameCornerTL { align:left top;position:-5px -5px 0px; }
+.ShopFrameCornerTR { align:right top;position:5px -5px 0px; }
+.ShopFrameCornerBL { align:left bottom;position:-5px 5px 0px; }
+.ShopFrameCornerBR { align:right bottom;position:5px 5px 0px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip #ShopTooltipArrow { width:20px;height:20px;ignore-parent-flow:true;position:6px 74px 0px;transform:rotateZ(45deg);background-color:#241b31;border-left:2px solid #b6996e;border-bottom:2px solid #b6996e;z-index:1; }
+
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip.ShopTooltipDualCost #ShopTooltipHeader,#ShopEntryTooltip.UITooltip.ShopPurpleTooltip.ShopTooltipDualCost #ShopTooltipTitleBlock { height:140px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip.ShopTooltipDualCost #ShopTooltipCostRow { height:64px;flow-children:down; }
+
+#CustomShopWindow.ShopPurple #ShopTitleDivider { position:0px 74px 0px;width:100%;height:1px;background-color:#967849; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopFrameCornerTL { position:22px 0px 0px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopFrameCornerTR { position:-2px 0px 0px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopFrameCornerBL { position:22px -2px 0px; }
+#ShopEntryTooltip.UITooltip.ShopPurpleTooltip .ShopFrameCornerBR { position:-2px -2px 0px; }

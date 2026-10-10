@@ -5,6 +5,7 @@
     <include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css" />
     <include src="file://{resources}/styles/custom_game/payment_test.css" />
     <include src="file://{resources}/styles/custom_game/commerce_wallet.css" />
+    <include src="file://{resources}/styles/custom_game/common/checkout_purple.css" />
   </styles>
   <scripts><include src="file://{resources}/scripts/custom_game/payment_test.js" /><include src="file://{resources}/scripts/custom_game/commerce_wallet.js" /><include src="file://{resources}/scripts/custom_game/commerce_actions.js" /></scripts>
   <Panel class="PaymentRoot" hittest="false" hittestchildren="true">

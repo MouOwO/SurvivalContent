@@ -1,7 +1,8 @@
 (function () {
     "use strict";
-    var cfg=GameUI.CustomUIConfig(), timer=null;
-    function p(id){return $("#"+id);}
+    var cfg=GameUI.CustomUIConfig(), owner=$.GetContextPanel(), timer=null;
+    var lifetime=$.CreatePanel("Panel",owner,"");lifetime.visible=false;
+    function p(id){if(!valid(lifetime))return null;var n=owner.FindChildTraverse(id);return valid(n)?n:null;}
     function valid(node){return node&&(!node.IsValid||node.IsValid());}
     function tenRule(pity){
         var list=Array.isArray(pity)?pity:Object.keys(pity||{}).map(function(k){return pity[k];});
@@ -35,6 +36,14 @@
     function fit(){
         var viewport=viewportSize(),canvas=p("LotteryMainCanvas");
         if(!viewport||!valid(canvas))return false;
+        if(canvas.BHasClass("LotteryPurple")){
+            var popupScale=Math.min(viewport.width/1920,viewport.height/1080);
+            canvas.style.width="1280px";canvas.style.height="800px";
+            canvas.style.transform="scale3d("+popupScale+","+popupScale+",1)";canvas.style.opacity="1";
+            if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Resize(1280,482);
+            if(cfg.LotteryCinematic&&cfg.LotteryCinematic.Resize)cfg.LotteryCinematic.Resize(1280,672);
+            return true;
+        }
         // Fill the entire viewport; preserve a 1600 x 900 safe area for controls.
         // Ultra-wide screens gain horizontal scene space, 4:3 gains vertical space.
         var scale=Math.min(viewport.width/1600,viewport.height/900);
@@ -42,14 +51,17 @@
         canvas.style.height=(viewport.height/scale)+"px";
         canvas.style.transform="scale3d("+scale+","+scale+",1)";
         canvas.style.opacity="1";
+        if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Resize(viewport.width,viewport.height);
         if(cfg.LotteryCinematic&&cfg.LotteryCinematic.Resize)cfg.LotteryCinematic.Resize(viewport.width,viewport.height);
         return true;
     }
     cfg.LotteryHandoff={
         Viewport:viewportSize,
         Prepare:function(){
+            if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Close();
             var canvas=p("LotteryMainCanvas");
             canvas.RemoveClass("ReferenceWindow");
+            if(canvas.BHasClass("LotteryPurple")){if(cfg.SurvivalPurpleLottery)cfg.SurvivalPurpleLottery.Apply();fit();return;}
             canvas.style.backgroundImage="none";canvas.style.backgroundColor="transparent";
             canvas.style.border="0px";canvas.style.borderRadius="0px";canvas.style.boxShadow="none";
             canvas.style.opacity="0";fit();
@@ -59,6 +71,7 @@
             var key=themes.indexOf(poolId)>=0?poolId:"map";
             p("LotteryWindow").SetHasClass("LotteryGoldenTicket",key==="dragon_knight"||key==="summer");
             if(valid(scene))themes.forEach(function(id){scene.SetHasClass("LotteryScene_"+id,id===key);});
+            if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Select(key);
         },
         Name:function(id,fallback){return id==="map"?"地图宝箱":id==="dragon_knight"?"龙脊尖兵":fallback;},
         Actions:function(){
@@ -101,6 +114,7 @@
             var hint=p("LotteryDrawPity");if(valid(hint))hint.visible=!!rule;
             var free=selected&&Number(selected.single_cost)===0;
             p("LotterySingleButton").SetHasClass("ZXFreeDraw",!!free);
+            if(cfg.SurvivalPurpleLottery)cfg.SurvivalPurpleLottery.Apply();
         },
         Guarantee:function(rules){
             var rule=tenRule(rules);quality(p("LHGuaranteeQuality"),rule);
@@ -111,7 +125,7 @@
             function tick(){timer=null;if(!valid(p("LotteryWindow"))||p("LotteryWindow").BHasClass("LotteryClosed"))return;var ready=fit();timer=$.Schedule(ready?.25:0,tick);}
             tick();
         },
-        Close:function(){if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);timer=null;},
+        Close:function(){if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);timer=null;if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Close();},
         CloseButton:function(button,action){
             button.RemoveAndDeleteChildren();
             var glyph=$.CreatePanel("Label",button,"");glyph.AddClass("LHCloseGlyph");glyph.text="×";glyph.hittest=false;

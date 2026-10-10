@@ -2,21 +2,39 @@
 (function () {
     "use strict";
     var cfg=GameUI.CustomUIConfig(), U=cfg.SurvivalUI, R=cfg.RemainingHandoff, J=cfg.SurvivalCommerceComponents, root=$.GetContextPanel();
-    if (cfg.SurvivalCommerceView) cfg.SurvivalCommerceView.Dispose();
+    if (cfg.SurvivalCommerceView && cfg.SurvivalCommerceView.Dispose) {
+        try { cfg.SurvivalCommerceView.Dispose(); }
+        catch(error) {
+            // A pre-guard controller can survive a layout reload with deleted native panels.
+            if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;
+            $.Msg("[CommercePurple] Reload cleanup: previous native panel subtree was already deleted.");
+        }
+        delete cfg.SurvivalCommerceView;
+    }
     delete cfg.SurvivalCommercePreviewData;
     if (!U || !R || !J) { delete cfg.SurvivalCommerceView; return; }
-    var disposed=false, category="", page=0, catalog={products:[],categories:[]}, revision="", opened=false, ticketRequest=false;
+    var disposed=false, category="", page=0, catalog={products:[],categories:[]}, revision="", opened=false, ticketRequest=false,detailsDisposed=false;
     var paidCatalog={products:[],categories:[]}, walletCatalog={products:[],categories:[],balances:{}};
     function rows(value) { return Array.isArray(value)?value:Object.keys(value||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return value[k];}); }
     function panel(type,parent,cls) { var n=$.CreatePanel(type,parent,""); if(cls)n.AddClass(cls); return n; }
     function text(parent,value,cls) { var n=panel("Label",parent,cls);n.text=String(value);n.hittest=false;return n; }
-    function close() { opened=false;ticketRequest=false;store.shell.Close(); }
+    function valid(p){return !!p&&(!p.IsValid||p.IsValid());}
+    function live(){return !disposed&&store&&valid(store.panel)&&valid(tabs)&&valid(grid)&&valid(pager)&&valid(notice);}
+    function hideDetails(){
+        if(valid(grid)&&grid.Children)grid.Children().forEach(function(p){if(valid(p)&&p.__purpleDispose)p.__purpleDispose();else if(valid(p)&&p.__purpleHide)p.__purpleHide();});
+        var layer=store&&store.detailLayer;
+        if(valid(layer)){layer.Children().forEach(function(t){if(valid(t)&&t.__purpleDispose)t.__purpleDispose();});layer.RemoveAndDeleteChildren();}
+        detailsDisposed=true;
+    }
+    function rebuildDetails(){if(valid(grid))grid.Children().forEach(function(p){if(valid(p)&&p.__purpleRebuildDetail)p.__purpleRebuildDetail();});detailsDisposed=false;}
+    function close() { opened=false;ticketRequest=false;hideDetails();if(store&&store.shell&&store.shell.Close)store.shell.Close(); }
     function modal() {
         return J.Window(root,close);
     }
     var store=modal(), tabs=panel("Panel",store.panel,"RCTabs"), grid=panel("Panel",store.panel,"RCGrid");
     var notice=text(store.panel,"正在加载商品…","RCNotice"),pager=panel("Panel",store.panel,"CJPager");
     function checkout(item) {
+        if(!live()||!item)return false;
         if(item && item.purchase_method==="wallet"){
             if(cfg.SurvivalCommerceWallet && cfg.SurvivalCommerceWallet.Checkout(item.sku)){close();return true;}
             return false;
@@ -42,8 +60,10 @@
     function productIcon(item){return isGoldenProduct(item)?"custom_game/lottery_tickets_v2/gold_ticket.png":item.icon;}
     function rewardText(item) { return rows(item.reward_lines).map(function(r){return rewardLabel(r)+" ×"+r.quantity;}).join("\n"); }
     function render() {
-        if(disposed)return;
+        if(!live())return;
+        hideDetails();
         tabs.RemoveAndDeleteChildren();grid.RemoveAndDeleteChildren();pager.RemoveAndDeleteChildren();
+        detailsDisposed=false;
         var categories=rows(catalog.categories), products=rows(catalog.products);
         if(!categories.some(function(c){return c.id===category;})) category=(categories.filter(function(c){return products.some(function(p){return p.category_id===c.id;});})[0]||categories[0]||{}).id||"";
         categories.forEach(function(c,i){J.Nav(tabs,c,i,c.id===category,function(){category=c.id;page=0;render();});});
@@ -51,11 +71,11 @@
         var bundles=items.length>0 && items.every(function(p){return p.product_type==="bundle";});grid.SetHasClass("RCBundles",bundles);
         notice.text=noticeText();
         if(categories.length && !items.length) { text(grid,"本分类暂无上架商品","CJEmpty");return; }
-        var perPage=bundles?4:8,totalPages=Math.max(1,Math.ceil(items.length/perPage));page=Math.max(0,Math.min(page,totalPages-1));
+        var perPage=15,totalPages=Math.max(1,Math.ceil(items.length/perPage));page=Math.max(0,Math.min(page,totalPages-1));
         items.slice(page*perPage,(page+1)*perPage).forEach(function(item,i){
-            var props={rewards:rows(item.reward_lines),effect:rewardText(item)||item.description,purchaseLabel:purchaseLabel(item),action:function(){checkout(item);}};
+            var props={rewards:rows(item.reward_lines),effect:rewardText(item)||item.description,purchaseLabel:purchaseLabel(item),action:function(){checkout(item);},detailLayer:store.detailLayer};
             var card=bundles?J.Bundle(grid,item,props):J.Product(grid,item,props);
-            J.Box(card,(i%(bundles?2:4))*(bundles?624:312),Math.floor(i/(bundles?2:4))*366,bundles?608:296,348);
+            J.Box(card,(i%5)*202,Math.floor(i/5)*184,188,172);
         });
         if(totalPages>1){
             function turn(label,delta,enabled){var b=panel("Button",pager,"CJPageAction");text(b,label,"");b.enabled=enabled;b.SetPanelEvent("onactivate",function(){if(b.enabled){page+=delta;render();}});}
@@ -63,6 +83,7 @@
         }
     }
     function update(data) {
+        if(!live())return;
         catalog=data||{products:[],categories:[]};
         // Keep hovered cards stable when only numeric previews have changed.
         var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.amount_fen,p.price,p.currency,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
@@ -83,13 +104,13 @@
     }
     function updatePaid(data){paidCatalog=data||{products:[],categories:[]};mergeCatalogs();}
     cfg.SurvivalCommerceView={
-        Open:function(){if(disposed)return;opened=true;if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());store.shell.Open();if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog();if(cfg.SurvivalCommerceWallet)cfg.SurvivalCommerceWallet.Refresh();},
+        Open:function(){if(!live())return;opened=true;if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());if(detailsDisposed)rebuildDetails();store.shell.Open();if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog();if(cfg.SurvivalCommerceWallet)cfg.SurvivalCommerceWallet.Refresh();},
         Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},IsOpen:function(){return opened;},
-        SetNotice:function(message){if(!disposed)notice.text=message;},
+        SetNotice:function(message){if(live())notice.text=message;},
         OpenTicketPurchase:function(pool){
             if(pool && typeof pool==="object"){if(pool.ticket_content_id&&pool.ticket_content_id!=="special_lottery_ticket")return false;pool=pool.id;}
             var payments=cfg.SurvivalPayments;
-            if(disposed || !pool || pool==="map" || !payments || !payments.Checkout)return false;
+            if(!live() || !pool || pool==="map" || !payments || !payments.Checkout)return false;
             if(payments.GetCatalog)updatePaid(payments.GetCatalog());
             var item=singleTicket();
             if(item)return checkout(item);
@@ -99,17 +120,17 @@
             category="item";opened=true;render();store.shell.Open();ticketRequest=true;
             notice.text="正在加载金色抽奖券商品…";payments.RefreshCatalog();return true;
         },
-        Inspect:function(){var path=[],p=store.panel;while(p && p.IsValid() && path.length<10){path.push({id:p.id,classes:p.GetClasses?p.GetClasses():[],visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,visibility:p.style.visibility,opacity:p.style.opacity,z:p.style.zIndex,clip:p.style.clip});p=p.GetParent();}
-            return {category:category,page:page,opened:opened,valid:store.panel.IsValid(),visible:store.panel.visible,
-            width:store.panel.actuallayoutwidth,height:store.panel.actuallayoutheight,productCount:rows(catalog.products).length,path:path};},
-        Dispose:function(){if(disposed)return;disposed=true;store.shell.Dispose();[store.panel,store.scrim].forEach(function(p){if(p.IsValid())p.DeleteAsync(0);});}
+        Inspect:function(){var path=[],p=store&&store.panel,hasPanel=valid(p);while(valid(p) && path.length<10){path.push({id:p.id,classes:p.GetClasses?p.GetClasses():[],visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,visibility:p.style.visibility,opacity:p.style.opacity,z:p.style.zIndex,clip:p.style.clip});p=p.GetParent();}
+            return {category:category,page:page,opened:opened,valid:hasPanel,visible:hasPanel?store.panel.visible:false,
+            width:hasPanel?store.panel.actuallayoutwidth:0,height:hasPanel?store.panel.actuallayoutheight:0,productCount:rows(catalog.products).length,path:path};},
+        Dispose:function(){if(disposed)return;disposed=true;opened=false;ticketRequest=false;hideDetails();if(store&&store.purpleShell&&store.purpleShell.Dispose)store.purpleShell.Dispose();if(store&&store.shell&&store.shell.Dispose)store.shell.Dispose();if(store)[store.panel,store.scrim].forEach(function(p){if(valid(p))p.DeleteAsync(0);});}
     };
     if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());
     if(cfg.SurvivalCommerceWallet){walletCatalog=cfg.SurvivalCommerceWallet.GetCatalog();mergeCatalogs();}
     // Tools-only visual inspection uses the existing authenticated catalog and never checks out.
     if(Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand){
         function inspectVisual(){ $.Msg("[COMMERCE_JADE] "+JSON.stringify(cfg.SurvivalCommerceView.Inspect())); }
-        cfg.SurvivalCommerceVisual={Category:function(id){category=id;page=0;render();},Technology:function(){category="technology";page=0;render();},Hover:function(on){grid.Children().forEach(function(p,i){p.SetHasClass("CJVisualHover",on!==false && i===1);});},Geometry:function(){var p=store.panel;return {valid:p.IsValid(),window:p.GetPositionWithinWindow(),scale:root.actualuiscale_x,classes:p.BHasClass("UIClosed"),visible:p.visible,children:p.Children().map(function(c){return {type:c.paneltype,visible:c.visible,pos:c.GetPositionWithinWindow(),width:c.actuallayoutwidth,height:c.actuallayoutheight};})};}};
+        cfg.SurvivalCommerceVisual={Category:function(id){if(!live())return;category=id;page=0;render();},Technology:function(){if(!live())return;category="technology";page=0;render();},Hover:function(on){if(!live())return;grid.Children().forEach(function(p,i){if(!valid(p))return;p.SetHasClass("CJVisualHover",false);if(on!==false&&i===1&&p.__purpleShow)p.__purpleShow(false);else if(p.__purpleHide)p.__purpleHide();});},Geometry:function(){var p=store&&store.panel;if(!valid(p))return {valid:false,children:[]};return {valid:true,window:p.GetPositionWithinWindow(),scale:root.actualuiscale_x,classes:p.BHasClass("UIClosed"),visible:p.visible,children:p.Children().filter(valid).map(function(c){return {type:c.paneltype,visible:c.visible,pos:c.GetPositionWithinWindow(),width:c.actuallayoutwidth,height:c.actuallayoutheight};})};}};
         // Commands retain their creating JS context; use a generation suffix after hot reload.
         var suffix=String(Date.now()),commands={open:"survival_commerce_open_"+suffix,close:"survival_commerce_close_"+suffix,technology:"survival_commerce_technology_"+suffix,hover:"survival_commerce_hover_"+suffix,inspect:"survival_commerce_inspect_"+suffix};
         Game.AddCommand(commands.open,function(){cfg.SurvivalCommerceView.Open();inspectVisual();},"Open live mall; no checkout",0);

@@ -3,7 +3,7 @@
 	_class = "CParticleSystemDefinition"
 	m_bShouldHitboxesFallbackToRenderBounds = false
 	m_nMaxParticles = 1
-	m_flConstantRadius = 24.0
+	m_flConstantRadius = 18.0
 	m_Children = 
 	[
 		{
@@ -55,12 +55,15 @@
 			]
 		},
 	]
-	m_flCullRadius = 24.0
+	m_flCullRadius = 18.0
 	m_nBehaviorVersion = 4
-m_Initializers = [{ _class = "C_INIT_CreateWithinSphere" }]
+m_Initializers = [
+{ _class = "C_INIT_CreateWithinSphere" }
+]
 m_Emitters = [{ _class = "C_OP_InstantaneousEmitter" m_nParticlesToEmit = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.0 } }]
 m_Operators = [
 { _class = "C_OP_PositionLock" },
-{ _class = "C_OP_SetChildControlPoints" m_nFirstControlPoint = 1 }]
+{ _class = "C_OP_SetChildControlPoints" m_nFirstControlPoint = 1 }
+]
 }
 

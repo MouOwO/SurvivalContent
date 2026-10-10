@@ -3,7 +3,8 @@
     var controllerConfig=GameUI.CustomUIConfig();
     var controllerEpoch=(Number(controllerConfig.SurvivalGridControllerEpoch)||0)+1;
     controllerConfig.SurvivalGridControllerEpoch=controllerEpoch;
-    var framePerformance={frames:0,max_total_ms:0,max_camera_ms:0,max_range_ms:0,max_state_ms:0};
+    var framePerformance={frames:0,max_total_ms:0,max_camera_ms:0,max_range_ms:0,max_grid_ms:0,max_state_ms:0,
+        max_input_ms:0,max_complete_ms:0};
     controllerConfig.SurvivalGridFramePerformance=framePerformance;
     function currentController(){return controllerConfig.SurvivalGridControllerEpoch===controllerEpoch;}
 
@@ -19,7 +20,6 @@
     var nextParticleAttempt = -100;
     var RANGE_PARTICLE = "particles/ui_mouseactions/range_display.vpcf";
     var cursorIcon = $("#GridPlacementCursorIcon");
-    var nativeRangeBounds = null;
     function renderCursorIcon() {
         var cursor=GameUI.GetCursorPosition();
         if(!cursorIcon) return;
@@ -166,6 +166,7 @@
 
     var blockedCooldownAbility = -1;
     var blockedNativeCooldownAbility = -1;
+    var blockedNativeResourceAbility = -1;
     function rejectRelocationCooldown(ability, force) {
         if (!force && !(Abilities.GetCooldownTimeRemaining(ability) > 0)) {
             blockedCooldownAbility = -1;
@@ -236,8 +237,13 @@
 
     // Dispose a live local particle when Panorama reloads this script.
     var sharedConfig = GameUI.CustomUIConfig();
+    if (sharedConfig.SurvivalGridNativeCleanup) sharedConfig.SurvivalGridNativeCleanup();
+    var nativeGrid = sharedConfig.SurvivalStaticGrid && sharedConfig.SurvivalStaticGrid.createNativeGrid
+        ? sharedConfig.SurvivalStaticGrid.createNativeGrid(Particles, ParticleAttachment_t.PATTACH_WORLDORIGIN) : null;
+    sharedConfig.SurvivalGridNativeCleanup = nativeGrid ? nativeGrid.hide : null;
     if (sharedConfig.SurvivalStaticGrid) {
         staticGrid=sharedConfig.SurvivalStaticGrid.create({
+            nativeGrid:nativeGrid,
             mask:$("#GridPlacementStaticMask"),host:$("#GridPlacementStaticMesh"),outline:$("#GridPlacementPlaneRange"),
             setStyle:setStyle,positionSegment:positionSegment,
             project:function(world){return screenPoint(world,true);},
@@ -257,7 +263,12 @@
     }
     if(staticGrid && sharedConfig.SurvivalGridState) {
         gridState=sharedConfig.SurvivalGridState.create({
-            visibleBounds:function(){return staticGrid.visibleBounds ? staticGrid.visibleBounds() : null;},
+            visibleBounds:function(){return staticGrid.drawBounds ? staticGrid.drawBounds()
+                : staticGrid.visibleBounds ? staticGrid.visibleBounds() : null;},
+            coverageKey:function(){return staticGrid.coverageKey ? staticGrid.coverageKey() : "";},
+            range:function(){return staticGrid.range ? staticGrid.range() : null;},
+            projectPolygon:function(points){return staticGrid.projectPolygon ? staticGrid.projectPolygon(points)
+                : points.map(function(world){return staticGrid.project(world);});},
             terrainHost:$("#GridPlacementTerrain"),dynamicHost:cellHost,footHost:$("#GridPlacementFootprintTiles"),
             // Behind-camera/offscreen plane geometry must never fall back to
             // thousands of engine WorldToScreen calls while the camera pans.
@@ -274,8 +285,12 @@
     }
     function warmStaticGrid() {
         if(!currentController()) return;
-        if (staticGrid && !activeProfile) staticGrid.warm();
-        if (gridState && !activeProfile) {projectionCache={};projectionCacheSize=0;gridState.warm();}
+        if (staticGrid && !activeProfile) {
+            if(staticGrid.prewarm) staticGrid.prewarm();else staticGrid.warm();
+        }
+        if (gridState && !activeProfile) {
+            if(gridState.prewarmTerrain) gridState.prewarmTerrain();else gridState.warm();
+        }
         $.Schedule(profileCount ? 0.10 : 0.25,warmStaticGrid);
     }
     $.Schedule(0.1,warmStaticGrid);
@@ -401,7 +416,15 @@
 
     function showProfile(profile, abilityIndex, unit, mode, session) {
         if (mode === "native" && blockedNativeCooldownAbility === abilityIndex) return false;
+        if (mode === "native" && blockedNativeResourceAbility === abilityIndex) return false;
         if (profile.placement_action === "relocate" && rejectRelocationCooldown(abilityIndex)) return false;
+        var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
+        var runtime = actionResources ? CustomNetTables.GetTableValue("survival_ability_runtime", String(abilityIndex)) || {} : {};
+        if (actionResources && actionResources.Reject(runtime)) {
+            if (mode === "native") blockedNativeResourceAbility = abilityIndex;
+            cancelCustomPointTarget("resources_unavailable");
+            return false;
+        }
         activePreviewSession = session || ++previewSessionSequence;
         activeProfile = profile;
         pendingRelocation = null;
@@ -924,10 +947,11 @@
 
     function renderCursorRange(world) {
         if (!world) return;
-        var b=nativeRangeBounds;
-        var usePlane=!!(b && (world[0]<b.min_x || world[0]>b.max_x || world[1]<b.min_y || world[1]>b.max_y));
-        var planeReady=staticGrid && staticGrid.setPlaneRange && staticGrid.setPlaneRange(usePlane);
-        if(usePlane && planeReady) {destroyRangeParticle();return;}
+        // This is our preview circle, not the ability's cast-range authority.
+        // Share the grid plane even over slopes: the native atlas includes its
+        // outline, and the UI fallback projects the same world circle.
+        var planeReady=staticGrid && staticGrid.enabled() && staticGrid.setPlaneRange && staticGrid.setPlaneRange(true);
+        if(planeReady) {destroyRangeParticle();return;}
         // Valve range_display: CP0 = center, CP1.x = radius, CP2 = HSL
         // adjustment (zero preserves native green), CP3.x = quickcast fade switch.
         // Its native children provide the ground-following edge/fill/shadow.
@@ -1163,8 +1187,11 @@
 
     function updateLoop() {
         if(!currentController()) return;
+        var loopStarted=Date.now();
         // Keep input/validation alive even if a visual API rejects a frame.
-        $.Schedule(0.035, updateLoop);
+        // Native white geometry follows the camera each rendered frame. Keep
+        // the red/green UI in step; validation and model poses stay rate limited.
+        $.Schedule(activeProfile && staticGrid && staticGrid.stats.native_active ? 0 : 0.035, updateLoop);
         if (pendingRelocationStart) {
             resumeRelocationStart();
             if (pendingRelocationStart) return;
@@ -1175,6 +1202,7 @@
         var nativeName = abilityName(nativeIndex);
         var nativeProfile = profiles[nativeName];
         if (nativeIndex !== blockedNativeCooldownAbility) blockedNativeCooldownAbility = -1;
+        if (nativeIndex !== blockedNativeResourceAbility) blockedNativeResourceAbility = -1;
         if (!customProfile && !nativeProfile && !activeProfile) blockedCooldownAbility = -1;
         if (customProfile) {
             var customState = customPointTargetState();
@@ -1197,6 +1225,7 @@
             && !pendingRelocation && rejectRelocationCooldown(activeAbility)) return;
         if (activeProfile) {
             var frameStarted=Date.now();
+            framePerformance.max_input_ms=Math.max(framePerformance.max_input_ms,frameStarted-loopStarted);
             renderCursorIcon();
             if(staticGrid && staticGrid.enabled()) staticGrid.refreshView();
             var cameraFinished=Date.now();
@@ -1209,6 +1238,7 @@
                     requestValidation(world);
                 }
                 renderCursorRange(world);
+                var gridStarted=Date.now();
                 if (staticGrid) staticGrid.update(world,true);
                 var rangeFinished=Date.now();
                 if(gridState) {
@@ -1224,6 +1254,7 @@
                 framePerformance.max_total_ms=Math.max(framePerformance.max_total_ms,statesFinished-frameStarted);
                 framePerformance.max_camera_ms=Math.max(framePerformance.max_camera_ms,cameraFinished-frameStarted);
                 framePerformance.max_range_ms=Math.max(framePerformance.max_range_ms,rangeFinished-cameraFinished);
+                framePerformance.max_grid_ms=Math.max(framePerformance.max_grid_ms,rangeFinished-gridStarted);
                 framePerformance.max_state_ms=Math.max(framePerformance.max_state_ms,statesFinished-rangeFinished);
                 if (fastMotion) {
                     if(!gridState) setStyle(cellHost,"opacity","0.0000");
@@ -1240,6 +1271,7 @@
                 renderCursorIcon();
             }
         }
+        framePerformance.max_complete_ms=Math.max(framePerformance.max_complete_ms,Date.now()-loopStarted);
     }
 
     function onProfiles(data) {
@@ -1256,7 +1288,6 @@
         }
         var list = normalizeLuaArray(data && data.profiles);
         buildPlaneHeight=data.static_grid && isFinite(Number(data.static_grid.height)) ? Number(data.static_grid.height) : null;
-        nativeRangeBounds=data.static_grid && data.static_grid.build_bounds || null;
         if (staticGrid) staticGrid.configure(data.static_grid,gridCellSize,previewVisual);
         // Panorama may hot-reload the controller before its shared helper.
         // Older retained instances must not abort profile registration.

@@ -4,7 +4,7 @@
 	m_bShouldHitboxesFallbackToRenderBounds = false
 	m_nMaxParticles = 12
 	m_nInitialParticles = 1
-	m_flConstantRadius = 1.0
+	m_flConstantRadius = 0.75
 	m_flConstantLifespan = 3.0
 	m_ConstantColor = [ 255, 214, 25, 255 ]
 	m_Renderers = 
@@ -14,7 +14,7 @@
 			m_flOverbrightFactor = 3.0
 			m_flAddSelfAmount = 1.0
 			m_bSaturateColorPreAlphaBlend = false
-			m_flMaxLength = 200.0
+			m_flMaxLength = 150.0
 			m_bIgnoreDT = true
 			m_flTailAlphaScale = 
 			{
@@ -84,12 +84,12 @@
 	[
 {
 			_class = "C_INIT_CreateWithinSphere"
-			m_fSpeedMax = 300.0
-			m_fSpeedMin = 100.0
-			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 100.0 ]
-			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 200.0 ]
-			m_fRadiusMin = 20.0
-			m_fRadiusMax = 20.0
+			m_fSpeedMax = 225.0
+			m_fSpeedMin = 75.0
+			m_LocalCoordinateSystemSpeedMin = [ 0.0, 0.0, 75.0 ]
+			m_LocalCoordinateSystemSpeedMax = [ 0.0, 0.0, 150.0 ]
+			m_fRadiusMin = 15.0
+			m_fRadiusMax = 15.0
 			m_vecDistanceBiasAbs = [ 0.0, 0.0, 1.0 ]
 			m_nControlPointNumber = 1
 		},
@@ -98,8 +98,8 @@
 			m_InputValue = 
 			{
 				m_nType = "PF_TYPE_RANDOM_UNIFORM"
-				m_flRandomMin = 5.0
-				m_flRandomMax = 10.0
+				m_flRandomMin = 3.75
+				m_flRandomMax = 7.5
 				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
 			}
 		},

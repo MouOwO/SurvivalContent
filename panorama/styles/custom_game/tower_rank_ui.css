@@ -26,7 +26,8 @@
 }
 .TowerRankName {
     position: 0px 14px 0px;
-    width: 108px;
+    width: fit-children;
+    max-width: 108px;
     height: 20px;
     font-family: "Radiance", "Arial";
     font-size: 18px;

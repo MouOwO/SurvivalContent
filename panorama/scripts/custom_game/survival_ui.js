@@ -10,11 +10,13 @@
     var difficultyOptionsSignature = "";
     var difficultyWave = null, difficultyChoice = "", difficultyRows = {};
     var difficultyModal = null, difficultyConfirm = null, difficultyRequestSerial = 0;
+    var difficultyDismissed = false, difficultyPhase = "", difficultyResume = null;
     var startupState = null, setupSession = "", modeChoice = "", modeAcknowledged = "";
     var modePending = false, modeError = "", modeRequestSerial = 0, modeSignature = "", modeRows = {};
     var profileRetry = null, profileRetryPending = false, profileRetrySerial = 0, profileErrorShown = false;
     var initialBuilderSelectionFinished = false;
     var initialBuilderSelectionSerial = 0;
+    var notificationItems = [];
 
     var waveStatusText = {
         dev_mode: "准备阶段",
@@ -242,17 +244,41 @@
         });
     }
 
+    function hideDifficultySelection() {
+        difficultyDismissed = true;
+        if (difficultyModal) difficultyModal.Close();
+        renderDifficultySelection(difficultyWave);
+    }
+
     function renderDifficultySelection(wave) {
         var overlay = panel("DifficultySelectionOverlay");
         var container = panel("DifficultySelectionButtons");
         if (!overlay || !container) return;
         difficultyWave = wave;
         var choosingMode = needsMode(), shouldShow = admissionComplete() && (choosingMode || difficultyAvailable());
-        overlay.SetHasClass("DifficultySelectionHidden", !shouldShow);
+        var phase = setupSession + ":" + (choosingMode ? "mode" : "difficulty");
+        if (phase !== difficultyPhase) { difficultyPhase = phase; difficultyDismissed = false; }
+        overlay.SetHasClass("DifficultySelectionHidden", !shouldShow || difficultyDismissed);
+        // ModalShell writes native visibility. Mirror the authoritative state so
+        // a cached window cannot survive a layout reload behind another menu.
+        overlay.visible = shouldShow && !difficultyDismissed;
+        if (!shouldShow || difficultyDismissed) {
+            var hiddenDialog=panel("DifficultySelectionDialog");
+            if (hiddenDialog) hiddenDialog.visible=false;
+        }
+        if (difficultyResume) {
+            difficultyResume.visible = shouldShow && difficultyDismissed;
+            difficultyResume.__survivalResumeText.text = choosingMode ? "继续选择模式" : "继续选择难度";
+        }
         if (!shouldShow) {
             difficultyRequestPending = false;
             overlay.SetHasClass("DifficultyPending", false);
             if (difficultyModal && difficultyModal.IsOpen()) difficultyModal.Close();
+            var sharedUI=GameUI.CustomUIConfig().SurvivalUI;
+            var sharedModal=sharedUI&&sharedUI.ModalManager.Get("survival_difficulty");
+            if(sharedModal&&sharedModal!==difficultyModal)sharedModal.Close();
+            var currentLayers=GameUI.CustomUIConfig().SurvivalUILayers;
+            if(currentLayers)currentLayers.Close("survival_difficulty");
             return;
         }
         var ui = GameUI.CustomUIConfig().SurvivalUI;
@@ -260,12 +286,28 @@
         if (!difficultyModal) {
             difficultyModal = ui.ModalShell.Adopt({id: "survival_difficulty", panel: panel("DifficultySelectionDialog"),
                 header: panel("DifficultySelectionHeader"), titlePanel: panel("DifficultySelectionTitle"),
-                scrim: overlay, root: $.GetContextPanel(), width: 1100, height: 820, closePolicy: "mandatory"});
+                scrim: overlay, root: $.GetContextPanel(), width: 1100, height: 820, closePolicy: "mandatory",
+                onClose: hideDifficultySelection});
             difficultyConfirm = ui.ActionButton(panel("DifficultySelectionConfirmHost"), {
                 id: "DifficultySelectionConfirm", variant: "gold", label: "确认选择", enabled: false,
                 action: function () { if (needsMode()) confirmMode(); else selectDifficulty(); }});
+            difficultyResume = $.CreatePanel("Button", $.GetContextPanel(), "DifficultySelectionResume");
+            difficultyResume.hittest = true; difficultyResume.hittestchildren = false;
+            difficultyResume.style.width = "200px"; difficultyResume.style.height = "44px";
+            difficultyResume.style.horizontalAlign = "right"; difficultyResume.style.verticalAlign = "center";
+            difficultyResume.style.marginRight = "28px"; difficultyResume.style.marginTop = "120px";
+            difficultyResume.style.backgroundColor = "#23414d"; difficultyResume.style.border = "1px solid #b59d69";
+            var resumeText = $.CreatePanel("Label", difficultyResume, "");
+            resumeText.text = choosingMode ? "继续选择模式" : "继续选择难度";
+            resumeText.hittest = false; resumeText.style.horizontalAlign = "center"; resumeText.style.verticalAlign = "center";
+            resumeText.style.fontSize = "20px"; resumeText.style.color = "#eee0b7";
+            difficultyResume.__survivalResumeText = resumeText;
+            difficultyResume.visible = false;
+            difficultyResume.SetPanelEvent("onactivate", function () {
+                difficultyDismissed = false; renderDifficultySelection(difficultyWave);
+            });
         }
-        if (!difficultyModal.IsOpen()) difficultyModal.Open();
+        if (!difficultyDismissed && !difficultyModal.IsOpen()) difficultyModal.Open();
         var wasChoosingMode = panel("MatchModeOptions").visible;
         panel("MatchModeOptions").visible = choosingMode;
         container.visible = !choosingMode;
@@ -318,6 +360,8 @@
         lastSnapshotAt = Game.GetGameTime();
 
         var resources = snapshot.resources || {};
+        var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
+        if (actionResources) actionResources.Update(snapshot.resources || null);
         var wave = snapshot.wave || {};
         renderDifficultySelection(wave);
         setText("WoodValue", compactNumber(resources.wood));
@@ -414,15 +458,75 @@
     }
 
     function showNotification(payload) {
+        if (!payload) return;
+        if (payload.audience === "player" && Number(payload.player_id) !== playerId) return;
+        var message = String(payload.message || "");
+        if (!message.trim()) return;
+        // Rejected resource/queue actions use the same native feedback as a
+        // failed ability cast. Queue waiting states remain in the queue panel.
+        if (payload.level === "error" && payload.audience !== "all") {
+            var actionErrors = {
+                wood_not_enough: "木材不足", not_enough_wood: "木材不足", insufficient_wood: "木材不足",
+                gold_not_enough: "金币不足", not_enough_gold: "金币不足", insufficient_gold: "金币不足",
+                population_not_enough: "人口不足", not_enough_population: "人口不足", insufficient_population: "人口不足",
+                research_queue_full: "研究队列已满", technology_queue_full: "研究队列已满"
+            };
+            var actionMatch = message.match(/(木材不足|金币不足|人口不足|研究队列已满|队列研究已满)/);
+            var actionError = actionErrors[message.trim()] || (actionMatch && actionMatch[1]);
+            if (actionError === "队列研究已满") actionError = "研究队列已满";
+            if (actionError) {
+                GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80, message: actionError});
+                return;
+            }
+        }
         var container = panel("NotificationContainer");
         if (!container) return;
+        notificationItems = notificationItems.filter(function (entry) {
+            return entry && entry.IsValid();
+        });
+        while (notificationItems.length >= 4) notificationItems.shift().DeleteAsync(0);
         var item = $.CreatePanel("Panel", container, "");
         item.AddClass("Notification");
+        item.hittest = false; item.hittestchildren = false;
         if (payload.level === "error") item.AddClass("error");
-        var label = $.CreatePanel("Label", item, "");
-        label.text = payload.message || "";
-        $.Schedule(3.0, function () {
-            if (item && item.IsValid()) item.DeleteAsync(0);
+        var broadcast = payload.audience === "all";
+        item.SetHasClass("NotificationBroadcast", broadcast);
+        var abilityIcon = String(payload.ability_icon || "");
+        var heroName = String(payload.hero_name || "");
+        if (/^[a-z0-9_]+$/.test(abilityIcon)) {
+            var ability = $.CreatePanel("DOTAAbilityImage", item, "");
+            ability.AddClass("NotificationIcon"); ability.abilityname = abilityIcon;
+        } else if (broadcast && /^npc_dota_hero_[a-z0-9_]+$/.test(heroName)) {
+            var hero = $.CreatePanel("DOTAHeroImage", item, "");
+            hero.AddClass("NotificationIcon"); hero.heroname = heroName; hero.heroimagestyle = "icon";
+        } else {
+            var mark = $.CreatePanel("Label", item, "");
+            mark.AddClass("NotificationMark"); mark.text = payload.level === "error" ? "!" : "★";
+        }
+        function text(value, className) {
+            var label = $.CreatePanel("Label", item, "");
+            label.AddClass("NotificationText");
+            if (className) label.AddClass(className);
+            label.text = value;
+        }
+        if (payload.kind === "research_success" && payload.subject) {
+            text("研究 ");
+            text(String(payload.subject), "NotificationSubject");
+            text(" 科技成功");
+        } else {
+            var actor = String(payload.actor_name || "");
+            if (broadcast && actor && message.indexOf(actor) === 0) {
+                text(actor + " ", "NotificationActor");
+                message = message.slice(actor.length).replace(/^\s+/, "");
+            }
+            text(message);
+        }
+        notificationItems.push(item);
+        $.Schedule(broadcast ? 5.0 : 3.5, function () {
+            if (item && item.IsValid()) {
+                item.AddClass("NotificationDismissed");
+                item.DeleteAsync(0.25);
+            }
         });
     }
 

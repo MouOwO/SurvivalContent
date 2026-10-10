@@ -1,0 +1,43 @@
+#LotteryWindow #LotteryMainCanvas.LotteryPurple { overflow:clip; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryPoolTabs .LHMainTab { width:203px; height:42px; margin-right:6px; background-color:#1f1530; border:1px solid #56446e; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryPoolTabs .LHMainTab.Selected { background-color:#53317d; border:1px solid #b89b63; border-bottom:2px solid #e3c178; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryPoolTabs .LotteryPoolTabName { font-size:21px; margin:4px 0px 0px; color:#e0d2ef; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryPoolTabs .LotteryPoolBadge { visibility:collapse; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryWallet { background-color:#21162f; background-image:none; border-bottom:1px solid #655079; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryCelestialFooter { background-color:#171024; background-image:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryCelestialFooter .LHCost { visibility:visible; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .ZXActionSkin,
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .LHLogo,
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .LHUtilityDivider { visibility:collapse; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .ZXDrawContent { margin:0px; height:36px; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .ZXDrawAction Label,
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .ZXDrawAction .LHCost { font-size:22px; color:#eddfc4; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LHDetails Label,
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LHHistory Label,
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotterySkipAnimation Label,
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryDrawPity Label { font-size:18px; color:#c4b0da; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryDrawPity #LotteryDrawPityCaptionBounds { position:0px 0px 0px; width:560px; height:28px; margin:0px; vertical-align:top; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryDrawPity #LotteryDrawPityCaption { width:fit-children; max-width:560px; height:28px; min-height:28px; font-size:18px; transform:none; margin:0px; padding:0px; horizontal-align:center; vertical-align:top; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .LHGuaranteeText Label { color:#dec7e9; font-size:21px; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple .LHGuaranteeLine { background-color:#755189; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryAnnouncement Label { font-size:18px; color:#b69acb; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryResultHeading { font-size:27px; color:#efcd7e; text-shadow:none; }
+#LotteryWindow #LotteryMainCanvas.LotteryPurple #LotteryItemList .LotteryRewardIcon { width:100%; height:100%; }
+#LotteryInfoDialog.LotteryInfoPurple #LotteryInfoHeader { background-color:transparent; border:0px; }
+#LotteryInfoDialog.LotteryInfoPurple .RHStandaloneTabGlow { visibility:collapse; }
+#LotteryInfoDialog.LotteryInfoPurple #LotteryInfoTabs .LotteryPoolTab { width:286px; height:40px; background-color:#21162f; border:1px solid #5f477a; }
+#LotteryInfoDialog.LotteryInfoPurple #LotteryInfoTabs .LotteryPoolTab.Selected { background-color:#56337d; border-bottom:2px solid #e6c678; }
+#LotteryInfoDialog.LotteryInfoPurple #LotteryInfoTabs .LotteryPoolTabName { font-size:20px; color:#ded0ec; }
+#LotteryInfoDialog.LotteryInfoPurple #LotteryInfoTabs .LotteryPoolBadge { visibility:collapse; }
+#LotteryInfoDialog.LotteryInfoPurple .RHRewardCard.Selected .LotteryDetailIcon { border:1px solid #f0c978; box-shadow:#d4a64566 0px 0px 8px 0px; }
+#LotteryInfoDialog.LotteryInfoPurple .LotteryDetailIcon .LotteryRewardIcon { width:100%; height:100%; margin:0px; position:0px 0px 0px; }
+#LotteryInfoDialog.LotteryInfoPurple .PurpleLotteryQuantity { position:81px 0px 0px; padding:1px 5px; font-size:17px; color:#f1dfff; background-color:#160d24ed; z-index:8; }
+#LotteryInfoDialog.LotteryInfoPurple .RHHistoryRow { background-color:#171024; border-bottom:1px solid #3e2c52; }
+#LotteryInfoDialog.LotteryInfoPurple .RHHistoryRow.RHAlternate { background-color:#20152e; }
+#LotteryInfoDialog.LotteryInfoPurple .RHHistoryName { color:#ddcdec; }
+#LotteryInfoDialog.LotteryInfoPurple .RHHistoryTime { color:#9e8ab1; }
+#LotteryInfoDialog.LotteryInfoPurple .PurpleLotteryEmpty { width:100%; height:80px; text-align:center; margin-top:130px; font-size:22px; color:#ae97c3; }
+#LotteryItemTooltip { background-color:gradient(linear,0% 0%,0% 100%,from(#211632),to(#0d0a19)); border:1px solid #b58d58; border-radius:4px; box-shadow:#000000b3 0px 6px 18px 0px; }
+#LotteryItemTooltip #LotteryTooltipName { color:#efd077; font-size:24px; }
+#LotteryItemTooltip #LotteryTooltipDescription { color:#d8c6e9; font-size:19px; }
+#LotteryItemTooltip #LotteryTooltipEffectHeading { color:#d9c19c; border-top:1px solid #604772; }

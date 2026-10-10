@@ -3,7 +3,7 @@
 	_class = "CParticleSystemDefinition"
 	m_bShouldHitboxesFallbackToRenderBounds = false
 	m_nMaxParticles = 33
-	m_flConstantRadius = 33.0
+	m_flConstantRadius = 24.75
 	m_ConstantColor = [ 94, 145, 255, 255 ]
 	m_bShouldSort = false
 	m_Renderers = 
@@ -15,7 +15,7 @@
 			m_flAddSelfAmount = 1.0
 			m_bSaturateColorPreAlphaBlend = false
 			m_flRadiusScale = 0.5
-			m_flTextureVWorldSize = 60.0
+			m_flTextureVWorldSize = 45.0
 			m_nMaxTesselation = 4
 			m_nMinTesselation = 4
 			VisibilityInputs = 
@@ -34,7 +34,6 @@
 	m_Operators = 
 	[
 { _class = "C_OP_PositionLock" },
-
 {
 			_class = "C_OP_Decay"
 			m_nOpEndCapState = "PARTICLE_ENDCAP_ENDCAP_ON"
@@ -81,7 +80,7 @@
 			m_flInitialRadius = 
 			{
 				m_nType = "PF_TYPE_LITERAL"
-				m_flLiteralValue = 65.0
+				m_flLiteralValue = 48.75
 			}
 			m_flInitialSpeedMin = 
 			{
@@ -99,8 +98,8 @@
 			m_InputValue = 
 			{
 				m_nType = "PF_TYPE_RANDOM_UNIFORM"
-				m_flRandomMin = 12.0
-				m_flRandomMax = 15.0
+				m_flRandomMin = 9.0
+				m_flRandomMax = 11.25
 				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
 			}
 		},
@@ -128,8 +127,8 @@
 		},
 {
 			_class = "C_INIT_PositionOffset"
-			m_OffsetMax = [ 0.0, 0.0, 8.0 ]
-			m_OffsetMin = [ 0.0, 0.0, 8.0 ]
+			m_OffsetMax = [ 0.0, 0.0, 6.0 ]
+			m_OffsetMin = [ 0.0, 0.0, 6.0 ]
 		}
 ]
 	m_Emitters = 
@@ -164,6 +163,8 @@
 	]
 	m_nBehaviorVersion = 4
 	m_nFirstMultipleOverride_BackwardCompat = 4
-m_Constraints = [{ _class = "C_OP_ConstrainDistance" m_nControlPointNumber = 1 m_bGlobalCenter = false m_fMinDistance = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 3 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 160.0 m_flOutput0 = 1.0 m_flOutput1 = 160.0 } m_fMaxDistance = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 3 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 160.0 m_flOutput0 = 1.0 m_flOutput1 = 160.0 } m_CenterOffset = [0.0,0.0,8.0] }]
+m_Constraints = [
+{ _class = "C_OP_ConstrainDistance" m_nControlPointNumber = 1 m_bGlobalCenter = false m_fMinDistance = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 3 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 120.0 m_flOutput0 = 0.75 m_flOutput1 = 120.0 } m_fMaxDistance = { m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT" m_nControlPoint = 3 m_nVectorComponent = 0 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 120.0 m_flOutput0 = 0.75 m_flOutput1 = 120.0 } m_CenterOffset = [ 0.0, 0.0, 6.0 ] }
+]
 }
 

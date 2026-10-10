@@ -1,6 +1,6 @@
 (function () {
     "use strict";
-    var cfg=GameUI.CustomUIConfig(),ctx=$.GetContextPanel(),root=ctx,cache={};
+    var cfg=GameUI.CustomUIConfig(),ctx=$.GetContextPanel(),root=ctx,cache={},missingUntil={};
     while(root.GetParent&&root.GetParent())root=root.GetParent();
     var tooltipIds=["CustomAbilityTooltip","CustomInventoryItemTooltip","ShopEntryTooltip","SurvivalPortraitCameraEditor","SurvivalProductionPanel","SurvivalMinimapShortcuts"];
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
@@ -17,7 +17,12 @@
         var rects=(cfg.HandoffWorldOcclusion||[]).slice();
         tooltipIds.forEach(function(id){
             var panel=cache[id];
-            if(!valid(panel))panel=cache[id]=root.FindChildTraverse(id);
+            if(!valid(panel)) {
+                var now=Date.now();
+                if(now<(missingUntil[id]||0))return;
+                panel=cache[id]=root.FindChildTraverse(id);
+                missingUntil[id]=valid(panel)?0:now+100;
+            }
             if(!valid(panel)||!visible(panel)||!panel.GetPositionWithinWindow)return;
             var position=panel.GetPositionWithinWindow();
             var width=Number(panel.__survivalWindowWidth)||Number(panel.actuallayoutwidth)||0;

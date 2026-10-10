@@ -118,6 +118,17 @@
 .AbilityFieldLabel { width: 164px; color: #9db0bf; font-size: 22px; }
 .AbilityFieldValue { color: #f0d48a; font-size: 22px; }
 
+/* Hero skill level prose needs the full remaining width, not a stat column. */
+.AbilityFieldRow.AbilitySkillLevelRow { margin-top: 2px; }
+.AbilitySkillLevelRow .AbilityFieldLabel { width: 52px; color: #9da5ad; }
+.AbilitySkillLevelRow .AbilityFieldValue {
+    width: fill-parent-flow(1.0);
+    white-space: normal;
+    color: #9da5ad;
+}
+.AbilitySkillLevelRow.AbilitySkillLevelCurrent .AbilityFieldLabel,
+.AbilitySkillLevelRow.AbilitySkillLevelCurrent .AbilityFieldValue { color: #f0d48a; }
+
 #SurvivalAbilityTakeoverLayer {
     width: 100%;
     height: 100%;

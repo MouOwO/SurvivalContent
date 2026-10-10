@@ -1,0 +1,48 @@
+/* Shared purple shell, compact product cells and floating purchase details. */
+.RCWindow.CommercePurple { flow-children:none;padding:0px;overflow:noclip;background-image:none;background-color:#100b21fa;border:1px solid #95723f;border-radius:4px; }
+.CommercePurpleBackdrop { background-color:#07040eb8; }
+.CommercePurple Label { font-family:"Source Han Sans SC";color:#d9c7ee;text-shadow:none; }
+.CommercePurple .RCHeader { visibility:collapse; }
+.CommercePurple .RCTabs { position:0px 150px 0px;width:208px;height:596px;flow-children:none;overflow:squish scroll;z-index:3;border-right:1px solid #59456d55;background-color:#0a071588; }
+.CommercePurple .CommercePurpleNav { margin:0px;padding:0px;flow-children:none;background-image:none;background-color:transparent;border:0px;border-bottom:1px solid #44324c55; }
+.CommercePurple .CommercePurpleNav:hover { background-color:#35244e66; }
+.CommercePurple .CommercePurpleNav.UISelected { background-color:gradient(linear,0% 0%,100% 0%,from(#6f4a2788),to(#9c762cbb));border-top:1px solid #ba8e4b;border-bottom:1px solid #ba8e4b; }
+.CommercePurple .RCTabText { width:182px;height:58px;align:left top;text-align:center;font-size:21px;color:#d9c7ee;white-space:nowrap;text-overflow:shrink; }
+.CommercePurple .CommercePurpleNav.UISelected .RCTabText { color:#ffdc79; }
+.CommercePurple .RCGrid,.CommercePurple .RCGrid.RCBundles { position:232px 174px 0px;width:1020px;height:548px;flow-children:none;overflow:noclip;z-index:5; }
+.CommercePurple .CommercePurpleDetailLayer { position:0px 0px 0px;width:100%;height:100%;flow-children:none;overflow:noclip;z-index:120; }
+.CommercePurple .RCNotice { position:232px 138px 0px;width:1016px;height:28px;z-index:4;font-size:15px;color:#bba7d4;white-space:nowrap;text-overflow:shrink; }
+.CommercePurple .CommercePurpleProduct,.CommercePurple .CommercePurpleProduct:hover { width:188px;height:172px;padding:0px;margin:0px;flow-children:none;overflow:noclip;background-image:none;background-color:transparent;border:0px;box-shadow:none;transform:none; }
+.CommercePurple .CommercePurpleArtWell { background-color:#0b0718;border:1px solid #65457e;border-radius:3px;box-shadow:#00000077 0px 3px 8px 0px; }
+.CommercePurple .CommercePurpleProduct:hover .CommercePurpleArtWell,.CommercePurple .CommercePurpleProduct.ShopSelected .CommercePurpleArtWell,.CommercePurple .CJVisualHover .CommercePurpleArtWell { border-color:#e7b454;box-shadow:#d79c4933 0px 0px 10px 1px; }
+.CommercePurple .CommercePurpleProduct.ShopSelected { z-index:30; }
+.CommercePurple .RCProductArt { horizontal-align:left;vertical-align:top;transform:none; }
+.CommercePurple .RCProductName { width:fit-children;max-width:188px;height:30px;horizontal-align:center;vertical-align:top;margin:0px;padding:0px;font-size:18px;text-align:center;white-space:nowrap;text-overflow:shrink;color:#dfd0f1; }
+.CommercePurple .RCStockState { margin:0px;padding:0px;background-color:transparent;color:#fff0be;font-size:16px;font-weight:bold;text-align:right;z-index:4;text-shadow:0px 1px 2px 3 #050309; }
+.CommercePurple .RCPurpleDetail { visibility:collapse;width:312px;height:fit-children;max-height:540px;padding:16px;flow-children:down;overflow:squish scroll;z-index:20;background-color:gradient(linear,0% 0%,100% 100%,from(#211630),to(#0d091b));border:1px solid #bc9150;border-radius:5px;box-shadow:#000000b8 0px 6px 22px 0px; }
+.CommercePurple .RCPurpleDetail.Visible,.CommercePurple .CJVisualHover .RCPurpleDetail { visibility:visible; }
+.CommercePurple .RCPurpleDetailIcon { width:68px;height:64px;margin-bottom:8px;horizontal-align:center; }
+.CommercePurple .RCPurpleDetailTitle { width:100%;height:fit-children;margin:0px 0px 8px;color:#ffda72;font-size:22px;text-align:left;white-space:normal; }
+.CommercePurple .RCProductEffect { width:100%;height:fit-children;max-height:180px;padding:10px 0px 0px;margin:0px 0px 8px;border-top:1px solid #80644388;color:#e5d8f5;font-size:17px;line-height:24px;text-align:left;white-space:normal;overflow:squish scroll; }
+.CommercePurple .CJPrice { position:0px 0px 0px;width:278px;height:36px;background-image:none;flow-children:none;margin:4px 0px 6px; }
+.CommercePurple .CJPriceRow { width:100%;height:32px;flow-children:right; }
+.CommercePurple .CJPriceIcon { width:24px;height:24px;margin-right:6px;vertical-align:center; }
+.CommercePurple .CJPriceValue,.CommercePurple .CJYuanIcon { color:#ffdc79;font-size:20px;vertical-align:center; }
+.CommercePurple .CJYuanIcon { margin-right:5px; }
+.CommercePurple .CommercePurpleBuy { width:278px;height:42px;margin-top:8px;padding:0px;background-image:none;background-color:gradient(linear,0% 0%,0% 100%,from(#764ca4),to(#382345));border:1px solid #ba8e4b;border-radius:2px; }
+.CommercePurple .CommercePurpleBuy:hover { brightness:1.15;border-color:#eac670; }
+.CommercePurple .CommercePurpleBuy Label { align:center center;width:100%;text-align:center;color:#ffde99;font-size:20px; }
+.CommercePurple .CommercePurpleState { width:100%;color:#c3accf;font-size:15px; }
+.CommercePurple .RCBundleContents { width:100%;height:fit-children;max-height:220px;flow-children:down;overflow:squish scroll;padding-top:5px;border-top:1px solid #80644388; }
+.CommercePurple .RCBundleItem { width:100%;height:43px;flow-children:right;margin-bottom:5px; }
+.CommercePurple .RCBundleArt { width:36px;height:36px;margin-right:8px; }
+.CommercePurple .RCBundleName { width:168px;vertical-align:center;color:#e5d8f5;font-size:16px;text-overflow:shrink; }
+.CommercePurple .RCBundleQuantity { width:56px;vertical-align:center;color:#ffdc79;font-size:16px;text-align:right; }
+.CommercePurple .CJPager { position:900px 754px 0px;width:348px;height:28px;flow-children:right;z-index:6; }
+.CommercePurple .CJPageAction { width:82px;height:28px;border:1px solid #604779;background-color:#271a3a;border-radius:2px; }
+.CommercePurple .CJPageAction:hover { border-color:#bf9453; }
+.CommercePurple .CJPageAction Label { align:center center;width:100%;text-align:center;white-space:nowrap;color:#decaf0;font-size:16px; }
+.CommercePurple .CJPageLabel { width:174px;height:28px;text-align:center;font-size:15px;color:#bba7d4;vertical-align:center; }
+.CommercePurple .CJEmpty { width:1020px;height:60px;margin-top:50px;text-align:center;color:#bba7d4;font-size:22px; }
+.CommercePurple VerticalScrollBar { width:6px;background-color:#19112d; }
+.CommercePurple VerticalScrollBar .ScrollThumb { background-color:#7a5da3;min-height:28px; }

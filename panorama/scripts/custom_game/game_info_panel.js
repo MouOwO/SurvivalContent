@@ -36,6 +36,9 @@
 
     function dispose() {
         if (disposed) return;
+        if (config.SurvivalGameInfoGeneration === generation && config.SurvivalUILayers) {
+            config.SurvivalUILayers.Close("game_info");
+        }
         if (open && config.SurvivalGameInfoGeneration === generation) {
             GameEvents.SendCustomGameEventToServer("ui_game_info_request", {open: 0});
         }
@@ -188,6 +191,10 @@
         root.SetHasClass("GameInfoClosed", !open);
         root.hittest = open;
         root.hittestchildren = open;
+        if (config.SurvivalUILayers) {
+            if (open) config.SurvivalUILayers.Open("game_info", root, close);
+            else config.SurvivalUILayers.Close("game_info");
+        }
         if (open) {
             requestSnapshot();
             render(CustomNetTables.GetTableValue(tableName, tableKey));
