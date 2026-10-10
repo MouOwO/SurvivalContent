@@ -66,7 +66,7 @@
         var presentation=cfg.SurvivalPortraitPresentation;
         if (presentation && typeof presentation.BindShortcutScene==="function")
             presentation.BindShortcutScene(icon, "builder_io", action.hero, false);
-        else icon.SetUnit(action.hero,"shortcut_soft",false);
+        else icon.SetUnit(action.hero,"default",false);
         var key = create("Label", button, action.id + "Key", "MinimapShortcutKey"); key.text = action.key;
         button.SetPanelEvent("onactivate", function () { activate(action); });
         action.button = button;

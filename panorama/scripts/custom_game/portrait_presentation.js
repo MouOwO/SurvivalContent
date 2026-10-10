@@ -173,8 +173,8 @@
     function bindShortcutScene(scene, key, unitName) {
         if (!valid(scene)) return false;
         scene.hittest=false;scene.hittestchildren=false;
-        var camera="shortcut_soft",profileVersion=1;
-        if (scene.__survivalSceneKey===key && scene.__survivalSceneCamera===camera && scene.__survivalSceneProfileVersion===profileVersion) return true;
+        var camera="default";
+        if (scene.__survivalSceneKey===key && scene.__survivalSceneCamera===camera) return true;
         // Keep a failed asset/API from triggering another load every HUD tick.
         if (scene.__survivalSceneAttemptKey===key && Date.now()-scene.__survivalSceneAttemptAt<5000) return false;
         scene.__survivalSceneAttemptKey=key;scene.__survivalSceneAttemptAt=Date.now();
@@ -185,7 +185,6 @@
         if (!loaded) {$.Warning("[SHORTCUT_SCENE] Load failed: "+unitName);return false;}
         scene.__survivalSceneKey=key;scene.__survivalSceneMethod=method;
         scene.__survivalSceneCamera=camera;
-        scene.__survivalSceneProfileVersion=profileVersion;
         scene.__survivalSceneLoads=(Number(scene.__survivalSceneLoads)||0)+1;
         return true;
     }
@@ -293,9 +292,12 @@
             var args=Array.prototype.slice.call(arguments);
             if(String(args[0]).indexOf("survival_shortcut_scene_review_")===0)args.shift();
             var mode=args[0];
-            var context=$.GetContextPanel(),previous=context.FindChildTraverse("ShortcutSceneReview");
+            var context=$.GetContextPanel();
+            if(!valid(context) || cfg.SurvivalPortraitPresentation!==presentation)return;
+            var previous=context.FindChildTraverse("ShortcutSceneReview");
             if(valid(previous))previous.DeleteAsync(0);
             if(mode!=="show")return;
+            $.Msg("[SHORTCUT_REVIEW] aspect_v2 ",probeSuffix);
             var review=$.CreatePanel("Panel",context,"ShortcutSceneReview");
             review.hittest=false;review.hittestchildren=false;
             style(review,{position:"88px 112px 0px",width:"352px",height:"250px",overflow:"noclip",zIndex:"6000"});
@@ -322,5 +324,6 @@
             });
         },"Activate local hero corner button in Tools",0);
     }
-    cfg.SurvivalPortraitPresentation = {Refresh:refresh, SetSnapshot:setSnapshot, InspectBackdrop:currentBackdrop, RefreshLocalHeroPortrait:refreshLocalHeroPortrait, BindShortcutScene:bindShortcutScene};
+    var presentation={Refresh:refresh, SetSnapshot:setSnapshot, InspectBackdrop:currentBackdrop, RefreshLocalHeroPortrait:refreshLocalHeroPortrait, BindShortcutScene:bindShortcutScene};
+    cfg.SurvivalPortraitPresentation=presentation;
 })();
