@@ -1,0 +1,332 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_nBehaviorVersion = 12
+	m_Emitters = [ {
+		_class = "C_OP_InstantaneousEmitter"
+	} ]
+	m_Initializers = [ {
+		_class = "C_INIT_InitFloat"
+		m_InputValue = {
+			m_nType = "PF_TYPE_RANDOM_UNIFORM"
+			m_flRandomMin = 0.15
+			m_flRandomMax = 0.35
+			m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+		}
+		m_nOutputField = 1
+	}, {
+		_class = "C_INIT_RingWave"
+		m_flInitialRadius = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 83.33327593388582
+		}
+		m_flThickness = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 16.666655186777163
+		}
+		m_flInitialSpeedMin = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 41.66663796694291
+		}
+		m_flInitialSpeedMax = {
+			m_nType = "PF_TYPE_LITERAL"
+			m_flLiteralValue = 833.3327593388581
+		}
+	}, {
+		_class = "C_INIT_PositionOffset"
+		m_OffsetMin = [ 0.0, 0.0, 49.99996556033148 ]
+		m_OffsetMax = [ 0.0, 0.0, 49.99996556033148 ]
+	}, {
+		_class = "C_INIT_PositionPlaceOnGround"
+		m_bIncludeWater = true
+	}, {
+		_class = "C_INIT_InitialVelocityNoise"
+		m_vecOutputMin = {
+			m_nType = "PVEC_TYPE_LITERAL"
+			m_vLiteralValue = [ -66.66662074710865, -66.66662074710865, -66.66662074710865 ]
+			m_LiteralColor = [ 0, 0, 0, 0 ]
+			m_nVectorAttribute = 6
+			m_vVectorAttributeScale = [ 1.0, 1.0, 1.0 ]
+			m_nControlPoint = 0
+			m_vCPValueScale = [ 1.0, 1.0, 1.0 ]
+			m_vCPRelativePosition = [ 0.0, 0.0, 0.0 ]
+			m_vCPRelativeDir = [ 1.0, 0.0, 0.0 ]
+			m_FloatComponentX = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_FloatComponentY = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_FloatComponentZ = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_FloatInterp = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_flInterpInput0 = 0.0
+			m_flInterpInput1 = 1.0
+			m_vInterpOutput0 = [ 0.0, 0.0, 0.0 ]
+			m_vInterpOutput1 = [ 1.0, 1.0, 1.0 ]
+			m_Gradient = {
+				m_Stops = [  ]
+			}
+		}
+		m_vecOutputMax = {
+			m_nType = "PVEC_TYPE_LITERAL"
+			m_vLiteralValue = [ 66.66662074710865, 66.66662074710865, 66.66662074710865 ]
+			m_LiteralColor = [ 0, 0, 0, 0 ]
+			m_nVectorAttribute = 6
+			m_vVectorAttributeScale = [ 1.0, 1.0, 1.0 ]
+			m_nControlPoint = 0
+			m_vCPValueScale = [ 1.0, 1.0, 1.0 ]
+			m_vCPRelativePosition = [ 0.0, 0.0, 0.0 ]
+			m_vCPRelativeDir = [ 1.0, 0.0, 0.0 ]
+			m_FloatComponentX = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_FloatComponentY = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_FloatComponentZ = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_FloatInterp = {
+				m_nType = "PF_TYPE_LITERAL"
+				m_nMapType = "PF_MAP_TYPE_DIRECT"
+				m_flLiteralValue = 0.0
+				m_nControlPoint = 0
+				m_nScalarAttribute = 3
+				m_nVectorAttribute = 6
+				m_nVectorComponent = 0
+				m_flRandomMin = 0.0
+				m_flRandomMax = 1.0
+				m_nRandomMode = "PF_RANDOM_MODE_CONSTANT"
+				m_nInputMode = "PF_INPUT_MODE_CLAMPED"
+				m_flMultFactor = 1.0
+				m_flInput0 = 0.0
+				m_flInput1 = 1.0
+				m_flOutput0 = 0.0
+				m_flOutput1 = 1.0
+				m_nBiasType = "PF_BIAS_TYPE_STANDARD"
+				m_flBiasParameter = 0.0
+				m_Curve = {
+					m_spline = [  ]
+					m_tangents = [  ]
+					m_vDomainMins = [ 0.0, 0.0 ]
+					m_vDomainMaxs = [ 0.0, 0.0 ]
+				}
+			}
+			m_flInterpInput0 = 0.0
+			m_flInterpInput1 = 1.0
+			m_vInterpOutput0 = [ 0.0, 0.0, 0.0 ]
+			m_vInterpOutput1 = [ 1.0, 1.0, 1.0 ]
+			m_Gradient = {
+				m_Stops = [  ]
+			}
+		}
+	} ]
+	m_Operators = [ {
+		_class = "C_OP_Decay"
+	}, {
+		_class = "C_OP_BasicMovement"
+		m_Gravity = [ 0.0, 0.0, -333.33310373554326 ]
+	}, {
+		_class = "C_OP_LerpEndCapScalar"
+		m_nFieldOutput = 7
+		m_flOutput = 0.0
+		m_flLerpTime = 0.6
+	}, {
+		_class = "C_OP_EndCapTimedDecay"
+		m_flDecayTime = 0.6
+	} ]
+	m_ForceGenerators = [ {
+		_class = "C_OP_RandomForce"
+		m_MinForce = [ -8333.327593388582, -8333.327593388582, 0.0 ]
+		m_MaxForce = [ 8333.327593388582, 8333.327593388582, 0.0 ]
+	} ]
+	m_Renderers = [ {
+		_class = "C_OP_RenderBlobs"
+		m_cubeWidth = 24.99998278016574
+		m_cutoffRadius = 58.333293153720064
+		m_renderRadius = 6.666662074710865
+		m_hMaterial = resource:"materials/particle/blob_magma.vmat"
+	} ]
+	m_nMaxParticles = 100
+	m_Children = [ {
+		m_ChildRef = resource:"particles/survival/skills/meteor_snapfire_ground_impact_glow.vpcf"
+	} ]
+	m_Constraints = [ {
+		_class = "C_OP_WorldTraceConstraint"
+		m_CollisionGroupName = "DEBRIS"
+		m_bKillonContact = true
+	} ]
+	m_PreEmissionOperators = [ {
+		_class = "C_OP_StopAfterCPDuration"
+		m_flDuration = {
+			m_nType = "PF_TYPE_CONTROL_POINT_COMPONENT"
+			m_nControlPoint = 20
+			m_nVectorComponent = 1
+		}
+	} ]
+}

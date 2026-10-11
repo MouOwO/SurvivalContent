@@ -1,0 +1,97 @@
+/* Existing catalogs, research queues and purchase actions inside the V10 shell. */
+#CustomShopWindow.MenuV10Shop { flow-children:none; padding:0px; overflow:noclip; }
+#CustomShopWindow.MenuV10Shop #ShopHeader { visibility:collapse; }
+#CustomShopWindow.MenuV10Shop #ShopBody { position:0px 0px 0px; width:1113px; height:610px; margin:0px; padding:0px; flow-children:none; }
+#CustomShopWindow.MenuV10Shop #ShopShelfArea { width:100%; height:100%; background-image:none; background-color:transparent; border:0px; }
+#CustomShopWindow.MenuV10Shop #ShopItemList { position:0px 0px 0px; width:1113px; height:610px; margin:0px; padding:0px; flow-children:none; overflow:squish scroll; }
+#CustomShopWindow.MenuV10Shop .ShopShelfSlot,#CustomShopWindow.MenuV10Shop .ShopShelfSlot:hover { margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; box-shadow:none; transform:none; }
+#CustomShopWindow.MenuV10Shop .ShopItemFrame { position:0px 0px 0px; width:120px; height:120px; margin:0px; padding:0px; flow-children:none; background-color:transparent; border:0px; box-shadow:none; }
+#CustomShopWindow.MenuV10Shop .ShopItemIcon { position:0px 0px 0px; width:120px; height:120px; margin:0px; padding:0px; }
+#CustomShopWindow.MenuV10Shop .ShopCardName { width:130px; height:35px; margin:0px; padding:0px; font-family:"Source Han Sans SC"; font-weight:normal; font-size:18px; color:#d9d3e5; background-color:transparent; text-shadow:none; text-align:center; white-space:nowrap; text-overflow:ellipsis; }
+#CustomShopWindow.MenuV10Shop .ShopStockLabel,#CustomShopWindow.MenuV10Shop .ShopTechnologyLevel { margin:0px; padding:0px; font-family:"Source Han Sans SC"; font-size:16px; font-weight:normal; color:#eeeaf5; background-color:transparent; text-shadow:#000000 0px 1px 3px 2.0; }
+#CustomShopWindow.MenuV10Shop .ShopTechnologyLockBadge,#CustomShopWindow.MenuV10Shop .ShopTechnologyCode,#CustomShopWindow.MenuV10Shop .AutoBookButton { visibility:collapse; }
+#CustomShopWindow.MenuV10Shop #ShopFooter { margin:0px; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; }
+#CustomShopWindow.MenuV10Shop #ShopStatus { width:1095px; height:48px; margin:0px; padding:0px; color:#efc29a; font-size:18px; text-align:left; white-space:normal; }
+#CustomShopWindow.MenuV10Shop #ShopResourceSummary { visibility:collapse; }
+#CustomShopWindow.MenuV10Shop #ShopLoading { horizontal-align:center; vertical-align:center; }
+
+#ShopEntryTooltip.MenuV10ShopTooltip { width:368px; padding:0px; max-height:704px; background-image:none; background-color:transparent; border:0px; box-shadow:none; flow-children:none; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipFrame { position:0px 0px 0px; width:320px; height:fit-children; max-height:656px; margin:0px; padding:19px 22px; background-image:none; background-color:transparent; border:0px; box-shadow:none; flow-children:down; overflow:squish scroll; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipHeader { width:276px; height:fit-children; min-height:94px; margin:0px; padding:0px; border:0px; flow-children:right; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipIconHost,#ShopEntryTooltip.MenuV10ShopTooltip .ShopTooltipMainIcon { width:68px; height:68px; margin:0px; padding:0px; border:0px; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipTitleBlock { width:196px; height:fit-children; min-height:94px; margin:0px 0px 0px 12px; padding:0px; flow-children:down; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipTitle { width:196px; height:fit-children; max-height:132px; margin:0px; padding:0px; color:#f6d795; font-size:22px; white-space:normal; text-overflow:clip; overflow:squish scroll; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipType { visibility:visible; width:196px; height:25px; margin:0px; padding:0px; color:#bcaed0; font-size:15px; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipCostRow { width:196px; height:34px; margin:3px 0px 0px; flow-children:right; }
+#ShopEntryTooltip.MenuV10ShopTooltip .TooltipCostBlock { width:fit-children; height:32px; margin:0px 8px 0px 0px; flow-children:right; }
+#ShopEntryTooltip.MenuV10ShopTooltip .TooltipCostIcon { width:22px; height:22px; margin:3px 5px 0px 0px; }
+#ShopEntryTooltip.MenuV10ShopTooltip .TooltipCostValue { width:fit-children; max-width:130px; height:30px; color:#edcc8a; font-size:18px; text-overflow:shrink; }
+#ShopEntryTooltip.MenuV10ShopTooltip.ShopTooltipDualCost #ShopTooltipCostRow { height:64px; flow-children:down; }
+#ShopEntryTooltip.MenuV10ShopTooltip.ShopTooltipDualCost #ShopTooltipHeader,#ShopEntryTooltip.MenuV10ShopTooltip.ShopTooltipDualCost #ShopTooltipTitleBlock { height:fit-children; min-height:128px; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipEffectHeading { width:276px; height:34px; margin:0px; padding:8px 0px 0px; border-top:1px solid #80644388; color:#bcaed0; font-size:15px; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipDescription { width:276px; height:fit-children; max-height:360px; margin:0px; padding:0px; color:#e4dcec; font-size:17px; line-height:24px; white-space:normal; overflow:squish scroll; }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipTitle,#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipType,#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipDescription { font-family:"Source Han Sans SC"; font-weight:normal; text-shadow:none; }
+#ShopEntryTooltip.MenuV10ShopTooltip .ShopTooltipPurchase,#ShopEntryTooltip.MenuV10ShopTooltip .ShopTooltipAutoPurchase { width:276px; height:42px; margin:12px 0px 0px; padding:0px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_selected_no_text.png"); background-size:100% 100%; background-color:transparent; border:0px; }
+#ShopEntryTooltip.MenuV10ShopTooltip .ShopTooltipPurchase Label,#ShopEntryTooltip.MenuV10ShopTooltip .ShopTooltipAutoPurchase Label { align:center center; width:100%; font-size:19px; color:#f1dcaa; text-align:center; text-overflow:shrink; }
+#ShopEntryTooltip.MenuV10ShopTooltip .ShopTooltipAutoPurchase { height:34px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_default_no_text.png"); }
+#ShopEntryTooltip.MenuV10ShopTooltip #ShopTooltipArrow { visibility:collapse; }
+
+.MenuV10Commerce .RCGrid { position:0px 0px 0px; width:1113px; height:610px; margin:0px; padding:0px; flow-children:none; overflow:squish scroll; }
+.MenuV10Commerce .RCNotice { position:417px 183px 0px; width:1095px; height:24px; color:#b6a9c9; font-size:15px; white-space:nowrap; text-overflow:ellipsis; }
+.MenuV10Commerce .CommercePurpleArtWell { width:120px; height:120px; margin:0px; padding:0px; background-color:transparent; border:0px; box-shadow:none; }
+.MenuV10Commerce .RCProductArt { width:120px; height:120px; margin:0px; padding:0px; transform:none; }
+.MenuV10Commerce .RCProductName { font-family:"Source Han Sans SC"; font-weight:normal; font-size:18px; color:#d9d3e5; text-align:center; white-space:nowrap; text-overflow:ellipsis; }
+.MenuV10Commerce .RCStockState { font-size:16px; color:#eeeaf5; font-weight:normal; margin:0px; padding:0px; background-color:transparent; }
+.MenuV10Commerce .CJPager { position:727px 8px 0px; width:368px; height:38px; flow-children:right; }
+.MenuV10Commerce .CJPageAction { width:90px; height:36px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_default_no_text.png"); background-size:100% 100%; background-color:transparent; border:0px; }
+.MenuV10Commerce .CJPageAction Label { align:center center; width:100%; text-align:center; font-size:17px; color:#d9d3e5; }
+.MenuV10Commerce .CJPageLabel { width:188px; height:36px; font-size:16px; color:#b6a9c9; text-align:center; vertical-align:center; }
+.MenuV10Commerce .CJEmpty { width:1113px; height:60px; margin-top:60px; color:#b6a9c9; font-size:22px; text-align:center; }
+.MenuV10CommerceDetail { visibility:collapse; width:368px; height:fit-children; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; box-shadow:none; }
+.MenuV10CommerceDetail.Visible { visibility:visible; }
+.MenuV10CommerceDetailBody { position:22px 19px 0px; width:276px; height:fit-children; max-height:616px; padding:0px; margin:0px; flow-children:down; overflow:squish scroll; }
+.MenuV10CommerceDetailBody Label { font-family:"Source Han Sans SC"; font-weight:normal; text-shadow:none; }
+.MenuV10CommerceDetailBody .RCPurpleDetailIcon { width:68px; height:68px; margin:0px 0px 8px; horizontal-align:left; }
+.MenuV10CommerceDetailBody .RCPurpleDetailTitle { width:276px; height:fit-children; margin-bottom:8px; font-size:22px; color:#f6d795; white-space:normal; }
+.MenuV10CommerceDetailBody .RCProductEffect { width:276px; height:fit-children; max-height:240px; margin-bottom:8px; padding-top:10px; border-top:1px solid #80644388; font-size:17px; color:#e4dcec; line-height:24px; white-space:normal; overflow:squish scroll; }
+.MenuV10CommerceDetailBody .CJPrice { position:0px 0px 0px; width:276px; height:36px; margin:4px 0px 6px; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; }
+.MenuV10CommerceDetailBody .CJPriceRow { width:276px; height:32px; flow-children:right; }
+.MenuV10CommerceDetailBody .CJPriceIcon { width:24px; height:24px; margin-right:6px; vertical-align:center; }
+.MenuV10CommerceDetailBody .CJPriceValue,.MenuV10CommerceDetailBody .CJYuanIcon { font-size:20px; color:#f6d795; vertical-align:center; }
+.MenuV10CommerceDetailBody .CommercePurpleBuy { width:276px; height:42px; margin-top:8px; padding:0px; border:0px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_selected_no_text.png"); background-size:100% 100%; background-color:transparent; }
+.MenuV10CommerceDetailBody .CommercePurpleBuy Label { align:center center; width:100%; font-size:19px; text-align:center; color:#f1dcaa; }
+.MenuV10CommerceDetailBody .CommercePurpleState { width:276px; height:24px; color:#b6a9c9; font-size:15px; }
+.MenuV10CommerceDetailBody .RCBundleContents { width:276px; height:fit-children; max-height:220px; flow-children:down; overflow:squish scroll; }
+.MenuV10CommerceDetailBody .RCBundleItem { width:276px; height:43px; flow-children:right; margin-bottom:5px; }
+.MenuV10CommerceDetailBody .RCBundleArt { width:36px; height:36px; margin-right:8px; }
+.MenuV10CommerceDetailBody .RCBundleName { width:176px; height:36px; color:#e4dcec; font-size:16px; text-overflow:ellipsis; }
+.MenuV10CommerceDetailBody .RCBundleQuantity { width:56px; height:36px; color:#f6d795; font-size:16px; text-align:right; }
+
+.MenuV10Exchange .CommerceConfirmCopy { position:22px 10px 0px; width:1070px; height:470px; font-family:"Source Han Sans SC"; color:#e4dcec; font-size:21px; line-height:30px; white-space:normal; overflow:squish scroll; }
+.MenuV10Exchange .CommerceConfirmStatus { position:22px 494px 0px; width:1070px; height:80px; color:#efc994; font-size:18px; white-space:normal; }
+.MenuV10Exchange .CommerceConfirmBuy,.MenuV10Exchange .CommerceConfirmBack { position:817px 0px 0px; width:260px; height:48px; padding:0px; border:0px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_selected_no_text.png"); background-size:100% 100%; }
+.MenuV10Exchange .CommerceConfirmBack { position:527px 0px 0px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_default_no_text.png"); }
+.MenuV10Exchange .CommerceConfirmBuy Label,.MenuV10Exchange .CommerceConfirmBack Label { align:center center; width:100%; font-size:21px; color:#f1dcaa; text-align:center; }
+
+#PaymentDialog.MenuV10Payment .PaymentHeader,#PaymentDialog.MenuV10Payment .PaymentInputShield { visibility:collapse; }
+#PaymentDialog.MenuV10Payment .PaymentBody { position:0px 0px 0px; width:1113px; height:600px; margin:0px; padding:0px; flow-children:none; }
+#PaymentDialog.MenuV10Payment .PaymentTitle { width:1113px; height:48px; font-size:27px; color:#f6d795; text-align:left; }
+#PaymentDialog.MenuV10Payment .PaymentPrice { position:0px 52px 0px; width:1113px; height:40px; font-size:25px; color:#f6d795; text-align:left; }
+#PaymentDialog.MenuV10Payment .PaymentSummary { position:0px 108px 0px; width:1113px; height:220px; }
+#PaymentDialog.MenuV10Payment .PaymentProductArt { position:12px 4px 0px; width:144px; height:144px; }
+#PaymentDialog.MenuV10Payment .PaymentRewardCopy { position:180px 0px 0px; width:909px; height:220px; }
+#PaymentDialog.MenuV10Payment .PaymentDescription,#PaymentDialog.MenuV10Payment .PaymentValues { width:890px; font-family:"Source Han Sans SC"; font-size:19px; color:#e4dcec; line-height:27px; white-space:normal; }
+#PaymentDialog.MenuV10Payment .PaymentQuantity { position:180px 344px 0px; }
+#PaymentDialog.MenuV10Payment .PaymentMethods { position:180px 406px 0px; width:440px; height:48px; }
+#PaymentDialog.MenuV10Payment .PaymentMethod { height:48px; }
+#PaymentDialog.MenuV10Payment .PaymentQuantityValue,#PaymentDialog.MenuV10Payment .PaymentMethod Label { color:#e4dcec; }
+#PaymentDialog.MenuV10Payment .PaymentFooter { position:0px 0px 0px; width:1095px; height:54px; margin:0px; padding:0px; horizontal-align:left; flow-children:right; }
+#PaymentDialog.MenuV10Payment .PaymentAction { width:240px; height:48px; margin:0px 12px 0px 0px; }
+#PaymentDialog.MenuV10Payment .PaymentAction Label { color:#f1dcaa; font-size:21px; }
+#PaymentDialog.MenuV10Payment .PaymentQRStage { width:1113px; height:340px; }
+#PaymentDialog.MenuV10Payment .PaymentQRChannel { width:1113px; color:#e4dcec; }
+#PaymentDialog.MenuV10Payment .PaymentQRFrame { position:414px 36px 0px; }
+#PaymentDialog.MenuV10Payment .PaymentBrowser { position:0px 490px 0px; width:1113px; }
+#PaymentDialog.MenuV10Payment .PaymentBrowser Label { color:#ccb4e8; }
+#PaymentDialog.MenuV10Payment #PaymentHint { position:417px 795px 0px; width:1095px; color:#a997bc; font-size:16px; text-align:left; }
+#PaymentDialog.MenuV10Payment #PaymentStatus { position:0px 548px 0px; width:1095px; height:56px; color:#efc994; font-size:18px; text-align:left; white-space:normal; }

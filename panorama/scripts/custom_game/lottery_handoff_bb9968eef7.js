@@ -1,8 +1,9 @@
 (function () {
     "use strict";
-    var cfg=GameUI.CustomUIConfig(), owner=$.GetContextPanel(), timer=null;
+    var cfg=GameUI.CustomUIConfig(), owner=$.GetContextPanel(), timer=null,nodes={};
     var lifetime=$.CreatePanel("Panel",owner,"");lifetime.visible=false;
-    function p(id){if(!valid(lifetime))return null;var n=owner.FindChildTraverse(id);return valid(n)?n:null;}
+    (function remember(n){if(!valid(n))return;if(n.id)nodes[n.id]=n;n.Children().forEach(remember);})(owner);
+    function p(id){if(!valid(lifetime))return null;if(valid(nodes[id]))return nodes[id];var n=owner.FindChildTraverse(id);if(valid(n))nodes[id]=n;return valid(n)?n:null;}
     function valid(node){return node&&(!node.IsValid||node.IsValid());}
     function tenRule(pity){
         var list=Array.isArray(pity)?pity:Object.keys(pity||{}).map(function(k){return pity[k];});
@@ -34,37 +35,21 @@
         return {width:w,height:h};
     }
     function fit(){
-        var viewport=viewportSize(),canvas=p("LotteryMainCanvas");
-        if(!viewport||!valid(canvas))return false;
-        if(canvas.BHasClass("LotteryPurple")){
-            var popupScale=Math.min(viewport.width/1920,viewport.height/1080);
-            canvas.style.width="1280px";canvas.style.height="800px";
-            canvas.style.transform="scale3d("+popupScale+","+popupScale+",1)";canvas.style.opacity="1";
-            if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Resize(1280,482);
-            if(cfg.LotteryCinematic&&cfg.LotteryCinematic.Resize)cfg.LotteryCinematic.Resize(1280,672);
-            return true;
-        }
-        // Fill the entire viewport; preserve a 1600 x 900 safe area for controls.
-        // Ultra-wide screens gain horizontal scene space, 4:3 gains vertical space.
-        var scale=Math.min(viewport.width/1600,viewport.height/900);
-        canvas.style.width=(viewport.width/scale)+"px";
-        canvas.style.height=(viewport.height/scale)+"px";
-        canvas.style.transform="scale3d("+scale+","+scale+",1)";
-        canvas.style.opacity="1";
-        if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Resize(viewport.width,viewport.height);
-        if(cfg.LotteryCinematic&&cfg.LotteryCinematic.Resize)cfg.LotteryCinematic.Resize(viewport.width,viewport.height);
-        return true;
+        var renderer=cfg.SurvivalPurpleLottery;
+        if(renderer&&renderer.Fit)return renderer.Fit();
+        // Missing integration never paints the retired full-screen layout.
+        var canvas=p("LotteryMainCanvas");if(valid(canvas))canvas.style.opacity="0";
+        return false;
     }
     cfg.LotteryHandoff={
         Viewport:viewportSize,
         Prepare:function(){
             if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Close();
             var canvas=p("LotteryMainCanvas");
-            canvas.RemoveClass("ReferenceWindow");
-            if(canvas.BHasClass("LotteryPurple")){if(cfg.SurvivalPurpleLottery)cfg.SurvivalPurpleLottery.Apply();fit();return;}
-            canvas.style.backgroundImage="none";canvas.style.backgroundColor="transparent";
-            canvas.style.border="0px";canvas.style.borderRadius="0px";canvas.style.boxShadow="none";
-            canvas.style.opacity="0";fit();
+            if(!valid(canvas))return;
+            canvas.RemoveClass("ReferenceWindow");canvas.RemoveClass("LotteryPurple");
+            if(cfg.SurvivalPurpleLottery)cfg.SurvivalPurpleLottery.Apply();
+            if(!fit())canvas.style.opacity="0";
         },
         Background:function(poolId){
             var themes=["map","cultivation","dragon_knight","summer"],scene=p("LotterySceneBackground");
@@ -122,7 +107,7 @@
         },
         Open:function(){
             if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);
-            function tick(){timer=null;if(!valid(p("LotteryWindow"))||p("LotteryWindow").BHasClass("LotteryClosed"))return;var ready=fit();timer=$.Schedule(ready?.25:0,tick);}
+            function tick(){timer=null;if(!valid(p("LotteryWindow"))||p("LotteryWindow").BHasClass("LotteryClosed"))return;fit();timer=$.Schedule(.25,tick);}
             tick();
         },
         Close:function(){if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);timer=null;if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Close();},

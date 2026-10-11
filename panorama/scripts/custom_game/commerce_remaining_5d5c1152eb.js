@@ -27,14 +27,20 @@
         detailsDisposed=true;
     }
     function rebuildDetails(){if(valid(grid))grid.Children().forEach(function(p){if(valid(p)&&p.__purpleRebuildDetail)p.__purpleRebuildDetail();});detailsDisposed=false;}
-    function close() { opened=false;ticketRequest=false;hideDetails();if(store&&store.shell&&store.shell.Close)store.shell.Close(); }
+    function close() { opened=false;ticketRequest=false;hideDetails();if(store&&store.menu)store.menu.Close(); }
     function modal() {
         return J.Window(root,close);
     }
-    var store=modal(), tabs=panel("Panel",store.panel,"RCTabs"), grid=panel("Panel",store.panel,"RCGrid");
-    var notice=text(store.panel,"正在加载商品…","RCNotice"),pager=panel("Panel",store.panel,"CJPager");
+    var store=modal(), tabs=panel("Panel",store.panel,"RCTabs"), grid=panel("Panel",store.content,"RCGrid");
+    tabs.visible=false;
+    var notice=text(store.canvas,"正在加载商品…","RCNotice"),pager=panel("Panel",store.actions,"CJPager");
     function checkout(item) {
         if(!live()||!item)return false;
+        if(item.disabled_reason==="payment_catalog_pending" || item.disabled_reason==="payment_product_unavailable" || item.disabled_reason==="payment_price_unavailable"){
+            notice.text=item.disabled_reason==="payment_catalog_pending"?"人民币支付目录正在连接，请稍后重试。":"此商品的人民币购买尚未开放，请稍后重试。";
+            if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog(true);
+            return false;
+        }
         if(item && item.purchase_method==="wallet"){
             if(cfg.SurvivalCommerceWallet && cfg.SurvivalCommerceWallet.Checkout(item.sku)){close();return true;}
             return false;
@@ -42,10 +48,11 @@
         if(disposed || !item || !cfg.SurvivalPayments || !cfg.SurvivalPayments.Checkout)return false;
         close();cfg.SurvivalPayments.Checkout(item.sku);return true;
     }
-    function purchaseLabel(item) { return item.purchase_method==="wallet"?"查看 / 兑换":item.enabled?"查看 / 购买":item.owned>0?"已拥有 · 查看":"查看奖励"; }
+    function enabled(value){return value===true || value===1;}
+    function purchaseLabel(item) { return item.purchase_method==="wallet"?"查看 / 兑换":item.disabled_reason==="payment_catalog_pending"?"连接支付目录":item.disabled_reason==="payment_product_unavailable" || item.disabled_reason==="payment_price_unavailable"?"人民币购买尚未开放":enabled(item.enabled)?"查看 / 购买":item.owned>0?"已拥有 · 查看":"查看奖励"; }
     function noticeText(){
         var b=walletCatalog.balances||{};
-        return (walletCatalog.error?walletCatalog.error+" · ":"")+"商城余额："+(b.u_coin||0)+" U币 · "+(b.shop_points||0)+" 积分 · "+(b.shop_gold||0)+" 金币 · 充值暂未开放";
+        return (walletCatalog.error?walletCatalog.error+" · ":"")+"U币道具支持人民币直购 · 1元=1000U币 · 积分余额："+(b.shop_points||0)+" · 商城金币："+(b.shop_gold||0);
     }
     function singleTicket() {
         // A bundle containing tickets is not a single-ticket purchase.
@@ -66,16 +73,20 @@
         detailsDisposed=false;
         var categories=rows(catalog.categories), products=rows(catalog.products);
         if(!categories.some(function(c){return c.id===category;})) category=(categories.filter(function(c){return products.some(function(p){return p.category_id===c.id;});})[0]||categories[0]||{}).id||"";
-        categories.forEach(function(c,i){J.Nav(tabs,c,i,c.id===category,function(){category=c.id;page=0;render();});});
+        store.menu.SetSidebar(categories.map(function(c){return {id:c.id,label:c.label};}),category,function(id){category=id;page=0;render();});
+        store.menu.SetResources([{icon:"gold",name:"U币",value:walletCatalog.balances&&walletCatalog.balances.u_coin||0},
+            {icon:"purple_gem",name:"积分",value:walletCatalog.balances&&walletCatalog.balances.shop_points||0},
+            {icon:"ticket",name:"商城金币",value:walletCatalog.balances&&walletCatalog.balances.shop_gold||0}]);
         var items=products.filter(function(p){return p.category_id===category;});
         var bundles=items.length>0 && items.every(function(p){return p.product_type==="bundle";});grid.SetHasClass("RCBundles",bundles);
         notice.text=noticeText();
         if(categories.length && !items.length) { text(grid,"本分类暂无上架商品","CJEmpty");return; }
-        var perPage=15,totalPages=Math.max(1,Math.ceil(items.length/perPage));page=Math.max(0,Math.min(page,totalPages-1));
+        var perPage=24,totalPages=Math.max(1,Math.ceil(items.length/perPage));page=Math.max(0,Math.min(page,totalPages-1));
         items.slice(page*perPage,(page+1)*perPage).forEach(function(item,i){
-            var props={rewards:rows(item.reward_lines),effect:rewardText(item)||item.description,purchaseLabel:purchaseLabel(item),action:function(){checkout(item);},detailLayer:store.detailLayer};
+            var props={rewards:rows(item.reward_lines),effect:rewardText(item)||item.description,purchaseLabel:purchaseLabel(item),action:function(){checkout(item);},detailLayer:store.detailLayer,menu:store.menu};
             var card=bundles?J.Bundle(grid,item,props):J.Product(grid,item,props);
-            J.Box(card,(i%5)*202,Math.floor(i/5)*184,188,172);
+            store.menu.DecorateCell(card,{index:i,keep:true,iconPanel:card.__menuCell.iconPanel,
+                namePanel:card.__menuCell.namePanel,countPanel:card.__menuCell.countPanel});
         });
         if(totalPages>1){
             function turn(label,delta,enabled){var b=panel("Button",pager,"CJPageAction");text(b,label,"");b.enabled=enabled;b.SetPanelEvent("onactivate",function(){if(b.enabled){page+=delta;render();}});}
@@ -86,7 +97,7 @@
         if(!live())return;
         catalog=data||{products:[],categories:[]};
         // Keep hovered cards stable when only numeric previews have changed.
-        var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.amount_fen,p.price,p.currency,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
+        var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.amount_fen,p.price,p.currency,p.u_coin_price,p.u_coin_per_yuan,p.purchase_method,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
         if(next!==revision){revision=next;render();}
         // Updating a connection notice must not destroy hovered cards or clear products.
         notice.text=noticeText();
@@ -99,12 +110,42 @@
     function mergeCatalogs(){
         var categories=rows(paidCatalog.categories).slice();
         rows(walletCatalog.categories).forEach(function(c){if(!categories.some(function(v){return v.id===c.id;}))categories.push(c);});
-        update({products:rows(walletCatalog.products).concat(rows(paidCatalog.products)),categories:categories,
+        var paid=Object.create(null),seen=Object.create(null),products=[];
+        function copy(value){var p={};Object.keys(value||{}).forEach(function(k){p[k]=value[k];});return p;}
+        function validUPrice(p){return p && typeof p.u_coin_price==="number" && p.u_coin_price>0 && p.u_coin_price%1===0 && p.u_coin_per_yuan===1000 && typeof p.amount_fen==="number" && p.amount_fen>0 && p.amount_fen<=1000000 && p.amount_fen%1===0 && p.u_coin_price===p.amount_fen*10;}
+        rows(paidCatalog.products).forEach(function(p){if(p && typeof p.sku==="string")paid[p.sku]=p;});
+        rows(walletCatalog.products).forEach(function(p){
+            if(!p || typeof p.sku!=="string" || seen[p.sku])return;
+            seen[p.sku]=true;
+            var item=copy(p),cash=paid[p.sku];
+            if(p.currency==="u_coin"){
+                // The wallet supplies presentation while the authenticated payment row decides eligibility.
+                // Wallet balance and wallet insufficient-funds flags never authorize or block a cash order.
+                if(cash)Object.keys(cash).forEach(function(k){item[k]=cash[k];});
+                item.amount_fen=cash?cash.amount_fen:undefined;item.u_coin_price=cash?cash.u_coin_price:undefined;item.u_coin_per_yuan=cash?cash.u_coin_per_yuan:undefined;
+                item.currency="u_coin";item.currency_name="U币";item.purchase_method="cash";
+                item.enabled=!!cash && validUPrice(cash) && enabled(cash.enabled);
+                if(validUPrice(cash)){item.price=cash.u_coin_price;item.disabled_reason=cash.disabled_reason||"";}
+                else item.disabled_reason=cash?"payment_price_unavailable":paidCatalog.error || !paidCatalog.catalog_hash && !rows(paidCatalog.products).length?"payment_catalog_pending":"payment_product_unavailable";
+            }
+            products.push(item);
+        });
+        rows(paidCatalog.products).forEach(function(p){
+            if(!p || typeof p.sku!=="string" || seen[p.sku])return;
+            seen[p.sku]=true;var item=copy(p);
+            if(p.u_coin_price!==undefined || p.u_coin_per_yuan!==undefined || p.currency==="u_coin"){
+                item.currency="u_coin";item.currency_name="U币";item.purchase_method="cash";
+                item.enabled=validUPrice(p) && enabled(p.enabled);item.price=p.u_coin_price;
+                if(!validUPrice(p))item.disabled_reason="payment_price_unavailable";
+            }
+            products.push(item);
+        });
+        update({products:products,categories:categories,
             catalog_hash:paidCatalog.catalog_hash,alipay:paidCatalog.alipay,error:paidCatalog.error});
     }
     function updatePaid(data){paidCatalog=data||{products:[],categories:[]};mergeCatalogs();}
     cfg.SurvivalCommerceView={
-        Open:function(){if(!live())return;opened=true;if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());if(detailsDisposed)rebuildDetails();store.shell.Open();if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog();if(cfg.SurvivalCommerceWallet)cfg.SurvivalCommerceWallet.Refresh();},
+        Open:function(){if(!live())return;opened=true;if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());if(detailsDisposed)rebuildDetails();store.menu.Open();if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog();if(cfg.SurvivalCommerceWallet)cfg.SurvivalCommerceWallet.Refresh();},
         Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},IsOpen:function(){return opened;},
         SetNotice:function(message){if(live())notice.text=message;},
         OpenTicketPurchase:function(pool){
@@ -117,13 +158,13 @@
             if(!payments.RefreshCatalog)return false;
             // Opening directly from lottery can precede the first shop snapshot.
             // Show progress and continue to checkout when that catalog arrives.
-            category="item";opened=true;render();store.shell.Open();ticketRequest=true;
+            category="item";opened=true;render();store.menu.Open();ticketRequest=true;
             notice.text="正在加载金色抽奖券商品…";payments.RefreshCatalog();return true;
         },
         Inspect:function(){var path=[],p=store&&store.panel,hasPanel=valid(p);while(valid(p) && path.length<10){path.push({id:p.id,classes:p.GetClasses?p.GetClasses():[],visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,visibility:p.style.visibility,opacity:p.style.opacity,z:p.style.zIndex,clip:p.style.clip});p=p.GetParent();}
             return {category:category,page:page,opened:opened,valid:hasPanel,visible:hasPanel?store.panel.visible:false,
             width:hasPanel?store.panel.actuallayoutwidth:0,height:hasPanel?store.panel.actuallayoutheight:0,productCount:rows(catalog.products).length,path:path};},
-        Dispose:function(){if(disposed)return;disposed=true;opened=false;ticketRequest=false;hideDetails();if(store&&store.purpleShell&&store.purpleShell.Dispose)store.purpleShell.Dispose();if(store&&store.shell&&store.shell.Dispose)store.shell.Dispose();if(store)[store.panel,store.scrim].forEach(function(p){if(valid(p))p.DeleteAsync(0);});}
+        Dispose:function(){if(disposed)return;disposed=true;opened=false;ticketRequest=false;hideDetails();if(store&&store.menu)store.menu.Dispose();if(store)[store.panel,store.scrim].forEach(function(p){if(valid(p))p.DeleteAsync(0);});}
     };
     if(cfg.SurvivalPayments && cfg.SurvivalPayments.GetCatalog)updatePaid(cfg.SurvivalPayments.GetCatalog());
     if(cfg.SurvivalCommerceWallet){walletCatalog=cfg.SurvivalCommerceWallet.GetCatalog();mergeCatalogs();}

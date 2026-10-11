@@ -40,7 +40,8 @@
         var visible = isDrawPage();
         panel("ArchiveContent").SetHasClass("ArchiveHasDraw", visible);
         panel("ArchiveDrawBar").SetHasClass("ArchiveHidden", !visible);
-        panel("ArchiveDrawBar").style.visibility = visible ? "visible" : "collapse";
+        var drawVisibility=visible?"visible":"collapse";
+        if(panel("ArchiveDrawBar").style.visibility!==drawVisibility)panel("ArchiveDrawBar").style.visibility=drawVisibility;
         panel("ArchiveContent").SetHasClass("ArchiveBuildingPage", current === "building");
         panel("ArchiveContent").SetHasClass("ArchiveCollectionPage",["friend","ex","beast","fishing"].indexOf(current)>=0);
         panel("ArchiveContent").SetHasClass("ArchiveWorkPage",current==="work");
@@ -84,12 +85,13 @@
     }
     function request(prefetch) {
         if(!active())return;
+        if(cfg.SurvivalArchiveV10 && current === "shop")return;
         GameEvents.SendCustomGameEventToServer("survival_archive_request", { category_id: current, prefetch:prefetch===true?1:0 });
         // The server silently throttles requests on game time, which can stand
         // still while paused. Keep one retry until a real baseline arrives.
         if(prefetch===true)retrySync();
     }
-    var archiveFit={reference:[1920,1080]},voidView=cfg.SurvivalArchiveVoidV1;
+    var archiveFit={reference:[1672,941]},voidView=cfg.SurvivalArchiveV10Factory?cfg.SurvivalArchiveV10Factory():cfg.SurvivalArchiveVoidV1;
     function renderVoid(data){return voidView&&voidView.Render(data,current,filterMode,categories,archiveFit);}
     function tabs() {
         var container = panel("ArchiveTabs"), signature = JSON.stringify([current, categories]);
@@ -104,13 +106,17 @@
                 var crest=$.CreatePanel("Label",toggle,"");crest.AddClass("ArchiveNavIcon");
                 crest.text="冠";crest.style.fontSize="23px";crest.style.color="#d6b574";crest.hittest=false;
             } else A.NavIcon(toggle, category.id, navIcons[category.id]);
-            toggle.enabled = Number(category.disabled) !== 1;
+            toggle.enabled = Number(category.disabled) !== 1 || !!cfg.SurvivalArchiveV10;
             label(toggle, category.id === "building" ? "存档神器" : category.name, "ArchiveNavLabel");
             toggle.__archiveActivate = function () {
                 if(!active()||!valid(toggle))return;
-                if (Number(category.disabled) === 1 || current === category.id) return;
+                if ((!cfg.SurvivalArchiveV10 && Number(category.disabled) === 1) || current === category.id) return;
                 current = category.id; filterMode="all"; lastData=pageCache[current]||null;
                 panel("ArchiveGrid").ScrollToTop();
+                hideTooltip();
+                if (cfg.SurvivalArchiveV10 && Number(category.disabled) === 1) {
+                    render({ok:1,category_id:current,categories:categories,rows:[],unavailable:1});return;
+                }
                 if(lastData){tabs();render(lastData);return;}
                 hideTooltip();
                 Object.keys(rowCards).forEach(function(key){rowCards[key].panel.visible=false;});
@@ -144,12 +150,15 @@
         // fonts and palettes are assembled only when the player opens the view.
         if(!active()||!opened)return;
         if (data.category_id !== current) return;
+        if (cfg.SurvivalArchiveV10 && cfg.ArchiveV10Semantics) {
+            data=Object.assign({},data,{rows:cfg.ArchiveV10Semantics.Normalize(data,current)});
+        }
         lastData=data; A.Observe(data);
         var order=["clear","shadow","points","starjoy_points","gift","fragment","pet","endless","friend","ex","beast"];
         categories = array(data.categories).sort(function(a,b){var ai=a.id==="titles"?1000:order.indexOf(a.id),bi=b.id==="titles"?1000:order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
         var paletteDirty = tabs();
-        if(renderVoid(data))return;
-        hideTooltip();
+        if(!cfg.SurvivalArchiveV10 && renderVoid(data))return;
+        if(!cfg.SurvivalArchiveV10)hideTooltip();
         ["all","unlocked","locked"].forEach(function(mode){panel("ArchiveFilter_"+mode).checked=mode===filterMode;});
         var social = data.social, socialPage = isDrawPage();
         showDrawBar();
@@ -182,12 +191,16 @@
             card.hittest=true;
             card.AddClass("ArchiveCard");
             card.__archiveUnlocked=unlocked;
+            card.__archiveItem=item;
+            card.__archiveCategory=current;
             card.SetHasClass("ArchiveContentLocked",unlocked!==true);
             // Collection/item artwork stays recognizable; text still reflects ownership.
             card.SetHasClass("ArchiveArtAlwaysBright",["fragment","friend","ex","beast","fishing","shadow","points","pet","work","building"].indexOf(current)>=0);
             // Cached rows still need current visual policy when artwork stays unchanged.
             if(cached&&cached.fingerprint===fingerprint)return;
             paletteDirty = true;
+            var retainedV10=cfg.SurvivalArchiveV10&&card.__v10&&valid(card.__v10.host)?card.__v10:null;
+            if(retainedV10)retainedV10.host.SetParent(root);
             if(cached)card.RemoveAndDeleteChildren();
             rowCards[key]={panel:card,fingerprint:fingerprint};
             card.hittestchildren = false;
@@ -205,7 +218,7 @@
                     var titleArt=$.CreatePanel("Image",card,"");titleArt.AddClass("ArchiveTitleArt");
                     titleArt.SetImage(item.icon);titleArt.hittest=false;
                 }
-            } else icon(card, item);
+            } else if(!retainedV10 || retainedV10.artKey!==JSON.stringify([current,item.id,item.icon,item.icon_type,item.icon_style]))icon(card, item);
             var displayName = current === "fragment" ? String(item.name || "").replace(/^神兵[-－·]/, "") : item.name;
             // Tier requirements already have a progress badge; keep the full
             // configured name in the tooltip instead of repeating it on cards.
@@ -221,7 +234,7 @@
                 status.hittest=false;
             }
             card.SetPanelEvent("onmouseover", function () { tooltip(item, card); });
-            card.SetPanelEvent("onmouseout", hideTooltip);
+            card.SetPanelEvent("onmouseout",function(){if(voidView&&voidView.RequestTooltipHide)voidView.RequestTooltipHide();else hideTooltip();});
             if (current === "titles") {
                 var equipped=Number(item.equipped)===1;
                 var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 卸下":Number(item.preview_only)===1?"点击试穿":"点击穿戴","ArchiveTitleAction");
@@ -288,7 +301,7 @@
                         var targetName=targetRow?String(targetRow.name||"").replace(/^神兵[-－·]/,""):"下一阶神兵";
                         A.ShowEffectOnly({name:"晋升兑换", description:"消耗" + item.promotion_cost + "片，兑换" + targetName + "碎片×1。累计获得超过200片后解锁。"}, promote);
                     });
-                    promote.SetPanelEvent("onmouseout", hideTooltip);
+                    promote.SetPanelEvent("onmouseout",function(){if(voidView&&voidView.RequestTooltipHide)voidView.RequestTooltipHide();else hideTooltip();});
                     promote.SetPanelEvent("onactivate", function () {
                         if(!active()||!valid(promote))return;
                         if (!promote.enabled) return;
@@ -416,9 +429,10 @@
         // palette. Countdown/score updates do not change that structure.
         var paletteKey = JSON.stringify([current, filterMode, cfg.SurvivalArchiveColors || {},
             panel("ArchiveWindow").BHasClass("ArchivePurple"), panel("ArchiveDraw").enabled]);
-        if (paletteDirty || paletteKey !== lastPaletteKey) {
+        if (!cfg.SurvivalArchiveV10 && (paletteDirty || paletteKey !== lastPaletteKey)) {
             A.ApplyPalette(); lastPaletteKey = paletteKey;
         }
+        if(cfg.SurvivalArchiveV10)renderVoid(data);
     }
     function onArchiveSnapshot(data) {
         var sequence = Number(data.sequence) || 0;
@@ -519,17 +533,24 @@
     }
     // Re-evaluating only this controller must not retain the previous row tree.
     panel("ArchiveGrid").RemoveAndDeleteChildren();
-    var archiveShell=U.ModalShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),root:$.GetContextPanel(),scrim:panel("ArchiveScrim"),header:panel("ArchiveHeader"),titlePanel:panel("ArchiveTitle"),closeButton:panel("ArchiveClose"),width:1280,height:800,fit:archiveFit,onClose:close});
+    var archiveShell=U.ModalShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),root:$.GetContextPanel(),scrim:panel("ArchiveScrim"),header:panel("ArchiveHeader"),titlePanel:panel("ArchiveTitle"),closeButton:panel("ArchiveClose"),width:1672,height:941,fit:archiveFit,onClose:close});
     U.ActionButton.Adopt(panel("ArchiveDraw"),{variant:"gold"}); U.Tooltip.Adopt(panel("ArchiveTooltip"));
     A.Init();
-    var purpleShell=cfg.SurvivalPurpleShell?cfg.SurvivalPurpleShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),width:1280,height:800,onClose:close}):null;
+    var purpleShell=null;
     GameUI.CustomUIConfig().SurvivalArchive = api = {
         IsOpen: function () { return active()&&opened; },
         Open: function () { if(active()&&!opened)this.Toggle(); },
         SelectCategory: function(id) {
             if(!active())return;
             var tab=panel("ArchiveTab_"+id);
-            if(tab && tab.enabled && tab.__archiveActivate)tab.__archiveActivate();
+            if(tab && tab.enabled && tab.__archiveActivate){tab.__archiveActivate();return;}
+            // The server omits disabled categories from its navigation list.
+            // V10 still retains the confirmed shop toggle, with a local empty state.
+            if(cfg.SurvivalArchiveV10 && id === "shop" && current !== id){
+                current=id;filterMode="all";lastData=null;hideTooltip();
+                panel("ArchiveGrid").ScrollToTop();
+                render({ok:1,category_id:id,categories:categories,rows:[],unavailable:1});
+            }
         },
         Toggle: function () {
             if(!active())return;
@@ -538,6 +559,9 @@
             panel("ArchiveScrim").RemoveClass("ArchiveHidden");
             archiveShell.Open();
             panel("ArchiveWindow").RemoveClass("ArchiveHidden");
+            if(cfg.SurvivalArchiveV10 && current === "shop"){
+                render({ok:1,category_id:current,categories:categories,rows:[],unavailable:1});return;
+            }
             if(pageCache[current]){render(pageCache[current]);if(needsSync())request(true);}else {renderVoid(null);request(true);}
         },
         Filter: function(mode){if(!active()||["all","unlocked","locked"].indexOf(mode)<0)return;filterMode=mode;if(lastData)render(lastData);else renderVoid(null);},

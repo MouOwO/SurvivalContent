@@ -5,9 +5,9 @@
     <include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css" />
     <include src="file://{resources}/styles/custom_game/payment_test.css" />
     <include src="file://{resources}/styles/custom_game/commerce_wallet.css" />
-    <include src="file://{resources}/styles/custom_game/common/checkout_purple.css" />
-  </styles>
-  <scripts><include src="file://{resources}/scripts/custom_game/payment_test.js" /><include src="file://{resources}/scripts/custom_game/commerce_wallet.js" /><include src="file://{resources}/scripts/custom_game/commerce_actions.js" /></scripts>
+    
+  <include src="file://{resources}/styles/custom_game/common/menu_v10.css" /><include src="file://{resources}/styles/custom_game/menus_v10_commerce.css" /></styles>
+  <scripts><include src="file://{resources}/scripts/custom_game/common/ui_registry.js" /><include src="file://{resources}/scripts/custom_game/common/ui_components.js" /><include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/archive_v10_data.js" /><include src="file://{resources}/scripts/custom_game/common/menu_v10.js" /><include src="file://{resources}/scripts/custom_game/payment_test.js" /><include src="file://{resources}/scripts/custom_game/commerce_wallet.js" /><include src="file://{resources}/scripts/custom_game/commerce_actions.js" /></scripts>
   <Panel class="PaymentRoot" hittest="false" hittestchildren="true">
     <Button id="PaymentEntry" class="PaymentEntry" onactivate="PaymentShop()"><Label text="商品商城" /></Button>
     <Button id="PaymentScrim" class="PaymentScrim" hittest="false" hittestchildren="false" />

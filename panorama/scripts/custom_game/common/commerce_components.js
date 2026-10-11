@@ -30,15 +30,9 @@
     };
     J.Art=function(parent,file,cls){return original(parent,"custom_game/commerce_jade_v1/"+file+".png",cls);};
     J.Window=function(root,onClose){
-        var scrim=panel("Button",root,"RCBackdrop CommercePurpleBackdrop"),p=panel("Panel",root,"RCWindow CommercePurple");
-        var header=panel("Panel",p,"RCHeader"),title=label(header,"商城","RCTitle"),x=panel("Button",header,"RCClose");
-        var shell=U.ModalShell.Adopt({id:"commerce",root:root,panel:p,header:header,titlePanel:title,scrim:scrim,closeButton:x,width:1280,height:800,fit:{reference:[1920,1080]},onClose:onClose});
-        p.style.backgroundImage="none";p.style.backgroundColor="#100b21fa";p.style.border="1px solid #95723f";p.style.borderRadius="4px";
-        var purpleShell=cfg.SurvivalPurpleShell?cfg.SurvivalPurpleShell.Adopt({id:"commerce",panel:p,width:1280,height:800,onClose:onClose}):null;
-        var detailLayer=panel("Panel",p,"CommercePurpleDetailLayer");
-        detailLayer.hittest=false;detailLayer.hittestchildren=true;
-        header.visible=false;
-        shell.Close();return {panel:p,scrim:scrim,shell:shell,purpleShell:purpleShell,detailLayer:detailLayer};
+        var scrim=panel("Button",root,"RCBackdrop"),p=panel("Panel",root,"RCWindow MenuV10Commerce");
+        var menu=cfg.SurvivalMenuV10.Adopt({id:"commerce",navId:"commerce",root:root,panel:p,scrim:scrim,title:"商城",onClose:onClose});
+        menu.Close();return {panel:p,scrim:scrim,shell:menu.shell,menu:menu,canvas:menu.canvas,content:menu.content,actions:menu.actions,detailLayer:menu.detailLayer};
     };
     J.Nav=function(parent,c,index,selected,fn){
         var b=box(panel("Button",parent,"RCTab CommercePurpleNav"),0,index*62,208,58);
@@ -53,32 +47,40 @@
     J.Price=function(parent,item,x,y,w){
         var p=box(panel("Panel",parent,"CJPrice"),x,y,w||272,36),row=panel("Panel",p,"CJPriceRow");
         var wallet=item.purchase_method==="wallet",currency=wallet?item.currency_name:"元",amount=wallet?item.price:(item.amount_fen/100).toFixed(2);
-        if(wallet){
+        var isU=item.currency==="u_coin" || item.u_coin_price!==undefined || item.u_coin_per_yuan!==undefined;
+        var fen=item.amount_fen,uCoin=item.u_coin_price;
+        var validU=isU && item.disabled_reason!=="payment_price_unavailable" && typeof uCoin==="number" && uCoin>0 && uCoin%1===0 && item.u_coin_per_yuan===1000 && typeof fen==="number" && fen>0 && fen<=1000000 && fen%1===0 && uCoin===fen*10;
+        var paidMeta=item.u_coin_price!==undefined || item.u_coin_per_yuan!==undefined || fen!==undefined || item.disabled_reason==="payment_price_unavailable";
+        var previewCoin=!paidMeta && typeof item.price==="number" && item.price>0 && item.price%1===0?item.price:null;
+        if(wallet || isU){
             var uri=item.currency==="shop_points"?"custom_game/commerce_jade_v1/crystal.png":"custom_game/commerce_jade_v1/coin.png";
             original(row,uri,"CJPriceIcon");
         }else label(row,"¥","CJYuanIcon");
-        label(row,amount+" "+currency,"CJPriceValue");p.hittest=false;p.hittestchildren=false;return p;
+        var uText=validU?uCoin+" U币 / ¥"+(fen/100).toFixed(2):(previewCoin!==null?previewCoin+" U币":"U币价格待同步")+" / 人民币金额待同步";
+        label(row,isU?uText:amount+" "+currency,"CJPriceValue");p.hittest=false;p.hittestchildren=false;return p;
     };
     function detail(card,item,props,bundle){
         var layer=valid(props.detailLayer)?props.detailLayer:card;
-        var tip=panel("Panel",layer,"RCPurpleDetail");tip.hittest=false;tip.hittestchildren=false;
+        var tip=panel("Panel",layer,"RCPurpleDetail MenuV10CommerceDetail");tip.hittest=false;tip.hittestchildren=false;
+        var skin=cfg.SurvivalMenuV10.SkinTooltip(tip),body=panel("Panel",skin.surface,"MenuV10CommerceDetailBody");
         tip.__purpleSource=card;
         tip.style.position="202px 0px 0px";tip.style.width="312px";
-        original(tip,J.ProductIcon(item),"RCPurpleDetailIcon");
-        label(tip,item.title,"RCPurpleDetailTitle");
-        var effect=label(tip,bundle?(item.description||""):props.effect,"RCProductEffect");effect.visible=!!effect.text;effect.hittest=true;
+        original(body,J.ProductIcon(item),"RCPurpleDetailIcon");
+        label(body,item.title,"RCPurpleDetailTitle");
+        var effect=label(body,bundle?(item.description||""):props.effect,"RCProductEffect");effect.visible=!!effect.text;effect.hittest=true;
         if(bundle){
-            var contents=panel("Panel",tip,"RCBundleContents");
+            var contents=panel("Panel",body,"RCBundleContents");
             (props.rewards||[]).forEach(function(r){
                 var row=panel("Panel",contents,"RCBundleItem");
                 original(row,r.icon||J.ProductIcon(item),"RCBundleArt");label(row,r.label,"RCBundleName");label(row,"×"+r.quantity,"RCBundleQuantity");
             });
         }
-        var price=J.Price(tip,item,0,0,278);price.style.position="0px 0px 0px";
+        var price=J.Price(body,item,0,0,276);price.style.position="0px 0px 0px";
         price.style.ignoreParentFlow="false";
-        if(!item.enabled)label(tip,item.owned>0?"已拥有":"暂不可购","CommercePurpleState");
-        var buy=J.Action(tip,props.purchaseLabel,function(){if(!disposed&&valid(card)&&valid(tip)&&valid(layer)&&props.action)props.action();},bundle?"RCBundleBuy":"RCProductBuy");
-        buy.style.width="278px";buy.style.height="42px";
+        if(item.currency==="u_coin" || item.u_coin_price!==undefined || item.u_coin_per_yuan!==undefined)label(body,"1元=1000U币 · 直接购买道具","CommercePurpleState");
+        if(item.enabled!==true && item.enabled!==1)label(body,item.owned>0?"已拥有":item.disabled_reason==="payment_catalog_pending"?"人民币支付目录连接中":item.disabled_reason==="payment_product_unavailable" || item.disabled_reason==="payment_price_unavailable"?"人民币购买尚未开放":"暂不可购","CommercePurpleState");
+        var buy=J.Action(body,props.purchaseLabel,function(){if(!disposed&&valid(card)&&valid(tip)&&valid(layer)&&props.action)props.action();},bundle?"RCBundleBuy":"RCProductBuy");
+        buy.style.width="276px";buy.style.height="42px";
         var pinned=false,hovered=false,job=null,serial=0,disposed=false;
         function cancel(){serial++;if(job!==null&&$.CancelScheduled)$.CancelScheduled(job);job=null;}
         function hide(){cancel();pinned=false;hovered=false;if(valid(tip)){tip.RemoveClass("Visible");tip.hittest=false;tip.hittestchildren=false;}if(valid(card)){card.RemoveClass("ShopSelected");card.style.zIndex="0";}if(activeDetail&&activeDetail.tip===tip)activeDetail=null;}
@@ -90,14 +92,18 @@
             var source=card.GetPositionWithinWindow(),root=card;
             while(valid(root)&&root.GetParent&&valid(root.GetParent()))root=root.GetParent();
             var width=Number(root.actuallayoutwidth)||1920,height=Number(root.actuallayoutheight)||1080;
-            var origin=layer.GetPositionWithinWindow(),scale=Math.max(.001,Number(layer.actualuiscale_x)||1);
-            var sw=Number(card.actuallayoutwidth)||188*scale,tw=Number(tip.actuallayoutwidth)||312*scale,th=Number(tip.actuallayoutheight)||300*scale;
+            var origin=layer.GetPositionWithinWindow(),menu=props.menu;
+            var scale=Math.max(.001,(Number(layer.actualuiscale_x)||1)*(menu?menu.Scale():1));
+            var nativeScale=Math.max(.001,Number(layer.actualuiscale_y)||1);
+            var logicalHeight=Math.min(704,Math.max(246,(Number(body.actuallayoutheight)||250*nativeScale)/nativeScale+88));
+            skin.Resize(368,logicalHeight);tip.style.width="368px";tip.style.height=logicalHeight+"px";
+            var sw=144*scale,tw=368*scale,th=logicalHeight*scale;
             // Native paints the owned layer inside its window despite overflow:noclip.
             // Keep the complete detail in both that clip and the viewport safety area.
             var pad=12*scale,leftEdge=pad,rightEdge=width-pad,topEdge=pad,bottomEdge=height-pad;
             var clip=valid(props.detailLayer)&&layer.GetParent?layer.GetParent():null;
             if(valid(clip)){
-                var clipOrigin=clip.GetPositionWithinWindow(),cw=Number(clip.actuallayoutwidth)||1280*scale,ch=Number(clip.actuallayoutheight)||800*scale;
+                var clipOrigin=clip.GetPositionWithinWindow(),cw=1672*scale,ch=941*scale;
                 leftEdge=Math.max(leftEdge,clipOrigin.x+pad);rightEdge=Math.min(rightEdge,clipOrigin.x+cw-pad);
                 topEdge=Math.max(topEdge,clipOrigin.y+pad);bottomEdge=Math.min(bottomEdge,clipOrigin.y+ch-pad);
             }
@@ -108,7 +114,7 @@
             if(!isFinite(x)||!isFinite(y)||!isFinite(origin.x)||!isFinite(origin.y))return;
             tip.style.position=Math.round((x-origin.x)/scale)+"px "+Math.round((y-origin.y)/scale)+"px 0px";
         }
-        function show(pin){if(disposed)return;if(!valid(card)||!valid(tip)||!valid(layer)){dispose();return;}if(activeDetail&&activeDetail.tip!==tip)activeDetail.hide();activeDetail={tip:tip,hide:hide};cancel();pinned=!!pin;tip.AddClass("Visible");card.AddClass("ShopSelected");card.style.zIndex="30";tip.hittest=true;tip.hittestchildren=true;place();$.Schedule(0.03,function(){if(!disposed&&valid(tip)&&activeDetail&&activeDetail.tip===tip&&tip.BHasClass("Visible"))place();});}
+        function show(pin){if(disposed)return;if(!valid(card)||!valid(tip)||!valid(layer)){dispose();return;}if(activeDetail&&activeDetail.tip!==tip)activeDetail.hide();activeDetail={tip:tip,hide:hide};cancel();pinned=!!pin;tip.AddClass("Visible");card.AddClass("ShopSelected");card.style.zIndex="30";tip.hittest=true;tip.hittestchildren=true;place();[0,.05,.2,.4].forEach(function(delay){$.Schedule(delay,function(){if(!disposed&&valid(tip)&&activeDetail&&activeDetail.tip===tip&&tip.BHasClass("Visible"))place();});});}
         function leave(){cancel();var generation=serial;job=$.Schedule(.18,function(){job=null;if(serial===generation&&!hovered&&!pinned)hide();});}
         card.SetPanelEvent("onmouseover",function(){show(false);});card.SetPanelEvent("onmouseout",leave);
         card.SetPanelEvent("onactivate",function(){show(true);return true;});
@@ -122,12 +128,11 @@
     function compactCard(parent,item,props,bundle){
         props=props||{};var card=U.CardShell(parent,{bodyVariant:"product"});
         card.AddClass("RCProduct");card.AddClass(bundle?"CJBundle":"CJProduct");card.AddClass("CommercePurpleProduct");
-        var well=box(panel("Panel",card,"CommercePurpleArtWell"),27,0,134,132);
-        box(original(well,J.ProductIcon(item),"RCProductArt"),2,2,128,126);
-        var caption=box(label(card,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"RCProductName"),0,140,188,30);
-        caption.style.width="fit-children";caption.style.maxWidth="188px";
-        caption.style.horizontalAlign="center";caption.style.verticalAlign="top";caption.style.margin="0px";caption.style.textAlign="center";
-        if(Number(item.owned)>0)box(label(well,String(item.owned),"RCStockState"),90,3,38,24);
+        var well=box(panel("Panel",card,"CommercePurpleArtWell"),12,9,120,120);
+        box(original(well,J.ProductIcon(item),"RCProductArt"),0,0,120,120);
+        var caption=box(label(card,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"RCProductName"),7,134,130,35);
+        var owned=Number(item.owned)>0?label(card,String(item.owned),"RCStockState"):null;
+        card.__menuCell={iconPanel:well,namePanel:caption,countPanel:owned};
         detail(card,item,props,bundle);return card;
     }
     J.Product=function(parent,item,props){return compactCard(parent,item,props,false);};

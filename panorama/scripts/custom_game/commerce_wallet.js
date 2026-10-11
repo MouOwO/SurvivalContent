@@ -3,7 +3,7 @@
     var cfg=GameUI.CustomUIConfig(), root=$.GetContextPanel(), disposed=false;
     if(cfg.SurvivalCommerceWallet&&cfg.SurvivalCommerceWallet.Dispose){try{cfg.SurvivalCommerceWallet.Dispose();}catch(error){if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;$.Msg("[CheckoutPurple] Previous wallet panel was already deleted.");}}
     var catalog={products:[],categories:[],balances:{}}, inflight=null, draft=null, serial=0, selected=null, pending=cfg.SurvivalCommercePending||null;
-    var epoch=String(Date.now())+"_"+String(Math.random()).slice(2), shell=null, dialog=null, scrim=null, status=null, copy=null, buy=null;
+    var epoch=String(Date.now())+"_"+String(Math.random()).slice(2), shell=null, menuView=null, dialog=null, scrim=null, status=null, copy=null, buy=null;
     var labels={u_coin:"U币",shop_points:"积分",shop_gold:"金币"};
     var errors={commerce_balance_insufficient:"商城余额不足，充值暂未开放。",already_owned:"已拥有该商品，不能重复兑换。",
         component_already_owned:"道具已达到持有上限。",attribute_limit_reached:"属性已达到上限。",commerce_busy:"操作处理中，请稍后重试。",
@@ -15,24 +15,21 @@
     function paint(button,primary){if(!valid(button))return;button.style.backgroundImage="none";button.style.backgroundColor=button.enabled===false?"#21172f":primary?"gradient(linear,0% 0%,0% 100%,from(#734a9e),to(#382346))":"#281b3e";button.style.border="1px solid "+(button.enabled===false?"#594363":"#b18a50");if(button.Children)button.Children().forEach(function(c){if(c.paneltype==="Label")c.style.color=button.enabled===false?"#a795b8":"#ffdc87";});}
     function publish(){if(cfg.SurvivalCommerceView && cfg.SurvivalCommerceView.UpdateWalletCatalog)cfg.SurvivalCommerceView.UpdateWalletCatalog(catalog);}
     function text(parent,value,cls){var p=$.CreatePanel("Label",parent,"");p.text=value;p.AddClass(cls);return p;}
-    function close(){if(shell)shell.Close();}
+    function close(){if(menuView)menuView.Close();}
     function prepare(){
         if(disposed||!valid(root))return false;
         if(shell)return valid(dialog);
-        var U=cfg.SurvivalUI,R=cfg.RemainingHandoff;if(!U || !R)return false;
+        var U=cfg.SurvivalUI,R=cfg.RemainingHandoff;if(!U || !R || !cfg.SurvivalMenuV10)return false;
         scrim=$.CreatePanel("Button",root,"");scrim.AddClass("RCBackdrop");
-        dialog=$.CreatePanel("Panel",root,"");dialog.AddClass("RCWindow");dialog.AddClass("CommerceConfirm");
-        var header=$.CreatePanel("Panel",dialog,"");header.AddClass("RCHeader");
-        var title=text(header,"商品兑换","RCTitle"),x=$.CreatePanel("Button",header,"");x.AddClass("RCClose");
-        shell=U.ModalShell.Adopt({id:"commerce_exchange",root:root,panel:dialog,header:header,titlePanel:title,scrim:scrim,closeButton:x,width:760,height:700,fit:{reference:[1920,1080]},onClose:close});
-        R.Window(dialog,header,x);R.SizeWindow(dialog,760,700);R.Box(header,0,0,760,84);R.Box(x,694,22,38,38);
-        dialog.AddClass("CheckoutPurple");scrim.AddClass("CheckoutPurpleBackdrop");dialog.style.backgroundImage="none";dialog.style.backgroundColor="gradient(linear,0% 0%,0% 100%,from(#211631),to(#0d091b))";dialog.style.border="1px solid #b18a50";dialog.style.borderRadius="4px";header.style.backgroundImage="none";header.style.backgroundColor="#21162e";header.style.borderBottom="1px solid #806340";title.style.color="#f0d18a";R.Box(title,32,22,620,40);title.style.fontSize="30px";if(header.Children)header.Children().forEach(function(c){if(c.BHasClass("ReferenceHeaderEmblem"))c.visible=false;});
-        if(dialog.Children)dialog.Children().forEach(function(c){if(c.BHasClass("ReferenceAtmosphere")||c.BHasClass("ReferenceFrame")||c.BHasClass("RHFrame"))c.visible=false;});
-        copy=text(dialog,"","CommerceConfirmCopy");status=text(dialog,"","CommerceConfirmStatus");
+        dialog=$.CreatePanel("Panel",root,"");dialog.AddClass("RCWindow");dialog.AddClass("MenuV10Exchange");
+        menuView=cfg.SurvivalMenuV10.Adopt({id:"commerce_exchange",navId:"commerce",root:root,panel:dialog,scrim:scrim,title:"商品兑换",onClose:close});
+        shell=menuView.shell;
+        menuView.SetSidebar([{id:"confirm",label:"商品兑换"},{id:"back",label:"返回商城"}],"confirm",function(id){if(id==="back"){close();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();}});
+        copy=text(menuView.content,"","CommerceConfirmCopy");status=text(menuView.content,"","CommerceConfirmStatus");
         copy.html=true;
-        buy=U.ActionButton(dialog,{label:"确认兑换",action:purchase});R.Action(buy,true,[260,64]);buy.AddClass("CommerceConfirmBuy");
-        var back=U.ActionButton(dialog,{label:"返回商城",action:function(){close();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();}});
-        R.Action(back,false,[260,64]);back.AddClass("CommerceConfirmBack");paint(back,false);return true;
+        buy=U.ActionButton(menuView.actions,{label:"确认兑换",action:purchase});buy.AddClass("CommerceConfirmBuy");
+        var back=U.ActionButton(menuView.actions,{label:"返回商城",action:function(){close();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();}});
+        back.AddClass("CommerceConfirmBack");paint(back,false);return true;
     }
     function render(message){
         if(disposed||!selected||!valid(copy)||!valid(status)||!valid(buy))return;
@@ -41,6 +38,8 @@
             (p.purchase_limit>0?"永久商品，限持有 "+p.purchase_limit+" 件":"可重复兑换")+"\n\n"+p.description);
         status.text=message || (pending?"兑换结果待确认，重试会查询同一笔兑换。":p.enabled===true || p.enabled===1?"确认后扣除商城余额，奖励自动存入账号。":errors[p.disabled_reason]||"暂不可兑换。");
         buy.enabled=!inflight && (!!pending || p.enabled===true || p.enabled===1);
+        if(menuView)menuView.SetResources([{icon:"gold",name:"U币",value:catalog.balances.u_coin||0},
+            {icon:"purple_gem",name:"积分",value:catalog.balances.shop_points||0},{icon:"ticket",name:"商城金币",value:catalog.balances.shop_gold||0}]);
         paint(buy,true);
     }
     function request(action,sku,token){
@@ -82,7 +81,7 @@
     });
     cfg.SurvivalCommerceWallet={Refresh:refresh,GetCatalog:function(){return catalog;},
         Checkout:function(sku){if(disposed||!valid(root))return false;if(pending)sku=pending.sku;selected=catalog.products.filter(function(p){return p.sku===sku;})[0];
-            if(!selected || !prepare())return false;render();shell.Open();return true;},
-        Dispose:function(){if(disposed)return;disposed=true;GameEvents.Unsubscribe(subscription);if(shell)shell.Dispose();[dialog,scrim].forEach(function(p){if(valid(p))p.DeleteAsync(0);});}};
+            if(!selected || !prepare())return false;render();menuView.Open();return true;},
+        Dispose:function(){if(disposed)return;disposed=true;GameEvents.Unsubscribe(subscription);if(menuView)menuView.Dispose();[dialog,scrim].forEach(function(p){if(valid(p))p.DeleteAsync(0);});}};
     publish();
 }());

@@ -1,11 +1,12 @@
 (function () {
     'use strict';
-    var cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel(),U=cfg.SurvivalUI;
+    var cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel(),U=cfg.SurvivalUI,M=cfg.SurvivalMenuV10;
     if(cfg.SurvivalVIP&&cfg.SurvivalVIP.Dispose)cfg.SurvivalVIP.Dispose();
     else if(cfg.SurvivalVIP&&cfg.SurvivalVIP.Close)cfg.SurvivalVIP.Close();
+    if(!M)return;
     var catalog=cfg.VIPRewardCatalog||{rewards:[]},previewSteamID='76561198104787442';
     var group='privileges',selected='',snapshot=null,states={},busy=false,requestSerial=0;
-    var disposed=false,subscriptions=[],profileSubscription=null,purpleShell=null,tipAnchor=null,tipGeneration=0;
+    var disposed=false,subscriptions=[],profileSubscription=null,view=null,tipAnchor=null;
     var windowPanel=null,viewDirty=true,statusMessage='';
     var groups=[['privileges','等级特权'],['medals','VIP勋章'],['packages','专属礼包']];
     function valid(panel){return panel&&(!panel.IsValid||panel.IsValid());}
@@ -23,9 +24,9 @@
     }
     var shell;
     windowPanel=p('VIPWindow');
-    function close(){hideTooltip();if(shell)shell.Close();}
-    shell=U.ModalShell.Adopt({id:'vip',panel:p('VIPWindow'),root:root,scrim:p('VIPScrim'),header:p('VIPHeader'),
-        titlePanel:p('VIPTitle'),closeButton:p('VIPClose'),width:1280,height:800,fit:{reference:[1920,1080]},onClose:close});
+    function close(){hideTooltip();if(view)view.Close();}
+    view=M.Adopt({id:'vip',navId:'vip',panel:p('VIPWindow'),root:root,scrim:p('VIPScrim'),title:'VIP特权',onClose:close});
+    shell=view.shell;
     function label(parent,id,text,cls){var node=$.CreatePanel('Label',parent,id);node.text=text;node.hittest=false;if(cls)node.AddClass(cls);return node;}
     function yuan(fen){var n=Number(fen)||0;return n%100===0?String(n/100):(n/100).toFixed(2);}
     function threshold(level){var all=catalog.recharge_levels||[];for(var i=0;i<all.length;i++)if(all[i].level===level)return all[i].required_recharge_fen;return 0;}
@@ -36,24 +37,8 @@
     function actionable(row){return !!snapshot&&snapshot.ok===true&&!busy&&Number(snapshot.pending)!==1&&!owned(row)&&Number(state(row).eligible)===1&&
         (row.group_id==='privileges'||row.group_id==='packages'&&Number(state(row).affordable)===1);}
     function hideTooltip(){
-        tipGeneration++;
-        if(valid(tipAnchor))tipAnchor.RemoveClass('VIPHovered');
-        tipAnchor=null;
-        var tip=p('VIPTooltip');if(tip)tip.AddClass('ArchiveHidden');
-    }
-    function positionTooltip(generation){
-        if(!active()||generation!==tipGeneration||!valid(tipAnchor)||!shell.IsOpen())return;
-        var tip=p('VIPTooltip');if(!tip)return;
-        var sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1,w=root.actuallayoutwidth||1920,h=root.actuallayoutheight||1080;
-        tip.style.maxHeight=Math.floor(h/sy-24)+'px';
-        var at=tipAnchor.GetPositionWithinWindow(),width=(tipAnchor.actuallayoutwidth||128*sx)*((tipAnchor.actualuiscale_x||sx)/sx);
-        var tw=380*sx,th=tip.actuallayoutheight||240*sy,gap=12*sx,pad=12*sx,x=at.x+width+gap;
-        if(x+tw>w-pad)x=at.x-gap-tw;
-        x=Math.max(pad,Math.min(x,w-tw-pad));
-        var y=Math.max(pad,Math.min(at.y+16,h-th-pad));
-        tip.style.position=Math.round(x/sx)+'px '+Math.round(y/sy)+'px 0px';
-        tip.style.zIndex=String((Number(p('VIPWindow').style.zIndex)||100000)+2);
-        $.Schedule(.05,function(){positionTooltip(generation);});
+        if(valid(tipAnchor))tipAnchor.RemoveClass('VIPHovered');tipAnchor=null;
+        if(view)view.TooltipHide();var tip=p('VIPTooltip');if(tip)tip.AddClass('ArchiveHidden');
     }
     function note(row){return row.reward_id==='vip_package_10'?'木材加成作用于已有伤害产木收益':row.medal_id?'礼包与附赠勋章属性同时生效':row.group_id==='privileges'?'永久生效 · 各级累计':'永久生效 · 每项仅获得一次';}
     function showTooltip(row,card){
@@ -65,27 +50,21 @@
         p('VIPTooltipPrice').text=row.group_id==='packages'?'价格  '+row.price+' 付费币':row.group_id==='privileges'?'达标后免费领取':'随对应礼包附送';
         p('VIPTooltipEffect').text=String(row.description||'暂无效果说明').split('；').join('\n');
         p('VIPTooltipNote').text=note(row);
-        p('VIPTooltip').RemoveClass('ArchiveHidden');positionTooltip(tipGeneration);
+        view.TooltipShow({name:row.display_name,state:p('VIPTooltipState').text,condition:row.condition||'',description:p('VIPTooltipEffect').text+'\n\n'+note(row),metric:'获得方式',quantity:p('VIPTooltipPrice').text},card);
     }
-    function preparePurple(){
-        var win=p('VIPWindow');win.AddClass('VIPPurple');
-        style(p('VIPHeader'),{visibility:'collapse'});
-        style(p('VIPBody'),{position:'0px 132px 0px',width:'1280px',height:'668px',padding:'0px',flowChildren:'none'});
-        style(p('VIPSidebar'),{position:'0px 10px 0px',width:'216px',height:'612px',padding:'0px',backgroundImage:'none',backgroundColor:'transparent',borderRight:'1px solid #59417166'});
-        style(p('VIPContent'),{position:'216px 0px 0px',width:'1064px',height:'668px'});
-        style(p('VIPGroupTitle'),{position:'24px 14px 0px',width:'1000px',height:'30px',fontSize:'22px',color:'#eccb78'});
-        style(p('VIPWallet'),{position:'24px 50px 0px',width:'1000px',height:'28px',fontSize:'19px',color:'#d1badd'});
-        style(p('VIPRechargeProgress'),{position:'24px 83px 0px',width:'1000px',height:'28px',fontSize:'18px',color:'#c0acda'});
-        style(p('VIPGrid'),{position:'24px 126px 0px',width:'1000px',height:'442px',padding:'0px',flowChildren:'right-wrap',overflow:'squish scroll'});
-        style(p('VIPDetails'),{position:'24px 588px 0px',width:'1000px',height:'52px',backgroundColor:'#19112b',border:'1px solid #584174'});
-        style(p('VIPDetailTitle'),{position:'16px 10px 0px',width:'730px',height:'30px',fontSize:'21px',color:'#ebc97e'});
-        ['VIPCondition','VIPEffectsLeft','VIPEffectsRight','VIPDetailNote'].forEach(function(id){style(p(id),{visibility:'collapse'});});
-        style(p('VIPAction'),{position:'778px 7px 0px',width:'206px',height:'38px',margin:'0px',padding:'0px'});
-        style(p('VIPStatus'),{position:'240px 642px 0px',width:'1000px',height:'24px',padding:'0px',border:'0px',textAlign:'center',fontSize:'16px',color:'#b39ec5'});
-        var tip=p('VIPTooltip')||$.CreatePanel('Panel',win.GetParent(),'VIPTooltip');tip.AddClass('VIPPurpleTooltip');tip.AddClass('ArchiveHidden');tip.hittest=false;tip.hittestchildren=false;tip.RemoveAndDeleteChildren();
-        style(tip,{width:'380px',height:'fit-children',padding:'16px 18px',flowChildren:'down',overflow:'squish scroll',backgroundColor:'gradient(linear,0% 0%,0% 100%,from(#211631),to(#0e0b1d))',border:'1px solid #b58d47',borderRadius:'5px',boxShadow:'#000000cc 0px 5px 18px 0px'});
-        [['VIPTooltipName','','VIPTooltipName'],['VIPTooltipState','','VIPTooltipState'],['','获得条件','VIPTooltipHeading'],['VIPTooltipCondition','','VIPTooltipCondition'],['VIPTooltipPrice','','VIPTooltipPrice'],['','奖励效果','VIPTooltipHeading VIPTooltipEffectsHeading'],['VIPTooltipEffect','','VIPTooltipEffect'],['VIPTooltipNote','','VIPTooltipNote']].forEach(function(spec){var node=label(tip,spec[0],spec[1]);spec[2].split(' ').forEach(function(cls){node.AddClass(cls);});});
-        if(cfg.SurvivalPurpleShell)purpleShell=cfg.SurvivalPurpleShell.Adopt({id:'vip',navId:'',title:'VIP特权',panel:win,width:1280,height:800,onClose:close});
+    function prepareV10(){
+        var win=p('VIPWindow');win.AddClass('VIPV10Page');win.RemoveClass('VIPPurple');
+        ['VIPHeader','VIPBody'].forEach(function(id){style(p(id),{visibility:'collapse'});});
+        ['VIPGrid','VIPWallet','VIPRechargeProgress'].forEach(function(id){view.Move(p(id),view.content);});
+        M.Place(p('VIPWallet'),0,0,1113,27);style(p('VIPWallet'),{margin:'0px',padding:'0px',fontSize:'18px',color:'#d1badd',height:'27px'});
+        M.Place(p('VIPRechargeProgress'),0,31,1113,27);style(p('VIPRechargeProgress'),{margin:'0px',padding:'0px',fontSize:'17px',color:'#c0acda',height:'27px'});
+        M.Place(p('VIPGrid'),0,70,1113,540);style(p('VIPGrid'),{padding:'0px',margin:'0px',flowChildren:'none',overflow:'squish scroll',horizontalAlign:'left',verticalAlign:'top',backgroundImage:'none',backgroundColor:'transparent'});
+        view.Move(p('VIPDetailTitle'),view.actions);view.Move(p('VIPAction'),view.actions);
+        M.Place(p('VIPDetailTitle'),0,12,870,32);style(p('VIPDetailTitle'),{fontSize:'21px',color:'#ebc97e',margin:'0px'});
+        M.Place(p('VIPAction'),889,8,206,38);style(p('VIPAction'),{margin:'0px',padding:'0px'});
+        var tip=p('VIPTooltip')||$.CreatePanel('Panel',win.GetParent(),'VIPTooltip');tip.AddClass('ArchiveHidden');tip.style.visibility='collapse';tip.hittest=false;tip.hittestchildren=false;tip.RemoveAndDeleteChildren();
+        ['VIPTooltipName','VIPTooltipState','VIPTooltipCondition','VIPTooltipPrice','VIPTooltipEffect','VIPTooltipNote'].forEach(function(id){label(tip,id,'');});
+        view.SetSidebar(groups.map(function(g){return {id:g[0],label:g[1]};}),group,function(id){if(!active())return;group=id;selected='';render();});
     }
     function request(action,row){
         if(!active())return;
@@ -116,8 +95,8 @@
         else if(row.group_id==='packages'&&Number(state(row).affordable)!==1)text='付费币不足';
         else text=row.group_id==='privileges'?'免费领取':'购买 · '+row.price+' 付费币';
         p('VIPActionText').text=text;p('VIPAction').enabled=actionable(row);
-        style(p('VIPAction'),{backgroundImage:'none',backgroundColor:actionable(row)?'gradient(linear,0% 0%,0% 100%,from(#704899),to(#3a234e))':'#231830',border:'1px solid '+(actionable(row)?'#ba9758':'#574263')});
-        style(p('VIPActionText'),{color:actionable(row)?'#f5d88d':'#a393b4',fontSize:'19px',width:'100%',height:'38px',margin:'0px',padding:'0px',textAlign:'center',textOverflow:'clip'});
+        style(p('VIPAction'),{backgroundImage:'url("'+cfg.ArchiveV10Data.assets[actionable(row)?'filter_selected':'filter_default'].file+'")',backgroundSize:'100% 100%',backgroundColor:'transparent',border:'0px',opacity:actionable(row)?'1':'.58'});
+        style(p('VIPActionText'),{color:actionable(row)?'#f5d88d':'#a393b4',fontSize:'19px',fontWeight:'normal',width:'100%',height:'38px',margin:'0px',padding:'0px',textAlign:'center',textOverflow:'clip'});
         p('VIPAction').SetPanelEvent('onactivate',function(){request(row.group_id==='privileges'?'claim':'purchase',row);});
     }
     function render(){
@@ -131,25 +110,21 @@
         list.forEach(function(item){
             var button=$.CreatePanel('Button',p('VIPGrid'),'VIPCard_'+item.reward_id);button.AddClass('VIPRewardCard');
             button.SetHasClass('VIPOwned',owned(item));button.SetHasClass('VIPSelected',item.reward_id===selected);
-            var emblem=$.CreatePanel('Image',button,'');emblem.AddClass('VIPRewardIcon');emblem.hittest=false;
-            emblem.SetImage('file://{images}/custom_game/topnav_reference_v2/vip.svg');
-            if(Number(item.level)>0)label(button,'','V'+item.level,'VIPRewardRank');
-            label(button,'',item.display_name,'VIPRewardName');
-            var status=owned(item)?'已获得':item.group_id==='packages'?item.price+' 付费币':item.group_id==='medals'?'礼包赠送':
-                Number(state(item).eligible)===1?'可免费领取':'累计 '+yuan(threshold(item.level))+' 元';
-            label(button,'',status,'VIPRewardState');
+            view.DecorateCell(button,{index:list.indexOf(item),name:item.display_name,count:Number(item.level)>0?'V'+item.level:undefined,icon:'file://{images}/custom_game/topnav_reference_v2/vip.svg'});
             button.hittestchildren=false;
             button.SetPanelEvent('onactivate',function(){selected=item.reward_id;render();});
             button.SetPanelEvent('onmouseover',function(){showTooltip(item,button);});
             button.SetPanelEvent('onmouseout',hideTooltip);
         });
         for(var i=0;i<groups.length;i++)p('VIPTab_'+groups[i][0]).SetHasClass('VIPTabSelected',groups[i][0]===group);
+        view.SetSelected(group);view.SetTitle(group==='privileges'?'等级特权':group==='medals'?'VIP勋章':'专属礼包');
         p('VIPGroupTitle').text=group==='privileges'?'等级礼包 · 免费领取 · 属性累计':group==='medals'?'专属勋章 · 随礼包赠送':'专属礼包 · 使用商城付费币购买';
         p('VIPRechargeProgress').text=snapshot&&snapshot.ok===true?'累计充值 '+yuan(snapshot.recharge_total_fen)+' 元'+(snapshot.level>=12?' · 已达最高等级':' · 距VIP'+(snapshot.level+1)+'还差 '+yuan(Math.max(0,threshold(snapshot.level+1)-(Number(snapshot.recharge_total_fen)||0)))+' 元'):'VIP等级按累计充值解锁 · 消费不降级';
         p('VIPWallet').text=snapshot&&snapshot.ok===true?'当前 VIP'+snapshot.level+'    商城付费币 '+snapshot.balance:'当前等级 —    商城付费币 —';
         p('VIPStatus').text=busy?'正在保存奖励，请稍候':snapshot&&snapshot.ok===true?'已获得的奖励点亮显示 · 永久生效':'奖励预览 · 会员数据尚未同步';
         renderDetails(row);
         if(statusMessage)p('VIPStatus').text=statusMessage;
+        view.SetStatus(p('VIPStatus').text);
         viewDirty=false;
     }
     p('VIPSidebar').RemoveAndDeleteChildren();
@@ -159,7 +134,7 @@
         label(tab,'',g[1]);tab.SetPanelEvent('onactivate',function(){group=g[0];selected='';render();});
     });
     function refresh(){if(!active())return;viewDirty=true;if(!shell.IsOpen())return;if(!available()){close();return;}render();}
-    function open(){if(!active()||!available())return false;shell.Open();if(viewDirty)render();request('view');return true;}
+    function open(){if(!active()||!available())return false;view.Open();if(viewDirty)render();request('view');return true;}
     function registerToolsProbe(){
         if(!Game.IsInToolsMode||!Game.IsInToolsMode())return false;
         var probe=cfg.SurvivalClientCallbackProbe;
@@ -171,7 +146,7 @@
     }
     cfg.SurvivalVIP={IsAvailable:function(){return active()&&available();},IsPreview:preview,IsOpen:function(){return active()&&shell.IsOpen();},Open:open,Close:close,
         Toggle:function(){if(!active())return;if(shell.IsOpen())close();else open();},Refresh:function(){refresh();if(active()&&shell.IsOpen())request('view');},RegisterToolsProbe:registerToolsProbe,
-        Dispose:function(){if(disposed)return;disposed=true;requestSerial++;close();subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];if(profileSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(profileSubscription);profileSubscription=null;if(purpleShell&&purpleShell.Dispose)purpleShell.Dispose();if(shell&&shell.Dispose)shell.Dispose();}};
+        Dispose:function(){if(disposed)return;disposed=true;requestSerial++;close();subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];if(profileSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(profileSubscription);profileSubscription=null;if(view&&view.Dispose)view.Dispose();}};
     $.RegisterEventHandler('Cancelled',p('VIPWindow'),function(){
         var layers=cfg.SurvivalUILayers;
         if(layers&&typeof layers.HandleEscape==='function')return layers.HandleEscape('vip');
@@ -187,7 +162,7 @@
             data.ok!==true?data.error||'会员数据暂不可用':'';
         viewDirty=true;render();
     }));
-    preparePurple();close();refresh();
+    prepareV10();close();refresh();
     registerToolsProbe();
     if(Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){
         if(!cfg.VIPRewardCommandsRegistered){

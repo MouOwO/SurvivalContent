@@ -1,0 +1,37 @@
+/* Business controllers share the approved shell, cells and measured tooltip.
+   These rules only describe page-specific compact day/status arrangements. */
+#TreasureWindow.MenuV10Page.TreasureV10Page #TreasureCards,
+#VIPWindow.MenuV10Page.VIPV10Page #VIPGrid { flow-children:none; padding:0px; margin:0px; background-image:none; background-color:transparent; }
+#TreasureWindow.MenuV10Page.TreasureV10Page .TreasureLatest .MenuV10IconStage { brightness:1.06; }
+#VIPWindow.MenuV10Page.VIPV10Page .VIPRewardCard .MenuV10IconStage { saturation:.25; brightness:.72; }
+#VIPWindow.MenuV10Page.VIPV10Page .VIPRewardCard.VIPOwned .MenuV10IconStage { saturation:1; brightness:1; }
+#VIPWindow.MenuV10Page.VIPV10Page .VIPRewardCard.VIPSelected .MenuV10HoverFrame,
+#VIPWindow.MenuV10Page.VIPV10Page .VIPRewardCard.VIPHovered .MenuV10HoverFrame { opacity:1; }
+#VIPWindow.MenuV10Page.VIPV10Page #VIPAction Label { width:100%; height:30px; margin:0px; padding:0px; align:center center; text-align:center; font-family:"Source Han Sans SC"; font-size:19px; white-space:nowrap; text-overflow:shrink; }
+#DailyWindow.MenuV10Page.DailyV10Page #DailyClaimPage,
+#DailyWindow.MenuV10Page.DailyV10Page #DailyPassPage { align:left top; flow-children:none; padding:0px; margin:0px; background-image:none; background-color:transparent; }
+#DailyWindow.MenuV10Page.DailyV10Page #DailySubtitle { font-size:22px; font-weight:normal; color:#d9d3e5; }
+#DailyWindow.MenuV10Page.DailyV10Page #DailyCount { font-size:18px; color:#bba5d0; text-align:right; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10DayGroup { flow-children:none; overflow:noclip; background-image:none; background-color:transparent; border:0px; margin:0px; padding:0px; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10Day { position:0px 0px 0px; width:144px; height:28px; margin:0px; padding:0px; font-size:20px; font-weight:normal; color:#d9d3e5; text-align:center; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10DayStatus { position:0px 31px 0px; width:144px; height:24px; margin:0px; padding:0px; font-size:16px; color:#a994bf; text-align:center; white-space:nowrap; text-overflow:shrink; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyToday .DailyV10Day,
+#DailyWindow.MenuV10Page.DailyV10Page .DailyToday .DailyV10DayStatus { color:#f4d194; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyFuture .MenuV10IconStage { saturation:.35; brightness:.72; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10DayItems { flow-children:none; overflow:squish scroll; padding:0px; margin:0px; background-color:transparent; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10Reward,
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10Special { flow-children:none; margin:0px; padding:0px; border:0px; background-color:transparent; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyItemArt,
+#DailyWindow.MenuV10Page.DailyV10Page .DailyPremiumArt { position:0px 0px 0px; width:120px; height:120px; margin:0px; padding:0px; align:left top; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10Milestone { width:144px; height:22px; margin:0px; padding:0px; font-size:16px; color:#d9d3e5; text-align:center; white-space:nowrap; text-overflow:shrink; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyV10MilestoneStatus { width:144px; height:18px; margin:0px; padding:0px; font-size:14px; color:#bdaacb; text-align:center; white-space:nowrap; text-overflow:shrink; }
+#DailyWindow.MenuV10Page.DailyV10Page #PassValidity { font-size:22px; color:#d9d3e5; }
+#DailyWindow.MenuV10Page.DailyV10Page #PassPrice { font-size:20px; color:#f4d194; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailyIconArt { visibility:collapse; }
+#DailyWindow.MenuV10Page.DailyV10Page #DailyRules Label,
+#DailyWindow.MenuV10Page.DailyV10Page #DailyMakeup Label,
+#DailyWindow.MenuV10Page.DailyV10Page #DailyClaimText,
+#DailyWindow.MenuV10Page.DailyV10Page #DailyBack Label,
+#DailyWindow.MenuV10Page.DailyV10Page #PassPurchase Label,
+#DailyWindow.MenuV10Page.DailyV10Page #DailyPassStatusText { width:100%; height:28px; margin:0px; padding:0px; align:center center; font-family:"Source Han Sans SC"; font-size:18px; font-weight:normal; text-align:center; white-space:nowrap; text-overflow:shrink; }
+#DailyWindow.MenuV10Page.DailyV10Page .DailySpinner { position:10px 7px 0px; width:24px; height:24px; margin:0px; }

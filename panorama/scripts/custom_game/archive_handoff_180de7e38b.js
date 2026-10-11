@@ -269,6 +269,7 @@ function formatArchiveEffects(value) {
         ApplyPalette:function(){var win=p('ArchiveWindow');palette(win.BHasClass('ArchivePurple')?p('ArchiveBody'):win);nativeCardTypography();},
         Observe:function(data){this.snapshot=data;},
         Unlocked:unlocked,Progress:progress,CardProgress:cardProgress,Condition:condition,Place:place,Hide:hide,Show:show,ShowEffectOnly:function(item,card){show(item,'',card,true);},Icon:icon,
+        FormatEffects:effectMarkup,EscapeEffects:escapedEffectText,
         NavIcon:function(toggle,id,key){var name='archive_ui_kit_v1_'+(id==='clear'?'clear_selected':(key||'clear')+'_normal')+'.png';if(!assets[name])name='archive_ui_kit_v1_clear_selected.png';img(toggle,name,'ArchiveNavIcon');},
         Card:function(card){card.AddClass('ArchiveHandoffCard');
             card.Children().slice().forEach(function(c){
@@ -281,19 +282,14 @@ function formatArchiveEffects(value) {
             });
         },
         Init:function(){
-            p('ArchiveWindow').RemoveClass('UIModal');
-            style(p('ArchiveWindow'),{backgroundImage:'none',backgroundColor:'transparent',border:'0px',boxShadow:'none'});
-            style(p('ArchiveHeader'),{backgroundImage:'none',backgroundColor:cfg.SurvivalArchiveColors.surface_52});
-            p('ArchiveSidebarBacking').SetImage(assets['sidebar_background.png']);p('ArchiveContentBacking').SetImage(assets['content_background.png']);
-            p('ArchiveTooltipDivider').SetImage(assets['tooltip_divider.png']);
-            p('ArchiveClose').RemoveAndDeleteChildren();img(p('ArchiveClose'),'window_foundation_v1_close_normal.png','ArchiveCloseImage');
-            // Keep the shared modal lifecycle/escape/scrim policy; change only its artwork.
+            var win=p('ArchiveWindow');
+            // V10 owns all menu decoration; remove the previous generated frame.
+            win.Children().slice().forEach(function(child){
+                if(child.BHasClass('ReferenceFrame')||child.BHasClass('ReferenceAtmosphere'))child.DeleteAsync(0);
+            });
+            win.RemoveClass('ReferenceWindow');
+            style(win,{backgroundImage:'none',backgroundColor:'transparent',border:'0px',borderRadius:'0px',boxShadow:'none'});
             p('ArchiveTooltip').RemoveClass('UITooltip');
-            palette(p('ArchiveWindow'));
-            cfg.ReferenceWindows.Apply(p('ArchiveWindow'),p('ArchiveHeader'),p('ArchiveClose'));
-            palette(p('ArchiveWindow'));
-            var emblem=$.CreatePanel('Image',p('ArchiveHeader'),'ArchiveReferenceEmblem');emblem.hittest=false;emblem.SetImage('file://{images}/custom_game/topnav_reference_v2/archive.svg');
-            $.Msg('ARCHIVE_HANDOFF_READY compact_native_v3');
         }
     };
     // Read-only diagnostics available solely in this isolated candidate, not a release script.

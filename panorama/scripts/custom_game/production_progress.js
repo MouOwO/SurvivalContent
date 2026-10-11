@@ -215,7 +215,9 @@
     })(index);
     function getResearchRuntime(ability, unit, publicRuntime) {
         var original = publicRuntime || {}, name = String(original.ability_name || "");
-        try { if (!name && typeof Abilities !== "undefined") name = Abilities.GetAbilityName(Number(ability)) || ""; } catch (error) {}
+        // Entity indices can be reused. Prefer the current engine ability name
+        // over an older public row when resolving the viewer's private data.
+        try { if (typeof Abilities !== "undefined") name = Abilities.GetAbilityName(Number(ability)) || name; } catch (error) {}
         unit = Number(unit);
         if (!/^ability_research_/.test(name) || unit !== selectedUnit()
             || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return publicRuntime;
@@ -243,43 +245,69 @@
         result.owner_entindex = unit;
         return result;
     }
-    function toggleResearch(ability, unit) {
-        if (!active() || blocked()) return false;
-        var runtime = CustomNetTables.GetTableValue("survival_ability_runtime", String(ability)) || {};
+    function researchDiagnostic(action, operation, ability, unit, detail) {
+        if (!$.Msg) return;
+        $.Msg("[SURVIVAL_RESEARCH][CLIENT] ", action,
+            " operation=", operation, " unit=", String(unit),
+            " ability=", String(ability), " ", String(detail || ""));
+    }
+    function researchInputRuntime(ability, unit, operation) {
         unit = Number(unit);
-        // The runtime row belongs to the building owner. A shared advanced lab
-        // may be used by another player whose level/auto state differs; group
-        // metadata identifies the technology, and the server validates access.
-        if (runtime.removed === 1 || !runtime.technology_group
-            || unit !== selectedUnit() || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return false;
-        if (runtime.owner_entindex !== undefined && Number(runtime.owner_entindex) !== unit) return false;
-        var personal = getResearchRuntime(ability, unit, runtime);
+        var rejected = !active() ? "context_inactive" : blocked() ? "modal_open"
+            : unit !== selectedUnit() ? "selection_mismatch"
+            : !/^building_(advanced_)?research_lab$/.test(unitType(unit)) ? "invalid_research_building" : "";
+        if (rejected) {
+            researchDiagnostic("REJECT", operation, ability, unit, "reason=" + rejected);
+            return null;
+        }
+        var publicRuntime = CustomNetTables.GetTableValue("survival_ability_runtime", String(ability)) || {};
+        // Hover, gray-state paint and click admission must use the same private
+        // player projection. The public row may still belong to an old entity
+        // binding, or arrive later than the selected-building snapshot.
+        var personal = getResearchRuntime(ability, unit, publicRuntime);
+        if (personal.removed === 1 || !personal.technology_group
+            || !/^ability_research_/.test(String(personal.ability_name || ""))) {
+            researchDiagnostic("REJECT", operation, ability, unit,
+                "reason=runtime_incomplete status_code=" + String(personal.research_status_code || ""));
+            notify(personal.status_text || "正在同步科技信息");
+            return null;
+        }
+        return personal;
+    }
+    function toggleResearch(ability, unit) {
+        var personal = researchInputRuntime(ability, unit, "auto_research");
+        if (!personal) return false;
         if (Number(personal.auto_research_available) !== 1 && Number(personal.auto_research_enabled) !== 1) {
+            researchDiagnostic("REJECT", "auto_research", ability, unit,
+                "reason=auto_unavailable status_code=" + String(personal.research_status_code || ""));
             notify(personal.status_text || "前置条件未满足，暂不可研究"); return false;
         }
+        var id = requestId("auto");
+        researchDiagnostic("SEND", "auto_research", ability, unit,
+            "request_id=" + id + " group=" + String(personal.technology_group));
         GameEvents.SendCustomGameEventToServer("ui_shop_auto_research_toggle_request", {
-            request_id: requestId("auto"), technology_group: runtime.technology_group, source_entindex: unit
+            request_id: id, technology_group: personal.technology_group, source_entindex: Number(unit)
         });
         return true;
     }
     function queueResearch(ability, unit) {
-        if (!active() || blocked()) return false;
-        var runtime = CustomNetTables.GetTableValue("survival_ability_runtime", String(ability)) || {};
-        unit = Number(unit);
-        if (runtime.removed === 1 || !runtime.technology_group || unit !== selectedUnit()
-            || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return false;
-        if (runtime.owner_entindex !== undefined && Number(runtime.owner_entindex) !== unit) return false;
-        // Shared labs use the viewer's authoritative projection, not the owner.
-        var personal = getResearchRuntime(ability, unit, runtime);
+        var personal = researchInputRuntime(ability, unit, "research_queue");
+        if (!personal) return false;
         var locked = personal.prerequisite_met !== undefined
             ? Number(personal.prerequisite_met) === 0 : Number(personal.available) !== 1;
         if (locked || Number(personal.completed) === 1 || personal.research_status_code === "syncing") {
+            researchDiagnostic("REJECT", "research_queue", ability, unit,
+                "reason=" + (Number(personal.completed) === 1 ? "completed" : "prerequisite_unavailable")
+                + " status_code=" + String(personal.research_status_code || ""));
             notify(personal.status_text || "当前不可研究"); return false;
         }
         // The server checks the current resources before accepting the task.
         // A delayed wallet projection must not swallow a valid click.
+        var id = requestId("research");
+        researchDiagnostic("SEND", "research_queue", ability, unit,
+            "request_id=" + id + " group=" + String(personal.technology_group));
         GameEvents.SendCustomGameEventToServer("ui_research_queue_request", {
-            request_id: requestId("research"), technology_group: runtime.technology_group, source_entindex: unit
+            request_id: id, technology_group: personal.technology_group, source_entindex: Number(unit)
         });
         return true;
     }
@@ -497,6 +525,11 @@
     GameEvents.Subscribe("ui_operation_result", function (result) {
         if (!active() || !result || (result.operation !== "worker_train" && result.operation !== "shop_auto_research_toggle" && result.operation !== "research_queue" && result.operation !== "research_cancel")) return;
         if (String(result.request_id || "").indexOf("production_") !== 0) return;
+        if (result.operation !== "worker_train") {
+            researchDiagnostic("RESULT", result.operation, -1, result.source_entindex,
+                "request_id=" + String(result.request_id || "") + " success=" + String(result.success)
+                + " error=" + String(result.error || "") + " status_code=" + String(result.error_code || result.status_code || ""));
+        }
         if (Number(result.success) !== 1) notify(result.error || result.message || "操作未完成");
         repaint();
     });

@@ -9,7 +9,7 @@
     var currentMode = "shop";
     var lastShopMode = "shop";
     var shopCategory = "equipment";
-    var shopLayoutHeight = 600;
+    var shopLayoutHeight = 941;
     var drawerOpened = false, drawerGeneration = 0;
     var researchSourceEntindex = -1;
     var unlocks = { shop: false, research: false };
@@ -23,6 +23,7 @@
     var entriesById = {};
     var cooldownRefreshDeadlines = {};
     var rejectedPatchSequence = -1;
+    var menuView = null;
 
     function byId(id) { return $("#" + id); }
 
@@ -179,60 +180,39 @@
         setClass(challengeToggle, "Selected", challenge);
         setClass(otherToggle, "Selected", !research && !challenge && shopCategory === "other");
         setProperty(byId("ShopModeToggles"), "visible", !research);
+        if (menuView) {
+            menuView.SetTitle(research ? (advancedResearch ? "高级研究" : "科技研究") : challenge ? "挑战" : "生存商店");
+            menuView.SetSidebar(research ? [{id:"research",label:advancedResearch ? "高级研究" : "科技研究"}]
+                : [{id:"equipment",label:"装备"},{id:"other",label:"其他"},{id:"challenge",label:"挑战"}],
+                research ? "research" : challenge ? "challenge" : shopCategory,
+                function(id){if(id==="challenge")openChallenge();else selectCategory(id);});
+            setProperty(byId("ShopModeToggles"), "visible", false);
+        }
     }
 
     function applyShopLayout() {
-        var windowPanel = byId("CustomShopWindow");
-        if (!windowPanel) return;
-        var root = $.GetContextPanel();
-        var rootWidth = (root.actuallayoutwidth || 1920) / (root.actualuiscale_x || 1);
-        var rootHeight = (root.actuallayoutheight || 1080) / (root.actualuiscale_y || 1);
-        var scale = Math.min(rootWidth / 1920, rootHeight / 1080);
-        var top = Math.max(12, (rootHeight - shopLayoutHeight * scale) / 2);
-        windowPanel.style.width = "680px";
-        windowPanel.style.height = shopLayoutHeight + "px";
-        windowPanel.style.horizontalAlign = "left";
-        windowPanel.style.verticalAlign = "top";
-        windowPanel.style.transformOrigin = "0% 0%";
-        windowPanel.style.margin = "0px";
-        // Fit owns scale; position owns the drawer transition. They never overwrite each other.
-        windowPanel.style.position = Math.round(drawerOpened ? 16 : -700 * scale) + "px " + Math.round(top) + "px 0px";
-        if (byId("ShopHeader")) {
-            byId("ShopHeader").style.borderBottom = "0px";
-            byId("ShopHeader").style.backgroundColor = "gradient(linear,0% 0%,0% 100%,from(#282035),to(#191325))";
-        }
-        if (byId("ShopBackdrop")) byId("ShopBackdrop").style.backgroundColor = "transparent";
-        if (byId("ShopBody")) byId("ShopBody").style.height = "426px";
-        if (byId("ShopFooter")) byId("ShopFooter").style.position = "24px 548px 0px";
+        if (menuView && drawerOpened) menuView.Fit();
     }
 
     function updateShopLayout(entries) {
         // The reference keeps a stable three-row viewport, including sparse categories.
-        shopLayoutHeight = 600;
+        shopLayoutHeight = 941;
         applyShopLayout();
     }
 
     function setOpenState(opened) {
         var windowPanel = byId("CustomShopWindow");
-        var exiting = drawerOpened || !!(windowPanel && windowPanel.visible);
-        var serial = ++drawerGeneration;
+        ++drawerGeneration;
         drawerOpened = opened;
-        if (windowPanel) {
-            windowPanel.style.backgroundColor = "gradient(linear,0% 0%,100% 100%,from(#2e243d),to(#21182f))";
-            windowPanel.style.border = "2px solid #b6996e"; windowPanel.style.borderRadius = "2px";
-        }
-        if(shopShell){if(opened)shopShell.Open();else shopShell.Close();}
+        if(menuView){if(opened)menuView.Open();else menuView.Close();}
         if (windowPanel) {
             windowPanel.SetHasClass("ShopOpen", opened);
             windowPanel.SetHasClass("Closed", !opened);
             windowPanel.RemoveClass("Hidden");
-            windowPanel.visible = opened || exiting;
+            windowPanel.visible = opened;
             windowPanel.hittest = opened;
             windowPanel.hittestchildren = opened;
             applyShopLayout();
-            if (!opened && exiting) $.Schedule(0.29, function () {
-                if (serial === drawerGeneration && !drawerOpened && windowPanel.IsValid()) windowPanel.visible = false;
-            });
         }
     }
 
@@ -549,7 +529,7 @@
             card.__survivalStockLabel.hittest = false;
         }
         if (card.__survivalStockLabel) {
-            setProperty(card.__survivalStockLabel, "visible", false);
+            setProperty(card.__survivalStockLabel, "visible", !!stock);
             setProperty(card.__survivalStockLabel, "text", stock ? stock.count+"/"+stock.max : "");
         }
         updateCooldownOverlay(card, entry, technologyCooldownRemaining(),
@@ -646,7 +626,7 @@
         list.RemoveAndDeleteChildren();
 
         var lastSection = "";
-        entries.forEach(function (entry) {
+        entries.forEach(function (entry, entryIndex) {
             var sectionKey;
             var sectionText;
             if (currentMode === "research") {
@@ -663,12 +643,6 @@
             } else {
                 sectionKey = entry.content_type === "weapon" ? "weapon" : "item";
                 sectionText = sectionKey === "weapon" ? "武器装备" : "道具材料";
-            }
-            if (sectionKey !== lastSection && currentMode === "research") {
-                lastSection = sectionKey;
-                var section = $.CreatePanel("Label", list, "");
-                section.AddClass("ShopSectionTitle");
-                section.text = sectionText;
             }
             var card = $.CreatePanel("Panel", list, "");
             card.AddClass("ShopShelfSlot"); U.CardShell.Adopt(card,{bodyVariant:"product"});
@@ -717,7 +691,7 @@
             card.__survivalNameLabel = name;
             name.text = entry.name || entry.content_id || "";
             name.hittest = false;
-            name.visible = false; // Icon-only reference; names remain in the detail tooltip.
+            name.visible = true;
             if (GameUI.CustomUIConfig().RemainingHandoff.ShopStock(entry)) {
                 var stockLabel = $.CreatePanel("Label", frame, "");
                 stockLabel.AddClass("ShopStockLabel");
@@ -762,8 +736,9 @@
                     return true;
                 });
             }
-            card.style.width = "136px"; card.style.height = "132px";
-            card.style.margin = "0px 20px 10px 0px"; card.style.padding = "0px";
+            if (menuView) menuView.DecorateCell(card,{index:entryIndex,keep:true,
+                iconPanel:frame,namePanel:name,
+                countPanel:card.__survivalStockLabel || card.__survivalLevelLabel});
             updateEntryCard(card, entry);
         });
         updateAutoBookButtons();
@@ -783,6 +758,8 @@
             "木材 " + formatNumber(resources.wood)
                 + " · 金币 " + formatNumber(resources.gold)
         );
+        if (menuView) menuView.SetResources([{name:"金币",text:formatNumber(resources.gold),icon:"gold"},
+            {name:"木材",text:formatNumber(resources.wood),uri:"file://{images}/spellicons/survival/native/wood.png"}]);
     }
 
     function mergePatch(payload) {
@@ -1012,8 +989,19 @@
     var purple = GameUI.CustomUIConfig().SurvivalPurpleShell;
     if (purple && purple.Detach) purple.Detach(shopWindow);
     else if (shopWindow.__purpleShell) { shopWindow.__purpleShell.Dispose(); shopWindow.RemoveClass("PurpleShell"); }
-    shopWindow.AddClass("ShopPurple"); shopWindow.AddClass("ShopStandalone"); shopWindow.AddClass("RHSurvivalShop");
-    var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:680,height:600,fit:{reference:[1920,1080]},onClose:close});
+    shopWindow.RemoveClass("ShopDrawer");shopWindow.RemoveClass("ShopPurple");shopWindow.RemoveClass("ShopStandalone");shopWindow.RemoveClass("RHSurvivalShop");
+    shopWindow.AddClass("MenuV10Shop");
+    menuView=GameUI.CustomUIConfig().SurvivalMenuV10.Adopt({id:"shop",navId:"survival_shop",panel:shopWindow,
+        root:$.GetContextPanel(),scrim:byId("ShopBackdrop"),title:"生存商店",onClose:close});
+    shopWindow.__shopMenuV10=menuView;
+    menuView.Move(byId("ShopBody"),menuView.content);
+    menuView.Move(byId("ShopFooter"),menuView.actions);
+    menuView.Move(byId("ShopEntryTooltip"),menuView.detailLayer);
+    byId("ShopHeader").visible=false;
+    byId("ShopBody").style.position="0px 0px 0px";
+    byId("ShopBody").style.width="1113px";byId("ShopBody").style.height="610px";
+    byId("ShopFooter").style.position="0px 0px 0px";
+    byId("ShopFooter").style.width="1095px";byId("ShopFooter").style.height="48px";
     var categoryHost = byId("ShopModeToggles");
     if (categoryHost && !byId("ShopModeOther")) {
         var other = $.CreatePanel("Button", categoryHost, "ShopModeOther");
@@ -1025,17 +1013,6 @@
     if (shopButton && shopButton.GetChildCount && shopButton.GetChildCount()) shopButton.GetChild(0).text = "装备";
     ["ShopModeShop","ShopModeChallenge","ShopModeOther"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});
     U.Tooltip.Adopt(byId("ShopEntryTooltip"));
-    byId("ShopTitle").style.color = "#ffdb82";
-    var closeButton = byId("ShopCloseButton");
-    closeButton.RemoveAndDeleteChildren();
-    var closeGlyph = $.CreatePanel("Label", closeButton, ""); closeGlyph.text = "×"; closeGlyph.hittest = false;
-    var titleDivider = $.CreatePanel("Panel", byId("ShopHeader"), "ShopTitleDivider");
-    titleDivider.hittest = false; titleDivider.hittestchildren = false;
-    ["TL","TR","BL","BR"].forEach(function(c) {
-        var corner = $.CreatePanel("Panel", shopWindow, "");
-        corner.AddClass("ShopFrameCorner"); corner.AddClass("ShopFrameCorner" + c);
-        corner.hittest = false; corner.hittestchildren = false;
-    });
     setUnlocks(GameUI.CustomUIConfig().SurvivalShopUnlocks || unlocks);
     setOpenState(false);
 })();

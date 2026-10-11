@@ -1,0 +1,19 @@
+/* The approved V10 layout is shared by every menu; scale the entire window. */
+.MenuV10Page { flow-children:none; overflow:noclip; transform-origin:50% 50%; }
+.MenuV10Canvas,.MenuV10Header,.MenuV10Actions,.MenuV10DetailLayer,.MenuV10ItemVisual { flow-children:none; overflow:noclip; }
+.MenuV10Text { font-family:"Source Han Sans SC"; font-weight:normal; font-style:normal; letter-spacing:0px; white-space:nowrap; text-overflow:ellipsis; text-shadow:none; }
+.MenuV10Image { margin:0px; padding:0px; }
+.MenuV10Crop { overflow:clip; flow-children:none; }
+.MenuV10Button { background-image:none; background-color:transparent; border:0px; box-shadow:none; flow-children:none; }
+.MenuV10Button:hover { brightness:1.10; }
+.MenuV10Button:active { brightness:.95; }
+.MenuV10Sidebar,.MenuV10Content { flow-children:none; overflow:squish scroll; }
+.MenuV10HoverFrame { opacity:0; }
+.MenuV10Cell:hover .MenuV10HoverFrame, .MenuV10Cell.ShopSelected .MenuV10HoverFrame { opacity:1; }
+.MenuV10Tooltip { flow-children:none; overflow:noclip; z-index:100; }
+.MenuV10TooltipViewport { overflow:squish scroll; flow-children:none; }
+.MenuV10TooltipBody { height:fit-children; flow-children:down; overflow:noclip; }
+.MenuV10TooltipBody Label { width:100%; height:fit-children; white-space:normal; text-overflow:clip; }
+.MenuV10Page VerticalScrollBar { width:6px; background-color:#151024; background-image:none; border:0px; }
+.MenuV10Page VerticalScrollBar .ScrollThumb { background-color:#78618d; background-image:none; border:0px; border-radius:3px; }
+.MenuV10Page .PurpleChrome,.MenuV10Page .PurpleCorner,.MenuV10Page .ReferenceFrame,.MenuV10Page .ReferenceAtmosphere { visibility:collapse; }

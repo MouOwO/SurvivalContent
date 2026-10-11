@@ -1,126 +1,122 @@
 (function () {
     "use strict";
-    var cfg=GameUI.CustomUIConfig(), root=$.GetContextPanel(), R=cfg.RemainingHandoff;
+    // V10 presentation owns no inventory, settlement or draw requests.
+    var cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel(),R=cfg.RemainingHandoff;
     if(cfg.SurvivalPurpleLottery&&cfg.SurvivalPurpleLottery.Dispose)cfg.SurvivalPurpleLottery.Dispose();
-    var subscriptions=[],disposed=false,life=$.CreatePanel("Panel",root,"");life.visible=false;
-    function valid(p){return p&&(!p.IsValid||p.IsValid());}
+    var disposed=false,life=$.CreatePanel("Panel",root,""),view=null,mode="",pools=[],selected="map",snapshot=null,nodes={};life.visible=false;
+    function valid(n){return n&&(!n.IsValid||n.IsValid());}
     function alive(){return !disposed&&valid(life);}
-    function p(id){return alive()?root.FindChildTraverse(id):null;}
-    function style(n,values){if(valid(n))Object.keys(values).forEach(function(k){n.style[k]=values[k];});}
-    function descendants(n,fn){if(!valid(n))return;fn(n);n.Children().forEach(function(c){descendants(c,fn);});}
+    function remember(n){if(!valid(n))return;if(n.id)nodes[n.id]=n;n.Children().forEach(remember);}
+    // Native Panorama ID traversal can change after SetParent. Capture the
+    // authoritative XML controls before any business panel is reparented.
+    remember(root);
+    function p(id){if(!alive())return null;if(valid(nodes[id]))return nodes[id];var n=root.FindChildTraverse(id);if(valid(n))nodes[id]=n;return n;}
+    function style(n,v){if(valid(n))Object.keys(v).forEach(function(k){n.style[k]=v[k];});}
+    function place(n,x,y,w,h){style(n,{position:x+"px "+y+"px 0px",width:w+"px",height:h+"px",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top",ignoreParentFlow:"true"});}
+    function walk(n,fn){if(!valid(n))return;fn(n);n.Children().forEach(function(c){walk(c,fn);});}
+    function move(id,parent){var n=p(id);if(valid(n)&&view&&valid(parent))view.Move(n,parent);return n;}
+    function hidden(id){style(p(id),{visibility:"collapse"});}
     function action(id,primary){
-        var b=p(id);if(!valid(b))return;
-        style(b,{backgroundImage:"none",backgroundColor:b.enabled===false?"#21182f":primary?"#634084":"#322341",border:"1px solid "+(b.enabled===false?"#574363":"#b29056"),borderRadius:"3px",boxShadow:"none"});
-        descendants(b,function(n){if(n.paneltype==="Label")style(n,{color:b.enabled===false?"#97869f":"#efdfbc",textShadow:"none"});});
+        var b=p(id);if(!valid(b))return;b.AddClass("MenusV10LotteryAction");b.SetHasClass("MenusV10LotteryPrimary",!!primary);
+        style(b,{backgroundImage:"none",backgroundColor:b.enabled===false?"#21182f":primary?"#634084":"#322341",border:"1px solid "+(b.enabled===false?"#574363":"#b29056"),borderRadius:"3px",boxShadow:"none",flowChildren:"none"});
+        walk(b,function(n){if(n.paneltype==="Label")style(n,{color:b.enabled===false?"#97869f":"#efdfbc",textShadow:"none"});});
     }
+    function sidebar(){if(!view)return;
+        view.SetSidebar(pools.map(function(pool){return {id:String(pool.id),label:String(pool.display_name||pool.id),disabled:false};}),selected,function(id){var ui=cfg.SurvivalLottery;if(!ui)return;if(mode==="history"&&ui.SelectHistoryPool)ui.SelectHistoryPool(id);else ui.SelectPool(id);});
+    }
+    function ensure(){
+        if(view||!alive()||!cfg.SurvivalMenuV10)return view;
+        var canvas=p("LotteryMainCanvas");if(!valid(canvas))return null;canvas.RemoveClass("LotteryPurple");canvas.AddClass("LotteryV10");p("LotteryWindow").AddClass("LotteryV10Root");
+        view=cfg.SurvivalMenuV10.Adopt({id:"lottery",navId:"lottery",panel:canvas,root:root,scrim:p("LotteryWindow"),modal:false,title:"抽奖",onClose:function(){if(cfg.SurvivalLottery)cfg.SurvivalLottery.Close();}});
+        ["LotterySceneBackground","LotterySceneShade","LotteryHeroCopy","LotteryUnlockNotice","LotteryResultStage","LotteryRevealStage","LotterySkipReveal","LotteryStatus"].forEach(function(id){move(id,view.content);});
+        move("LotteryCelestialFooter",view.actions);move("LotteryInfoOverlay",view.detailLayer);
+        // Snapshot anchors stay alive; the shared strip replaces their visuals.
+        ["LotteryCelestialHeader","LotteryPoolTabs","LotteryReadingMask"].forEach(hidden);
+        var footer=p("LotteryInfoFooter");if(valid(footer)){var back=$.CreatePanel("Button",footer,"LotteryV10InfoBack");nodes.LotteryV10InfoBack=back;back.AddClass("MenusV10LotteryAction");back.hittestchildren=false;var caption=$.CreatePanel("Label",back,"");caption.text="返回抽奖";caption.hittest=false;back.SetPanelEvent("onactivate",function(){if(cfg.SurvivalLottery)cfg.SurvivalLottery.CloseInfo();});}
+        [["LotteryV10Notice",view.actions,"开奖公告","announcement"],["LotteryV10TicketPurchase",view.header,"获取抽奖券","purchase"]].forEach(function(spec){var b=$.CreatePanel("Button",spec[1],spec[0]);nodes[spec[0]]=b;b.AddClass("MenusV10LotteryAction");b.hittestchildren=false;var t=$.CreatePanel("Label",b,"");t.text=spec[2];t.hittest=false;b.SetPanelEvent("onactivate",function(){if(cfg.SurvivalLottery)cfg.SurvivalLottery.Feature(spec[3]);});});
+        sidebar();return view;
+    }
+    function quantity(item){var raw=item&&item.owned_count;if(raw===undefined||raw===null||raw==="")return "—";var count=Number(raw),max=Number(item.max_owned);return !isFinite(count)||count<0?"—":String(count)+(isFinite(max)&&max>0?"/"+max:"");}
     function compactCards(host,single){
-        if(!valid(host))return;
+        if(!valid(host)||!ensure())return;
         (single?[single]:host.Children()).forEach(function(card,index){
             if(!card.BHasClass("LotteryDetailRow")&&!card.BHasClass("LotteryRewardCard"))return;
-            var result=card.BHasClass("LotteryRewardCard");
-            style(card,{width:result?"184px":"130px",height:result?"160px":"144px",margin:result?"10px 16px":"0px 10px 8px 0px",padding:"0px",flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderRadius:"0px",boxShadow:"none"});
-            if(result)style(card,{position:(40+(index%5)*222)+"px "+(24+Math.floor(index/5)*176)+"px 0px",horizontalAlign:"left",verticalAlign:"top"});
-            card.Children().forEach(function(child){
-                if(child.BHasClass("LotteryDetailIcon")||child.BHasClass("LotteryRewardIconFrame"))style(child,{position:result?"34px 0px 0px":"17px 2px 0px",width:result?"116px":"96px",height:result?"116px":"96px",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top",backgroundImage:"none",backgroundColor:"#161022",border:"1px solid #72548d"});
-                if(child.BHasClass("RHRewardName")||child.BHasClass("LotteryRewardName"))style(child,{position:result?"0px 122px 0px":"0px 104px 0px",width:result?"184px":"130px",maxWidth:result?"184px":"130px",height:"28px",fontSize:"18px",textAlign:"center",horizontalAlign:"left",verticalAlign:"top",backgroundColor:"transparent",backgroundImage:"none",padding:"0px",margin:"0px",color:"#e0d1f0",whiteSpace:"nowrap",textOverflow:"ellipsis"});
-                if(child.BHasClass("RewardV5Quality")||child.BHasClass("LotteryRewardQuality")||child.BHasClass("LotteryRewardDescription")||child.BHasClass("LotteryRewardDuration")||child.BHasClass("LotteryDuplicateBadge"))style(child,{visibility:"collapse"});
-                if(child.BHasClass("LotteryRewardQuantity"))style(child,{position:"90px 0px 0px",horizontalAlign:"left",verticalAlign:"top",margin:"0px",height:"25px",backgroundColor:"#130b20ee",fontSize:"17px",color:"#f1e3ff",padding:"1px 5px",zIndex:"8"});
-            });
-            descendants(card,function(child){
-                if(child.BHasClass("LotteryDuplicateBadge"))style(child,{visibility:"collapse"});
-                if(child.BHasClass("LotteryRewardIcon"))style(child,{width:"100%",height:"100%",margin:"0px",padding:"0px"});
-            });
+            var result=card.BHasClass("LotteryRewardCard"),item=card.__lotteryItem||{},icon=null,name=null,cover=null;card.AddClass("MenusV10LotteryCell");
+            // A singleton callback must retain its real index in the host.
+            if(single)index=host.Children().indexOf(card);
+            walk(card,function(child){if(child.BHasClass("LotteryRewardIcon"))icon=child;if(child.BHasClass("RHRewardName")||child.BHasClass("LotteryRewardName"))name=child;if(child.BHasClass("LotteryCardBack"))cover=child;});
+            var cell=view.DecorateCell(card,{index:index,name:item.name||item.id||name&&name.text||"道具",count:result?"×"+Number(item.count||item.quantity||1):quantity(item),iconPanel:icon,namePanel:name,keep:cover?[cover]:undefined});
+            place(card,result?38+(index%5)*214:2+(index%8)*138,result?8+Math.floor(index/5)*184:8+Math.floor(index/8)*174,144,170);
+            if(icon){place(icon,0,0,120,120);if(icon.SetScaling)icon.SetScaling("stretch-to-fit-preserve-aspect");}
+            if(cover){place(cover,0,0,144,170);style(cover,{zIndex:"20"});}
+            if(cell&&cell.name)style(cell.name,{fontSize:"18px",whiteSpace:"nowrap",textOverflow:"ellipsis",textAlign:"center"});
         });
     }
     function apply(){
-        var canvas=p("LotteryMainCanvas");if(!valid(canvas))return;
-        canvas.AddClass("LotteryPurple");
-        var shell=cfg.SurvivalPurpleShell;
-        if(shell)shell.Adopt({id:"lottery",panel:canvas,width:1280,height:800,onClose:function(){cfg.SurvivalLottery.Close();}});
-        style(p("LotteryWindow"),{backgroundImage:"none",backgroundColor:"#07050fa6",border:"0px",padding:"0px"});
-        ["LotterySceneBackground","LotterySceneShade"].forEach(function(id,index){
-            var scene=p(id);if(!valid(scene))return;
-            if(scene.GetParent()!==canvas)scene.SetParent(canvas);
-            style(scene,{position:"0px 192px 0px",width:"1280px",height:"482px",margin:"0px",opacity:index?"1":"0.36",zIndex:index?"1":"0"});
-        });
-        style(p("LotterySceneShade"),{backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#100b20ed),color-stop(.38,#100b20a6),to(#100b2033))"});
-        style(p("LotteryCelestialHeader"),{position:"900px 134px 0px",width:"350px",height:"52px",backgroundColor:"transparent",visibility:"visible",zIndex:"5"});
-        ["LotteryBrand","LotteryCloseButton"].forEach(function(id){style(p(id),{visibility:"collapse"});});
-        style(p("LotteryWallet"),{position:"0px 0px 0px",width:"350px",height:"44px",margin:"0px",horizontalAlign:"left",verticalAlign:"top"});
-        style(p("LotteryTicketValue"),{position:"46px 6px 0px",fontSize:"20px",color:"#e6d5f2",textShadow:"none"});
-        style(p("LotteryTicketPurchase"),{position:"304px 4px 0px",width:"32px",height:"32px",margin:"0px"});
-        style(p("LotteryPoolTabs"),{position:"28px 144px 0px",width:"838px",height:"48px",margin:"0px",horizontalAlign:"left",verticalAlign:"top",zIndex:"5"});
-        style(p("LotteryHeroCopy"),{position:"52px 245px 0px",width:"730px",height:"300px",zIndex:"3"});
-        style(p("LotteryTitle"),{position:"0px 50px 0px",width:"720px",height:"60px",fontSize:"42px",color:"#efd58b",textShadow:"none"});
-        style(p("LotteryTaglineBounds"),{position:"0px 124px 0px",width:"720px",height:"40px"});
-        style(p("LotteryTagline"),{position:"0px 0px 0px",margin:"0px",width:"720px",height:"35px",transform:"none",fontSize:"22px",color:"#cbb9df",textShadow:"none"});
-        style(p("LotteryGuaranteeRow"),{position:"0px 196px 0px",width:"720px"});
-        style(p("LotteryUnlockNotice"),{position:"52px 553px 0px",width:"1140px",height:"42px",fontSize:"19px",color:"#d0b7e7",textShadow:"none"});
-        style(p("LotteryCelestialFooter"),{position:"28px 678px 0px",width:"1224px",height:"94px",margin:"0px",horizontalAlign:"left",verticalAlign:"top",backgroundColor:"#171024",borderTop:"1px solid #655079",zIndex:"5"});
-        style(p("LHDetails"),{position:"12px 26px 0px",width:"150px",height:"40px"});
-        style(p("LHHistory"),{position:"178px 26px 0px",width:"150px",height:"40px"});
-        style(p("LotterySkipAnimation"),{position:"354px 29px 0px",width:"172px",height:"36px",margin:"0px"});
-        style(p("LotteryDrawPity"),{position:"583px 6px 0px",width:"560px",height:"28px",margin:"0px",horizontalAlign:"left",verticalAlign:"top"});
-        style(p("LotteryDrawPityCaptionBounds"),{position:"0px 0px 0px",width:"560px",height:"28px",margin:"0px",horizontalAlign:"left",verticalAlign:"top"});
-        style(p("LotteryDrawPityCaption"),{position:"0px 0px 0px",width:"fit-children",maxWidth:"560px",height:"28px",minHeight:"28px",margin:"0px",padding:"0px",horizontalAlign:"center",verticalAlign:"top",fontSize:"18px",transform:"none",textShadow:"none"});
-        style(p("LotterySingleButton"),{position:"588px 38px 0px",width:"268px",height:"48px"});
-        style(p("LotteryTenButton"),{position:"888px 38px 0px",width:"268px",height:"48px"});
-        style(p("LotteryStatus"),{position:"28px 634px 0px",width:"1224px",height:"28px",margin:"0px",horizontalAlign:"left",verticalAlign:"top",fontSize:"19px",color:"#cbb8df",textShadow:"none"});
-        style(p("LotteryResultStage"),{position:"28px 146px 0px",width:"1224px",height:"630px",margin:"0px",horizontalAlign:"left",verticalAlign:"top",backgroundColor:"#100b21ef",zIndex:"6"});
-        style(p("LotteryItemList"),{position:"20px 62px 0px",width:"1184px",height:"420px",margin:"0px",horizontalAlign:"left",verticalAlign:"top",flowChildren:"none"});
-        style(p("LotteryResultActions"),{position:"0px 548px 0px",width:"1224px",height:"62px",margin:"0px",horizontalAlign:"left",verticalAlign:"top"});
-        compactCards(p("LotteryItemList"));
+        if(!ensure())return;p("LotteryMainCanvas").RemoveClass("LotteryPurple");
+        style(view.content,{visibility:mode?"collapse":"visible"});
+        style(p("LotteryWindow"),{width:"100%",height:"100%",position:"0px 0px 0px",horizontalAlign:"left",verticalAlign:"top",margin:"0px",backgroundImage:"none",backgroundColor:"#07050fa6",border:"0px",borderRadius:"0px",boxShadow:"none",padding:"0px",flowChildren:"none",transform:"none"});
+        ["LotteryCelestialHeader","LotteryPoolTabs","LotteryReadingMask"].forEach(hidden);
+        place(p("LotterySceneBackground"),0,100,1113,488);style(p("LotterySceneBackground"),{opacity:"0.42",zIndex:"0",overflow:"clip"});
+        if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Resize(1113,488);
+        place(p("LotterySceneShade"),0,100,1113,488);style(p("LotterySceneShade"),{backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#100b20eb),color-stop(.4,#100b2088),to(#100b2033))",zIndex:"1"});
+        place(p("LotteryHeroCopy"),18,18,1050,336);style(p("LotteryHeroCopy"),{flowChildren:"none",zIndex:"3"});hidden("LotteryTitle");hidden("LotteryAnnouncement");
+        place(p("LotteryTaglineBounds"),0,58,1030,44);place(p("LotteryTagline"),0,0,1030,40);style(p("LotteryTagline"),{fontSize:"23px",color:"#cbb9df",transform:"none",textShadow:"none"});
+        place(p("LotteryGuaranteeRow"),0,208,900,52);style(p("LotteryGuaranteeRow"),{flowChildren:"none",backgroundColor:"transparent"});
+        place(p("LotteryUnlockNotice"),18,574,1050,38);style(p("LotteryUnlockNotice"),{fontSize:"19px",color:"#d0b7e7",textShadow:"none"});
+        place(p("LotteryStatus"),18,622,1050,30);style(p("LotteryStatus"),{fontSize:"18px",color:"#cbb8df",textShadow:"none"});
+        place(p("LotteryCelestialFooter"),0,0,1095,54);style(p("LotteryCelestialFooter"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px",flowChildren:"none",overflow:"noclip"});
+        style(p("LotteryCelestialFooter"),{visibility:mode||p("LotteryWindow").BHasClass("LotteryResultsShown")?"collapse":"visible"});
+        place(p("LHDetails"),0,4,142,44);place(p("LHHistory"),151,4,142,44);place(p("LotterySkipAnimation"),310,5,178,40);
+        place(p("LotteryV10Notice"),492,4,96,44);place(p("LotteryV10TicketPurchase"),1323,155,190,42);
+        style(p("LotteryV10Notice"),{visibility:mode||p("LotteryWindow").BHasClass("LotteryResultsShown")?"collapse":"visible"});
+        place(p("LotteryDrawPity"),576,-35,505,28);place(p("LotteryDrawPityCaptionBounds"),0,0,505,28);place(p("LotteryDrawPityCaption"),0,0,505,28);style(p("LotteryDrawPityCaption"),{horizontalAlign:"center",fontSize:"18px",textAlign:"center",transform:"none",color:"#d7c0e8"});
+        place(p("LotterySingleButton"),595,1,232,50);place(p("LotteryTenButton"),850,1,232,50);
         ["LotterySingleButton","LotteryTenButton","LotteryAgain","LotteryConfirm"].forEach(function(id){action(id,id==="LotteryTenButton"||id==="LotteryAgain");});
-        ["LotterySingleCost","LotteryTenCost"].forEach(function(id){style(p(id),{visibility:"visible",width:"fit-children",height:"32px",minWidth:"24px",fontSize:"22px",color:"#efdfbc"});});
-        ["LotteryPoolTabs","LotteryInfoTabs"].forEach(function(id){descendants(p(id),function(n){if(n.BHasClass("LotteryPoolBadge"))style(n,{visibility:"collapse"});});});
-        styleInfoTabs();
-    }
-    function styleInfoTabs(){
-        var host=p("LotteryInfoTabs");if(!valid(host))return;
-        host.Children().forEach(function(tab){if(tab.BHasClass("LotteryPoolTab"))style(tab,{width:"286px",height:"40px",backgroundImage:"none",backgroundColor:tab.BHasClass("Selected")?"#56337d":"#21162f",border:"1px solid #64477b"});});
+        ["LotterySingleCost","LotteryTenCost"].forEach(function(id){style(p(id),{visibility:"visible",fontSize:"20px",color:"#efdfbc"});});
+        place(p("LotteryResultStage"),0,0,1113,669);style(p("LotteryResultStage"),{backgroundImage:"none",backgroundColor:"#100b21f7",zIndex:"6",flowChildren:"none",border:"0px"});
+        place(p("LotteryResultHeading"),18,8,1050,48);style(p("LotteryResultHeading"),{fontSize:"27px",color:"#efcd7e",textShadow:"none"});
+        place(p("LotteryItemList"),8,64,1097,452);style(p("LotteryItemList"),{flowChildren:"none",overflow:"squish scroll"});
+        place(p("LotteryResultActions"),0,574,1113,66);style(p("LotteryResultActions"),{flowChildren:"none"});place(p("LotteryConfirm"),292,0,240,50);place(p("LotteryAgain"),568,0,240,50);
+        place(p("LotteryRevealStage"),0,0,1113,669);place(p("LotterySkipReveal"),940,12,155,42);compactCards(p("LotteryItemList"));
+        var film=p("LotteryCinematicSurface");if(valid(film)){view.Move(film,view.content);place(film,0,0,1113,669);}
+        if(!mode)view.SetTitle(p("LotteryTitle")&&p("LotteryTitle").text||"抽奖");
+        if(snapshot&&view.SetResources){var pool=snapshot.selected_pool||snapshot;view.SetResources([{name:pool.ticket_name||"抽奖券",value:pool.tickets,icon:"ticket"},{name:"星悦积分",value:snapshot.starjoy_points,icon:"purple_gem"}]);}
+        view.Fit();
+        style(p("LotteryMainCanvas"),{opacity:"1"});
     }
     function info(name,options){
-        options.width=1280;options.height=800;options.fit={reference:[1920,1080]};
-        var win=options.panel;win.AddClass("LotteryInfoPurple");
-        style(win,{width:"1280px",height:"800px",padding:"0px"});
-        if(cfg.SurvivalPurpleShell)cfg.SurvivalPurpleShell.Adopt({id:"lottery_info",navId:"lottery",panel:win,title:name==="history"?"抽奖记录":"奖池详情",width:1280,height:800,onClose:function(){cfg.SurvivalLottery.CloseInfo();}});
-        style(p("LotteryInfoHeader"),{position:"26px 134px 0px",width:"1200px",height:"36px",backgroundColor:"transparent"});
-        style(p("LotteryInfoTitle"),{position:"0px 0px 0px",width:"1000px",height:"34px",fontSize:"24px",color:"#efcb7c",margin:"0px",horizontalAlign:"left",textAlign:"left"});
-        ["LotteryInfoIcon","LotteryInfoClose","LotteryPoolSelection","LotteryPoolGuarantee"].forEach(function(id){style(p(id),{visibility:"collapse"});});
-        style(p("LotteryInfoTabs"),{position:"26px 182px 0px",width:"1200px",height:"42px",margin:"0px"});
-        styleInfoTabs();
-        style(p("LotteryInfoBody"),{position:name==="history"?"26px 278px 0px":"26px 238px 0px",width:"1228px",height:name==="history"?"400px":"440px",backgroundImage:"none",backgroundColor:"transparent"});
-        style(p("LotteryInfoList"),{position:"0px 0px 0px",width:"1228px",height:name==="history"?"400px":"440px",margin:"0px",padding:"8px 12px",flowChildren:name==="history"?"down":"right-wrap",overflow:"squish scroll"});
-        style(p("LotteryInfoFooter"),{position:"26px 695px 0px",width:"1228px",height:"76px",backgroundColor:"transparent"});
-        style(p("LotteryInfoRules"),{position:"0px 0px 0px",width:"980px",height:"70px",fontSize:"18px",whiteSpace:"normal",color:"#b5a3c6"});
-        style(p("LotteryInfoNote"),{position:"28px 773px 0px",width:"1210px",height:"22px",margin:"0px",backgroundColor:"transparent",fontSize:"16px",color:"#aa98bb",whiteSpace:"nowrap",visibility:name==="reward"||name==="history"||name==="update"?"visible":"collapse"});
-        style(p("RHHistoryColumns"),{position:"26px 238px 0px",width:"1228px",height:"26px",fontSize:"16px"});
-        style(p("LotteryInfoConfirm"),{position:"1060px 12px 0px",width:"160px",height:"42px",margin:"0px"});
-        action("LotteryInfoConfirm",true);
-        compactCards(p("LotteryInfoList"));
+        if(!ensure())return;mode=name;var win=options.panel;win.RemoveClass("LotteryInfoPurple");win.AddClass("LotteryInfoV10");
+        place(p("LotteryInfoOverlay"),407,213,1113,669);style(p("LotteryInfoOverlay"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px",zIndex:"12",flowChildren:"none"});
+        style(view.content,{visibility:"collapse"});
+        place(win,0,0,1113,669);style(win,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",transform:"none",flowChildren:"none",overflow:"clip"});
+        ["LotteryInfoHeader","LotteryInfoTabs","LotteryPoolSelection","LotteryPoolGuarantee"].forEach(hidden);
+        var hasNote=!!String(p("LotteryInfoNote")&&p("LotteryInfoNote").text||""),bodyTop=hasNote?58:16,bodyHeight=568-bodyTop;
+        place(p("LotteryInfoNote"),16,10,1080,44);style(p("LotteryInfoNote"),{visibility:hasNote?"visible":"collapse",backgroundImage:"none",backgroundColor:"transparent",border:"0px",fontSize:"18px",color:"#b6a1ca",whiteSpace:"normal",textShadow:"none"});
+        place(p("LotteryInfoBody"),0,bodyTop,1113,bodyHeight);style(p("LotteryInfoBody"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px",flowChildren:"none"});
+        place(p("LotteryInfoList"),0,0,1113,bodyHeight);style(p("LotteryInfoList"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px",flowChildren:name==="details"||name==="update"?"none":"down",overflow:"squish scroll"});
+        place(p("LotteryInfoFooter"),0,580,1113,88);style(p("LotteryInfoFooter"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px",flowChildren:"none"});
+        p("LotteryInfoFooter").Children().forEach(function(c){if(c.paneltype==="Image")c.visible=false;});
+        place(p("LotteryInfoRules"),16,0,774,84);style(p("LotteryInfoRules"),{fontSize:"17px",whiteSpace:"normal",color:"#b5a3c6"});
+        place(p("LotteryV10InfoBack"),936,22,160,44);hidden("LotteryInfoConfirm");hidden("RHHistoryColumns");hidden("LotteryCelestialFooter");hidden("LotteryV10Notice");compactCards(p("LotteryInfoList"));
+        if(name==="history")p("LotteryInfoList").Children().forEach(function(row){if(row.BHasClass("RHHistoryRow"))style(row,{backgroundImage:"none",border:"0px",borderBottom:"1px solid #3e2c52"});});
+        if(name==="reward")p("LotteryInfoList").Children().forEach(function(child){if(child.BHasClass("LotteryDetailIcon")){place(child,12,0,120,120);walk(child,function(n){if(n.BHasClass("LotteryRewardIcon")){place(n,0,0,120,120);if(n.SetScaling)n.SetScaling("stretch-to-fit-preserve-aspect");}});}else if(child.BHasClass("LotteryDetailDescription"))place(child,12,136,1045,bodyHeight-136);});
+        var names={details:"奖池详情",history:"抽奖记录",announcement:"开奖公告",update:"奖励更新公告",reward:p("LotteryInfoTitle")&&p("LotteryInfoTitle").text||"奖励详情",firstgift:"首充礼包",privilege:"礼包特权"};view.SetTitle(names[name]||"功能提示");sidebar();
     }
-    var originalDialog,originalReward,dialogWrapper,rewardWrapper;
-    if(R){
-        originalDialog=R.LotteryDialog;originalReward=R.RewardCard;
-        dialogWrapper=function(name,options){originalDialog(name,options);if(alive())info(name,options);};
-        rewardWrapper=function(card,item){originalReward(card,item);
-            if(!alive())return;
-            if(valid(card.GetParent())&&card.GetParent().id==="LotteryInfoList"){
-                var qty=Number(item.owned_count),known=item.owned_count!==undefined&&isFinite(qty);
-                if(known&&qty>0){var badge=$.CreatePanel("Label",card,"");badge.AddClass("PurpleLotteryQuantity");badge.text="×"+qty;badge.hittest=false;}
-                compactCards(card.GetParent(),card);styleInfoTabs();
-            }
-        };R.LotteryDialog=dialogWrapper;R.RewardCard=rewardWrapper;
-    }
-    var lottery=cfg.SurvivalLottery,originalFeature=lottery&&lottery.Feature,featureWrapper;
-    if(originalFeature){featureWrapper=function(name){originalFeature(name);if(!alive())return;var modal=cfg.SurvivalUI.ModalManager.Get("lottery_info");if(modal&&modal.IsOpen()){compactCards(p("LotteryInfoList"));styleInfoTabs();action("LotteryInfoConfirm",true);}};lottery.Feature=featureWrapper;}
-    ["ui_lottery_snapshot","ui_lottery_result","ui_lottery_exchange_result"].forEach(function(event){subscriptions.push(GameEvents.Subscribe(event,function(){if(alive())apply();}));});
-    cfg.SurvivalPurpleLottery={Apply:apply,Info:info,Compact:compactCards,StyleTabs:styleInfoTabs,IsAlive:alive,Dispose:function(){
-        if(disposed)return;disposed=true;
-        subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];
-        if(R&&R.LotteryDialog===dialogWrapper)R.LotteryDialog=originalDialog;
-        if(R&&R.RewardCard===rewardWrapper)R.RewardCard=originalReward;
-        if(lottery&&lottery.Feature===featureWrapper)lottery.Feature=originalFeature;
-        if(valid(life))life.DeleteAsync(0);
-    }};apply();
+    var originalDialog=R&&R.LotteryDialog,originalReward=R&&R.RewardCard;
+    function dialogWrapper(name,options){info(name,options);}
+    function rewardWrapper(card,item){card.__lotteryItem=item;if(originalReward)originalReward(card,item);compactCards(card.GetParent(),card);}
+    if(R){R.LotteryDialog=dialogWrapper;R.RewardCard=rewardWrapper;}
+    cfg.SurvivalPurpleLottery={
+        Apply:apply,Info:info,Compact:compactCards,StyleTabs:function(){},IsAlive:alive,
+        Pools:function(rows,id){pools=rows||[];selected=String(id||"map");sidebar();},Snapshot:function(data){snapshot=data;apply();},
+        Open:function(){mode="";apply();if(view)view.Open();},Close:function(){mode="";if(view)view.Close();},CloseInfo:function(){mode="";style(p("LotteryCelestialFooter"),{visibility:"visible"});apply();},
+        Content:function(){return ensure()?view.content:null;},
+        Fit:function(){if(!ensure())return false;view.Fit();style(p("LotteryMainCanvas"),{opacity:"1"});return true;},
+        Tooltip:function(item,anchor){if(!ensure())return false;var lines=[String(item.description||"暂无效果说明")];if(item.quality)lines.push("品质："+String(item.quality).toUpperCase());if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+"积分");if(item.count!==undefined||item.quantity!==undefined)lines.push("本次获得："+Number(item.count||item.quantity||1));if(item.duplicate===true||Number(item.duplicate)===1)lines.push("本次已转化 "+Number(item.converted_points||0)+" 积分");view.TooltipShow({name:item.name||item.id||"道具",description:lines.join("\n"),quantity:quantity(item),state:item.item_type||"抽奖奖励"},anchor);return true;},
+        HideTooltip:function(){if(view)view.TooltipHide();},
+        Dispose:function(){if(disposed)return;disposed=true;if(R&&R.LotteryDialog===dialogWrapper)R.LotteryDialog=originalDialog;if(R&&R.RewardCard===rewardWrapper)R.RewardCard=originalReward;if(view)view.Dispose();view=null;if(valid(life))life.DeleteAsync(0);},
+        Inspect:function(){var values={alive:alive(),view:!!view,mode:mode,pools:pools.length,selected:selected,hasSnapshot:!!snapshot};["LotteryWindow","LotteryMainCanvas","LotteryCelestialHeader","LotteryPoolTabs","LotteryHeroCopy","LotteryCelestialFooter"].forEach(function(id){var n=p(id);values[id]=valid(n)?{parent:n.GetParent()&&n.GetParent().id,position:n.style.position,visible:n.visible,visibility:n.style.visibility,width:n.style.width,height:n.style.height,transform:n.style.transform}:null;});return values;}
+    };apply();
+    if(typeof Game!=="undefined"&&Game.AddCommand){var probe="lottery_v10_inspect_"+Date.now();Game.AddCommand(probe,function(){$.Msg("[LOTTERY_V10_STATE] "+JSON.stringify(cfg.SurvivalPurpleLottery.Inspect()));},"Read native V10 lottery layout",0);$.Msg("[LOTTERY_V10_READY] "+probe);}
 })();

@@ -17,6 +17,7 @@
         return "×"+(known&&isFinite(Number(item.count))?String(item.count):"—");
     }
     function decorate(card){
+        if(card.BHasClass("ArchiveV10Cell"))return;
         card.AddClass("ArchiveCompactCell");
         var title=card.BHasClass("ArchiveTitleCard");
         style(card,{width:title?"268px":"128px",height:"128px",margin:"0px 12px 2px 0px",padding:"0px",flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderRadius:"0px",boxShadow:"none"});
@@ -53,6 +54,7 @@
     }
     function apply(){
         var win=p("ArchiveWindow");if(!valid(win))return;
+        if(win.BHasClass("ArchiveV10Page"))return;
         win.AddClass("ArchivePurple");
         style(p("ArchiveBody"),{position:"0px 132px 0px",width:"1280px",height:"668px",backgroundImage:"none",backgroundColor:"transparent",border:"0px",padding:"0px"});
         style(p("ArchiveContent"),{position:"216px 0px 0px",width:"1064px",height:"668px",backgroundImage:"none",backgroundColor:"transparent",border:"0px",padding:"0px"});
