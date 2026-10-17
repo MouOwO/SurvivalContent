@@ -101,6 +101,7 @@
         var screenScale = Number(top.actualuiscale_x) || Number(owner.actualuiscale_x) || 1;
         var topBounds = bounds(top), referenceBounds = bounds(reference), right = null;
         anchors.forEach(function (entry) {
+            if (entry.key === "vip") return; // VIP follows Collection at the end of the first row.
             if (!visible(entry.panel)) return;
             var box = bounds(entry.panel);
             // Only the first row determines the next first-row entry. An

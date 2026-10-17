@@ -186,7 +186,21 @@
         return frame;
     }
     // End shared uniform slot outline.
+    // Installed Valve HUD art; tree and friends stand for wood and population.
+    var resourceIcons={
+        top_gold:["s2r://panorama/images/hud/reborn/gold_large_png.vtex",null],
+        top_wood:["s2r://panorama/images/hud/facets/icons/tree_png.vtex","#d4bc8d"],
+        top_population:["s2r://panorama/images/control_icons/friends_png.vtex","#d3ddd8"]
+    };
     function art(parent,id,key) {
+        var resourceIcon=resourceIcons[key];
+        if(resourceIcon){
+            var resource=create("Image",parent,id,false);
+            resource.SetImage(resourceIcon[0]);
+            if(resource.SetScaling)resource.SetScaling("stretch-to-fit-preserve-aspect");
+            if(resourceIcon[1])style(resource,{washColor:resourceIcon[1]});
+            return resource;
+        }
         // Dedicated transparent wave marker; morale remains a separate skill icon.
         if(key==="top_wave"){
             var beast=create("Image",parent,id,false);
@@ -195,12 +209,7 @@
             style(beast,{backgroundColor:"transparent",border:"0px solid transparent"});
             return beast;
         }
-        /* survival unified icon art */var unified={"top_wave":"skill_morale","stat_attack":"broadsword","stat_armor":"platemail","stat_attack_speed":"gloves","stat_strength":"reaver","stat_agility":"swift_blink","stat_intelligence":"arcane_blink"};if(unified[key]){var refined=create("Image",parent,id,false);refined.SetImage("file://{images}/spellicons/survival/native/"+unified[key]+".png");return refined;}if(key==="top_shop_64"){var icon=create("Panel",parent,id,false),handle=create("Panel",icon,"",false),bag=create("Panel",icon,"",false);place(handle,26,18,12,15);style(handle,{border:"2px solid #e3ded0",borderRadius:"6px 6px 0px 0px"});place(bag,21,29,22,20);style(bag,{border:"2px solid #e3ded0",borderRadius:"2px"});return icon;}if(key==="slot_frame")return uniformSlotFrame(parent,id);if(key==="top_population"){var food=create("Image",parent,id,false);food.SetImage("file://{images}/custom_game/survival/food_population.png");return food;}if(key==="top_gold"||key==="top_wood"){
-        // Shared resource art: the same transparent coin pile/log used by costs and tooltips.
-        var resource=create("Image",parent,id,false);
-        resource.SetImage("file://{images}/custom_game/hud_resources_v2/"+(key==="top_gold"?"gold":"wood")+".svg");
-        if(resource.SetScaling)resource.SetScaling("stretch-to-fit-preserve-aspect");
-        return resource;}var p=create("Image",parent,id,false);p.SetImage(key==="top_shop_64"?"s2r://panorama/images/custom_game/shop_preview_v1/shop_png.vtex":"file://{images}/"+assets[key].file);return p;}
+        /* survival unified icon art */var unified={"top_wave":"skill_morale","stat_attack":"broadsword","stat_armor":"platemail","stat_attack_speed":"gloves","stat_strength":"reaver","stat_agility":"swift_blink","stat_intelligence":"arcane_blink"};if(unified[key]){var refined=create("Image",parent,id,false);refined.SetImage("file://{images}/spellicons/survival/native/"+unified[key]+".png");return refined;}if(key==="top_shop_64"){var icon=create("Panel",parent,id,false),handle=create("Panel",icon,"",false),bag=create("Panel",icon,"",false);place(handle,26,18,12,15);style(handle,{border:"2px solid #e3ded0",borderRadius:"6px 6px 0px 0px"});place(bag,21,29,22,20);style(bag,{border:"2px solid #e3ded0",borderRadius:"2px"});return icon;}if(key==="slot_frame")return uniformSlotFrame(parent,id);var p=create("Image",parent,id,false);p.SetImage(key==="top_shop_64"?"s2r://panorama/images/custom_game/shop_preview_v1/shop_png.vtex":"file://{images}/"+assets[key].file);return p;}
     function label(parent,id,cls) {var p=create("Label",parent,id,false);p.text="";if(cls)p.AddClass(cls);style(p,{fontFamily:'"Source Han Sans SC"',color:"#f3ebd4",fontSize:"23px",whiteSpace:"nowrap",textOverflow:"shrink",zIndex:"5"});return p;}
     function centered(parent,id,x,y,w,h,fontSize) {
         var bounds=nodes[id+"Bounds"];
@@ -251,9 +260,9 @@
     // Shared bounds keep initial creation and resolution refresh equally compact.
     function navBounds(key,index) {
         if(key==="survival_shop")return {x:52,y:100,width:96};
-        return {x:key==="vip"?362:14+index*58,y:6,width:key==="vip"?60:56};
+        return {x:key==="vip"?518:14+index*58,y:6,width:key==="vip"?60:56};
     }
-    var effectsNavX=424;
+    var effectsNavX=362;
     // Navigation icons and captions sit directly over the game, without a solid plate.
     nav.forEach(function(a,i){
         var bounds=navBounds(a[0],i),buttonWidth=bounds.width;
