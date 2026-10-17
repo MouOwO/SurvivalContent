@@ -18,7 +18,8 @@
     }
     function currencyAsset(currency,row){return currency==="shop_points"?"balance_point_icon":currency==="shop_gold"?"balance_shop_icon":row?row+"_coin":"balance_u_icon";}
     function currencyImage(parent,currency,cls,row){return image(parent,currency==="u_coin"?"s2r://panorama/images/hud/reborn/gold_large_png.vtex":layer(currencyAsset(currency,row)).path,cls);}
-    function template(index){var prefix="vip"+(4+(index%7)),wash=layer(prefix+"_row_wash");return {prefix:prefix,wash:wash};}
+    function template(index){var level=4+(index%7),prefix="vip"+level,wash=layer(prefix+"_row_wash");return {prefix:prefix,wash:wash,bright:level%2===0};}
+    function priceColumn(){return {x:layer("vip4_coin").x-layer("vip4_row_wash").x-100,width:235};}
     function relativeArt(parent,id,wash,cls){var r=layer(id);return art(parent,id,cls,r.x-wash.x,r.y-wash.y);}
     function windowHeight(){return layer("footer_base").y+52;}
     M.Window=function(root,onClose){
@@ -48,7 +49,7 @@
         close.Children().forEach(function(child){child.visible=false;});art(close,"close_button","",0,0,c.width,c.height);
         var tabs=box(make("Panel",canvas,"BlackLionMarketTabs","BLMarketTabs"),14,83,1357,60);
         var headings=box(make("Panel",canvas,"","BLMarketColumnHead"),14,145,1357,47);
-        ["column_item","column_price"].forEach(function(id){var r=layer(id);box(label(headings,r.text,"BLMarketColumnLabel"),r.x-14,r.y-160,r.width+50,r.height);});
+        ["column_item","column_price"].forEach(function(id){var r=layer(id),price=id==="column_price"?priceColumn():null;box(label(headings,r.text,"BLMarketColumnLabel"+(price?" BLMarketPriceHeading":"")),price?price.x:r.x-14,r.y-160,price?price.width:r.width+50,r.height);});
         box(label(headings,"显示类型","BLMarketFilterCaption"),316,6,110,32);
         var typeControl=box(make("Panel",headings,"BLMarketPurchaseType","BLMarketPurchaseType"),428,4,266,34),typeButtons={},typeCallback=null;
         var typeOptions=cfg.SurvivalBlackLionMarketModel.PurchaseTypes();
@@ -77,14 +78,14 @@
     };
     M.SkinTooltip=function(tip){tip.AddClass("BLMarketDetail");var surface=make("Panel",tip,"","BLMarketDetailSurface");surface.hittest=false;return {surface:surface,Resize:function(w,h){box(surface,0,0,w,h);}};};
     function unavailableRow(parent,item,index){
-        var t=template(index||0),r=t.wash,row=box(make("Panel",parent,"","BLMarketRow BLMarketHomeUnavailable"),0,0,r.width,r.height);art(row,t.prefix+"_row_wash","BLMarketRowWash",0,0,r.width,r.height);relativeArt(row,t.prefix+"_gift_frame",r,"BLMarketArtFrame");
+        var t=template(index||0),r=t.wash,row=box(make("Panel",parent,"","BLMarketRow BLMarketHomeUnavailable"),0,0,r.width,r.height);art(row,t.prefix+"_row_wash","BLMarketRowWash"+(t.bright?" BLMarketBrightRowWash":""),0,0,r.width,r.height);relativeArt(row,t.prefix+"_gift_frame",r,"BLMarketArtFrame");
         var name=box(label(row,item.title,"BLMarketName"),103,29,780,37);box(label(row,"未开放","BLMarketUnavailableState"),1160,25,176,32);row.__menuCell={iconPanel:row,namePanel:name,countPanel:null};return row;
     }
     M.Row=function(parent,item,props){
         if(item&&item.home_unavailable===true)return unavailableRow(parent,item,props.index);
         var J=cfg.SurvivalCommerceComponents,K=cfg.SurvivalBlackLionMarketModel,t=template(props.index||0),r=t.wash;
         var row=make("Panel",parent,"","RCProduct BLMarketRow");row.AddClass(item.product_type==="bundle"?"CJBundle":"CJProduct");row.SetHasClass("BLMarketOdd",!!(props.index%2));row.hittest=true;row.hittestchildren=true;row.style.width=r.width+"px";row.style.minWidth=r.width+"px";row.style.margin="0px";row.style.padding="0px";row.style.height=r.height+"px";row.style.minHeight=r.height+"px";
-        art(row,t.prefix+"_row_wash","BLMarketRowWash",0,0,r.width,r.height);
+        art(row,t.prefix+"_row_wash","BLMarketRowWash"+(t.bright?" BLMarketBrightRowWash":""),0,0,r.width,r.height);
         // All goods, including bundles, use their registered original art.
         // Screenshot gift layers are too small to enlarge without blurring.
         var frameSize=74,well=box(make("Panel",row,"","BLMarketArt"),13,Math.floor((r.height-frameSize)/2),frameSize,frameSize);
@@ -92,19 +93,19 @@
         well.hittest=true;well.hittestchildren=false;
         var icon=J.ItemIcon(well,item,"BLMarketItemIcon",{width:frameSize,height:frameSize});
         icon.style.position="0px 0px 0px";icon.style.width="100%";icon.style.height="100%";icon.style.margin="0px";icon.style.padding="0px";
-        var n=layer(t.prefix+"_name"),name=box(label(row,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"BLMarketName"),n.x-r.x,n.y-r.y,786,n.height);
-        var owned=box(label(row,Number(item.owned)>0?"已拥有 "+item.owned:"","BLMarketOwned"),n.x-r.x,n.y-r.y+n.height+2,786,22);owned.visible=Number(item.owned)>0;
-        var c=layer(t.prefix+"_coin"),price=box(make("Panel",row,"","BLMarketRowPrice"),c.x-r.x,c.y-r.y,235,78),primary="价格待同步",secondary="",cost=item.price;
+        var column=priceColumn(),n=layer(t.prefix+"_name"),nameWidth=column.x-(n.x-r.x)-20,name=box(label(row,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"BLMarketName"),n.x-r.x,n.y-r.y,nameWidth,n.height);
+        var owned=box(label(row,Number(item.owned)>0?"已拥有 "+item.owned:"","BLMarketOwned"),n.x-r.x,n.y-r.y+n.height+2,nameWidth,22);owned.visible=Number(item.owned)>0;
+        var c=layer(t.prefix+"_coin"),price=box(make("Panel",row,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width,78),primary="价格待同步",secondary="",cost=item.price;
         var isU=item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined;
         if(item.purchase_method==="wallet"&&typeof cost==="number"&&isFinite(cost)&&cost>=0)primary=cost+" "+(item.currency_name||"");
         else if(isU){var coin=item.u_coin_price,fen=item.amount_fen,validPrice=typeof coin==="number"&&coin>0&&coin%1===0&&item.u_coin_per_yuan===1000&&typeof fen==="number"&&fen>0&&fen<=1000000&&fen%1===0&&coin===fen*10;
             if(validPrice){primary=coin+" U币";secondary="¥"+(fen/100).toFixed(2);}else secondary="直购价格待同步";
         }else if(typeof item.amount_fen==="number"&&isFinite(item.amount_fen)&&item.amount_fen>0)primary="¥"+(item.amount_fen/100).toFixed(2);
         // Keep the currency and amount in one centered row; screenshot text offsets put amounts too low.
-        var priceLine=box(make("Panel",price,"","BLMarketPriceLine"),0,0,235,40);
+        var priceLine=box(make("Panel",price,"","BLMarketPriceLine"),0,0,column.width,40);priceLine.style.width="fit-children";
         currencyImage(priceLine,isU?"u_coin":item.currency,"BLMarketPriceCurrency",t.prefix);
         label(priceLine,primary,"BLMarketPriceMain");
-        var yuan=layer(t.prefix+"_rmb"),secondaryLabel=box(label(price,secondary,"BLMarketPriceSecondary"),42,yuan.y-c.y,190,32);secondaryLabel.visible=!!secondary;
+        var yuan=layer(t.prefix+"_rmb"),secondaryLabel=box(label(price,secondary,"BLMarketPriceSecondary"),0,yuan.y-c.y,column.width,32);secondaryLabel.visible=!!secondary;
         var available=K.IsActionable?K.IsActionable(item):item.enabled===true||item.enabled===1,reason=K.DisabledMessage?K.DisabledMessage(item):String(item.disabled_message||"");
         if(item.purchase_method==="wallet"&&item.currency==="shop_points"&&(item.disabled_reason==="commerce_balance_insufficient"||item.disabled_reason==="insufficient_balance"))reason="";
         if(!available&&!reason)reason="未满足购买条件";row.SetHasClass("BLMarketHasReason",!!reason);

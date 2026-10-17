@@ -26,18 +26,21 @@
 .BLMarketWindow .BLMarketTabs .UISelected .RCTabText { color:#fffff8; }
 .BLMarketWindow .BLMarketColumnHead { flow-children:none; margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; }
 .BLMarketWindow .BLMarketColumnLabel { margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; box-shadow:none; font-size:25px; line-height:31px; color:#faf4cf; white-space:nowrap; text-overflow:shrink; }
+.BLMarketWindow .BLMarketPriceHeading { text-align:center; }
 .BLMarketWindow .BLMarketList { flow-children:down; overflow:squish scroll; margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; }
 .BLMarketWindow .BLMarketRows { width:1357px; height:fit-children; flow-children:down; margin:0px; padding:0px; overflow:noclip; background-image:none; background-color:transparent; }
 .BLMarketWindow .BLMarketRow { width:1357px; height:98px; flow-children:none; margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; border-radius:0px; box-shadow:none; }
 .BLMarketWindow .BLMarketRow:hover .BLMarketRowWash { brightness:1.08; }
+.BLMarketWindow .BLMarketRow .BLMarketBrightRowWash { brightness:1.45; }
+.BLMarketWindow .BLMarketRow:hover .BLMarketBrightRowWash { brightness:1.55; }
 .BLMarketWindow .BLMarketArt { margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; }
 .BLMarketWindow .BLMarketName { margin:0px; padding:0px; font-size:30px; line-height:37px; color:#fffefa; white-space:nowrap; text-overflow:ellipsis; }
 .BLMarketWindow .BLMarketOwned { margin:0px; padding:0px; font-size:18px; line-height:22px; color:#bcb7a7; white-space:nowrap; text-overflow:shrink; }
 .BLMarketWindow .BLMarketRowPrice { margin:0px; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; }
-.BLMarketWindow .BLMarketPriceLine { flow-children:right; }
+.BLMarketWindow .BLMarketPriceLine { flow-children:right; max-width:235px; horizontal-align:center; }
 .BLMarketWindow .BLMarketPriceCurrency { width:34px; height:34px; vertical-align:center; margin:0px; padding:0px; }
-.BLMarketWindow .BLMarketPriceMain { width:190px; height:40px; vertical-align:center; margin:0px 0px 0px 8px; padding:0px; font-size:30px; line-height:35px; color:#fffbdc; white-space:nowrap; text-overflow:shrink; }
-.BLMarketWindow .BLMarketPriceSecondary { margin:0px; padding:0px; font-size:20px; line-height:27px; color:#f3f3ee; white-space:nowrap; text-overflow:shrink; }
+.BLMarketWindow .BLMarketPriceMain { width:fit-children; max-width:190px; height:40px; vertical-align:center; margin:0px 0px 0px 8px; padding:0px; font-size:30px; line-height:35px; color:#fffbdc; white-space:nowrap; text-overflow:shrink; }
+.BLMarketWindow .BLMarketPriceSecondary { margin:0px; padding:0px; font-size:20px; line-height:27px; color:#f3f3ee; text-align:center; white-space:nowrap; text-overflow:shrink; }
 .BLMarketWindow .BLMarketBuy { margin:0px; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; box-shadow:none; border-radius:0px; brightness:1.18; }
 .BLMarketWindow .BLMarketBuy:hover { brightness:1.28; }
 .BLMarketWindow .BLMarketBuy:active { brightness:1.06; }
