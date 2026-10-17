@@ -251,9 +251,17 @@
         var a=actions[id];if(available(id)){nodes.HandoffSocial.visible=false;cfg[a[0]][a[1]]();}else notice("该入口尚未接入");
     }
     // Screen-width decoration, separate from the corner-anchored navigation canvas.
+    // A script reload can retain the HUD host and its old navigation. Retire
+    // only our navigation layers; other host children can own native HUD panels.
+    for(var oldIndex=host.GetChildCount()-1;oldIndex>=0;oldIndex--){
+        var oldLayer=host.GetChild(oldIndex);
+        if(["HandoffTopBackdrop","HandoffTop","HandoffTopStatus"].indexOf(oldLayer.id)<0)continue;
+        oldLayer.visible=false;oldLayer.hittest=false;oldLayer.hittestchildren=false;oldLayer.DeleteAsync(0);
+    }
     var topBackdrop=create("Panel",host,"HandoffTopBackdrop",false);
     style(topBackdrop,{backgroundImage:'url("file://{images}/'+assets.top_top_soft_black_backdrop.file+'")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",maxWidth:"10000px",maxHeight:"10000px",minWidth:"0px",overflow:"noclip"});
     var top=create("Panel",host,"HandoffTop",true);top.hittest=false;top.AddClass("HandoffCanvas");
+    cfg.SurvivalTopNavigation={owner:ctx,host:host,top:top,generation:generation};
     // Status keeps its original centered reference independently of the corner navigation.
     var topStatus=create("Panel",host,"HandoffTopStatus",false);topStatus.AddClass("HandoffCanvas");
     var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"],["shop","商城"],["survival_shop","生存商店"],["vip",""]];
@@ -262,7 +270,7 @@
         if(key==="survival_shop")return {x:52,y:100,width:96};
         return {x:key==="vip"?518:14+index*58,y:6,width:key==="vip"?60:56};
     }
-    var effectsNavX=362;
+    var effectsNavX=420;
     // Navigation icons and captions sit directly over the game, without a solid plate.
     nav.forEach(function(a,i){
         var bounds=navBounds(a[0],i),buttonWidth=bounds.width;
@@ -1636,6 +1644,16 @@
             }
             if(id==="native"){inspectNativeTree();return;}
             if(id==="nav"){
+                if(cfg.HandoffGeneration!==generation||!valid(top))return;
+                var collection=cfg.SurvivalCollectionNav;
+                var navPanels=nav.map(function(a){return topButtons[a[0]];});
+                navPanels.push(nodes.HandoffCombatEffects,host.FindChildTraverse("HandoffNav_collection"));
+                $.Msg("[NAV_LAYOUT] "+JSON.stringify({version:"collection-effects-vip-v2",generation:generation,
+                    current:cfg.SurvivalTopNavigation&&cfg.SurvivalTopNavigation.top===top,
+                    topCount:host.Children().filter(function(p){return p.id==="HandoffTop";}).length,
+                    collection:collection&&collection.Inspect?collection.Inspect():null,
+                    panels:navPanels.filter(valid).map(function(p){return {id:p.id,xy:p.GetPositionWithinWindow(),
+                        width:p.actuallayoutwidth,height:p.actuallayoutheight,visible:p.visible};})}));
                 var captions=nav.map(function(a){return ["HandoffNavCaption_"+a[0],"HandoffNavIcon_"+a[0]];});
                 captions.push(["HandoffCombatEffectsText","HandoffEffectsIcon"]);
                 $.Msg("[NAV_TEXT_ALIGNMENT] "+JSON.stringify(captions.map(function(ids){var t=nodes[ids[0]],icon=nodes[ids[1]];

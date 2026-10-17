@@ -1,6 +1,8 @@
 (function () {
     "use strict";
     var cfg = GameUI.CustomUIConfig(), owner = $.GetContextPanel(), U = cfg.SurvivalUI;
+    var tools = Game.IsInToolsMode && Game.IsInToolsMode();
+    if (tools) $.Msg("[COLLECTION_NAV_LIFETIME] boot v2 components="+!!(U&&U.Lifecycle));
     if (cfg.SurvivalCollectionNav && cfg.SurvivalCollectionNav.Dispose) cfg.SurvivalCollectionNav.Dispose();
     if (!U || !U.Lifecycle) return;
     var life = U.Lifecycle(), disposed = false, host, top, button, icon, halo, captionHost, caption, underline;
@@ -63,15 +65,20 @@
     }
     function acquire() {
         var nextGeneration = cfg.HandoffGeneration || 0;
+        var current = cfg.SurvivalTopNavigation;
+        if (!current || current.owner !== owner || current.generation !== nextGeneration ||
+                !valid(current.host) || !valid(current.top) || current.top.GetParent() !== current.host) current = null;
         var attached = valid(host) && valid(top) && top.GetParent() === host && valid(reference);
+        if (attached && current) attached = top === current.top && host === current.host;
         if (attached) attached = anchors.every(function (entry) { return !entry.panel || (valid(entry.panel) && entry.panel.GetParent() === top); });
         if (attached) attached = Object.keys(parts).every(function (key) { return !parts[key] || valid(parts[key]); });
         if (generation === nextGeneration && attached) return true;
         if (generation === nextGeneration && retryTicks > 0) { retryTicks--; return false; }
         generation = nextGeneration;
-        // These local lookups happen only at boot or after HUD replacement.
-        host = owner.FindChildTraverse("HandoffHUD");
-        top = valid(host) && host.FindChildTraverse("HandoffTop");
+        // Prefer the published owner: DeleteAsync can leave a valid older
+        // same-ID navigation in this host during a script reload.
+        host = current ? current.host : owner.FindChildTraverse("HandoffHUD");
+        top = current ? current.top : valid(host) && host.FindChildTraverse("HandoffTop");
         anchors = []; reference = null; parts = {};
         if (valid(top)) {
             navKeys.forEach(function (key) { anchors.push({key:key, panel:top.FindChildTraverse("HandoffNav_"+key)}); });
@@ -101,7 +108,7 @@
         var screenScale = Number(top.actualuiscale_x) || Number(owner.actualuiscale_x) || 1;
         var topBounds = bounds(top), referenceBounds = bounds(reference), right = null;
         anchors.forEach(function (entry) {
-            if (entry.key === "vip") return; // VIP follows Collection at the end of the first row.
+            if (entry.key === "vip" || entry.key === "effects") return;
             if (!visible(entry.panel)) return;
             var box = bounds(entry.panel);
             // Only the first row determines the next first-row entry. An
@@ -142,8 +149,11 @@
     function tick() { refresh(); if (alive()) life.Later(.25, tick); }
     var api = {
         IsAlive:alive, Refresh:refresh,
+        Inspect:function () {return {generation:generation,current:!!(cfg.SurvivalTopNavigation&&cfg.SurvivalTopNavigation.top===top),
+            position:valid(button)?String(button.style.position):null};},
         Dispose:function () {
             if (disposed) return;
+            if (tools) $.Msg("[COLLECTION_NAV_LIFETIME] dispose v2 owner="+!!valid(owner)+" marker="+!!valid(marker));
             disposed = true; life.Dispose();
             if (valid(button)) { button.visible = false; button.hittest = false; button.DeleteAsync(0); }
             if (valid(marker)) marker.DeleteAsync(0);
@@ -151,5 +161,6 @@
         }
     };
     cfg.SurvivalCollectionNav = api;
+    if (tools) $.Msg("[COLLECTION_NAV_LIFETIME] publish v2 owner="+!!valid(owner)+" marker="+!!valid(marker));
     tick();
 })();
