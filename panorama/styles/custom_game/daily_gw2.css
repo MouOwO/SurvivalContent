@@ -29,7 +29,6 @@
 #DailyWindow.DailyGW2Page #DailyGW2PassInfo { flow-children:none; background-color:transparent; border:0px; padding:0px; margin:0px; overflow:clip; }
 #DailyWindow.DailyGW2Page .DailyGW2Special:hover { brightness:1.12; }
 #DailyWindow.DailyGW2Page .DailyGW2Locked .DailyGW2ItemArt { brightness:.76; saturation:.56; }
-#DailyWindow.DailyGW2Page .DailyGW2SpecialEmpty:hover { brightness:1; }
 #DailyWindow.DailyGW2Page #PassPurchase.DailyGW2PassFocus { brightness:1.08; }
 #DailyWindow.DailyGW2Page .DailyGW2Button { flow-children:none; margin:0px; padding:0px; background-color:#262a2b; border:1px solid #8e8770; border-radius:0px; }
 #DailyWindow.DailyGW2Page .DailyGW2Button:hover { brightness:1.17; }

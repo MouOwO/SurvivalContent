@@ -151,11 +151,10 @@ function renderCards(){
  });
 }
 function renderSpecials(){
- var specials=array(data&&data.specials),signature=JSON.stringify([specials,data&&data.has_pass,data&&data.count]);if(signature===specialSignature&&p("DailySpecials").GetChildCount()===4)return;specialSignature=signature;hideTooltip();p("DailySpecials").RemoveAndDeleteChildren();
- for(var i=0;i<4;i++){
-  var item=i<3?specials[i]:null,card=make("Panel",p("DailySpecials"),item?"DailyGW2Special_"+item.id:"DailyGW2SpecialEmpty_"+(i+1),"DailyGW2Special");rect(card,0,rows[i]-rows[0],cellWidth,cellHeight);
+ var specials=array(data&&data.specials).filter(function(item){return item&&item.id;}).slice(0,rows.length),signature=JSON.stringify([specials,data&&data.has_pass,data&&data.count]);if(signature===specialSignature&&p("DailySpecials").GetChildCount()===specials.length)return;specialSignature=signature;hideTooltip();p("DailySpecials").RemoveAndDeleteChildren();
+ specials.forEach(function(item,i){
+  var card=make("Panel",p("DailySpecials"),"DailyGW2Special_"+item.id,"DailyGW2Special");rect(card,0,rows[i]-rows[0],cellWidth,cellHeight);
   var frame=component(card,"premium_frame",0,0,cellWidth,cellHeight);frame.AddClass("DailyGW2SpecialFrame");
-  if(!item){card.AddClass("DailyGW2SpecialEmpty");card.hittest=false;card.hittestchildren=false;continue;}
   var owned=Number(item.owned)>0,pass=Number(data.has_pass)===1;
   card.SetHasClass("DailyGW2Locked",!pass&&!owned);card.SetHasClass("DailyGW2Owned",owned);
   var slot=reward(card,item,cellPadding,cellPadding,cellWidth-cellPadding*2,cellHeight-cellPadding*2,"DailyGW2PassReward");
@@ -163,7 +162,7 @@ function renderSpecials(){
   if(owned)mark(card,"check");else if(!pass)mark(card,"lock");
   var details=(item.description||"奖励说明待同步")+"\n领取条件：累计签到"+item.day+"次\n领取状态："+status+"\n月卡奖励随符合条件的签到自动发放。";
   tip(card,item.name,details);tip(slot,item.name,details);
- }
+ });
 }
 function availability(){var base=data&&data.ordinary_status==="claimable",bonus=data&&data.premium&&data.premium.status==="claimable";return {enabled:!!(base||bonus),text:base?"领取今日奖励":bonus?"领取战令奖励":data&&data.ordinary_status==="claimed"?"今日已领取":"尚未开放"};}
 function render(){
