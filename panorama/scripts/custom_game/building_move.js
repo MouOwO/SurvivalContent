@@ -5,6 +5,7 @@
     var selectedEnt = -1;
     var confirmEnt = -1;
     var MOVE_ABILITY = "ability_building_blink";
+    var WALL_MOVE_ABILITY = "ability_wall_blink";
     var DESTROY_ABILITY = "ability_destroy_arrow_tower";
 
     function selectedUnit() {
@@ -44,22 +45,32 @@
         return abilityOnUnit(unit, abilityName);
     }
 
+    function movementAbility(unit, requestedName) {
+        if (!requestedName || requestedName === WALL_MOVE_ABILITY) {
+            var wallAbility = abilityOnUnit(unit, WALL_MOVE_ABILITY);
+            if (wallAbility >= 0) return wallAbility;
+        }
+        if (requestedName && requestedName !== MOVE_ABILITY) return -1;
+        return visibleAbility(unit, MOVE_ABILITY);
+    }
+
     function rejectMoveCooldown(ability) {
         if (Abilities.GetCooldownTimeRemaining(ability) > 0) {
             cancelMove();
             var pointInput = GameUI.CustomUIConfig().SurvivalPointTargetInput;
             if (pointInput && pointInput.Cancel) pointInput.Cancel("move_ability_cooldown");
             GameEvents.SendEventClientSide("dota_hud_error_message", {
-                reason: 80, message: "移动防御塔CD中"
+                reason: 80, message: Abilities.GetAbilityName(ability) === WALL_MOVE_ABILITY
+                    ? "移动城墙CD中" : "移动防御塔CD中"
             });
             return true;
         }
         return false;
     }
 
-    function beginMove(unit) {
+    function beginMove(unit, abilityName) {
         unit = Number(unit === undefined ? selectedUnit() : unit);
-        var ability = visibleAbility(unit, MOVE_ABILITY);
+        var ability = movementAbility(unit, abilityName);
         if (ability < 0) return false;
         // Consume the input so native casting cannot start another targeting mode.
         if (rejectMoveCooldown(ability)) return true;
@@ -163,7 +174,7 @@
     GameUI.CustomUIConfig().SurvivalArrowTowerTools = {
         RejectMoveCooldown: rejectMoveCooldown,
         TriggerAbility: function (abilityName, unit) {
-            if (abilityName === MOVE_ABILITY) return beginMove(unit);
+            if (abilityName === MOVE_ABILITY || abilityName === WALL_MOVE_ABILITY) return beginMove(unit, abilityName);
             if (abilityName === DESTROY_ABILITY) return openDestroyConfirm(unit);
             return false;
         },
@@ -185,7 +196,7 @@
             closeDestroyConfirm();
         }
         if (moving && (selectedUnit() !== selectedEnt
-            || visibleAbility(selectedEnt, MOVE_ABILITY) < 0)) {
+            || movementAbility(selectedEnt) < 0)) {
             cancelMove();
         }
         $.Schedule(0.1, lifecycleTick);

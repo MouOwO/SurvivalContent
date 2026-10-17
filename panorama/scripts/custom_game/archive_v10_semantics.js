@@ -17,6 +17,7 @@
     function known(item, field) {
         field = field || "count";
         if (field === "count" && item.count_known !== undefined && Number(item.count_known) !== 1) return false;
+        if (field === "count" && Number(item.quantity_unknown) === 1) return false;
         return number(item[field]) !== null;
     }
     function count(item) { return known(item) ? String(item.count) : "—"; }
@@ -32,7 +33,7 @@
         item = item || {};
         // Holding an item activates it at one, independent of its holding cap.
         // Unknown inventory is never presented as a locked zero.
-        if (category === "shadow") return known(item) ? Number(item.count) > 0 : null;
+        if (category === "shadow" || category === "commerce_goods") return known(item) ? Number(item.count) > 0 : null;
         if (achievements.indexOf(category) >= 0) {
             if (item.unlocked !== undefined) return Number(item.unlocked) === 1;
             if (item.completed !== undefined) return Number(item.completed) === 1;
@@ -67,6 +68,33 @@
         var denominator = cap(item);
         return count(item) + (denominator === null ? "" : "/" + denominator);
     }
+    function progress(item, category) {
+        item = item || {};
+        if (category === "titles") {
+            var titleState = state(item, category);
+            return { known: titleState !== null, ratio: null, current: null, target: null,
+                text: titleState === null ? "状态待同步" : titleState
+                    ? (Number(item.equipped) === 1 ? "已穿戴" : "已解锁") : "未解锁" };
+        }
+        var current, target, text = quantity(item, category);
+        if (category === "map_level") {
+            current = number(item.__v10CurrentLevel);
+            target = number(item.__v10TargetLevel);
+        } else if (category === "work" || category === "building") {
+            current = level(item);
+            target = number(item.target);
+        } else {
+            current = known(item) ? number(item.count) : null;
+            target = category === "fragment" ? number(item.target) : number(cap(item));
+            if (category === "fragment") text = count(item) + (target !== null && target > 0 ? "/" + target : "");
+        }
+        // A known current value need not have a cap. Only a real positive target
+        // permits a fill; keeping null distinct from zero prevents invented goals.
+        if (target === null || target <= 0) target = null;
+        return { known: current !== null,
+            ratio: current !== null && target !== null ? Math.max(0, Math.min(1, current / target)) : null,
+            current: current, target: target, text: text };
+    }
     function metric(item, category) {
         item = item || {};
         if (category === "clear") return "累计通关次数";
@@ -92,6 +120,14 @@
                 // count/target are minutes and stay intact for the existing detail.
                 row.__v10TargetLevel = number(row.milestone_level !== undefined ? row.milestone_level : row.rune);
             });
+        }
+        if (category === "commerce_goods") {
+            rows.forEach(function (item) {
+                item.count_known=known(item)?1:0;
+                if (item.count_known===1) { item.count=Number(item.count); item.unlocked=item.count>0?1:0; }
+                else { delete item.count; delete item.unlocked; delete item.completed; }
+            });
+            return rows;
         }
         if (category !== "shadow") return rows;
         var dataConfig = cfg.ArchiveV10Data || {}, catalog = list(dataConfig.catalog || data && data.catalog);
@@ -125,5 +161,5 @@
         });
         return ordered;
     }
-    cfg.ArchiveV10Semantics = { Normalize: normalize, Quantity: quantity, Metric: metric, State: state, Known: known };
+    cfg.ArchiveV10Semantics = { Normalize: normalize, Quantity: quantity, Progress: progress, Metric: metric, State: state, Known: known };
 })();

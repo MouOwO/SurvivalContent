@@ -61,3 +61,70 @@
 #ShopEntryTooltip #ShopTooltipDescription { font-size:20px; line-height:27px; }
 #ShopEntryTooltip .TooltipCostValue { font-size:20px; }
 .RCWindow .RCExpiry, .RCWindow .RCStockState, .RCWindow .RCOrderStatus { font-size:20px; }
+
+/* Passive VIP status: level colors and intensity come from the status module. */
+#HandoffNav_vip, #HandoffNav_vip:disabled {
+    opacity:1; saturation:1; brightness:1;
+}
+#HandoffNav_vip .VIPStatusBadge {
+    position:0px 0px 0px; width:60px; height:60px;
+    margin:0px; padding:0px; flow-children:none; overflow:noclip;
+    background-color:transparent; background-image:none; border:0px; box-shadow:none;
+}
+#HandoffNav_vip .VIPStatusAura {
+    position:-3px 5px 0px; width:66px; height:42px;
+    margin:0px; padding:0px; border:0px; background-color:transparent;
+    transform-origin:50% 50%; z-index:0;
+    animation-name:VIPStatusBreathe; animation-duration:4.6s;
+    animation-timing-function:ease-in-out; animation-iteration-count:infinite;
+}
+#HandoffNav_vip .VIPStatusWord,
+#HandoffNav_vip .VIPStatusLevel {
+    margin:0px; padding:0px; horizontal-align:left; vertical-align:top;
+    font-family:"Source Han Sans SC"; font-weight:bold; white-space:nowrap;
+    text-overflow:shrink; text-shadow:#000000 0px 1px 2px 2.0; z-index:2;
+}
+#HandoffNav_vip .VIPStatusWord {
+    position:2px -2px 0px; width:56px; height:56px;
+    wash-color:#999999;
+}
+#HandoffNav_vip .VIPStatusLevel {
+    position:35px 37px 0px; width:25px; height:23px; font-size:20px; text-align:right;
+}
+#HandoffNav_vip .VIPStatusMote {
+    width:2px; height:2px; margin:0px; padding:0px; border:0px; border-radius:50%;
+    background-color:gradient(radial,50% 50%,0px 0px,50% 50%,from(#ffffffff),color-stop(.42,#ffffffe6),to(#ffffff00));
+    box-shadow:#ffffff88 0px 0px 3px 0px; z-index:1;
+    animation-name:VIPStatusDriftA; animation-duration:5s;
+    animation-timing-function:ease-in-out; animation-iteration-count:infinite;
+}
+#HandoffNav_vip .VIPStatusMoteA { animation-name:VIPStatusDriftA; }
+#HandoffNav_vip .VIPStatusMoteB { animation-name:VIPStatusDriftB; }
+#HandoffNav_vip .VIPStatusMoteC { animation-name:VIPStatusDriftC; }
+#HandoffNav_vip .VIPStatusBadge.VIPStatusLocked .VIPStatusLevel { visibility:collapse; }
+#HandoffNav_vip .VIPStatusBadge.VIPStatusLocked .VIPStatusAura,
+#HandoffNav_vip .VIPStatusBadge.VIPStatusLocked .VIPStatusMote { visibility:collapse; animation-name:none; }
+/* Preserve each particle's server-level opacity; only its position animates. */
+@keyframes 'VIPStatusDriftA' {
+    0% { transform:translate3d(0px,0px,0px); }
+    45% { transform:translate3d(-2px,-5px,0px); }
+    78% { transform:translate3d(1px,-2px,0px); }
+    100% { transform:translate3d(0px,0px,0px); }
+}
+@keyframes 'VIPStatusDriftB' {
+    0% { transform:translate3d(0px,0px,0px); }
+    40% { transform:translate3d(3px,-3px,0px); }
+    74% { transform:translate3d(-1px,-6px,0px); }
+    100% { transform:translate3d(0px,0px,0px); }
+}
+@keyframes 'VIPStatusDriftC' {
+    0% { transform:translate3d(0px,0px,0px); }
+    52% { transform:translate3d(-3px,-2px,0px); }
+    82% { transform:translate3d(2px,-4px,0px); }
+    100% { transform:translate3d(0px,0px,0px); }
+}
+@keyframes 'VIPStatusBreathe' {
+    0% { transform:scale3d(.96,.96,1); }
+    50% { transform:scale3d(1.04,1.04,1); }
+    100% { transform:scale3d(.96,.96,1); }
+}

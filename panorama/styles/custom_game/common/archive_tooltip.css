@@ -1,0 +1,16 @@
+.ArchiveSharedTooltipHost { flow-children:none; overflow:noclip; z-index:150; background-image:none; background-color:transparent; border:0px; box-shadow:none; }
+.ArchiveSharedTooltipShadow { flow-children:none; background-image:none; background-color:transparent; border:0px; border-radius:4px; box-shadow:#00000066 0px 3px 12px 0px; }
+.ArchiveSharedTooltipNineFrame,.ArchiveSharedTooltipArt { flow-children:none; background-color:transparent; border:0px; margin:0px; padding:0px; }
+.ArchiveSharedTooltipCrop { flow-children:none; overflow:clip; }
+.ArchiveSharedTooltipBacking { background-image:none; background-color:#141e24; opacity-mask:none; }
+.ArchiveSharedTooltipFrame { visibility:collapse; }
+.ArchiveSharedTooltipSurface { flow-children:none; overflow:clip; }
+.ArchiveSharedTooltipViewport { flow-children:none; overflow:squish scroll; }
+.ArchiveSharedTooltipBody { flow-children:down; overflow:noclip; height:fit-children; }
+.ArchiveSharedTooltipText { margin:0px; padding:0px; font-family:"Source Han Sans SC"; font-weight:normal; font-style:normal; letter-spacing:0px; white-space:nowrap; text-overflow:ellipsis; text-shadow:none; }
+.ArchiveSharedTooltipBody Label { width:100%; height:fit-children; white-space:normal; text-overflow:clip; }
+.ArchiveSharedTooltipSeparator { position:0px 0px 0px; width:276px; height:4px; margin:0px 0px 8px; }
+.ArchiveSharedTooltipViewport VerticalScrollBar,
+#CollectionWindow .ArchiveSharedTooltipViewport VerticalScrollBar { width:13px; background-color:#10191d; background-image:none; border:1px solid #26373d; }
+.ArchiveSharedTooltipViewport VerticalScrollBar .ScrollThumb,
+#CollectionWindow .ArchiveSharedTooltipViewport VerticalScrollBar .ScrollThumb { background-color:#4b606a; background-image:none; border:1px solid #71848a; border-radius:0px; }

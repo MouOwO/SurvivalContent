@@ -1,175 +1,145 @@
+// VIP is a passive HUD status. The server still owns level and rewards.
 (function () {
-    'use strict';
-    var cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel(),U=cfg.SurvivalUI,M=cfg.SurvivalMenuV10;
+    "use strict";
+    var cfg=GameUI.CustomUIConfig(),context=$.GetContextPanel();
+    var previous=cfg.SurvivalVIPStatus,retained=previous&&previous.Inspect?previous.Inspect():null;
+    if(previous&&previous.Dispose)previous.Dispose();
     if(cfg.SurvivalVIP&&cfg.SurvivalVIP.Dispose)cfg.SurvivalVIP.Dispose();
     else if(cfg.SurvivalVIP&&cfg.SurvivalVIP.Close)cfg.SurvivalVIP.Close();
-    if(!M)return;
-    var catalog=cfg.VIPRewardCatalog||{rewards:[]},previewSteamID='76561198104787442';
-    var group='privileges',selected='',snapshot=null,states={},busy=false,requestSerial=0;
-    var disposed=false,subscriptions=[],profileSubscription=null,view=null,tipAnchor=null;
-    var windowPanel=null,viewDirty=true,statusMessage='';
-    var groups=[['privileges','等级特权'],['medals','VIP勋章'],['packages','专属礼包']];
+    var disposed=false,subscription=null,hosts=[],known=!!(retained&&retained.known),current=known?retained.level:0;
+    var positions=[[5,8],[49,40],[12,39],[53,14],[25,3],[35,43],[1,27],[59,29],[17,13],[43,4],[23,45],[48,25],[8,23],[35,10]];
     function valid(panel){return panel&&(!panel.IsValid||panel.IsValid());}
-    function p(id){if(!valid(root))return null;var panel=root.FindChildTraverse(id);return valid(panel)?panel:null;}
-    function active(){return !disposed&&valid(root)&&valid(windowPanel);}
-    function style(panel,values){if(valid(panel))Object.keys(values).forEach(function(key){panel.style[key]=values[key];});}
-    function preview(){
-        if(!Game.IsInToolsMode||!Game.IsInToolsMode())return false;
-        var player=Game.GetPlayerInfo(Game.GetLocalPlayerID());
-        return !!player&&String(player.player_steamid)===previewSteamID;
+    function level(value){
+        if(typeof value!=="number"&&!(typeof value==="string"&&String(Number(value))===value))return null;
+        var n=Number(value);return isFinite(n)&&n===Math.floor(n)&&n>=0&&n<=12?n:null;
     }
-    function available(){
-        var profile=CustomNetTables.GetTableValue('survival_player_public_profiles',String(Game.GetLocalPlayerID()))||{};
-        return preview()||profile.vip_badge===true||Number(profile.vip_badge)===1;
+    function hex(value){var text=Math.round(value).toString(16);return text.length===1?"0"+text:text;}
+    function appearance(value){
+        var n=level(value)||0;
+        if(!n)return {level:0,color:"#999999",particleCount:0,intensity:0,duration:5};
+        // Equal steps in hue keep intermediate ranks bright yellow and orange.
+        var hue=120*(12-n)/11,x=150*(1-Math.abs(hue/60%2-1)),t=(n-1)/11;
+        return {level:n,color:"#"+hex(90+(hue>=60?x:150))+hex(90+(hue>=60?150:x))+hex(90),
+            particleCount:n+2,intensity:0.35+0.65*t,duration:5-2.4*t};
     }
-    var shell;
-    windowPanel=p('VIPWindow');
-    function close(){hideTooltip();if(view)view.Close();}
-    view=M.Adopt({id:'vip',navId:'vip',panel:p('VIPWindow'),root:root,scrim:p('VIPScrim'),title:'VIP特权',onClose:close});
-    shell=view.shell;
-    function label(parent,id,text,cls){var node=$.CreatePanel('Label',parent,id);node.text=text;node.hittest=false;if(cls)node.AddClass(cls);return node;}
-    function yuan(fen){var n=Number(fen)||0;return n%100===0?String(n/100):(n/100).toFixed(2);}
-    function threshold(level){var all=catalog.recharge_levels||[];for(var i=0;i<all.length;i++)if(all[i].level===level)return all[i].required_recharge_fen;return 0;}
-    function rows(){return catalog.rewards.filter(function(r){return r.group_id===group;});}
-    function current(){var all=rows();for(var i=0;i<all.length;i++)if(all[i].reward_id===selected)return all[i];return all[0];}
-    function state(row){return states[row.reward_id]||{};}
-    function owned(row){return Number(state(row).owned)===1;}
-    function actionable(row){return !!snapshot&&snapshot.ok===true&&!busy&&Number(snapshot.pending)!==1&&!owned(row)&&Number(state(row).eligible)===1&&
-        (row.group_id==='privileges'||row.group_id==='packages'&&Number(state(row).affordable)===1);}
-    function hideTooltip(){
-        if(valid(tipAnchor))tipAnchor.RemoveClass('VIPHovered');tipAnchor=null;
-        if(view)view.TooltipHide();var tip=p('VIPTooltip');if(tip)tip.AddClass('ArchiveHidden');
-    }
-    function note(row){return row.reward_id==='vip_package_10'?'木材加成作用于已有伤害产木收益':row.medal_id?'礼包与附赠勋章属性同时生效':row.group_id==='privileges'?'永久生效 · 各级累计':'永久生效 · 每项仅获得一次';}
-    function showTooltip(row,card){
-        if(!active()||!shell.IsOpen()||!valid(card))return;
-        hideTooltip();tipAnchor=card;card.AddClass('VIPHovered');
-        p('VIPTooltipName').text=row.display_name;
-        p('VIPTooltipState').text=!snapshot||snapshot.ok!==true?'会员数据尚未同步':owned(row)?'已获得':Number(state(row).eligible)===1?'尚未获得':'未满足获得条件';
-        p('VIPTooltipCondition').text=row.condition||'';
-        p('VIPTooltipPrice').text=row.group_id==='packages'?'价格  '+row.price+' 付费币':row.group_id==='privileges'?'达标后免费领取':'随对应礼包附送';
-        p('VIPTooltipEffect').text=String(row.description||'暂无效果说明').split('；').join('\n');
-        p('VIPTooltipNote').text=note(row);
-        view.TooltipShow({name:row.display_name,state:p('VIPTooltipState').text,condition:row.condition||'',description:p('VIPTooltipEffect').text+'\n\n'+note(row),metric:'获得方式',quantity:p('VIPTooltipPrice').text},card);
-    }
-    function prepareV10(){
-        var win=p('VIPWindow');win.AddClass('VIPV10Page');win.RemoveClass('VIPPurple');
-        ['VIPHeader','VIPBody'].forEach(function(id){style(p(id),{visibility:'collapse'});});
-        ['VIPGrid','VIPWallet','VIPRechargeProgress'].forEach(function(id){view.Move(p(id),view.content);});
-        M.Place(p('VIPWallet'),0,0,1113,27);style(p('VIPWallet'),{margin:'0px',padding:'0px',fontSize:'18px',color:'#d1badd',height:'27px'});
-        M.Place(p('VIPRechargeProgress'),0,31,1113,27);style(p('VIPRechargeProgress'),{margin:'0px',padding:'0px',fontSize:'17px',color:'#c0acda',height:'27px'});
-        M.Place(p('VIPGrid'),0,70,1113,540);style(p('VIPGrid'),{padding:'0px',margin:'0px',flowChildren:'none',overflow:'squish scroll',horizontalAlign:'left',verticalAlign:'top',backgroundImage:'none',backgroundColor:'transparent'});
-        view.Move(p('VIPDetailTitle'),view.actions);view.Move(p('VIPAction'),view.actions);
-        M.Place(p('VIPDetailTitle'),0,12,870,32);style(p('VIPDetailTitle'),{fontSize:'21px',color:'#ebc97e',margin:'0px'});
-        M.Place(p('VIPAction'),889,8,206,38);style(p('VIPAction'),{margin:'0px',padding:'0px'});
-        var tip=p('VIPTooltip')||$.CreatePanel('Panel',win.GetParent(),'VIPTooltip');tip.AddClass('ArchiveHidden');tip.style.visibility='collapse';tip.hittest=false;tip.hittestchildren=false;tip.RemoveAndDeleteChildren();
-        ['VIPTooltipName','VIPTooltipState','VIPTooltipCondition','VIPTooltipPrice','VIPTooltipEffect','VIPTooltipNote'].forEach(function(id){label(tip,id,'');});
-        view.SetSidebar(groups.map(function(g){return {id:g[0],label:g[1]};}),group,function(id){if(!active())return;group=id;selected='';render();});
-    }
-    function request(action,row){
-        if(!active())return;
-        if(action!=='view'&&!shell.IsOpen())return;
-        if(action!=='view'&&(!row||!actionable(row)))return;
-        if(action!=='view'){busy=true;statusMessage='';}
-        var token=++requestSerial;
-        GameEvents.SendCustomGameEventToServer('survival_vip_request',{action:action,reward_id:row?row.reward_id:''});
-        if(busy)render();
-        $.Schedule(8,function(){if(!active()||token!==requestSerial)return;busy=false;
-            statusMessage=snapshot?'请求尚未确认，请稍后刷新':'奖励预览 · 会员数据尚未同步';
-            viewDirty=true;render();});
-    }
-    function renderDetails(row){
-        if(!row)return;
-        p('VIPDetailTitle').text=row.display_name;
-        p('VIPCondition').text=row.condition;
-        var effects=row.description.split('；'),half=Math.ceil(effects.length/2);
-        p('VIPEffectsLeft').text=effects.slice(0,half).join('\n');
-        p('VIPEffectsRight').text=effects.slice(half).join('\n');
-        p('VIPDetailNote').text=note(row);
-        var text='';
-        if(owned(row))text=row.group_id==='packages'?'已购买':'已获得';
-        else if(busy||snapshot&&Number(snapshot.pending)===1)text='正在保存…';
-        else if(row.group_id==='medals')text='购买对应礼包赠送';
-        else if(!snapshot||snapshot.ok!==true)text='等待会员数据';
-        else if(Number(state(row).eligible)!==1)text=row.group_id==='privileges'?'需达到VIP'+row.level:'需开通VIP';
-        else if(row.group_id==='packages'&&Number(state(row).affordable)!==1)text='付费币不足';
-        else text=row.group_id==='privileges'?'免费领取':'购买 · '+row.price+' 付费币';
-        p('VIPActionText').text=text;p('VIPAction').enabled=actionable(row);
-        style(p('VIPAction'),{backgroundImage:'url("'+cfg.ArchiveV10Data.assets[actionable(row)?'filter_selected':'filter_default'].file+'")',backgroundSize:'100% 100%',backgroundColor:'transparent',border:'0px',opacity:actionable(row)?'1':'.58'});
-        style(p('VIPActionText'),{color:actionable(row)?'#f5d88d':'#a393b4',fontSize:'19px',fontWeight:'normal',width:'100%',height:'38px',margin:'0px',padding:'0px',textAlign:'center',textOverflow:'clip'});
-        p('VIPAction').SetPanelEvent('onactivate',function(){request(row.group_id==='privileges'?'claim':'purchase',row);});
-    }
-    function render(){
-        if(!active())return;
-        // Public profile checkpoints and action responses can arrive while this
-        // window is closed. Cache their state without rebuilding hidden cards.
-        if(!shell.IsOpen()){viewDirty=true;return;}
-        hideTooltip();
-        var list=rows(),row=current();if(row)selected=row.reward_id;
-        p('VIPGrid').RemoveAndDeleteChildren();
-        list.forEach(function(item){
-            var button=$.CreatePanel('Button',p('VIPGrid'),'VIPCard_'+item.reward_id);button.AddClass('VIPRewardCard');
-            button.SetHasClass('VIPOwned',owned(item));button.SetHasClass('VIPSelected',item.reward_id===selected);
-            view.DecorateCell(button,{index:list.indexOf(item),name:item.display_name,count:Number(item.level)>0?'V'+item.level:undefined,icon:'file://{images}/custom_game/topnav_reference_v2/vip.svg'});
-            button.hittestchildren=false;
-            button.SetPanelEvent('onactivate',function(){selected=item.reward_id;render();});
-            button.SetPanelEvent('onmouseover',function(){showTooltip(item,button);});
-            button.SetPanelEvent('onmouseout',hideTooltip);
+    function unlockRules(){
+        var catalog=cfg.VIPRewardCatalog,rows=catalog&&catalog.recharge_levels||[];
+        var desired=known&&current>0?current+1:1,threshold=null;
+        rows.some(function(row){
+            var fen=Number(row&&row.required_recharge_fen);
+            if(Number(row&&row.level)!==desired||!isFinite(fen)||fen<=0)return false;
+            threshold=fen/100;return true;
         });
-        for(var i=0;i<groups.length;i++)p('VIPTab_'+groups[i][0]).SetHasClass('VIPTabSelected',groups[i][0]===group);
-        view.SetSelected(group);view.SetTitle(group==='privileges'?'等级特权':group==='medals'?'VIP勋章':'专属礼包');
-        p('VIPGroupTitle').text=group==='privileges'?'等级礼包 · 免费领取 · 属性累计':group==='medals'?'专属勋章 · 随礼包赠送':'专属礼包 · 使用商城付费币购买';
-        p('VIPRechargeProgress').text=snapshot&&snapshot.ok===true?'累计充值 '+yuan(snapshot.recharge_total_fen)+' 元'+(snapshot.level>=12?' · 已达最高等级':' · 距VIP'+(snapshot.level+1)+'还差 '+yuan(Math.max(0,threshold(snapshot.level+1)-(Number(snapshot.recharge_total_fen)||0)))+' 元'):'VIP等级按累计充值解锁 · 消费不降级';
-        p('VIPWallet').text=snapshot&&snapshot.ok===true?'当前 VIP'+snapshot.level+'    商城付费币 '+snapshot.balance:'当前等级 —    商城付费币 —';
-        p('VIPStatus').text=busy?'正在保存奖励，请稍候':snapshot&&snapshot.ok===true?'已获得的奖励点亮显示 · 永久生效':'奖励预览 · 会员数据尚未同步';
-        renderDetails(row);
-        if(statusMessage)p('VIPStatus').text=statusMessage;
-        view.SetStatus(p('VIPStatus').text);
-        viewDirty=false;
+        var lines=["VIP 解锁规则"];
+        if(known&&current>0)lines.push("当前 VIP"+current+(current===12?"，已达最高等级。":"。"));
+        if(threshold!==null)lines.push("累计实付充值满 "+threshold+" 元"+(desired===1?"即可解锁 ":"可提升至 ")+"VIP"+desired+"。");
+        lines.push("VIP 等级随累计实付充值提升，消费不降级。");
+        return lines.join("<br>");
     }
-    p('VIPSidebar').RemoveAndDeleteChildren();
-    groups.forEach(function(g,i){
-        var tab=$.CreatePanel('Button',p('VIPSidebar'),'VIPTab_'+g[0]);tab.AddClass('VIPTab');tab.style.position='0px '+(i*54)+'px 0px';tab.hittestchildren=false;
-        var icon=$.CreatePanel('Image',tab,'');icon.SetImage('file://{images}/custom_game/topnav_reference_v2/vip.svg');icon.hittest=false;
-        label(tab,'',g[1]);tab.SetPanelEvent('onactivate',function(){group=g[0];selected='';render();});
-    });
-    function refresh(){if(!active())return;viewDirty=true;if(!shell.IsOpen())return;if(!available()){close();return;}render();}
-    function open(){if(!active()||!available())return false;view.Open();if(viewDirty)render();request('view');return true;}
-    function registerToolsProbe(){
-        if(!Game.IsInToolsMode||!Game.IsInToolsMode())return false;
-        var probe=cfg.SurvivalClientCallbackProbe;
-        if(!probe||!probe.RegisterModule)return false;
-        return probe.RegisterModule('vip',[
-            {name:'refresh',get:function(){return refresh;},set:function(fn){refresh=fn;}},
-            {name:'render',get:function(){return render;},set:function(fn){render=fn;}}
-        ],Number(cfg.HandoffGeneration||0));
+    function hideWindow(){
+        if(!valid(context))return;
+        ["VIPWindow","VIPScrim","VIPTooltip"].forEach(function(id){
+            var panel=context.FindChildTraverse(id);if(!valid(panel))return;
+            panel.visible=false;panel.hittest=false;panel.hittestchildren=false;panel.style.visibility="collapse";
+        });
     }
-    cfg.SurvivalVIP={IsAvailable:function(){return active()&&available();},IsPreview:preview,IsOpen:function(){return active()&&shell.IsOpen();},Open:open,Close:close,
-        Toggle:function(){if(!active())return;if(shell.IsOpen())close();else open();},Refresh:function(){refresh();if(active()&&shell.IsOpen())request('view');},RegisterToolsProbe:registerToolsProbe,
-        Dispose:function(){if(disposed)return;disposed=true;requestSerial++;close();subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];if(profileSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(profileSubscription);profileSubscription=null;if(view&&view.Dispose)view.Dispose();}};
-    $.RegisterEventHandler('Cancelled',p('VIPWindow'),function(){
-        var layers=cfg.SurvivalUILayers;
-        if(layers&&typeof layers.HandleEscape==='function')return layers.HandleEscape('vip');
-        close();return true;
-    });
-    profileSubscription=CustomNetTables.SubscribeNetTableListener('survival_player_public_profiles',function(_,key){if(active()&&String(key)===String(Game.GetLocalPlayerID()))refresh();});
-    subscriptions.push(GameEvents.Subscribe('survival_vip_tools_preview',function(){if(active()&&preview())open();}));
-    subscriptions.push(GameEvents.Subscribe('survival_vip_snapshot',function(data){
-        if(!active())return;
-        requestSerial++;busy=false;
-        if(data.ok===true){snapshot=data;states={};var incoming=data.rows||{};Object.keys(incoming).forEach(function(key){var row=incoming[key];states[row.id]=row;});}
-        statusMessage=data.action_result&&data.action_result.ok===false&&data.action_result.error?data.action_result.error:
-            data.ok!==true?data.error||'会员数据暂不可用':'';
-        viewDirty=true;render();
-    }));
-    prepareV10();close();refresh();
-    registerToolsProbe();
-    if(Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){
-        if(!cfg.VIPRewardCommandsRegistered){
-            Game.AddCommand('survival_vip_rewards_open',function(){cfg.SurvivalVIP.Open();},'Open current VIP rewards window',0);
-            Game.AddCommand('survival_vip_rewards_close',function(){cfg.SurvivalVIP.Close();},'Close current VIP rewards window',0);
-            cfg.VIPRewardCommandsRegistered=true;
+    function make(type,parent,id,cls){
+        var panel=$.CreatePanel(type,parent,id);panel.hittest=false;panel.hittestchildren=false;
+        if(cls)panel.AddClass(cls);return panel;
+    }
+    function render(button,parts){
+        if(disposed||!valid(button))return null;
+        parts=parts||{};
+        if(hosts.indexOf(button)<0){
+            hosts.forEach(function(old){
+                var previousBadge=old&&old.__survivalVIPStatus;
+                if(previousBadge&&valid(previousBadge.host))previousBadge.host.DeleteAsync(0);
+                if(valid(old))old.__survivalVIPStatus=null;
+            });
+            hosts=[button];
         }
+        var badge=button.__survivalVIPStatus;
+        if(!badge||!valid(badge.host)){
+            button.enabled=true;button.hittest=true;button.hittestchildren=false;
+            button.SetPanelEvent("onactivate",function(){});button.RemoveClass("HandoffNavActive");
+            var host=make("Panel",button,"HandoffVIPStatus","VIPStatusBadge");
+            var aura=make("Panel",host,"HandoffVIPAura","VIPStatusAura");
+            var word=make("Image",host,"HandoffVIPWord","VIPStatusWord");
+            word.SetImage("file://{images}/custom_game/topnav_reference_v2/vip_status.svg");
+            if(word.SetScaling)word.SetScaling("stretch-to-fit-preserve-aspect");
+            var numeral=make("Label",host,"HandoffVIPLevel","VIPStatusLevel");
+            var motes=[];
+            positions.forEach(function(at,index){
+                var mote=make("Panel",host,"HandoffVIPMote"+index,"VIPStatusMote");
+                mote.AddClass("VIPStatusMote"+["A","B","C"][index%3]);
+                mote.style.position=at[0]+"px "+at[1]+"px 0px";
+                mote.style.animationDelay=(-index*0.37).toFixed(2)+"s";motes.push(mote);
+            });
+            badge=button.__survivalVIPStatus={host:host,aura:aura,word:word,number:numeral,motes:motes,key:null};
+        }
+        var width=parseFloat(button.style.width),scale=isFinite(width)&&width>0?width/60:1;
+        var scaleText=scale.toFixed(4),key=(known?"known:":"unknown:")+current+":"+scaleText;
+        if(badge.key===key)return badge;
+        var view=appearance(known?current:0);
+        if(badge.scale!==scaleText){
+            var uiScale=Number(button.actualuiscale_x)||1;
+            function pixels(value){return (Math.round(value*scale*uiScale)/uiScale).toFixed(3)+"px";}
+            function box(panel,x,y,w,h){panel.style.position=pixels(x)+" "+pixels(y)+" 0px";panel.style.width=pixels(w);panel.style.height=pixels(h);}
+            // Match the navigation's native pixel layout, keeping text crisp at
+            // small resolutions instead of shrinking an already-rasterized label.
+            box(badge.host,0,0,60,60);box(badge.aura,-3,5,66,42);
+            box(badge.word,2,-2,56,56);box(badge.number,35,37,25,23);
+            badge.number.style.fontSize=pixels(20);
+            badge.motes.forEach(function(mote,index){mote.style.position=pixels(positions[index][0])+" "+pixels(positions[index][1])+" 0px";});
+            badge.scale=scaleText;
+        }
+        [parts.icon,parts.caption,parts.glow].forEach(function(panel){if(valid(panel))panel.visible=false;});
+        badge.word.style.washColor=badge.number.style.color=view.color;
+        badge.number.text=known&&current>0?String(current):"";
+        badge.number.visible=known&&current>0;
+        badge.host.SetHasClass("VIPStatusKnown",known);
+        badge.host.SetHasClass("VIPStatusLocked",!known||current===0);
+        badge.aura.visible=view.level>0;
+        badge.aura.style.backgroundColor="gradient(radial, 50% 50%, 0% 0%, 50% 50%, from("+view.color+"55), to("+view.color+"00))";
+        badge.aura.style.opacity=(view.intensity*0.75).toFixed(3);
+        badge.motes.forEach(function(mote,index){
+            mote.visible=index<view.particleCount;
+            if(!mote.visible)return;
+            mote.style.washColor=view.color;
+            mote.style.opacity=view.intensity.toFixed(3);
+            mote.style.width=mote.style.height=((2+view.intensity)*scale).toFixed(2)+"px";
+            mote.style.animationDuration=(view.duration+(index%3)*0.27).toFixed(2)+"s";
+        });
+        badge.key=key;return badge;
     }
-    $.Msg('[VIP_WINDOW_READY] rewards='+catalog.rewards.length+' available='+available()+' preview='+preview());
+    function refreshHosts(){
+        hosts=hosts.filter(valid);
+        hosts.forEach(function(button){render(button);});
+    }
+    function receive(data){
+        if(disposed||!valid(context)||!data||data.ok!==true)return;
+        var n=level(data.level);if(n===null||known&&current===n)return;
+        known=true;current=n;refreshHosts();
+    }
+    function dispose(){
+        if(disposed)return;disposed=true;
+        if(subscription!==null&&GameEvents.Unsubscribe)GameEvents.Unsubscribe(subscription);
+        hosts.forEach(function(button){
+            var badge=button&&button.__survivalVIPStatus;
+            if(badge&&valid(badge.host))badge.host.DeleteAsync(0);
+            if(valid(button))button.__survivalVIPStatus=null;
+        });
+        subscription=null;hosts=[];
+    }
+    cfg.SurvivalVIPStatus={Render:render,Appearance:appearance,UnlockRules:unlockRules,
+        Inspect:function(){var view=appearance(known?current:0);return {known:known,level:known?current:null,
+            color:view.color,particleCount:view.particleCount,intensity:view.intensity};},Dispose:dispose};
+    // Retired window callers and old Tools shortcuts cannot reopen the page.
+    cfg.SurvivalVIP={IsAvailable:function(){return false;},IsOpen:function(){return false;},IsPreview:function(){return false;},
+        Open:function(){return false;},Toggle:function(){return false;},Close:hideWindow,Refresh:function(){},Dispose:dispose};
+    hideWindow();
+    subscription=GameEvents.Subscribe("survival_vip_snapshot",receive);
+    // This one read also registers the existing server-side push subscription.
+    // Account load and later recharge updates then arrive without HUD polling.
+    GameEvents.SendCustomGameEventToServer("survival_vip_request",{action:"view"});
 })();

@@ -1,0 +1,26 @@
+<root>
+  <Panel hittest="false" hittestchildren="false">
+    <Image id="CollectionGW2Preload_window_background" src="file://{images}/custom_game/collection_gw2_v2/window_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_header_strip" src="file://{images}/custom_game/collection_gw2_v2/header_strip.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_sidebar_background" src="file://{images}/custom_game/collection_gw2_v2/sidebar_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_footer_strip" src="file://{images}/custom_game/collection_gw2_v2/footer_strip.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tab_background" src="file://{images}/custom_game/collection_gw2_v2/tab_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tab_selected" src="file://{images}/custom_game/collection_gw2_v2/tab_selected.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_slot_background" src="file://{images}/custom_game/collection_gw2_v2/slot_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_slot_frame" src="file://{images}/custom_game/collection_gw2_v2/slot_frame.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_slot_hover" src="file://{images}/custom_game/collection_gw2_v2/slot_hover.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_slot_selected" src="file://{images}/custom_game/collection_gw2_v2/slot_selected.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tab_ex" src="file://{images}/custom_game/collection_gw2_v2/tab_ex.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tab_friend" src="file://{images}/custom_game/collection_gw2_v2/tab_friend.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tab_wife" src="file://{images}/custom_game/collection_gw2_v2/tab_wife.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_draw_button" src="file://{images}/custom_game/collection_gw2_v2/draw_button.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_draw_button_hover" src="file://{images}/custom_game/collection_gw2_v2/draw_button_hover.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_close" src="file://{images}/custom_game/collection_gw2_v2/close.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_collection_icon" src="file://{images}/custom_game/collection_gw2_v2/collection_icon.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_scroll_track" src="file://{images}/custom_game/collection_gw2_v2/scroll_track.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_scroll_thumb" src="file://{images}/custom_game/collection_gw2_v2/scroll_thumb.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tooltip_background" src="file://{images}/custom_game/collection_gw2_v2/tooltip_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_tooltip_frame" src="file://{images}/custom_game/collection_gw2_v2/tooltip_frame.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="CollectionGW2Preload_search_background" src="file://{images}/custom_game/collection_gw2_v2/search_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+  </Panel>
+</root>

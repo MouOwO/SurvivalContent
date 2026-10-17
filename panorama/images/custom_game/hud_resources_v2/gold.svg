@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" overflow="visible">
+  <defs>
+    <linearGradient id="edge" x1="0%" y1="0%" x2="0%" y2="100%"><stop stop-color="#ffc72d"/><stop offset="1" stop-color="#b86c0c"/></linearGradient>
+    <linearGradient id="face" x1="0%" y1="0%" x2="0%" y2="100%"><stop stop-color="#fff6ad"/><stop offset=".45" stop-color="#ffdb32"/><stop offset="1" stop-color="#efa70d"/></linearGradient>
+  </defs>
+  <!-- Exact border-box conversion of top_gold: coins at (3,8), (17,5), (10,18), in that paint order. -->
+  <g>
+    <ellipse cx="10" cy="15.5" rx="6.5" ry="4" fill="url(#edge)" stroke="#9d570b"/>
+    <ellipse cx="10" cy="12" rx="6.5" ry="3.5" fill="url(#face)" stroke="#ffeaa0"/>
+    <ellipse cx="10" cy="11" rx="3" ry="1" fill="#fff5b8"/>
+  </g>
+  <g>
+    <ellipse cx="24" cy="12.5" rx="6.5" ry="4" fill="url(#edge)" stroke="#9d570b"/>
+    <ellipse cx="24" cy="9" rx="6.5" ry="3.5" fill="url(#face)" stroke="#ffeaa0"/>
+    <ellipse cx="24" cy="8" rx="3" ry="1" fill="#fff5b8"/>
+  </g>
+  <g>
+    <ellipse cx="17" cy="25.5" rx="6.5" ry="4" fill="url(#edge)" stroke="#9d570b"/>
+    <ellipse cx="17" cy="22" rx="6.5" ry="3.5" fill="url(#face)" stroke="#ffeaa0"/>
+    <ellipse cx="17" cy="21" rx="3" ry="1" fill="#fff5b8"/>
+  </g>
+</svg>

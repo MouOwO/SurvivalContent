@@ -119,6 +119,7 @@
     var dimmedNativePortraits = [];
     var towerPortraitOverlay = null;
     var towerPortraitScene = null;
+    var builderPortraitScene = null;
     var towerPortraitHome = null;
     var towerPortraitLayerAnchor = null;
     var TOWER_PORTRAIT_CONTENT_SCALE = 0.90;
@@ -150,6 +151,7 @@
         ability_survival_hero_ball_lightning: "D",
         ability_survival_builder_blink: "D",
         ability_building_blink: "D",
+        ability_wall_blink: "D",
         ability_survival_rogue_reward: "G",
         ability_destroy_arrow_tower: "G",
         ability_survival_pickup_materials: "F",
@@ -159,7 +161,8 @@
         D: [
             "ability_survival_hero_ball_lightning",
             "ability_survival_builder_blink",
-            "ability_building_blink"
+            "ability_building_blink",
+            "ability_wall_blink"
         ],
         F: ["ability_survival_pickup_materials"],
         G: ["ability_survival_rogue_reward", "ability_destroy_arrow_tower"]
@@ -168,6 +171,7 @@
         ability_survival_hero_ball_lightning: 10,
         ability_survival_builder_blink: 10,
         ability_building_blink: 10,
+        ability_wall_blink: 10,
         ability_destroy_arrow_tower: 20,
         ability_survival_return_home: 20,
         ability_survival_pickup_materials: 30
@@ -396,6 +400,65 @@
         return towerPortraitScene;
     }
 
+    function builderPortraitScenePanel(create) {
+        if (validPortraitPanel(builderPortraitScene)) return builderPortraitScene;
+        if (loadedPortraitScene === builderPortraitScene) {
+            loadedPortraitKey = "";
+            loadedPortraitScene = null;
+        }
+        var overlay = towerPortraitOverlayPanel();
+        if (!validPortraitPanel(overlay)) return null;
+        // Version both the map and its native node. A live Tools reload may
+        // retain the old map beneath Valve's HUD after our layout is replaced.
+        ["SurvivalBuilderIoPortraitScene", "SurvivalBuilderIoPortraitSceneV2"].forEach(function (id) {
+            var legacy = overlay.FindChildTraverse(id);
+            if (validPortraitPanel(legacy)) {
+                legacy.style.visibility = "collapse";
+                legacy.DeleteAsync(0);
+            }
+        });
+        var candidate = overlay.FindChildTraverse("SurvivalBuilderIoPortraitSceneV2Alpha");
+        if (!validPortraitPanel(candidate) && create) {
+            // Io's light body is a particle effect. This isolated map includes
+            // its companion model and attachments without account loadouts.
+            try {
+                candidate = $.CreatePanel("DOTAScenePanel", overlay, "SurvivalBuilderIoPortraitSceneV2Alpha", {
+                    map: "portraits/builder_io_companion_v2", camera: "builder_io_camera",
+                    particleonly: "false", antialias: "true", "animate-during-pause": "true",
+                    renderdeferred: "true", deferredalpha: "true"
+                });
+            } catch (error) {
+                $.Warning("[SURVIVAL_PORTRAIT] BUILDER_MAP_FAILED reason=" + String(error && error.message || error));
+                return null;
+            }
+            if (!validPortraitPanel(candidate)) return null;
+            candidate.AddClass("SurvivalTowerPortraitScene");
+            candidate.hittest = false;
+            candidate.hittestchildren = false;
+            candidate.style.visibility = "collapse";
+        }
+        if (validPortraitPanel(candidate)) {
+            // Created under Valve's HUD, this node does not inherit our XML
+            // stylesheet scope. Size it inline, including hot-reloaded nodes.
+            candidate.style.width = "100%";
+            candidate.style.height = "100%";
+            candidate.style.position = "0px 0px 0px";
+            candidate.style.overflow = "clip";
+        }
+        builderPortraitScene = validPortraitPanel(candidate) ? candidate : null;
+        return builderPortraitScene;
+    }
+
+    function hidePortraitScenesExcept(activeScene) {
+        [towerPortraitScenePanel(), builderPortraitScenePanel(false)].forEach(function (scene) {
+            if (!validPortraitPanel(scene) || scene === activeScene) return;
+            if (String(scene.style.visibility) !== "collapse") {
+                resetTowerPortraitContentScale(scene);
+                scene.style.visibility = "collapse";
+            }
+        });
+    }
+
     function belongsToCustomPortraitHud(candidate) {
         var current = candidate;
         while (current) {
@@ -557,14 +620,20 @@
         if (target.__survivalPortraitDimmed === true) {
             original = target.__survivalPortraitOriginalOpacity;
         }
+        var hasRecordedWash = Object.prototype.hasOwnProperty.call(entry, "washColor")
+            || Object.prototype.hasOwnProperty.call(target, "__survivalPortraitOriginalWashColor");
+        var originalWash = Object.prototype.hasOwnProperty.call(target, "__survivalPortraitOriginalWashColor")
+            ? target.__survivalPortraitOriginalWashColor : entry.washColor;
         try {
             target.style.opacity = restoredOpacity(original);
+            if (hasRecordedWash) target.style.washColor = originalWash && ["none", "null", "undefined"].indexOf(originalWash) < 0 ? originalWash : "#ffffffff";
         } catch (error) {
             if (!validPortraitPanel(target)) return;
             throw error;
         }
         target.__survivalPortraitDimmed = false;
         target.__survivalPortraitOriginalOpacity = "";
+        delete target.__survivalPortraitOriginalWashColor;
     }
 
     function dimNativePortraitOpacity(anchor) {
@@ -573,10 +642,9 @@
             return entry && entry.panel === anchor;
         });
         if (alreadyDimmed) {
-            // Valve may rewrite inline opacity while rebuilding the same HUD node.
-            if (String(anchor.style.opacity || "") !== "0") {
-                anchor.style.opacity = "0";
-            }
+            // The opaque, input-transparent sibling covers the native pixels.
+            // DOTAPortrait itself stays visible to retain engine mouse input.
+            if (String(anchor.style.opacity || "") !== "1") anchor.style.opacity = "1";
             return;
         }
         if (anchor.__survivalPortraitDimmed === true) {
@@ -592,9 +660,9 @@
         });
         anchor.__survivalPortraitDimmed = true;
         anchor.__survivalPortraitOriginalOpacity = originalOpacity;
-        // Keep Valve's panel alive for layout/selection updates, but fully hide
-        // its incorrect pixels while the custom SetUnit scene is visible.
-        anchor.style.opacity = "0";
+        // wash-color alpha controls tint strength, not pixel transparency.
+        // Hide the native pixels with the opaque sibling, keeping input alive.
+        anchor.style.opacity = "1";
     }
 
     function mountTowerPortraitAtNativeLayer(overlay, anchor) {
@@ -607,8 +675,10 @@
         if (overlay.GetParent() !== host) overlay.SetParent(host);
         if (overlay.GetParent() !== host) return false;
         overlay.style.ignoreParentFlow = true;
-        var nativeZIndex = String(anchor.style.zIndex || "");
-        overlay.style.zIndex = /^-?\d+$/.test(nativeZIndex) ? nativeZIndex : "0";
+        // Valve's #portraitHUD stylesheet uses z-index 3 even when the inline
+        // getter reports zero. Paint above that layer and any inline override.
+        var nativeZIndex = Number(anchor.style.zIndex);
+        overlay.style.zIndex = String(Math.max(4, isFinite(nativeZIndex) ? nativeZIndex + 1 : 4));
         if (layerChanged && host.MoveChildAfter) host.MoveChildAfter(overlay, anchor);
         if (layerChanged) {
             towerPortraitLayerAnchor = anchor;
@@ -700,8 +770,7 @@
             || !positionCosmeticPortrait(overlay, anchor, scene)) return false;
         restoreNativePortraitsExcept(anchor);
         dimNativePortraitOpacity(anchor);
-        resetTowerPortraitContentScale(scene);
-        scene.style.visibility = "collapse";
+        hidePortraitScenesExcept(null);
         overlay.style.visibility = "visible";
         var signature = [unit, String(anchor.id || anchor.paneltype || "anonymous")]
             .join(":");
@@ -728,12 +797,8 @@
 
     function hideCosmeticPortrait(reason) {
         var overlay = towerPortraitOverlayPanel();
-        var scene = towerPortraitScenePanel();
         if (overlay) overlay.style.visibility = "collapse";
-        if (scene) {
-            resetTowerPortraitContentScale(scene);
-            scene.style.visibility = "collapse";
-        }
+        hidePortraitScenesExcept(null);
         restoreNativePortraitOpacity();
         restoreTowerPortraitHome(overlay);
         portraitGeometrySignature = "";
@@ -824,6 +889,7 @@
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
         var isBuilderPortrait = modelAssetId === "builder_io_benevolent_companion"
             && portraitUnit === "npc_dota_hero_wisp"
+            && portraitItemDef === "9235"
             && String(Entities.GetUnitName(Number(displayUnit())) || "") === "npc_survival_builder_proxy";
         var isTowerPortrait = /^(tower_|monster_boss_|monster_wave_|monster_archive_|hero_permanent_hero_(blademaster|doom)$|challenge_monster_(beastmaster_legacy|morphling|ember_searing_path|primal_beast_svarog|spectre_phantom_advent|terrorblade_fractal_horns)$)/
             .test(modelAssetId)
@@ -834,7 +900,7 @@
             return false;
         }
         var overlay = towerPortraitOverlayPanel();
-        var scene = towerPortraitScenePanel();
+        var scene = isBuilderPortrait ? builderPortraitScenePanel(true) : towerPortraitScenePanel();
         var anchor = officialPortraitPanel();
         var portraitMode = "tower_scene";
         if (!overlay || !anchor || !scene) {
@@ -848,6 +914,7 @@
             hideCosmeticPortrait("native_layer_unavailable");
             return false;
         }
+        hidePortraitScenesExcept(scene);
         applyTowerPortraitContentScale(scene);
         scene.style.visibility = "visible";
         if (!positionCosmeticPortrait(overlay, anchor, scene)) {
@@ -859,14 +926,16 @@
         var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
         if (loadedPortraitKey !== portraitKey || loadedPortraitScene !== scene) {
             try {
-                if (portraitSceneProbe && portraitSceneProbe.enabled) portraitSceneProbe.setUnitCalls += 1;
-                var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
-                if (setUnitResult === false) throw new Error("SetUnit returned false");
+                if (!isBuilderPortrait) {
+                    if (portraitSceneProbe && portraitSceneProbe.enabled) portraitSceneProbe.setUnitCalls += 1;
+                    var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
+                    if (setUnitResult === false) throw new Error("SetUnit returned false");
+                }
             } catch (error) {
                 loadedPortraitKey = "";
                 loadedPortraitScene = null;
                 $.Warning("[SURVIVAL_PORTRAIT] SCENE_FAILED unit=" + portraitUnit
-                    + " asset=" + modelAssetId);
+                    + " asset=" + modelAssetId + " reason=" + String(error && error.message || error));
                 hideCosmeticPortrait("scene_failed");
                 return false;
             }
@@ -2599,12 +2668,14 @@
         var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
         if (actionResources && actionResources.Reject(abilityRuntime(abilityIndex))) return false;
         try { name = Abilities.GetAbilityName(abilityIndex) || ""; } catch (error) {}
-        if (name === "ability_building_blink" && Abilities.GetCooldownTimeRemaining(abilityIndex) > 0) {
+        if ((name === "ability_building_blink" || name === "ability_wall_blink")
+            && Abilities.GetCooldownTimeRemaining(abilityIndex) > 0) {
             var towerTools = GameUI.CustomUIConfig().SurvivalArrowTowerTools;
             if (towerTools && towerTools.RejectMoveCooldown) towerTools.RejectMoveCooldown(abilityIndex);
             else {
                 cancelPointTarget("move_ability_cooldown");
-                GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80, message: "移动防御塔CD中"});
+                GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80,
+                    message: name === "ability_wall_blink" ? "移动城墙CD中" : "移动防御塔CD中"});
             }
             return false;
         }
@@ -2729,7 +2800,8 @@
             return false;
         }
         // This dispatcher also owns native ability-button clicks after startup.
-        if (researchName === "ability_building_blink" || researchName === "ability_destroy_arrow_tower") {
+        if (researchName === "ability_building_blink" || researchName === "ability_wall_blink"
+            || researchName === "ability_destroy_arrow_tower") {
             var towerTools = GameUI.CustomUIConfig().SurvivalArrowTowerTools;
             return !!(towerTools && towerTools.TriggerAbility && towerTools.TriggerAbility(researchName, unit));
         }

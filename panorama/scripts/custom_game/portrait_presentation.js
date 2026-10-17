@@ -4,6 +4,10 @@
     "use strict";
     var cfg = GameUI.CustomUIConfig();
     var portraitIdentity = null, backdropCache = {};
+    // Exact pixels from Valve's portraitbackground_coolinterior texture, which
+    // the native Io portrait uses. Keep this behind the model; tinting the
+    // whole portrait parent would also darken Io and its ambient particles.
+    var BUILDER_IO_BACKDROP = 'url("file://{images}/custom_game/portrait_builder_io/coolinterior.png")';
     function setSnapshot(snapshot) {
         portraitIdentity = snapshot ? {entindex:Number(snapshot.entindex),
             portrait_unit_name:String(snapshot.portrait_unit_name || ""),
@@ -29,7 +33,9 @@
             backdropCache[color] = "gradient(linear, 0% 0%, 100% 100%, from(" + color
                 + "), color-stop(0.55, " + shade(.55) + "), to(" + shade(.20) + "))";
         }
-        return {color:color, fill:backdropCache[color], entity:entity, unit:unitName,
+        var builder = identity.model_asset_id === "builder_io_benevolent_companion";
+        return {color:color, fill:builder ? "#071321" : backdropCache[color],
+            image:builder ? BUILDER_IO_BACKDROP : "none", entity:entity, unit:unitName,
             portrait:identity.portrait_unit_name || "", asset:identity.model_asset_id || "", model:identity.portrait_model_name || ""};
     }
     function opacityCSS(value) {
@@ -150,7 +156,9 @@
         }
         var backdrop = currentBackdrop();
         var container = group.FindChildTraverse("PortraitContainer");
-        style(container, {backgroundColor:backdrop.fill, backgroundImage:"none", border:"0px", boxShadow:"none"});
+        style(container, {backgroundColor:backdrop.fill, backgroundImage:backdrop.image,
+            backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat",
+            border:"0px", boxShadow:"none"});
         var nativePortrait = group.FindChildTraverse("portraitHUD");
         // The staging modifier must still prevent spells/items; only its giant
         // native blur is suppressed; status faces expire after three seconds.
@@ -161,7 +169,8 @@
             });
         }
         var custom = group.FindChildTraverse("SurvivalTowerPortraitOverlay");
-        style(custom, {backgroundColor:backdrop.fill, backgroundImage:"none"});
+        style(custom, {backgroundColor:backdrop.fill, backgroundImage:backdrop.image,
+            backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat"});
         var multi=cfg.SurvivalMultiSelectionPortraits;
         var effectsEnabled=backdrop.entity>=0 && !(multi && multi.IsActive && multi.IsActive());
         var customActive=valid(custom) && String(custom.style.visibility)==="visible";

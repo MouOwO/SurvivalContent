@@ -1,0 +1,18 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/common/reward_feedback.css" />
+    </styles>
+    <Panel class="RewardFXBurst" hittest="false" hittestchildren="false">
+        <!-- Valve's native NewArcanaBadgeFX particle and camera, verified from
+             dashboard_page_tier_treasure_details in the installed Dota VPK. -->
+        <DOTAParticleScenePanel id="RewardFXParticle" class="RewardFXParticle"
+            particleName="particles/ui/ui_godrays_soft_glow.vpcf"
+            renderdeferred="true" particleonly="false" startActive="false"
+            cameraOrigin="0 0 120" lookAt="0 0 0" fov="80" squarePixels="true"
+            hittest="false" hittestchildren="false" />
+        <Panel class="RewardFXWords" hittest="false" hittestchildren="false">
+            <Label id="RewardFXTitle" class="RewardFXTitle" text="" hittest="false" />
+            <Label id="RewardFXDetail" class="RewardFXDetail" text="" hittest="false" />
+        </Panel>
+    </Panel>
+</root>

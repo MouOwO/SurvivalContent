@@ -37,23 +37,8 @@
     );
 }
 
-.SurvivalHeroWorldHealthTick
-{
-    position: 0px 0px 0px;
-    width: 1px;
-    height: 100%;
-    background-color: #07110988;
-}
-
-.SurvivalHeroWorldHealthTick10 { position: 10% 0px 0px; }
-.SurvivalHeroWorldHealthTick20 { position: 20% 0px 0px; }
-.SurvivalHeroWorldHealthTick30 { position: 30% 0px 0px; }
-.SurvivalHeroWorldHealthTick40 { position: 40% 0px 0px; }
-.SurvivalHeroWorldHealthTick50 { position: 50% 0px 0px; }
-.SurvivalHeroWorldHealthTick60 { position: 60% 0px 0px; }
-.SurvivalHeroWorldHealthTick70 { position: 70% 0px 0px; }
-.SurvivalHeroWorldHealthTick80 { position: 80% 0px 0px; }
-.SurvivalHeroWorldHealthTick90 { position: 90% 0px 0px; }
+/* Hide legacy divider children retained during a HUD style reload. */
+.SurvivalHeroWorldHealthTick { visibility:collapse; }
 
 .SurvivalHeroWorldHealthBar.SurvivalEnemyHealthBar .SurvivalHeroWorldHealthFill
 {

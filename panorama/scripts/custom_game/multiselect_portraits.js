@@ -105,7 +105,8 @@
         var id = String(panel.id || "");
         if (id === "multiunit") {
             var defaults = {horizontalAlign: "left", verticalAlign: "bottom",
-                transitionProperty: "none", animationName: "none"};
+                transitionProperty: "none", animationName: "none",
+                backgroundColor: "gradient(linear, 0% 0%, 0% 100%, from(#222629), to(#0e1011))"};
             if (Object.prototype.hasOwnProperty.call(defaults, key)) return defaults[key];
         }
         if (id === "PageButtons" && key === "marginBottom") return "-8px";
@@ -194,7 +195,7 @@
         });
     }
 
-    function apply(group, size) {
+    function apply(group, size, stableHeight) {
         var selected = selectedEntities();
         if (selected.length < 2 || !valid(group)) {
             restore();
@@ -231,10 +232,17 @@
         });
         var contentHeight = rows * cellHeight + (columns < 4 ? 3 : 0);
         var nativeWidth = 159, nativeHeight = contentHeight + (paged ? 25 : 0);
-        var width = size * groupX / parentX, height = size * groupY / parentY;
+        stableHeight = Number(stableHeight);
+        var stable = isFinite(stableHeight) && stableHeight > 0;
+        // Keep the worker's outer plate fixed, fitting only the rows that exist.
+        // The native canvas/frames keep their pixel sizes and column classes.
+        var width = size * groupX / parentX, height = (stable ? stableHeight : size) * groupY / parentY;
         var padding = Math.min(width, height) * 0.025;
         var fit = Math.min((width - padding * 2) / nativeWidth,
             (height - padding * 2) / nativeHeight);
+        // Valve's two-column portraits are twice as wide as four-column ones.
+        // Bound their enlargement so small selections stay inside the compact HUD.
+        if (stable) fit = Math.min(fit, (columns === 2 ? 1.25 : columns === 3 ? 1.5 : 1.6) * width / 264);
         if (!isFinite(fit) || fit <= 0) {
             restore();
             return false;
@@ -245,11 +253,16 @@
         // Keep #canvas and all twelve DOTAMultiUnitFrames at Valve's original
         // relative pixel sizes. Scaling their common parent preserves the C++
         // portrait canvas, health bars, selection hit regions and paging together.
-        styles(multi, {position: x + "px " + y + "px 0px", width: nativeWidth + "px",
+        var multiStyle = {position: x + "px " + y + "px 0px", width: nativeWidth + "px",
             height: nativeHeight + "px", minWidth: "0px", minHeight: "0px",
             margin: "0px", horizontalAlign: "left", verticalAlign: "top",
             transformOrigin: "0% 0%", transform: "scale3d(" + fit + ", " + fit + ", 1)",
-            overflow: "clip", zIndex: "1106", transitionProperty: "none", animationName: "none"});
+            overflow: "clip", zIndex: "1106", transitionProperty: "none", animationName: "none"};
+        if (stable) multiStyle.backgroundColor = "#00000000";
+        else if (Object.prototype.hasOwnProperty.call(record(multi).styles, "backgroundColor")) {
+            multiStyle.backgroundColor = restoredStyleValue(multi, "backgroundColor", record(multi).styles.backgroundColor);
+        }
+        styles(multi, multiStyle);
         if (valid(pageButtons)) styles(pageButtons, {marginBottom: "0px"});
         // Keep Valve's active-unit border and health/mana styling unchanged.
         hideSinglePortrait(group, multi);

@@ -1,13 +1,15 @@
-/* Approved V10 components. Only ArchiveWindow is scaled; category changes retain its shell. */
+/* Independent parchment archive. The retained gameplay cards own their events;
+   these components only supply the two-column skin and single-column rows. */
 #ArchiveWindow.ArchiveV10Page { flow-children:none; overflow:noclip; transform-origin:50% 50%; }
 .ArchiveV10Page #ArchiveHeader, .ArchiveV10Page #ArchiveBody,
 .ArchiveV10Page .PurpleChrome, .ArchiveV10Page .PurpleCorner,
 .ArchiveV10Page #ArchiveFrame, .ArchiveV10Page #ArchiveAtmosphere { visibility:collapse; }
 #ArchiveV10Canvas { flow-children:none; overflow:noclip; }
 .ArchiveV10Image { margin:0px; padding:0px; }
+#ArchiveV10SectionStrip { overflow:clip; opacity-mask:url("s2r://panorama/images/masks/softedge_right_png.vtex"); }
 .ArchiveV10Crop { overflow:clip; }
 .ArchiveV10Text { margin:0px; padding:0px; font-family:"Source Han Sans SC"; font-weight:normal; letter-spacing:0px; white-space:nowrap; text-overflow:ellipsis; text-shadow:none; }
-.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveV10Text { font-family:"Source Han Sans SC"; font-weight:normal; font-style:normal; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveV10Text { font-weight:normal; font-style:normal; }
 .ArchiveV10Button { background-image:none; background-color:transparent; border:0px; box-shadow:none; flow-children:none; }
 .ArchiveV10Button:hover { brightness:1.10; }
 .ArchiveV10Button:active { brightness:.95; }
@@ -19,16 +21,72 @@
 .ArchiveV10Cell:hover .ArchiveV10HoverFrame,
 .ArchiveV10Cell.ArchiveHovered .ArchiveV10HoverFrame { opacity:1; }
 .ArchiveV10Count { text-overflow:shrink; z-index:10; background-color:transparent; }
+#ArchiveV10Overview { text-overflow:shrink; }
 .ArchiveV10CountHost { flow-children:none; z-index:10; }
 .ArchiveV10Name { text-overflow:ellipsis; }
 .ArchiveV10Page #ArchiveDrawBar { flow-children:none; background-color:transparent; border:0px; }
-.ArchiveV10Page #ArchiveDraw { background-image:url("file://{images}/custom_game/archive_v10/common/filter_selected_no_text.png"); background-size:100% 100%; border:0px; padding:0px; }
+.ArchiveV10Page #ArchiveDraw { background-image:url("file://{images}/custom_game/archive_parchment_v1/category_selected.png"); background-size:100% 100%; background-color:#3f311c; border:1px solid #a48a50; padding:0px; }
 .ArchiveV10Page #ArchiveDraw Label { align:center center; font-size:20px; color:#f4dfb5; }
-.ArchiveV10Page #ArchiveTickets, .ArchiveV10Page #ArchiveDrawResult { font-family:"Source Han Sans SC"; font-size:18px; color:#d4c6e5; text-overflow:ellipsis; }
+.ArchiveV10Page #ArchiveTickets, .ArchiveV10Page #ArchiveDrawResult { font-family:"Source Han Sans SC"; font-size:17px; color:#d8c6a2; text-overflow:ellipsis; }
 .ArchiveV10Tooltip { flow-children:none; overflow:noclip; z-index:100; }
 .ArchiveV10TooltipViewport { flow-children:none; overflow:squish scroll; }
 .ArchiveV10TooltipBody { flow-children:down; overflow:noclip; height:fit-children; }
 .ArchiveV10TooltipBody Label { width:100%; height:fit-children; white-space:normal; text-overflow:clip; }
 .ArchiveV10TooltipSeparator { position:0px 0px 0px; width:276px; height:4px; margin:0px 0px 8px; }
-.ArchiveV10Page VerticalScrollBar { width:6px; background-color:#151024; background-image:none; border:0px; }
-.ArchiveV10Page VerticalScrollBar .ScrollThumb { background-color:#78618d; background-image:none; border:0px; border-radius:3px; }
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveGrid VerticalScrollBar,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveV10Sidebar VerticalScrollBar,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveV10TooltipViewport VerticalScrollBar { width:13px; background-color:#1b190f; background-image:url("file://{images}/custom_game/archive_parchment_v1/scroll_track.png"); background-size:100% 100%; border:1px solid #15130d; }
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveGrid VerticalScrollBar .ScrollThumb,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveV10Sidebar VerticalScrollBar .ScrollThumb,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveV10TooltipViewport VerticalScrollBar .ScrollThumb { background-color:#8b835c; background-image:url("file://{images}/custom_game/archive_parchment_v1/scroll_thumb.png"); background-size:100% 100%; border:1px solid #b0a573; border-radius:0px; }
+.ArchiveParchmentCanvas { flow-children:none; overflow:noclip; }
+#ArchiveV10Shell_Background { background-color:#1c1c17; }
+#ArchiveV10Shell_Sidebar { background-color:#202b2ce8; }
+#ArchiveV10Shell_Content { background-color:#35291be6; }
+#ArchiveV10Shell_Header { background-color:#554024; }
+.ArchiveParchmentInput,
+.ArchiveParchmentSearch { background-color:#191d1ecb; background-image:none; border:1px solid #80775f; box-shadow:inset #00000099 1px 1px 3px 1px; border-radius:0px; }
+.ArchiveParchmentSearch { font-family:"Source Han Sans SC"; font-size:20px; color:#f1ebd9; padding:3px 10px; white-space:nowrap; }
+.ArchiveParchmentSearch:focus { border-color:#c0a46b; }
+.ArchiveParchmentFilterMenu { background-color:#24241cfb; border:1px solid #8a7953; box-shadow:#00000099 0px 3px 12px 1px; z-index:30; flow-children:none; }
+.ArchiveParchmentFilterOption:hover,
+.ArchiveParchmentFilterOption.ArchiveV10Selected { background-color:#6c572b88; }
+.ArchiveParchmentCategory { border-left:3px solid transparent; border-bottom:1px solid #9b926316; }
+.ArchiveParchmentCategory:hover { background-color:#93835d27; brightness:1.16; }
+.ArchiveParchmentCategory.ArchiveV10Selected,
+.ArchiveParchmentCategory.ArchiveV10Selected:hover {
+    background-image:url("file://{images}/custom_game/archive_parchment_v1/category_selected.png");
+    background-size:100% 100%;
+    background-repeat:no-repeat;
+    background-color:#6c572b99;
+    border-left:3px solid #e9bd63;
+    border-bottom:1px solid #b89a5780;
+    brightness:1.12;
+}
+.ArchiveParchmentClose { background-color:#e0d5b5; border:1px solid #100f0c; }
+.ArchiveParchmentRowBacking { background-color:#080b0b55; }
+.ArchiveParchmentRowAlternate .ArchiveParchmentRowBacking { opacity:.6; }
+.ArchiveV10Cell:hover { brightness:1.08; }
+.ArchiveV10Cell:hover .ArchiveV10Name { color:#ffdf9b; }
+.ArchiveParchmentIconStage { border-radius:50%; overflow:clip; background-color:#10120dc9; }
+.ArchiveParchmentTrack { background-color:#131511b8; border:1px solid #090b08; }
+.ArchiveParchmentFill { background-color:gradient(linear,0% 0%,100% 0%,from(#d78a0b),color-stop(.7,#efaa24),to(#fff0ac)); }
+.ArchiveParchmentPage #ArchiveStatus,
+.ArchiveParchmentPage #ArchiveFooter { visibility:visible; }
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveFooter,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveStatus { margin:0px; padding:0px; horizontal-align:left; vertical-align:top; }
+.ArchiveParchmentPage #ArchiveGrid { background-color:transparent; border:0px; }
+.ArchiveParchmentPage .ArchivePromote { border:1px solid #9b7a3b; border-radius:0px; background-color:#45351e; background-image:none; }
+.ArchiveParchmentPage .ArchivePromote Label { align:center center; margin:0px; padding:0px; color:#ffe4a1; font-size:17px; }
+.ArchiveParchmentPage .ArchivePromote:disabled { saturation:.2; brightness:.65; }
+
+/* Goods reuse the archive shell and tooltip, with only icon/name cells. */
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceIconBacking { background-color:#090d0ee8; border:1px solid #77613c; border-radius:1px; box-shadow:inset #000000b0 0px 0px 3px 1px; }
+.ArchiveCommerceIcon { brightness:1; saturation:1; opacity:1; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceUnowned .ArchiveCommerceIcon { saturation:0; brightness:.38; opacity:.82; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceUnknown .ArchiveCommerceIcon { saturation:.3; brightness:.62; opacity:.9; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceOwned .ArchiveCommerceIconBacking { border-color:#c6a75d; box-shadow:#e1b14b22 0px 0px 5px 1px; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceUnowned .ArchiveV10Name { color:#a5a396; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceCell:hover .ArchiveCommerceIconBacking,
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceCell.ArchiveHovered .ArchiveCommerceIconBacking { border-color:#ffe0a0; }
+.ArchiveCommerceQuantityBadge { background-color:#19170ff0; border:1px solid #8f7b4f; z-index:10; }

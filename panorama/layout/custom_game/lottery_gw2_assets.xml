@@ -1,0 +1,20 @@
+<root>
+  <Panel hittest="false" hittestchildren="false">
+    <Image id="LotteryGW2Preload_window_background" src="file://{images}/custom_game/lottery_gw2_v1/window_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_header_strip" src="file://{images}/custom_game/lottery_gw2_v1/header_strip.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_sidebar_background" src="file://{images}/custom_game/lottery_gw2_v1/sidebar_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_footer_strip" src="file://{images}/custom_game/lottery_gw2_v1/footer_strip.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_tab_background" src="file://{images}/custom_game/lottery_gw2_v1/tab_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_tab_selected" src="file://{images}/custom_game/lottery_gw2_v1/tab_selected.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_draw_button" src="file://{images}/custom_game/lottery_gw2_v1/draw_button.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_draw_button_hover" src="file://{images}/custom_game/lottery_gw2_v1/draw_button_hover.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_slot_background" src="file://{images}/custom_game/lottery_gw2_v1/slot_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_slot_frame" src="file://{images}/custom_game/lottery_gw2_v1/slot_frame.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_slot_selected" src="file://{images}/custom_game/lottery_gw2_v1/slot_selected.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_close" src="file://{images}/custom_game/lottery_gw2_v1/close.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_scroll_track" src="file://{images}/custom_game/lottery_gw2_v1/scroll_track.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_scroll_thumb" src="file://{images}/custom_game/lottery_gw2_v1/scroll_thumb.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_tooltip_background" src="file://{images}/custom_game/lottery_gw2_v1/tooltip_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="LotteryGW2Preload_tooltip_frame" src="file://{images}/custom_game/lottery_gw2_v1/tooltip_frame.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+  </Panel>
+</root>

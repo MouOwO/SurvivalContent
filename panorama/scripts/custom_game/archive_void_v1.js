@@ -15,6 +15,7 @@
     var layers={};D.layers.forEach(function(x){if(x.id)layers[x.id]=x;});
     function p(id){var el=panelCache[id];if(!valid(el))el=panelCache[id]=root.FindChildTraverse(id);return el;}
     function valid(el){return el&&(!el.IsValid||el.IsValid());}
+    function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling("stretch-to-cover-preserve-aspect");return icon;}
     function set(el,values){Object.keys(values).forEach(function(k){el.style[k]=values[k];});}
     function pos(el,x,y,w,h){set(el,{position:Math.round(x)+"px "+Math.round(y)+"px 0px",width:w+"px",height:h+"px",margin:"0px",padding:"0px"});}
     function make(type,parent,id,cls){var el=$.CreatePanel(type,parent,id||"");if(cls)el.AddClass(cls);if(type==="Label")set(el,{fontFamily:'"Source Han Sans SC"',fontWeight:"normal",letterSpacing:"0px",textShadow:"none"});return el;}
@@ -115,7 +116,7 @@
             if(fresh){
                 if(cached&&valid(cached.panel))card.RemoveAndDeleteChildren();
                 cached=rowCards[key]={panel:card,artKey:artKey};card.hittest=true;
-                if(ownGeometry){cached.art=image(card,ownGeometry.icon_asset,b[0]-x,b[1]-y,b[2]-b[0],b[3]-b[1],"VoidShadowItemIcon");cached.art.SetScaling("stretch-to-fit-preserve-aspect");}
+                if(ownGeometry){cached.art=image(card,ownGeometry.icon_asset,b[0]-x,b[1]-y,b[2]-b[0],b[3]-b[1],"VoidShadowItemIcon");fillIcon(cached.art,item);}
                 else {cached.art=make("Panel",card,"","VoidShadowExtraIcon");pos(cached.art,b[0]-x,b[1]-y,b[2]-b[0],b[3]-b[1]);cfg.ArchiveHandoff.Icon(cached.art,item,"shadow",{});}
                 cached.plaque=image(card,"quantity_plate",0,0,1,q[3]-q[1],"VoidShadowQuantityPlate");
                 cached.count=make("Label",card,"","VoidShadowText");cached.count.AddClass("VoidShadowCount");set(cached.count,{fontSize:"19px",textAlign:"center",color:"#F4F1FF"});

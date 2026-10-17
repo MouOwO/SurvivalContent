@@ -1,0 +1,52 @@
+/* Accepted four-row login calendar. Eligibility and quantities remain server-owned. */
+#DailyWindow.DailyGW2Page { flow-children:none; overflow:noclip; background-image:none; background-color:transparent; border:0px; box-shadow:none; padding:0px; margin:0px; transform-origin:50% 50%; }
+#DailyWindow.DailyGW2Page #DailyGW2Canvas { flow-children:none; overflow:noclip; }
+.DailyGW2Art { flow-children:none; padding:0px; margin:0px; }
+#DailyWindow.DailyGW2Page .DailyGW2Text { font-family:"Source Han Sans SC"; font-weight:normal; padding:0px; margin:0px; text-shadow:#000000 0px 1px 2px 2.0; }
+#DailyWindow.DailyGW2Page #DailyGW2Background { background-color:transparent; }
+#DailyWindow.DailyGW2Page #DailyGW2Title { text-shadow:#000000 0px 2px 3px 3.0; }
+#DailyWindow.DailyGW2Page #DailySubtitle { visibility:collapse; width:0px; height:0px; margin:0px; padding:0px; }
+#DailyWindow.DailyGW2Page #DailyCards,
+#DailyWindow.DailyGW2Page #DailySpecials { flow-children:none; margin:0px; padding:0px; background-image:none; background-color:transparent; }
+#DailyWindow.DailyGW2Page .DailyGW2Day { flow-children:none; background-color:transparent; border:0px; padding:0px; margin:0px; overflow:clip; opacity:1; }
+#DailyWindow.DailyGW2Page .DailyGW2Day:hover { brightness:1.12; }
+#DailyWindow.DailyGW2Page .DailyGW2Day.DailyGW2Today .DailyGW2RewardFrame { brightness:1.2; }
+#DailyWindow.DailyGW2Page .DailyGW2Day.DailyGW2Claimed .DailyGW2ItemArt { brightness:.94; }
+/* The saved claim remains bright until its single collection-style glass pass ends. */
+#DailyWindow.DailyGW2Page .DailyGW2Day.RewardGlassActive { opacity:1; }
+#DailyWindow.DailyGW2Page .DailyGW2Future .DailyGW2ItemArt { brightness:.92; }
+#DailyWindow.DailyGW2Page .DailyGW2RewardFrame,
+#DailyWindow.DailyGW2Page .DailyGW2SpecialFrame { z-index:1; }
+#DailyWindow.DailyGW2Page .DailyGW2QuantityHost { flow-children:none; z-index:4; margin:0px; padding:0px; }
+#DailyWindow.DailyGW2Page .DailyGW2Quantity { font-size:32px; color:#f5f1e6; text-align:right; text-overflow:shrink; }
+#DailyWindow.DailyGW2Page .DailyGW2Check,
+#DailyWindow.DailyGW2Page .DailyGW2Lock { z-index:5; }
+#DailyWindow.DailyGW2Page .DailyGW2Reward,
+#DailyWindow.DailyGW2Page .DailyGW2PassReward { flow-children:none; background-image:none; background-color:transparent; padding:0px; margin:0px; overflow:clip; }
+#DailyWindow.DailyGW2Page .DailyGW2ItemArt { flow-children:none; margin:0px; padding:0px; vertical-align:top; horizontal-align:left; }
+#DailyWindow.DailyGW2Page .DailyGW2Special { flow-children:none; background-color:transparent; border:0px; padding:0px; margin:0px; overflow:clip; }
+#DailyWindow.DailyGW2Page .DailyGW2SpecialFrame,
+#DailyWindow.DailyGW2Page #DailyGW2PassInfo { flow-children:none; background-color:transparent; border:0px; padding:0px; margin:0px; overflow:clip; }
+#DailyWindow.DailyGW2Page .DailyGW2Special:hover { brightness:1.12; }
+#DailyWindow.DailyGW2Page .DailyGW2Locked .DailyGW2ItemArt { brightness:.76; saturation:.56; }
+#DailyWindow.DailyGW2Page .DailyGW2SpecialEmpty:hover { brightness:1; }
+#DailyWindow.DailyGW2Page #PassPurchase.DailyGW2PassFocus { brightness:1.08; }
+#DailyWindow.DailyGW2Page .DailyGW2Button { flow-children:none; margin:0px; padding:0px; background-color:#262a2b; border:1px solid #8e8770; border-radius:0px; }
+#DailyWindow.DailyGW2Page .DailyGW2Button:hover { brightness:1.17; }
+#DailyWindow.DailyGW2Page .DailyGW2Button:active { brightness:.91; }
+#DailyWindow.DailyGW2Page .DailyGW2Button:disabled { saturation:.35; brightness:.7; }
+/* The accepted package supplies normal art only; hover/press use CSS feedback. */
+#DailyWindow.DailyGW2Page .DailyGW2HoverArt { visibility:collapse; }
+#DailyWindow.DailyGW2Page .DailyGW2CloseButton { background-color:transparent; background-image:none; border:0px; padding:0px; }
+#DailyWindow.DailyGW2Page .DailyGW2CloseButton:hover { brightness:1.15; }
+#DailyWindow.DailyGW2Page .DailyGW2CloseButton:active { brightness:.9; }
+#DailyWindow.DailyGW2Page #DailyRules Label,
+#DailyWindow.DailyGW2Page #DailyMakeup Label,
+#DailyWindow.DailyGW2Page #DailyClaim Label,
+#DailyWindow.DailyGW2Page #PassPurchase Label { margin:0px; padding:0px; horizontal-align:center; vertical-align:center; font-family:"Source Han Sans SC"; font-weight:normal; white-space:nowrap; text-overflow:shrink; }
+#DailyWindow.DailyGW2Page #DailyNotice,
+#DailyWindow.DailyGW2Page #DailyCount,
+#DailyWindow.DailyGW2Page #PassValidity,
+#DailyWindow.DailyGW2Page #PassPrice { margin:0px; padding:0px; vertical-align:top; }
+#DailyWindow.DailyGW2Page #DailyRulesText VerticalScrollBar { width:7px; background-image:none; background-color:#151819; }
+#DailyWindow.DailyGW2Page #DailyRulesText VerticalScrollBar .ScrollThumb { background-image:none; background-color:#8b9ca5; border-radius:0px; }

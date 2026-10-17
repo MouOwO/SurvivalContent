@@ -49,11 +49,15 @@
 .MenuV10Commerce .CJEmpty { width:1113px; height:60px; margin-top:60px; color:#b6a9c9; font-size:22px; text-align:center; }
 .MenuV10CommerceDetail { visibility:collapse; width:368px; height:fit-children; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; box-shadow:none; }
 .MenuV10CommerceDetail.Visible { visibility:visible; }
-.MenuV10CommerceDetailBody { position:22px 19px 0px; width:276px; height:fit-children; max-height:616px; padding:0px; margin:0px; flow-children:down; overflow:squish scroll; }
+.MenuV10CommerceDetailBody { position:22px 19px 0px; width:276px; height:fit-children; padding:0px; margin:0px; flow-children:none; overflow:squish scroll; }
+/* The body is the only scroll viewport. Content retains its complete natural
+   height so the final effect line can always be reached by scrolling. */
+.MenuV10CommerceDetailContent { width:100%; height:fit-children; padding:0px 8px 0px 0px; margin:0px; flow-children:down; overflow:noclip; }
 .MenuV10CommerceDetailBody Label { font-family:"Source Han Sans SC"; font-weight:normal; text-shadow:none; }
 .MenuV10CommerceDetailBody .RCPurpleDetailIcon { width:68px; height:68px; margin:0px 0px 8px; horizontal-align:left; }
-.MenuV10CommerceDetailBody .RCPurpleDetailTitle { width:276px; height:fit-children; margin-bottom:8px; font-size:22px; color:#f6d795; white-space:normal; }
-.MenuV10CommerceDetailBody .RCProductEffect { width:276px; height:fit-children; max-height:240px; margin-bottom:8px; padding-top:10px; border-top:1px solid #80644388; font-size:17px; color:#e4dcec; line-height:24px; white-space:normal; overflow:squish scroll; }
+.MenuV10CommerceDetailBody .RCPurpleDetailTitle { width:100%; height:fit-children; margin-bottom:8px; font-size:22px; color:#f6d795; white-space:normal; }
+.MenuV10CommerceDetailBody .RCPurpleDetailQuality { width:100%; height:fit-children; margin-bottom:8px; font-size:16px; color:#b6a9c9; white-space:normal; }
+.MenuV10CommerceDetailBody .RCProductEffect { position:0px 0px 0px; width:100%; height:fit-children; margin-bottom:8px; padding-top:10px; border-top:1px solid #80644388; font-size:17px; color:#e4dcec; line-height:24px; white-space:normal; overflow:noclip; text-overflow:clip; }
 .MenuV10CommerceDetailBody .CJPrice { position:0px 0px 0px; width:276px; height:36px; margin:4px 0px 6px; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; }
 .MenuV10CommerceDetailBody .CJPriceRow { width:276px; height:32px; flow-children:right; }
 .MenuV10CommerceDetailBody .CJPriceIcon { width:24px; height:24px; margin-right:6px; vertical-align:center; }
@@ -61,8 +65,9 @@
 .MenuV10CommerceDetailBody .CommercePurpleBuy { width:276px; height:42px; margin-top:8px; padding:0px; border:0px; background-image:url("file://{images}/custom_game/archive_v10/common/filter_selected_no_text.png"); background-size:100% 100%; background-color:transparent; }
 .MenuV10CommerceDetailBody .CommercePurpleBuy Label { align:center center; width:100%; font-size:19px; text-align:center; color:#f1dcaa; }
 .MenuV10CommerceDetailBody .CommercePurpleState { width:276px; height:24px; color:#b6a9c9; font-size:15px; }
-.MenuV10CommerceDetailBody .RCBundleContents { width:276px; height:fit-children; max-height:220px; flow-children:down; overflow:squish scroll; }
-.MenuV10CommerceDetailBody .RCBundleItem { width:276px; height:43px; flow-children:right; margin-bottom:5px; }
+.MenuV10CommerceDetailBody .RCBundleContents { width:100%; height:fit-children; flow-children:down; overflow:noclip; }
+.MenuV10CommerceDetailBody .RCBundleMemberEffect { width:100%; height:fit-children; white-space:normal; text-overflow:clip; overflow:noclip; }
+.MenuV10CommerceDetailBody .RCBundleItem { width:100%; height:43px; flow-children:right; margin-bottom:5px; }
 .MenuV10CommerceDetailBody .RCBundleArt { width:36px; height:36px; margin-right:8px; }
 .MenuV10CommerceDetailBody .RCBundleName { width:176px; height:36px; color:#e4dcec; font-size:16px; text-overflow:ellipsis; }
 .MenuV10CommerceDetailBody .RCBundleQuantity { width:56px; height:36px; color:#f6d795; font-size:16px; text-align:right; }

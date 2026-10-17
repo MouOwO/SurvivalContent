@@ -7,6 +7,176 @@
         return current;
     }
 
+    var config = GameUI.CustomUIConfig();
+    var previous = config.SurvivalTooltipPosition;
+    if (previous && previous.DisposeTextLayer) previous.DisposeTextLayer();
+    var textOwner = null, textHost = null, textLease = [], textSerial = 0;
+    var tooltipLayer = 2100000000;
+    var errorOwner = null, errorHost = null, errorLease = [], errorSerial = 0, errorTask = null;
+    // Large spacing remains distinct if native z-order passes through float32.
+    var errorLayer = 2140000000;
+    function valid(panel) { return panel && (!panel.IsValid || panel.IsValid()); }
+    function restoreErrorLayer() {
+        errorLease.forEach(function (entry) {
+            if (valid(entry.panel) && Number(entry.panel.style.zIndex) === errorLayer)
+                entry.panel.style.zIndex = entry.previous;
+        });
+        errorLease = []; errorHost = null;
+    }
+    function nativeErrorHost(root) {
+        if (!valid(root)) return null;
+        // The installed native dota_hud_error_msg layout has an anonymous
+        // DOTAErrorMsg root and its own ErrorMsg label. Never create a copy.
+        var label = root.FindChildTraverse && root.FindChildTraverse("ErrorMsg"), panel = label;
+        for (var depth = 0; valid(panel) && panel !== root && depth < 8; depth++) {
+            var type = String(panel.paneltype || (panel.GetPanelType && panel.GetPanelType()) || "");
+            if (/^DOTA_?ErrorMsg$/i.test(type)) return panel;
+            panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        var pending = [root], cursor = 0;
+        while (cursor < pending.length && cursor < 512) {
+            panel = pending[cursor++];
+            var kind = String(panel.paneltype || (panel.GetPanelType && panel.GetPanelType()) || "");
+            if (/^DOTA_?ErrorMsg$/i.test(kind)) return panel;
+            var children = panel.Children ? panel.Children() : [];
+            for (var child = 0; child < children.length && pending.length < 512; child++)
+                if (valid(children[child])) pending.push(children[child]);
+        }
+        return null;
+    }
+    function raiseErrorLayer() {
+        if (!valid(errorOwner)) return false;
+        var root = rootPanel(errorOwner), host = nativeErrorHost(root), path = [], panel = host;
+        for (var depth = 0; valid(panel) && panel !== root && depth < 64; depth++) {
+            path.push(panel); panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        if (!host || panel !== root) { restoreErrorLayer(); return false; }
+        if (errorHost !== host || errorLease.length !== path.length
+            || errorLease.some(function (entry, index) { return entry.panel !== path[index]; })) {
+            restoreErrorLayer(); errorHost = host;
+            errorLease = path.map(function (entry) {
+                var prior = String(entry.style.zIndex || "");
+                return {panel:entry, previous:/^-?\d+$/.test(prior) ? prior : "0"};
+            });
+        }
+        errorLease.forEach(function (entry) {
+            if (Number(entry.panel.style.zIndex) !== errorLayer) entry.panel.style.zIndex = String(errorLayer);
+        });
+        return true;
+    }
+    function cancelErrorTask() {
+        if (errorTask !== null && $.CancelScheduled) $.CancelScheduled(errorTask);
+        errorTask = null;
+    }
+    function hideNativeError(source) {
+        if (source && errorOwner && source !== errorOwner) return;
+        errorSerial++; cancelErrorTask(); errorOwner = null; restoreErrorLayer();
+    }
+    function showNativeError(source, message) {
+        source = source || $.GetContextPanel();
+        if (!valid(source)) return false;
+        cancelErrorTask(); restoreErrorLayer(); errorOwner = source;
+        var serial = ++errorSerial, ticks = 0;
+        GameEvents.SendEventClientSide("dota_hud_error_message", {reason:80, message:String(message || "")});
+        raiseErrorLayer();
+        // Follow only the native message's short visible lifetime. There is no
+        // idle HUD poll, reparenting, restyling or replacement error widget.
+        function inspect() {
+            if (serial !== errorSerial) return;
+            errorTask = null;
+            if (!valid(errorOwner) || ticks++ >= 60) { hideNativeError(); return; }
+            raiseErrorLayer();
+            if (errorHost && errorHost.BHasClass && !errorHost.BHasClass("ShowErrorMsg")) {
+                errorTask = $.Schedule(0.5, function () {
+                    if (serial !== errorSerial) return;
+                    if (valid(errorHost) && errorHost.BHasClass && errorHost.BHasClass("ShowErrorMsg")) inspect();
+                    else hideNativeError();
+                });
+                return;
+            }
+            errorTask = $.Schedule(0.1, inspect);
+        }
+        // Engine construction and its ShowErrorMsg class may finish next frame.
+        errorTask = $.Schedule(0, inspect);
+        return true;
+    }
+    function restoreTextLayer() {
+        textLease.forEach(function (entry) {
+            // A modal may have taken ownership of an ancestor since hover.
+            // Never replace that newer assignment with an obsolete saved one.
+            if (valid(entry.panel) && Number(entry.panel.style.zIndex) === tooltipLayer)
+                entry.panel.style.zIndex = entry.previous;
+        });
+        textLease = []; textHost = null;
+    }
+    function nativeTextHost(root) {
+        if (!valid(root)) return null;
+        // TextTooltip is defined by the installed engine's core tooltip layout.
+        // Some HUD versions expose its manager instead of the text instance.
+        var ids = ["Tooltips", "TooltipManager", "TooltipContainer", "TextTooltip", "DOTA_TextTooltip", "DOTATextTooltip"];
+        for (var index = 0; index < ids.length; index++) {
+            var candidate = root.FindChildTraverse && root.FindChildTraverse(ids[index]);
+            if (valid(candidate)) return candidate;
+        }
+        // Engine-created tooltip instances can have no ID. Inspect only a
+        // bounded breadth of native panels on hover, never on a HUD timer.
+        var pending = [root], cursor = 0;
+        while (cursor < pending.length && cursor < 512) {
+            var panel = pending[cursor++];
+            var type = String(panel.paneltype || (panel.GetPanelType && panel.GetPanelType()) || "");
+            if (/^(?:DOTA_?)?(?:TextTooltip|Tooltip(?:Manager|_Text)?)$/i.test(type)) return panel;
+            var children = panel.Children ? panel.Children() : [];
+            for (var child = 0; child < children.length && pending.length < 512; child++)
+                if (valid(children[child])) pending.push(children[child]);
+        }
+        return null;
+    }
+    function raiseTextLayer(source) {
+        if (textOwner !== source || !valid(source)) return false;
+        var root = rootPanel(source), host = nativeTextHost(root), path = [], panel = host;
+        for (var depth = 0; valid(panel) && panel !== root && depth < 64; depth++) {
+            path.push(panel); panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        if (!host || panel !== root) return false;
+        if (textHost !== host || textLease.length !== path.length
+            || textLease.some(function (entry, index) { return entry.panel !== path[index]; })) {
+            restoreTextLayer(); textHost = host;
+            textLease = path.map(function (entry) {
+                var prior = String(entry.style.zIndex || "");
+                return {panel:entry, previous:/^-?\d+$/.test(prior) ? prior : "0"};
+            });
+        }
+        textLease.forEach(function (entry) {
+            if (Number(entry.panel.style.zIndex) !== tooltipLayer) entry.panel.style.zIndex = String(tooltipLayer);
+        });
+        return true;
+    }
+    function showText(source, content) {
+        if (!valid(source)) return;
+        restoreErrorLayer();
+        if (textOwner !== source) restoreTextLayer();
+        textOwner = source;
+        var serial = ++textSerial;
+        $.DispatchEvent("DOTAShowTextTooltip", source, content);
+        raiseTextLayer(source);
+        raiseErrorLayer();
+        // Native tooltip creation/attachment may finish on the next layout
+        // pass. Retry once; an intervening hide or new source cancels it.
+        $.Schedule(0, function () {
+            if (serial === textSerial && textOwner === source) {
+                restoreErrorLayer(); raiseTextLayer(source); raiseErrorLayer();
+            }
+        });
+    }
+    function hideText(source) {
+        if (textOwner && source && textOwner !== source) return;
+        restoreErrorLayer();
+        textSerial++; textOwner = null;
+        $.DispatchEvent("DOTAHideTextTooltip");
+        restoreTextLayer();
+        raiseErrorLayer();
+    }
+
     function numberOr(value, fallback) {
         return typeof value === "number" && isFinite(value) ? value : fallback;
     }
@@ -128,7 +298,16 @@
         // Bottom alignment follows content height in the same layout pass.
         // No measurements of the previous skill and no delayed repositioning.
     }
-    GameUI.CustomUIConfig().SurvivalTooltipPosition = {
+    config.SurvivalTooltipPosition = {
+        ShowText: showText,
+        HideText: hideText,
+        ShowNativeError: showNativeError,
+        HideNativeError: hideNativeError,
+        SuspendTextLayer: function () { restoreErrorLayer(); restoreTextLayer(); },
+        ResumeTextLayer: function () { if (textOwner) raiseTextLayer(textOwner); raiseErrorLayer(); },
+        DisposeTextLayer: function () { hideNativeError(); textSerial++; textOwner = null; restoreTextLayer(); },
+        InspectTextLayer: function () { return {source:textOwner && textOwner.id || "", host:textHost && textHost.id || "", raised:textLease.length, z:tooltipLayer}; },
+        InspectNativeErrorLayer: function () { return {source:errorOwner && errorOwner.id || "", host:errorHost && errorHost.id || "", raised:errorLease.length, z:errorLayer, pending:errorTask !== null}; },
         PlaceRight: placeRight,
         PlaceAbove: placeAbove,
         PlaceAbilityAbove: placeAbilityAbove,

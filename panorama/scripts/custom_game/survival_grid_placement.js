@@ -178,7 +178,8 @@
         // Native targeting can remain active over many preview frames.
         if (blockedCooldownAbility !== ability) {
             blockedCooldownAbility = ability;
-            GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80, message: "移动防御塔CD中"});
+            GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80,
+                message: abilityName(ability) === "ability_wall_blink" ? "移动城墙CD中" : "移动防御塔CD中"});
         }
         return true;
     }
@@ -507,7 +508,7 @@
     function cancelPreview(reason) {
         if (pendingRelocationStart) {
             GameEvents.SendCustomGameEventToServer("ui_grid_placement_preview_end", {
-                ability_name: "ability_building_blink", session_id: String(pendingRelocationStart.session)
+                ability_name: pendingRelocationStart.ability_name, session_id: String(pendingRelocationStart.session)
             });
             pendingRelocationStart = null;
             cancelCustomPointTarget(reason);
@@ -1159,9 +1160,9 @@
         if (!pending) return;
         if (rejectRelocationCooldown(pending.ability)) return;
         if (selectedUnit() !== pending.unit) { cancelPreview("selection_changed"); return; }
-        var profile = profiles.ability_building_blink;
+        var profile = profiles[pending.ability_name];
         var pointInput = controllerConfig.SurvivalPointTargetInput;
-        if (!profile || !pointInput || !pointInput.Begin) return;
+        if (!profile || profile.placement_action !== "relocate" || !pointInput || !pointInput.Begin) return;
         if (!pointInput.Begin(pending.ability, pending.unit)) { cancelPreview("ability_unavailable"); return; }
         pendingRelocationStart = null;
         if (!showProfile(profile, pending.ability, pending.unit, "custom", pending.session)) return;
@@ -1481,11 +1482,14 @@
     controllerConfig.SurvivalGridPlacement = {
         BeginRelocation: function (ability, unit) {
             if (!currentController()) return false;
+            var name = abilityName(Number(ability));
+            if (name !== "ability_building_blink" && name !== "ability_wall_blink") return false;
             blockedCooldownAbility = -1;
             if (rejectRelocationCooldown(Number(ability))) return false;
             cancelPreview("relocation_restart");
-            pendingRelocationStart = {session: ++previewSessionSequence, ability: Number(ability), unit: Number(unit)};
-            if (!profiles.ability_building_blink) {
+            pendingRelocationStart = {session: ++previewSessionSequence, ability: Number(ability),
+                ability_name: name, unit: Number(unit)};
+            if (!profiles[name]) {
                 GameEvents.SendCustomGameEventToServer("ui_grid_placement_profiles_request", {});
             }
             resumeRelocationStart();

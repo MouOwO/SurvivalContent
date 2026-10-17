@@ -3,7 +3,7 @@
     var config = GameUI.CustomUIConfig();
     // A child marker dies on layout reload while the native root may survive.
     // Repeated includes within a live layout preserve input/focus state.
-    if (config.SurvivalUILayers && config.SurvivalUILayers.version === "3.0.0" &&
+    if (config.SurvivalUILayers && config.SurvivalUILayers.version === "3.0.1" &&
         config.SurvivalUILayers.IsAlive && config.SurvivalUILayers.IsAlive()) {
         config.SurvivalUILayers.BindInput(config.SurvivalInputDispatcher);
         return;
@@ -84,6 +84,9 @@
         saved = [];
     }
     function apply() {
+        // Save the underlying modal layer, never a temporary tooltip lease.
+        var tooltip = config.SurvivalTooltipPosition;
+        if (tooltip && tooltip.SuspendTextLayer) tooltip.SuspendTextLayer();
         restore();
         function set(p, z) {
             if (!valid(p)) return;
@@ -105,9 +108,10 @@
             set(input.scrim, 99999 + index * 2);
             if (input.click !== input.scrim) set(input.click, 0);
         });
+        if (tooltip && tooltip.ResumeTextLayer) tooltip.ResumeTextLayer();
     }
     config.SurvivalUILayers = {
-        version: "3.0.0",
+        version: "3.0.1",
         IsAlive:function(){return valid(lifetimeMarker);},
         Open: function (id, panel, close, input) {
             prune();

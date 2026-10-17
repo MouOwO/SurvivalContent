@@ -1,0 +1,41 @@
+<root>
+  <Panel visible="false" hittest="false" hittestchildren="false">
+    <Image id="ArchiveParchmentPreload_window_background" src="file://{images}/custom_game/archive_parchment_v1/window_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_header_strip" src="file://{images}/custom_game/archive_parchment_v1/header_strip.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_sidebar_background" src="file://{images}/custom_game/archive_parchment_v1/sidebar_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_content_background" src="file://{images}/custom_game/archive_parchment_v1/content_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_section_strip" src="file://{images}/custom_game/archive_parchment_v1/section_strip.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_category_selected" src="file://{images}/custom_game/archive_parchment_v1/category_selected.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_category_hover" src="file://{images}/custom_game/archive_parchment_v1/category_hover.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_row_background" src="file://{images}/custom_game/archive_parchment_v1/row_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_row_hover" src="file://{images}/custom_game/archive_parchment_v1/row_hover.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_progress_track" src="file://{images}/custom_game/archive_parchment_v1/progress_track.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_progress_fill" src="file://{images}/custom_game/archive_parchment_v1/progress_fill.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_progress_glint" src="file://{images}/custom_game/archive_parchment_v1/progress_glint.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_close" src="file://{images}/custom_game/archive_parchment_v1/close.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_scroll_track" src="file://{images}/custom_game/archive_parchment_v1/scroll_track.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_scroll_thumb" src="file://{images}/custom_game/archive_parchment_v1/scroll_thumb.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_search_background" src="file://{images}/custom_game/archive_parchment_v1/search_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_icon_ring" src="file://{images}/custom_game/archive_parchment_v1/icon_ring.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_clear" src="file://{images}/custom_game/archive_parchment_v1/nav_clear.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_shadow" src="file://{images}/custom_game/archive_parchment_v1/nav_shadow.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_map_level" src="file://{images}/custom_game/archive_parchment_v1/nav_map_level.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_work" src="file://{images}/custom_game/archive_parchment_v1/nav_work.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_gift" src="file://{images}/custom_game/archive_parchment_v1/nav_gift.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_fragment" src="file://{images}/custom_game/archive_parchment_v1/nav_fragment.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_pet" src="file://{images}/custom_game/archive_parchment_v1/nav_pet.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_boss" src="file://{images}/custom_game/archive_parchment_v1/nav_boss.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_points" src="file://{images}/custom_game/archive_parchment_v1/nav_points.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_shop" src="file://{images}/custom_game/archive_parchment_v1/nav_shop.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_endless" src="file://{images}/custom_game/archive_parchment_v1/nav_endless.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_fishing" src="file://{images}/custom_game/archive_parchment_v1/nav_fishing.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_building" src="file://{images}/custom_game/archive_parchment_v1/nav_building.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_friend" src="file://{images}/custom_game/archive_parchment_v1/nav_friend.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_ex" src="file://{images}/custom_game/archive_parchment_v1/nav_ex.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_nav_beast" src="file://{images}/custom_game/archive_parchment_v1/nav_beast.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_archive_emblem" src="file://{images}/custom_game/archive_parchment_v1/archive_emblem.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_tooltip_background" src="file://{images}/custom_game/archive_parchment_v1/tooltip_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_tooltip_frame" src="file://{images}/custom_game/archive_parchment_v1/tooltip_frame.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchiveParchmentPreload_tooltip_shadow" src="file://{images}/custom_game/archive_parchment_v1/tooltip_shadow.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+  </Panel>
+</root>

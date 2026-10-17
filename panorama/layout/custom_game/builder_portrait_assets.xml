@@ -1,0 +1,6 @@
+<root>
+    <!-- Build-only dependency list; the portrait loads this texture on demand. -->
+    <Panel hittest="false" hittestchildren="false">
+        <Image src="file://{images}/custom_game/portrait_builder_io/coolinterior.png" />
+    </Panel>
+</root>

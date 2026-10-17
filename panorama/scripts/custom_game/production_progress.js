@@ -1,15 +1,17 @@
 (function () {
     "use strict";
+    var TRAINING_PANEL_SCALE = 0.75;
     function rows(value) {
         if (Array.isArray(value)) return value;
         return Object.keys(value || {}).sort(function (a, b) { return Number(a) - Number(b); })
             .map(function (key) { return value[key]; });
     }
     function completed(option) {
-        return Number(option.max_count) > 0 && Number(option.count) >= Number(option.max_count);
+        var limit = Number(option.max_count);
+        return isFinite(limit) && limit >= 0 && Number(option.count || 0)
+            + Number(option.queued_count || 0) + Number(option.pending_count || 0) >= limit;
     }
-    // The visible entry list follows completed counts, never queued reservations.
-    // Completing a capped level immediately exposes the next level in order.
+    // Active and waiting jobs both reserve quota; do not add active_job again.
     function trainingSlots(options) {
         return rows(options).filter(function (entry) {
             return entry && entry.training_id && !completed(entry);
@@ -26,18 +28,48 @@
         if (!g || ![g.x, g.y, g.scale, g.height, g.centerWidth, g.minimapSize].every(function (v) {
             return typeof v === "number" && isFinite(v);
         }) || g.scale <= 0 || g.height <= 0 || g.centerWidth <= 0 || g.minimapSize < 0) return null;
-        var scale = Math.max(g.scale, 0.5) * 1.15;
-        var width = Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / scale));
-        var height = training ? 426 : 270;
-        // Stay beside the action bar with matching bottom edges. On a narrow
-        // viewport fit the available left column instead of jumping above it.
+        var anchored = typeof g.productionQueueWidth === "number" && isFinite(g.productionQueueWidth)
+            && g.productionQueueWidth >= 600 && typeof g.productionQueueScale === "number"
+            && isFinite(g.productionQueueScale) && g.productionQueueScale > 0;
+        var scale = anchored ? g.productionQueueScale : Math.max(g.scale, 0.5) * 1.15;
+        var width = anchored ? g.productionQueueWidth
+            : Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / scale));
+        var height = training ? 278 : 270;
+        // Prefer the action bar's left side with matching bottom edges. The
+        // shared anchored layout keeps readable text by using the space above
+        // on narrow viewports; legacy callers retain bounded left-column fit.
         var left = typeof g.productionLeft === "number" ? g.productionLeft : 8;
-        scale = Math.min(scale, (g.x - left - 14) / width);
+        var actionLeft = anchored && typeof g.productionAnchorX === "number"
+            && isFinite(g.productionAnchorX) ? g.productionAnchorX : g.x;
+        if (anchored && actionLeft - left - 14 < width * scale) {
+            // Keep the same readable queue on small viewports. Moving only this
+            // custom panel above the action bar leaves portraits, shortcuts and
+            // the fixed first-skill screen origin untouched.
+            var viewportWidth = Number(g.viewportWidth);
+            if (!(viewportWidth > 16)) return null;
+            scale = Math.min(scale, (viewportWidth - 16) / width);
+            if (!(scale > 0)) return null;
+            if (training) scale *= TRAINING_PANEL_SCALE;
+            // Preserve the existing title, buff and debuff rows. Debuffs are
+            // the highest attachment at -126px in the shared building canvas.
+            var bottom = g.y - 126 * g.scale - 14;
+            var availableHeight = bottom - 8;
+            if (!(availableHeight > 0)) return null;
+            // A short window keeps readable pixels and scrolls the existing
+            // absolute-positioned controls instead of shrinking their text or
+            // hiding another HUD row. The viewport alone owns occlusion bounds.
+            var viewportHeight = Math.min(height, availableHeight / scale);
+            return { x: Math.max(8, Math.min(actionLeft, viewportWidth - width * scale - 8)),
+                y: bottom - viewportHeight * scale, width: width, height: viewportHeight,
+                contentHeight: height, scrollable: viewportHeight < height, scale: scale, mode: "above" };
+        }
+        scale = Math.min(scale, (actionLeft - left - 14) / width);
         if (!(scale > 0)) return null;
+        if (training) scale *= TRAINING_PANEL_SCALE;
         var physicalHeight = height * scale;
-        var x = Math.max(left, g.x - width * scale - 14);
+        var x = Math.max(left, actionLeft - width * scale - 14);
         var y = g.y + g.height * g.scale - physicalHeight;
-        return { x: x, y: Math.max(8, y), width: width, height: height, scale: scale };
+        return { x: x, y: Math.max(8, y), width: width, height: height, scale: scale, mode: "left" };
     }
     var model = { Rows: rows, TrainingSlots: trainingSlots, Progress: progress, PanelGeometry: panelGeometry };
     if (typeof module !== "undefined" && module.exports) { module.exports = model; return; }
@@ -48,6 +80,7 @@
     var panel = ctx.FindChildTraverse("SurvivalProductionPanel");
     var markers = ctx.FindChildTraverse("SurvivalResearchAutoMarkers");
     var snapshots = {}, citySlots = {}, currentUnit = -1;
+    var pendingTraining = {}, trainingBases = {};
     var buttons = [], queueSlots = [], autoMarkers = [], nodes = {}, serial = 0, lastGeometry = null;
     var lastReady = false, lastEntries = [], lastGeometryUnit = -1, status = "", statusUntil = 0;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
@@ -67,11 +100,37 @@
         return name === "building_main_city" || name === "building_research_lab"
             || name === "building_advanced_research_lab";
     }
+    // These custom panels have one presentation owner. Cache successful exact
+    // assignments instead of reading Panorama's normalized style every HUD tick.
+    // A new panel/generation gets its own cache; failed setters never commit it.
+    var presentationWrites = {style:0, styleSkipped:0, image:0, imageSkipped:0, ability:0, abilitySkipped:0};
     function style(target, values) {
         if (!valid(target)) return;
+        var cache = target.__productionStyle;
+        if (!cache || cache.generation !== generation) cache = target.__productionStyle = {generation:generation, values:{}};
         Object.keys(values).forEach(function (key) {
-            if (String(target.style[key]) !== String(values[key])) target.style[key] = values[key];
+            var value = String(values[key]);
+            if (cache.values[key] === value) { presentationWrites.styleSkipped++; return; }
+            target.style[key] = values[key];
+            cache.values[key] = value;
+            presentationWrites.style++;
         });
+    }
+    function image(target, uri) {
+        if (!valid(target)) return;
+        uri = String(uri);
+        if (target.__productionImage === uri) { presentationWrites.imageSkipped++; return; }
+        target.SetImage(uri);
+        target.__productionImage = uri;
+        presentationWrites.image++;
+    }
+    function abilityImage(target, name) {
+        if (!valid(target)) return;
+        name = String(name);
+        if (target.__productionAbilityName === name) { presentationWrites.abilitySkipped++; return; }
+        target.abilityname = name;
+        target.__productionAbilityName = name;
+        presentationWrites.ability++;
     }
     function place(target, x, y, width, height) {
         style(target, { position: x + "px " + y + "px 0px", width: width + "px", height: height + "px" });
@@ -97,6 +156,55 @@
         target.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
     }
     function requestId(kind) { serial += 1; return "production_" + kind + "_" + generation + "_" + serial; }
+    function quotaUsed(option) {
+        return Number(option && option.count || 0) + Number(option && option.queued_count || 0);
+    }
+    function projectedOptions(unit, training) {
+        var requests = {};
+        Object.keys(pendingTraining).forEach(function (id) {
+            var request = pendingTraining[id];
+            if (request.unit === unit) requests[request.training_id] = (requests[request.training_id] || 0) + 1;
+        });
+        return rows(training.options).map(function (option) {
+            var result = {};
+            Object.keys(option).forEach(function (key) { result[key] = option[key]; });
+            var base = trainingBases[unit + ":" + option.training_id];
+            var projected = base ? base.used + (requests[option.training_id] || 0) : 0;
+            result.pending_count = Math.max(0, projected - quotaUsed(option));
+            return result;
+        });
+    }
+    function acceptTraining(unit, training) {
+        if (!training || !training.options) return;
+        var snapshot = snapshots[unit] || {}, prior = snapshot.training;
+        if (prior && Number(training.queue_revision || 0) < Number(prior.queue_revision || 0)) return;
+        snapshot.training = training; snapshots[unit] = snapshot;
+    }
+    function trainingReceipt(result) {
+        var receipt = pendingTraining[String(result.request_id || "")];
+        var unit = receipt ? receipt.unit : Number(result.source_entindex);
+        if (receipt) {
+            Object.keys(pendingTraining).forEach(function (id) {
+                var request = pendingTraining[id];
+                if (request.unit === unit && request.order <= receipt.order) delete pendingTraining[id];
+            });
+            var authoritative = {};
+            rows(result.training && result.training.options).forEach(function (option) {
+                authoritative[option.training_id] = quotaUsed(option);
+            });
+            Object.keys(trainingBases).forEach(function (key) {
+                var base = trainingBases[key];
+                if (base.unit !== unit) return;
+                var remaining = Object.keys(pendingTraining).some(function (id) {
+                    var request = pendingTraining[id];
+                    return request.unit === unit && request.training_id === base.training_id;
+                });
+                if (!remaining) delete trainingBases[key];
+                else if (authoritative[base.training_id] !== undefined) base.used = authoritative[base.training_id];
+            });
+        }
+        if (isFinite(unit) && unit >= 0) acceptTraining(unit, result.training);
+    }
     function notify(message) { status = reason({reason: message || "操作未完成"}); statusUntil = gameTime() + 4; }
     function escape(value) {
         return String(value === undefined ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -147,6 +255,19 @@
             : "furion_force_of_nature";
         return "file://{images}/spellicons/" + name + ".png";
     }
+    var workerTiers = [
+        { hue:0, color:"#90d58b" }, { hue:45, color:"#65d4db" },
+        { hue:90, color:"#80a9ff" }, { hue:135, color:"#b99aff" },
+        { hue:180, color:"#ed96cf" }, { hue:225, color:"#f09678" },
+        { hue:270, color:"#edc569" }, { hue:315, color:"#fff0ac" }
+    ];
+    function workerTier(job) {
+        var level = Math.max(1, Math.min(8, Math.floor(Number(job && job.level) || 1)));
+        return workerTiers[level - 1];
+    }
+    function tintWorkerIcon(icon, job) {
+        style(icon, { hueRotation:workerTier(job).hue + "deg" });
+    }
     var currentWorkerIcon = create("Image", panel, "ProductionCurrentWorkerIcon", "ProductionCurrentIcon");
     var currentIcon = create("DOTAAbilityImage", panel, "ProductionCurrentIcon", "ProductionCurrentIcon");
     currentIcon.abilityname = "ability_train_lumberjack";
@@ -168,6 +289,15 @@
     var queue = label(panel, "ProductionQueue", "ProductionQueue");
     var footer = label(panel, "ProductionFooter", "ProductionFooter");
     fullTextTooltip(jobName); fullTextTooltip(footer);
+    var currentCell = create("Panel", panel, "ProductionTrainingCurrentCell", "ProductionQueueSlot");
+    currentCell.workerIcon = create("Image", currentCell, "", "ProductionQueueIcon");
+    currentCell.level = label(currentCell, "", "ProductionQueueLevel");
+    currentCell.hittest = true;
+    currentCell.SetPanelEvent("onmouseover", function () {
+        if (currentCell.job) $.DispatchEvent("DOTAShowTextTooltip", currentCell,
+            escape(workerName(currentCell.job)) + (currentCell.training ? "<br>正在训练" : "<br>等待资源后开始训练"));
+    });
+    currentCell.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
     for (var queueIndex = 0; queueIndex < 6; queueIndex++) {
         var queueCell = create("Button", panel, "ProductionQueueSlot" + queueIndex, "ProductionQueueSlot");
         queueCell.icon = create("DOTAAbilityImage", queueCell, "", "ProductionQueueIcon");
@@ -193,18 +323,27 @@
     for (var index = 0; index < 4; index++) (function (slot) {
         var button = create("Button", panel, "ProductionTrainingSlot" + slot, "ProductionTrainingSlot");
         var icon = create("Image", button, "", "ProductionTrainingIcon");
+        if (icon.SetScaling) icon.SetScaling("stretch-to-cover-preserve-aspect");
+        create("Panel", button, "", "ProductionTrainingShade");
         var level = label(button, "", "ProductionTrainingLevel");
         var count = label(button, "", "ProductionTrainingCount");
         var cost = label(button, "", "ProductionTrainingCost");
+        var wood = create("Image", button, "", "ProductionTrainingWood");
+        image(wood, "file://{images}/custom_game/hud_resources_v2/wood.svg");
         var lock = label(button, "", "ProductionTrainingLock");
-        var entry = { panel: button, icon: icon, level: level, count: count, cost: cost, lock: lock, option: null };
+        var entry = { panel: button, icon: icon, level: level, count: count, cost: cost, wood: wood, lock: lock, option: null };
         button.SetPanelEvent("onactivate", function () {
             if (!active() || blocked() || !entry.option || selectedUnit() !== currentUnit) return;
             var locked = entry.option.prerequisite_met !== undefined
                 ? Number(entry.option.prerequisite_met) === 0 : Number(entry.option.available) !== 1;
             if (locked || completed(entry.option)) { notify(reason(entry.option)); return; }
+            var trainingId = entry.option.training_id, unit = currentUnit, id = requestId("train");
+            var key = unit + ":" + trainingId;
+            if (!trainingBases[key]) trainingBases[key] = {unit:unit, training_id:trainingId, used:quotaUsed(entry.option)};
+            pendingTraining[id] = {unit:unit, training_id:trainingId, order:serial};
+            repaint();
             GameEvents.SendCustomGameEventToServer("ui_worker_train_request", {
-                request_id: requestId("train"), source_entindex: currentUnit, training_id: entry.option.training_id
+                request_id: id, source_entindex: unit, training_id: trainingId
             });
         });
         button.SetPanelEvent("onmouseover", function () {
@@ -330,19 +469,36 @@
         }
         return String(job && job.icon_name || "");
     }
-    function renderQueue(pending, capacity, research) {
-        place(queue, 16, 172, 122, 36);
+    function renderQueue(pending, capacity, research, head, training) {
+        var trainingQueue = !research;
+        place(queue, 16, trainingQueue ? 90 : 172, 122, 36);
         text(queue, "等待 " + pending.length + "/" + Math.max(0, Number(capacity || 7) - 1));
+        currentCell.visible = trainingQueue;
+        if (trainingQueue) {
+            place(currentCell, 140, 78, 58, 58);
+            currentCell.job = head || null; currentCell.training = !!training;
+            currentCell.SetHasClass("Current", !!(head && training));
+            currentCell.SetHasClass("Empty", !head);
+            currentCell.workerIcon.visible = !!head;
+            if (head) {
+                image(currentCell.workerIcon, workerIcon(head));
+                tintWorkerIcon(currentCell.workerIcon, head);
+            }
+            text(currentCell.level, head ? "LV" + Number(head.level || 1) : "·");
+        }
         queueSlots.forEach(function (cell, index) {
             // Six waiting cells fit the minimum panel width without shrinking their labels.
-            cell.visible = true; place(cell, 146 + 64 * index, 160, 58, 58);
+            cell.visible = true; place(cell, (trainingQueue ? 204 : 146) + 64 * index, trainingQueue ? 78 : 160, 58, 58);
             var entry = pending[index];
             cell.job = entry || null; cell.research = !!research;
             cell.cancel.visible = !!(entry && research && entry.job_id);
             cell.SetHasClass("Empty", !entry); cell.icon.visible = !!entry && !!research;
             cell.workerIcon.visible = !!entry && !research;
-            if (entry && research) cell.icon.abilityname = researchAbility(entry, research);
-            if (entry && !research) cell.workerIcon.SetImage(workerIcon(entry));
+            if (entry && research) abilityImage(cell.icon, researchAbility(entry, research));
+            if (entry && !research) {
+                image(cell.workerIcon, workerIcon(entry));
+                tintWorkerIcon(cell.workerIcon, entry);
+            }
             text(cell.level, entry ? "LV" + Number(entry.target_level || entry.level || 1) : "·");
         });
     }
@@ -364,7 +520,7 @@
             if (!valid(marker)) continue;
             marker.visible = enabled;
             if (!enabled) continue;
-            place(marker, g.x + (g.heroWidth + 10 + 120 * index) * g.scale,
+            place(marker, g.x + ((typeof g.actionOffset === "number" ? g.actionOffset : g.heroWidth + 10) + 120 * index) * g.scale,
                 g.y + 61 * g.scale, 116 * g.scale, 116 * g.scale);
             style(marker.tag, { fontSize: Math.max(10, Math.round(23 * g.scale)) + "px" });
         }
@@ -388,56 +544,76 @@
         if (!show) return 0;
         // Dense research ability rows shrink the native HUD. Keep production
         // text legible while aligning this attachment's right edge to that row.
-        var panelScale = placement.scale, width = placement.width, height = placement.height;
-        place(panel, placement.x, placement.y, width, height);
-        style(panel, { transform: "scale3d(" + panelScale + "," + panelScale + ",1)", transformOrigin: "0% 0%" });
+        var panelScale = placement.scale, width = placement.width;
+        var height = placement.contentHeight || placement.height;
+        place(panel, placement.x, placement.y, width, placement.height);
+        style(panel, { transform: "scale3d(" + panelScale + "," + panelScale + ",1)", transformOrigin: "0% 0%",
+            overflow: placement.scrollable ? "squish scroll" : "clip" });
         // Layout measurements omit our CSS transform. World-overlay occlusion
         // consumes physical window pixels, matching GetPositionWithinWindow().
         panel.__survivalWindowWidth = width * panelScale * (Number(ctx.actualuiscale_x) || 1);
-        panel.__survivalWindowHeight = height * panelScale * (Number(ctx.actualuiscale_y) || 1);
-        place(title, 16, 8, width - 182, 44); place(badge, width - 166, 13, 150, 36);
+        panel.__survivalWindowHeight = placement.height * panelScale * (Number(ctx.actualuiscale_y) || 1);
+        place(title, 16, 8, width - 182, 44);
         currentIcon.visible = false;
         cancelCurrent.job = null; cancelCurrent.visible = false;
-        currentWorkerIcon.visible = !!showTraining;
+        currentWorkerIcon.visible = false;
         place(currentWorkerIcon, 16, 66, 50, 50);
         place(currentIcon, 16, 66, 50, 50);
-        place(jobName, 76, 70, width - 192, 66);
-        place(remaining, width - 108, 67, 92, 44);
-        place(track, 16, 139, width - 32, 13);
         place(footer, 16, height - 42, width - 32, 36);
+        title.visible = !showTraining; jobName.visible = !showTraining;
+        footer.visible = !showTraining;
+        if (showTraining) {
+            place(badge, 16, 8, 220, 36);
+            style(badge, { textAlign:"left" });
+            place(remaining, width - 108, 8, 92, 44);
+            place(track, 16, 50, width - 32, 13);
+        } else {
+            place(badge, width - 166, 13, 150, 36);
+            style(badge, { textAlign:"right" });
+            place(remaining, width - 108, 67, 92, 44);
+            place(track, 16, 139, width - 32, 13);
+        }
         text(title, showTraining ? "伐木工训练" : unitType(unit) === "building_advanced_research_lab" ? "高级科技研究" : "科技研究");
         var now = gameTime(), job, blockedJob = null, waitUntil = 0, autoEnabled = false;
         if (showTraining) {
-            var options = rows(training.options), byId = {};
+            place(jobName, 76, 70, width - 192, 66);
+            var options = projectedOptions(unit, training), byId = {};
             options.forEach(function (option) { byId[option.training_id] = option; });
             citySlots[unit] = trainingSlots(options);
             job = training.active_job && training.active_job.training_id ? training.active_job : null;
             blockedJob = !job && training.blocked_head && training.blocked_head.training_id ? training.blocked_head : null;
-            currentWorkerIcon.SetImage(workerIcon(job || blockedJob || byId[citySlots[unit][0]]));
-            renderQueue(rows(training.queued), training.queue_capacity, null);
+            image(currentWorkerIcon, workerIcon(job || blockedJob || byId[citySlots[unit][0]]));
+            renderQueue(rows(training.queued), training.queue_capacity, null, job || blockedJob, !!job);
             var cellWidth = (width - 56) / 4;
             buttons.forEach(function (button, slot) {
                 var option = byId[citySlots[unit][slot]];
                 button.option = option || null; button.panel.visible = !!option;
                 if (!option) return;
-                button.icon.SetImage(workerIcon(option));
-                place(button.panel, 16 + slot * (cellWidth + 8), 228, cellWidth, 150);
-                place(button.count, 8, 54, cellWidth - 16, 32);
-                place(button.cost, 8, 86, cellWidth - 16, 32);
-                place(button.lock, 8, 118, cellWidth - 16, 30);
+                image(button.icon, workerIcon(option));
+                tintWorkerIcon(button.icon, option);
+                style(button.panel, { borderColor:workerTier(option).color });
+                place(button.panel, 16 + slot * (cellWidth + 8), 152, cellWidth, 108);
+                place(button.icon, 0, 0, cellWidth, 108);
+                button.level.visible = false; button.lock.visible = false;
+                place(button.count, 8, 47, cellWidth - 16, 26);
+                var cost = String(formatResource(option.cost_wood));
+                var costWidth = Math.min(cellWidth - 56, Math.max(28, cost.length * 16));
+                var costX = (cellWidth - costWidth - 32) / 2;
+                place(button.wood, costX, 77, 26, 26);
+                place(button.cost, costX + 32, 75, costWidth, 30);
+                style(button.cost, { textAlign:"left" });
                 var locked = option.prerequisite_met !== undefined
                     ? Number(option.prerequisite_met) === 0 : Number(option.available) !== 1;
                 button.panel.SetHasClass("Unavailable", locked);
                 text(button.level, "LV" + Number(option.level || 1));
-                text(button.count, Number(option.count || 0) + "/" + (Number(option.max_count) > 0 ? option.max_count : "∞")
-                    + (Number(option.queued_count) > 0 ? " +" + option.queued_count : ""));
-                text(button.cost, "木 " + formatResource(option.cost_wood));
+                text(button.count, (quotaUsed(option) + Number(option.pending_count || 0)) + "/"
+                    + (Number(option.max_count) >= 0 ? option.max_count : "∞"));
+                text(button.cost, cost);
                 text(button.lock, locked ? "锁定" : "训练");
             });
             var trainingBlockedText = blockedJob ? reason({reason: training.blocked_reason || "等待资源"}) : "";
             text(badge, blockedJob ? (trainingBlockedText.match(/(?:木材|金币|人口|资源)不足/) || ["等待"])[0] : job ? "训练中" : "空闲");
-            text(footer, status && now < statusUntil ? status : blockedJob ? trainingBlockedText
-                : "点击加入队列 · 开始训练时扣费 · 满额后显示后续等级");
+            text(footer, "");
         } else {
             buttons.forEach(function (button) { button.panel.visible = false; button.option = null; });
             job = Number(research.researching) === 1 ? research : null;
@@ -449,8 +625,10 @@
             if (cancelCurrent.visible) {
                 place(cancelCurrent, width - 194, 70, 78, 38);
                 place(jobName, 76, 52, width - 280, 82);
+            } else {
+                place(jobName, 76, 70, width - 192, 66);
             }
-            if (job || blockedJob) currentIcon.abilityname = researchAbility(job || blockedJob, research);
+            if (job || blockedJob) abilityImage(currentIcon, researchAbility(job || blockedJob, research));
             waitUntil = Number(research.next_start_at || 0);
             autoEnabled = Number(research.auto_enabled) === 1 || Object.keys(research.auto_research || {}).some(function (key) {
                 return Number(research.auto_research[key]) === 1;
@@ -483,7 +661,7 @@
             text(jobName, showTraining ? "选择伐木工等级加入队列" : autoEnabled ? "自动待命 · 等待资源或前置条件" : "请选择要研究的科技");
             text(remaining, ""); style(fill, { width: "0%" });
         }
-        return 0; // Side panel leaves buffs at their normal action-bar positions.
+        return 0; // This attachment leaves buffs at their normal action-bar positions.
     }
     function repaint() {
         var unit = selectedUnit();
@@ -508,6 +686,8 @@
         // independent production snapshot between authoritative queue updates.
         if (prior) {
             if (snapshot.training === undefined) snapshot.training = prior.training;
+            else if (prior.training && Number(snapshot.training.queue_revision || 0)
+                < Number(prior.training.queue_revision || 0)) snapshot.training = prior.training;
             if (snapshot.research === undefined) snapshot.research = prior.research;
         }
         snapshots[unit] = snapshot;
@@ -525,6 +705,7 @@
     GameEvents.Subscribe("ui_operation_result", function (result) {
         if (!active() || !result || (result.operation !== "worker_train" && result.operation !== "shop_auto_research_toggle" && result.operation !== "research_queue" && result.operation !== "research_cancel")) return;
         if (String(result.request_id || "").indexOf("production_") !== 0) return;
+        if (result.operation === "worker_train") trainingReceipt(result);
         if (result.operation !== "worker_train") {
             researchDiagnostic("RESULT", result.operation, -1, result.source_entindex,
                 "request_id=" + String(result.request_id || "") + " success=" + String(result.success)
@@ -535,6 +716,10 @@
     });
     cfg.SurvivalProductionHUD = {
         Refresh: refresh, QueueResearch: queueResearch, CancelResearch: cancelResearch, ToggleResearch: toggleResearch, GetResearchRuntime: getResearchRuntime,
+        CacheInspect: function () {
+            var counters = {}; Object.keys(presentationWrites).forEach(function (key) { counters[key] = presentationWrites[key]; });
+            return {generation:generation, counters:counters, scope:"owned production style/image/ability assignments; callbacks and native HUD excluded"};
+        },
         Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; }
     };
     if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {

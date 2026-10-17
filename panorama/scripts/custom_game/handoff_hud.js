@@ -104,7 +104,18 @@
         return nodes[id];
     }
     function text(id,value) {var p=nodes[id];if(p&&p.text!==String(value))p.text=String(value);}
-    function tooltip(p,value) {p.SetPanelEvent("onmouseover",function(){$.DispatchEvent("DOTAShowTextTooltip",p,typeof value==="function"?value():value);});p.SetPanelEvent("onmouseout",function(){$.DispatchEvent("DOTAHideTextTooltip");});}
+    function tooltip(p,value) {
+        p.SetPanelEvent("onmouseover",function(){
+            var content=typeof value==="function"?value():value,position=cfg.SurvivalTooltipPosition;
+            if(position&&position.ShowText)position.ShowText(p,content);
+            else $.DispatchEvent("DOTAShowTextTooltip",p,content);
+        });
+        p.SetPanelEvent("onmouseout",function(){
+            var position=cfg.SurvivalTooltipPosition;
+            if(position&&position.HideText)position.HideText(p);
+            else $.DispatchEvent("DOTAHideTextTooltip");
+        });
+    }
     function notice(value) {var serial=++noticeSerial;text("HandoffNotice",value);nodes.HandoffNotice.visible=true;$.Schedule(4,function(){if(valid(host)&&serial===noticeSerial)nodes.HandoffNotice.visible=false;});}
     function blocked() {return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top();}
     function forward(id) {var p=native(id);if(!valid(p))return false;$.DispatchEvent("Activated",p,"mouse");return true;}

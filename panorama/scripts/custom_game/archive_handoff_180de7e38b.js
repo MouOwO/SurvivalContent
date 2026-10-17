@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    var cfg=GameUI.CustomUIConfig(),assets=cfg.ArchiveHandoffAssets,root=$.GetContextPanel(),generation=0,anchor=null,effectOnly=false,raisedTooltipParents=[];
+    var cfg=GameUI.CustomUIConfig(),assets=cfg.ArchiveHandoffAssets,root=$.GetContextPanel(),generation=0,anchor=null,effectOnly=false,raisedTooltipParents=[],tipDismiss=null;
     function p(id){if(root.IsValid&&!root.IsValid())return null;return root.FindChildTraverse(id);}
     function style(el,s){Object.keys(s).forEach(function(k){el.style[k]=s[k];});}
     function palette(panel, inherited) { cfg.ArchiveTheme.Apply(panel, inherited); }
@@ -41,8 +41,21 @@
         if(x+tip.w>w-pad){x=rect.x-gap-tip.w;side='left';}
         return {x:Math.max(pad,Math.min(x,w-tip.w-pad)),y:Math.max(pad,Math.min(rect.y+16,h-tip.h-pad)),side:side};
     }
+    function tooltipRect(node){
+        var at=node.GetPositionWithinWindow(),fitScale=1;
+        // The root-level legacy tooltip is unscaled. Its source may live in a
+        // fitted window in this or another layout; read that owner's transform.
+        for(var owner=node;owner&&owner!==root;owner=owner.GetParent?owner.GetParent():null){
+            if(owner.id==='ArchiveWindow'||owner.id==='LotteryMainCanvas'||owner.id==='CollectionWindow'||owner.id==='DailyWindow'||owner.__menuV10){
+                var match=String(owner.style.transform||'').match(/scale3d\(\s*([\d.eE+-]+)/);
+                if(match&&isFinite(Number(match[1]))&&Number(match[1])>0)fitScale=Number(match[1]);
+                break;
+            }
+        }
+        return {x:at.x,y:at.y,width:node.actuallayoutwidth*fitScale,height:node.actuallayoutheight*fitScale};
+    }
     function hide(){generation++;
-        raisedTooltipParents.forEach(function(e){if(e.panel.IsValid()&&String(e.panel.style.zIndex)==='100012')e.panel.style.zIndex=e.z;});raisedTooltipParents=[];if(anchor&&anchor.IsValid())anchor.RemoveClass('ArchiveHovered');anchor=null;var tip=p('ArchiveTooltip');if(tip&&tip.IsValid())tip.AddClass('ArchiveHidden');}
+        raisedTooltipParents.forEach(function(e){if(e.panel.IsValid()&&String(e.panel.style.zIndex)==='100012')e.panel.style.zIndex=e.z;});raisedTooltipParents=[];if(anchor&&anchor.IsValid())anchor.RemoveClass('ArchiveHovered');anchor=null;var tip=p('ArchiveTooltip');if(tip&&tip.IsValid())tip.AddClass('ArchiveHidden');if(tipDismiss)tipDismiss.Hidden();}
     function position(g){
         if(root.IsValid&&!root.IsValid()||g!==generation||!anchor||!anchor.IsValid())return;
         var tip=p('ArchiveTooltip'),sx=root.actualuiscale_x||1,sy=root.actualuiscale_y||1;
@@ -114,6 +127,9 @@ function formatArchiveEffects(value) {
         }).join('<br>');
     }
     function show(item,category,card,onlyEffect){
+        if(!card)return;
+        if(!tipDismiss){var tip=p('ArchiveTooltip');if(tip.__archiveTooltipDismiss)tip.__archiveTooltipDismiss.Dispose();tipDismiss=cfg.SurvivalTooltipDismiss.Create({panel:tip,getRect:tooltipRect,hide:hide,isAlive:function(){return (!root.IsValid||root.IsValid())&&(!tip.IsValid||tip.IsValid());},isVisible:function(){return !tip.BHasClass('ArchiveHidden');}});tip.__archiveTooltipDismiss=tipDismiss;}
+        if(!tipDismiss.CanShow(card))return;
         hide();anchor=card;effectOnly=!!onlyEffect;
         // Auxiliary promotion help uses its actual button when no card argument is provided.
         if(!anchor)return;
@@ -175,7 +191,7 @@ function formatArchiveEffects(value) {
         effect.html=true;
         effect.text=dimEffect?escapedEffectText(item.description||'服务端未提供效果说明').replace(/\n/g,'<br>'):
             effectMarkup(item.description||'服务端未提供效果说明',category==='fragment'?(item.level===undefined?0:item.level):undefined,item.id?state:undefined);
-        p('ArchiveTooltip').RemoveClass('ArchiveHidden');position(generation);
+        p('ArchiveTooltip').RemoveClass('ArchiveHidden');position(generation);tipDismiss.Shown(card);
     }
     function icon(parent,item,category,buildings){
         var art=$.CreatePanel('Panel',parent,'');art.AddClass('ArchiveArt');art.hittest=false;

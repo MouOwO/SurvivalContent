@@ -14,6 +14,11 @@
 .MenuV10TooltipViewport { overflow:squish scroll; flow-children:none; }
 .MenuV10TooltipBody { height:fit-children; flow-children:down; overflow:noclip; }
 .MenuV10TooltipBody Label { width:100%; height:fit-children; white-space:normal; text-overflow:clip; }
+/* Keep the outer hover/scroll area transparent. Only the backing receives
+   the native feathered mask; text, frames and scrollbars remain unmasked. */
+.MenuTooltipHost { background-image:none; background-color:transparent; border:0px; box-shadow:none; overflow:noclip; }
+.MenuTooltipBacking { opacity-mask:url("s2r://panorama/images/masks/softedge_box_png.vtex"); opacity-mask-threshold:0% 12%; }
+.MenuTooltipSoftShadow { flow-children:none; background-image:none; background-color:transparent; border:0px; border-radius:4px; box-shadow:#00000066 0px 3px 12px 0px; }
 .MenuV10Page VerticalScrollBar { width:6px; background-color:#151024; background-image:none; border:0px; }
 .MenuV10Page VerticalScrollBar .ScrollThumb { background-color:#78618d; background-image:none; border:0px; border-radius:3px; }
 .MenuV10Page .PurpleChrome,.MenuV10Page .PurpleCorner,.MenuV10Page .ReferenceFrame,.MenuV10Page .ReferenceAtmosphere { visibility:collapse; }

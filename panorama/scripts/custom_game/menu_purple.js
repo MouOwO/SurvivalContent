@@ -5,6 +5,7 @@
     if(cfg.SurvivalPurpleLottery&&cfg.SurvivalPurpleLottery.Dispose)cfg.SurvivalPurpleLottery.Dispose();
     var disposed=false,life=$.CreatePanel("Panel",root,""),view=null,mode="",pools=[],selected="map",snapshot=null,nodes={};life.visible=false;
     function valid(n){return n&&(!n.IsValid||n.IsValid());}
+    function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling("stretch-to-cover-preserve-aspect");return icon;}
     function alive(){return !disposed&&valid(life);}
     function remember(n){if(!valid(n))return;if(n.id)nodes[n.id]=n;n.Children().forEach(remember);}
     // Native Panorama ID traversal can change after SetParent. Capture the
@@ -45,9 +46,9 @@
             // A singleton callback must retain its real index in the host.
             if(single)index=host.Children().indexOf(card);
             walk(card,function(child){if(child.BHasClass("LotteryRewardIcon"))icon=child;if(child.BHasClass("RHRewardName")||child.BHasClass("LotteryRewardName"))name=child;if(child.BHasClass("LotteryCardBack"))cover=child;});
-            var cell=view.DecorateCell(card,{index:index,name:item.name||item.id||name&&name.text||"道具",count:result?"×"+Number(item.count||item.quantity||1):quantity(item),iconPanel:icon,namePanel:name,keep:cover?[cover]:undefined});
+            var cell=view.DecorateCell(card,{index:index,item:item,name:item.name||item.id||name&&name.text||"道具",count:result?"×"+Number(item.count||item.quantity||1):quantity(item),iconPanel:icon,namePanel:name,keep:cover?[cover]:undefined});
             place(card,result?38+(index%5)*214:2+(index%8)*138,result?8+Math.floor(index/5)*184:8+Math.floor(index/8)*174,144,170);
-            if(icon){place(icon,0,0,120,120);if(icon.SetScaling)icon.SetScaling("stretch-to-fit-preserve-aspect");}
+            if(icon){place(icon,0,0,120,120);fillIcon(icon,item);}
             if(cover){place(cover,0,0,144,170);style(cover,{zIndex:"20"});}
             if(cell&&cell.name)style(cell.name,{fontSize:"18px",whiteSpace:"nowrap",textOverflow:"ellipsis",textAlign:"center"});
         });
@@ -100,7 +101,7 @@
         place(p("LotteryInfoRules"),16,0,774,84);style(p("LotteryInfoRules"),{fontSize:"17px",whiteSpace:"normal",color:"#b5a3c6"});
         place(p("LotteryV10InfoBack"),936,22,160,44);hidden("LotteryInfoConfirm");hidden("RHHistoryColumns");hidden("LotteryCelestialFooter");hidden("LotteryV10Notice");compactCards(p("LotteryInfoList"));
         if(name==="history")p("LotteryInfoList").Children().forEach(function(row){if(row.BHasClass("RHHistoryRow"))style(row,{backgroundImage:"none",border:"0px",borderBottom:"1px solid #3e2c52"});});
-        if(name==="reward")p("LotteryInfoList").Children().forEach(function(child){if(child.BHasClass("LotteryDetailIcon")){place(child,12,0,120,120);walk(child,function(n){if(n.BHasClass("LotteryRewardIcon")){place(n,0,0,120,120);if(n.SetScaling)n.SetScaling("stretch-to-fit-preserve-aspect");}});}else if(child.BHasClass("LotteryDetailDescription"))place(child,12,136,1045,bodyHeight-136);});
+        if(name==="reward")p("LotteryInfoList").Children().forEach(function(child){if(child.BHasClass("LotteryDetailIcon")){place(child,12,0,120,120);walk(child,function(n){if(n.BHasClass("LotteryRewardIcon")){place(n,0,0,120,120);fillIcon(n);}});}else if(child.BHasClass("LotteryDetailDescription"))place(child,12,136,1045,bodyHeight-136);});
         var names={details:"奖池详情",history:"抽奖记录",announcement:"开奖公告",update:"奖励更新公告",reward:p("LotteryInfoTitle")&&p("LotteryInfoTitle").text||"奖励详情",firstgift:"首充礼包",privilege:"礼包特权"};view.SetTitle(names[name]||"功能提示");sidebar();
     }
     var originalDialog=R&&R.LotteryDialog,originalReward=R&&R.RewardCard;

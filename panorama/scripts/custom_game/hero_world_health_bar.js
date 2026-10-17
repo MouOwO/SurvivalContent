@@ -5,10 +5,13 @@
     var PREFIX = "unit_";
     var panels = {};
     var states = {};
-    var seenEntities = {};
+    var seenEntities = {}, aliveSnapshotCount = 0;
     var container = $("#SurvivalHeroWorldHealthBars");
     var config = GameUI.CustomUIConfig(), context = $.GetContextPanel();
-    var frame = null, listener = null, stopped = false;
+    var frame = null, frameKind = null, scheduleGeneration = 0;
+    var listener = null, stopped = false, controller = null;
+    var IDLE_RECOVERY_SECONDS = 1;
+    var schedulerCounts = {callbacks:0, activeAttempts:0, idleChecks:0, eventWakes:0};
     var probeAllowed = typeof Game.IsInToolsMode === "function" && Game.IsInToolsMode();
     var probeStats = null, probeApi = null, probeToken = 0;
     if (config.SurvivalWorldHealthBars && config.SurvivalWorldHealthBars.Stop) {
@@ -70,31 +73,75 @@
         return target && (!target.IsValid || target.IsValid());
     }
 
-    function ensurePanel(key) {
-        if (validPanel(panels[key])) return panels[key];
-        if (!container) return null;
+    function current() {
+        if (stopped) return false;
+        if (!validPanel(context) || config.SurvivalWorldHealthBars !== controller) {
+            stop(); return false;
+        }
+        return true;
+    }
+
+    function ensureContainer() {
+        if (!validPanel(container)) container = $("#SurvivalHeroWorldHealthBars");
+        return validPanel(container);
+    }
+
+    function hasAliveSnapshot() { return aliveSnapshotCount > 0; }
+
+    function cancelFrame() {
+        scheduleGeneration += 1;
+        if (frame !== null && $.CancelScheduled) $.CancelScheduled(frame);
+        frame = null; frameKind = null;
+    }
+
+    function schedule(kind) {
+        if (stopped) return;
+        if (frame !== null) {
+            if (frameKind === kind) return;
+            // Panorama supports cancellation. A limited preview without that
+            // API can reuse its one pending callback instead of duplicating it.
+            if (!$.CancelScheduled) { frameKind = kind; return; }
+            cancelFrame();
+        }
+        frameKind = kind;
+        var generation = ++scheduleGeneration;
+        frame = $.Schedule(kind === "frame" ? 0.0 : IDLE_RECOVERY_SECONDS, function () {
+            if (generation !== scheduleGeneration || stopped) return;
+            var wasIdle = frameKind === "idle";
+            frame = null; frameKind = null;
+            schedulerCounts.callbacks += 1;
+            if (wasIdle) schedulerCounts.idleChecks += 1;
+            updatePositions();
+        });
+    }
+
+    function ensurePanel(key, hostReady) {
+        if (!hostReady && !ensureContainer()) return null;
+        var previous = panels[key];
+        if (validPanel(previous) && previous.__healthHost === container) return previous;
+        if (validPanel(previous)) previous.DeleteAsync(0.0);
         var bar = $.CreatePanel("Panel", container, "SurvivalHeroWorldHealth_" + key);
         bar.style.visibility = "collapse";
+        // This module exclusively owns the bar's inline visibility. Keep the
+        // exact assigned state, as with __position, instead of a native getter
+        // on every frame. Ancestor/CSS hiding remains independent of this state.
+        bar.__visibility = "collapse";
         bar.AddClass("SurvivalHeroWorldHealthBar");
         bar.hittest = false;
         var fill = $.CreatePanel("Panel", bar, "");
         fill.AddClass("SurvivalHeroWorldHealthFill");
         fill.hittest = false;
-        for (var index = 1; index < 10; index++) {
-            var divider = $.CreatePanel("Panel", bar, "");
-            divider.AddClass("SurvivalHeroWorldHealthTick");
-            divider.AddClass("SurvivalHeroWorldHealthTick" + (index * 10));
-            divider.hittest = false;
-        }
         bar.__fill = fill;
+        bar.__healthHost = container;
         panels[key] = bar;
         return bar;
     }
 
     function hide(key, metrics) {
         var bar = panels[key];
-        if (validPanel(bar) && bar.style.visibility !== "collapse") {
+        if (validPanel(bar) && bar.__visibility !== "collapse") {
             bar.style.visibility = "collapse";
+            bar.__visibility = "collapse";
             if (metrics) metrics.visibilityWrites += 1;
         }
     }
@@ -108,11 +155,13 @@
     function stop() {
         if (stopped) return;
         stopped = true;
-        if (frame !== null) $.CancelScheduled(frame);
+        cancelFrame();
         if (listener !== null) CustomNetTables.UnsubscribeNetTableListener(listener);
+        listener = null;
         Object.keys(panels).forEach(removePanel);
         states = {};
         seenEntities = {};
+        aliveSnapshotCount = 0;
     }
 
     function predictedLoss(forecasts, now) {
@@ -171,12 +220,15 @@
     }
 
     function applyState(key, value) {
+        var previousAlive = states[key] && Number(states[key].alive) === 1 ? 1 : 0;
         if (!value || Number(value.removed) === 1) {
+            aliveSnapshotCount -= previousAlive;
             delete states[key];
             delete seenEntities[key];
             removePanel(key);
             return;
         }
+        aliveSnapshotCount += (Number(value.alive) === 1 ? 1 : 0) - previousAlive;
         states[key] = value;
         var bar = ensurePanel(key);
         if (!bar) return;
@@ -199,22 +251,29 @@
 
     function onTableChanged(tableName, key, value) {
         if (!stopped && tableName === TABLE && key.indexOf(PREFIX) === 0) {
+            if (!current()) return;
             applyState(key, value);
+            schedulerCounts.eventWakes += 1;
+            schedule(hasAliveSnapshot() ? "frame" : "idle");
         }
     }
 
     function updatePositions() {
-        if (stopped) return;
-        if (!validPanel(context)) { stop(); return; }
+        if (!current()) return;
+        // Removed/dead rows have no changing screen position or laser forecast.
+        // Keep only one bounded recovery check for a late XML host, first-spawn
+        // replication or context replacement; real alive packets wake next frame.
+        if (!hasAliveSnapshot()) { schedule("idle"); return; }
+        schedulerCounts.activeAttempts += 1;
         // Schedule before touching entities: a unit can disappear between an
         // IsValidEntity check and a native API call during hero replacement.
         // Such an exception must never freeze every overhead bar on screen.
-        frame = $.Schedule(0.0, updatePositions);
+        schedule("frame");
         var metrics = captureMetrics();
         if (metrics) { metrics.observed = true; metrics.frames += 1; }
-        if (!validPanel(container)) container = $("#SurvivalHeroWorldHealthBars");
-        if (!validPanel(container)) {
+        if (!ensureContainer()) {
             if (metrics) metrics.missingContainerFrames += 1;
+            schedule("idle");
             return;
         }
         var visibility=config.SurvivalWorldOverlayVisibility;
@@ -227,7 +286,7 @@
         }
         var helper = config.SurvivalWorldHealthBarAnchor;
         var geometry = helper && helper.Capture ? helper.Capture(container) : null;
-        var stateKeys = Object.keys(states);
+        var stateKeys = Object.keys(states), hasAliveEntity = false;
         if (metrics) {
             metrics.statesVisited += stateKeys.length;
             metrics.peakStates = Math.max(metrics.peakStates, stateKeys.length);
@@ -249,6 +308,7 @@
                 // Prune only handles that were actually seen and disappeared;
                 // pending first spawns must retain their stable full-HP packet.
                 if (seenEntities[key] !== undefined || !isFinite(entindex) || entindex < 0) {
+                    aliveSnapshotCount -= 1;
                     delete states[key];
                     delete seenEntities[key];
                 }
@@ -256,12 +316,17 @@
                 return;
             }
             seenEntities[key] = entindex;
-            var bar = ensurePanel(key);
+            var bar = ensurePanel(key, true);
             // A net-table update may arrive before XML creates the container.
             // Restore the saved health when the first drawable panel is made.
             if (bar && bar.__healthFraction === undefined) applyState(key, state);
+            var nativeAlive = !Entities.IsAlive || Entities.IsAlive(entindex);
+            // Dormant/offscreen units still need frame-rate camera/fog recovery.
+            // A native-dead or not-yet-replicated unit can recover on the bounded
+            // watchdog without repeatedly traversing layout while no bar can draw.
+            if (bar && Number(state.alive) === 1 && nativeAlive) hasAliveEntity = true;
             if (!bar || Number(state.alive) !== 1
-                || (Entities.IsAlive && !Entities.IsAlive(entindex))
+                || !nativeAlive
                 || (Entities.IsDormant && Entities.IsDormant(entindex))
                 || (state.unit_name && Entities.GetUnitName
                     && Entities.GetUnitName(entindex) !== state.unit_name)) {
@@ -318,8 +383,9 @@
                 bar.style.position = position;
                 bar.__position = position;
             } else if (metrics) metrics.positionUnchanged += 1;
-            if (bar.style.visibility !== "visible") {
+            if (bar.__visibility !== "visible") {
                 bar.style.visibility = "visible";
+                bar.__visibility = "visible";
                 if (metrics) metrics.visibilityWrites += 1;
             }
             } catch (error) {
@@ -327,7 +393,8 @@
                 hide(key, metrics);
             }
         });
-        // Run once per Panorama frame. The previous fixed 30 Hz layout update
+        if (!hasAliveEntity) schedule("idle");
+        // Run once per Panorama frame while an alive entity can render. The previous fixed 30 Hz layout update
         // visibly lagged behind the engine's native overhead bars while units
         // or the camera were moving.
     }
@@ -342,10 +409,16 @@
             {name:"setForecast",get:function(){return setForecast;},set:function(fn){setForecast=fn;}}
         ]);
     }
-    config.SurvivalWorldHealthBars = {Stop:stop, RegisterToolsProbe:registerToolsProbe, Refresh:function () {
-        if (stopped) return;
-        if (frame !== null) $.CancelScheduled(frame);
+    controller = {Stop:stop, RegisterToolsProbe:registerToolsProbe, Refresh:function () {
+        if (!current()) return;
+        cancelFrame();
         updatePositions();
+    }, SchedulerInspect:function () {
+        return {stopped:stopped, mode:frameKind, pending:frame !== null,
+            aliveSnapshots:aliveSnapshotCount, hostReady:!!validPanel(container),
+            recoverySeconds:IDLE_RECOVERY_SECONDS, callbacks:schedulerCounts.callbacks,
+            activeAttempts:schedulerCounts.activeAttempts, idleChecks:schedulerCounts.idleChecks,
+            eventWakes:schedulerCounts.eventWakes};
     }, ProbeInspect:function () {
         captureMetrics();
         return probeStats || {observed:false, frames:0};
@@ -357,6 +430,7 @@
                 anchor:panel.__healthAnchor};
         })};
     }};
+    config.SurvivalWorldHealthBars = controller;
     registerToolsProbe();
 
     var initialValues = CustomNetTables.GetAllTableValues(TABLE) || {};

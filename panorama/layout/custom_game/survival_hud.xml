@@ -14,11 +14,12 @@
         <include src="file://{resources}/styles/custom_game/archive_difficulty.css" />
         <include src="file://{resources}/styles/custom_game/lottery_celestial.css" />
         <include src="file://{resources}/styles/custom_game/handoff_v1.css" />
+        <include src="file://{resources}/styles/custom_game/enemy_population_warning.css" />
         <include src="file://{resources}/styles/custom_game/production_progress.css" />
         <include src="file://{resources}/styles/custom_game/minimap_shortcuts.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
-    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/><include src="file://{resources}/styles/custom_game/common/menu_v10.css" /><include src="file://{resources}/styles/custom_game/menus_v10_commerce.css" /><include src="file://{resources}/styles/custom_game/menus_v10_lottery.css" /></styles>
-    <scripts><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/>
+    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/><include src="file://{resources}/styles/custom_game/common/menu_v10.css" /><include src="file://{resources}/styles/custom_game/menus_v10_commerce.css" /><include src="file://{resources}/styles/custom_game/lottery_gw2.css" /><include src="file://{resources}/styles/custom_game/black_lion_market.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/common/item_resources.js" /><include src="file://{resources}/scripts/custom_game/common/vip_badges.js" /><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/common/reward_feedback.js" /><include src="file://{resources}/scripts/custom_game/common/tooltip_dismiss.js" />
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/archive_v10_data.js" /><include src="file://{resources}/scripts/custom_game/common/menu_v10.js" /><include src="file://{resources}/scripts/custom_game/common/purple_shell.js"/>
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/native_ui_icons.js"/><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
@@ -50,8 +51,10 @@
         <include src="file://{resources}/scripts/custom_game/geometry_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/production_progress.js" />
         <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
+        <include src="file://{resources}/scripts/custom_game/enemy_population_warning.js" />
         <include src="file://{resources}/scripts/custom_game/topnav_remaining_5d5c1152eb.js" />
-    <include src="file://{resources}/scripts/custom_game/common/commerce_art_manifest.js"/><include src="file://{resources}/scripts/custom_game/common/commerce_components.js"/><include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/menu_purple.js"/></scripts>
+        <include src="file://{resources}/scripts/custom_game/collection_nav.js" />
+    <include src="file://{resources}/scripts/custom_game/common/commerce_art_manifest.js"/><include src="file://{resources}/scripts/custom_game/common/commerce_components.js"/><include src="file://{resources}/scripts/custom_game/video_shop_bundles.js"/><include src="file://{resources}/scripts/custom_game/shop_v10_assets.js"/><include src="file://{resources}/scripts/custom_game/black_lion_market_model.js"/><include src="file://{resources}/scripts/custom_game/black_lion_market.js"/><include src="file://{resources}/scripts/custom_game/commerce_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/boss_warning_remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/lottery_gw2_data.js"/><include src="file://{resources}/scripts/custom_game/lottery_gw2.js"/></scripts>
     <Panel class="SurvivalHUDRoot Theme_Native UnifiedWindowsV4 HandoffBoot HandoffReadableStats HandoffResourceTree HandoffBalancedStatValues HandoffNaturalStatCaptions HandoffReadableBuildingTitle HandoffTreeArmorCaption HandoffTreeRedHealth HandoffCompactWorkers HandoffCompactUtilityBuildings HandoffHeroCornerAltarJump HandoffBoxSelectionIntegrated PurpleMenusContext MenuV10Context" hittest="false">
         <!-- The top navigation treasure icon must compile with the HUD as well as the archive window. -->
         <Image id="HandoffTreasureIconPreload" src="file://{images}/custom_game/handoff_v1/top/treasure_64.png" style="visibility: collapse;" hittest="false" />
@@ -111,22 +114,18 @@
 
         <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden" hittest="true">
             <Panel id="DifficultySelectionDialog" class="UIModal" hittest="true" hittestchildren="true">
+                <Panel id="DifficultySelectionArt" hittest="false" hittestchildren="false" />
                 <Panel id="DifficultySelectionHeader" class="UIModalHeader" hittest="false">
                     <Label id="DifficultySelectionTitle" class="UIFontTitle" text="难度选择" />
-                    <Label id="DifficultySelectionMode" text="模式已确认  ·  请选择难度" />
                 </Panel>
                 <Panel id="DifficultySelectionBody">
-                    <Label id="DifficultySelectionHint" text="选中难度后点击确认，本局将无法更改" />
+                    <Label id="DifficultySelectionHint" text="" visible="false" />
                     <Panel id="MatchModeOptions" visible="false" hittest="true" />
                     <Panel id="DifficultySelectionButtons" hittest="true">
                         <Label id="DifficultySelectionLoading" text="正在读取难度配置……" />
                     </Panel>
-                    <Label id="DifficultySelectionError" text="" />
+                    <Label id="DifficultySelectionError" text="" visible="false" />
                     <Panel id="MatchSetupRetryHost" visible="false" />
-                </Panel>
-                <Panel id="DifficultySelectionFooter">
-                    <Label id="DifficultySelectionCurrent" text="当前选择：尚未选择" />
-                    <Panel id="DifficultySelectionConfirmHost" />
                 </Panel>
             </Panel>
         </Panel>
@@ -288,11 +287,11 @@
                     <Label id="ShopTooltipType" text="物品" />
                     <Panel id="ShopTooltipCostRow">
                         <Panel class="TooltipCostBlock">
-                            <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/gold.png" />
+                            <Image class="TooltipCostIcon" src="file://{images}/custom_game/hud_resources_v2/gold.svg" />
                             <Label id="ShopTooltipGoldCost" class="TooltipCostValue" text="0" />
                         </Panel>
                         <Panel class="TooltipCostBlock">
-                            <Image class="TooltipCostIcon" src="file://{images}/spellicons/survival/native/wood.png" />
+                            <Image class="TooltipCostIcon" src="file://{images}/custom_game/hud_resources_v2/wood.svg" />
                             <Label id="ShopTooltipWoodCost" class="TooltipCostValue" text="0" />
                         </Panel>
                     </Panel>
@@ -321,12 +320,16 @@
             <Label id="CustomAbilityDescription" text="" />
             <Panel id="CustomAbilityCostRow">
                 <Panel id="CustomAbilityGoldCostBlock" class="AbilityCostBlock">
-                    <Image class="AbilityCostIcon" src="file://{images}/spellicons/survival/native/gold.png" hittest="false" />
+                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/hud_resources_v2/gold.svg" hittest="false" />
                     <Label id="CustomAbilityGoldCost" class="AbilityCostValue" text="0" />
                 </Panel>
                 <Panel id="CustomAbilityWoodCostBlock" class="AbilityCostBlock">
-                    <Image class="AbilityCostIcon" src="file://{images}/spellicons/survival/native/wood.png" hittest="false" />
+                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/hud_resources_v2/wood.svg" hittest="false" />
                     <Label id="CustomAbilityWoodCost" class="AbilityCostValue" text="0" />
+                </Panel>
+                <Panel id="CustomAbilityPopulationCostBlock" class="AbilityCostBlock Hidden">
+                    <Image class="AbilityCostIcon" src="file://{images}/custom_game/survival/food_population.png" hittest="false" />
+                    <Label id="CustomAbilityPopulationCost" class="AbilityCostValue" text="0" />
                 </Panel>
             </Panel>
             <Panel id="CustomAbilityFields" />

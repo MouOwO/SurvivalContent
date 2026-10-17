@@ -2,6 +2,49 @@
     "use strict";
     var table = "survival_hero_health_bar", states = {}, panels = {}, effects = {};
     var host = $("#SurvivalWorldTitles");
+    var config=GameUI.CustomUIConfig(),context=$.GetContextPanel?$.GetContextPanel():null;
+    var previous=config.SurvivalWorldTitleScheduler;
+    if(previous&&previous.Dispose)previous.Dispose();
+    var frameJob=null,idleJob=null,listener=null,disposed=false,initialized=false;
+    var loopCounts={callbacks:0,workFrames:0,idleChecks:0};
+    function valid(panel){return !!panel&&(!panel.IsValid||panel.IsValid());}
+    function cancel(job){if(job!==null&&$.CancelScheduled)$.CancelScheduled(job);}
+    function dispose(){
+        if(disposed)return;disposed=true;cancel(frameJob);cancel(idleJob);frameJob=idleJob=null;
+        if(listener!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(listener);
+        listener=null;Object.keys(states).forEach(remove);
+    }
+    function active(){
+        if(disposed)return false;
+        if((context&&!valid(context))||config.SurvivalWorldTitleScheduler!==scheduler){dispose();return false;}
+        return true;
+    }
+    function ensureHost(){
+        if(valid(host))return true;
+        var next=$("#SurvivalWorldTitles");
+        if(!valid(next))return false;
+        // A delayed/rebuilt host must retain authoritative states, not old visual handles.
+        Object.keys(panels).forEach(function(key){
+            if(effects[key])effects[key].pool.forEach(function(p){if(valid(p.panel))p.panel.DeleteAsync(0);});
+            if(valid(panels[key]))panels[key].DeleteAsync(0);
+        });
+        panels={};effects={};host=next;return true;
+    }
+    function idleWatch(){
+        idleJob=null;if(!active())return;loopCounts.idleChecks++;
+        if(Object.keys(states).length&&ensureHost())wake();else scheduleIdle();
+    }
+    function scheduleIdle(){if(active()&&idleJob===null)idleJob=$.Schedule(2,idleWatch);}
+    function wake(){
+        if(!initialized||!active())return;
+        if(!Object.keys(states).length){cancel(frameJob);frameJob=null;scheduleIdle();return;}
+        cancel(idleJob);idleJob=null;
+        if(frameJob===null)frameJob=$.Schedule(0,update);
+    }
+    var scheduler={Dispose:dispose,Inspect:function(){return {disposed:disposed,states:Object.keys(states).length,
+        framePending:frameJob!==null,idlePending:idleJob!==null,hostReady:valid(host),
+        callbacks:loopCounts.callbacks,workFrames:loopCounts.workFrames,idleChecks:loopCounts.idleChecks};}};
+    config.SurvivalWorldTitleScheduler=scheduler;
     var assets = {peak_perfection:"file://{images}/custom_game/titles/peak_clean_letters.png"};
     var series=GameUI.CustomUIConfig().SurvivalTitleSeriesArt;
     if(series)Object.keys(series.Config).forEach(function(id){assets[id]=series.Config[id].asset;});
@@ -36,8 +79,8 @@
         clearTrail(effects[key]);resetCrowd(effects[key]);
     }
     function remove(key) {
-        if (effects[key]) effects[key].pool.forEach(function(p){p.panel.DeleteAsync(0);});
-        if (panels[key]) panels[key].DeleteAsync(0);
+        if (effects[key]) effects[key].pool.forEach(function(p){if(valid(p.panel))p.panel.DeleteAsync(0);});
+        if (valid(panels[key])) panels[key].DeleteAsync(0);
         delete panels[key];delete states[key];delete effects[key];
     }
     function create(key,titleId) {
@@ -57,17 +100,19 @@
         return root;
     }
     function receive(name,key,value) {
+        if(!active())return;
         if (name!==table || key.indexOf("title_")!==0) return;
-        if (!value || !assets[value.title_id] || Number(value.entindex)<0) {remove(key);return;}
+        if (!value || !assets[value.title_id] || Number(value.entindex)<0) {remove(key);wake();return;}
         if (states[key] && states[key].title_id!==value.title_id) remove(key);
         if (states[key] && (Number(states[key].entindex)!==Number(value.entindex) || states[key].render_mode!==value.render_mode)) {clearTrail(effects[key]);resetCrowd(effects[key]);}
         states[key]=value;
-        if (!panels[key] && host) create(key,value.title_id);
+        if (!panels[key] && ensureHost()) create(key,value.title_id);
         if (effects[key]) {
             if(!effects[key].layers.motion) effects[key].art.SetImage(assets[value.title_id]);
             effects[key].art.visible=true;
             effects[key].mask.visible=true;
         }
+        wake();
     }
     function position(panel,x,y) {panel.style.position=x.toFixed(2)+"px "+y.toFixed(2)+"px 0px";}
     function sparkle(fx,now) {
@@ -208,8 +253,10 @@
         });
     }
     function update() {
-        $.Schedule(0.0,update);
-        if (!host) return;
+        frameJob=null;if(!active())return;loopCounts.callbacks++;
+        // Empty title sessions need no per-frame HUD capture or hero projection.
+        if(!Object.keys(states).length||!ensureHost()){scheduleIdle();return;}
+        frameJob=$.Schedule(0.0,update);loopCounts.workFrames++;
         var cfg=GameUI.CustomUIConfig(),anchor=cfg.SurvivalWorldHealthBarAnchor;
         var visibility=cfg.SurvivalWorldOverlayVisibility;
         var occlusion=visibility?visibility.Capture():null,now=clock();
@@ -222,6 +269,7 @@
         Object.keys(states).forEach(function(key){
             try {
                 var state=states[key],ent=Number(state.entindex),root=panels[key];
+                if(!valid(root))root=create(key,state.title_id);
                 if (!root || !anchor || !Entities.IsValidEntity(ent) || !Entities.IsAlive(ent)
                     || (Entities.IsDormant && Entities.IsDormant(ent))
                     || (Entities.IsIllusion && Entities.IsIllusion(ent))
@@ -284,7 +332,7 @@
             for(var n=0;n<p.GetChildCount();n++)row.children.push(inspect(p.GetChild(n),depth+1));
             return row;
         }
-        var data={host:!!host,host_position:host && host.GetPositionWithinWindow(),host_scale:host && host.actualuiscale_x,host_width:host && host.actuallayoutwidth,host_height:host && host.actuallayoutheight,states:states,diagnostics:diagnostics,panels:{}};
+        var data={host:!!host,host_position:host && host.GetPositionWithinWindow(),host_scale:host && host.actualuiscale_x,host_width:host && host.actuallayoutwidth,host_height:host && host.actuallayoutheight,states:states,diagnostics:diagnostics,panels:{},scheduler:scheduler.Inspect()};
         Object.keys(panels).forEach(function(key){
             var p=panels[key],fx=effects[key];
             data.panels[key]={visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,position:p.style.position,
@@ -299,6 +347,6 @@
         if (entry && entry.key!==undefined && entry.value!==undefined) receive(table,String(entry.key),entry.value);
         else receive(table,key,entry);
     });
-    CustomNetTables.SubscribeNetTableListener(table,receive);
-    update();
+    listener=CustomNetTables.SubscribeNetTableListener(table,receive);
+    initialized=true;update();
 })();

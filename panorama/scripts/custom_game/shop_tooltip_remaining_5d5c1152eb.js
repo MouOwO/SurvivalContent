@@ -3,8 +3,25 @@
     var cfg = GameUI.CustomUIConfig();
     var activeEntry = null, activeSource = null, pinned = false;
     var tooltipHovered = false, hideJob = null, generation = 0;
-    var purchaseButton = null, purchaseLabel = null, autoButton = null, autoLabel = null;
-    var tooltipSkin = null;
+    var frameReady = false, purchaseEnabled = false;
+    var tooltipDismiss = null, tooltipDismissPanel = null;
+    var tooltipContext = $.GetContextPanel ? $.GetContextPanel() : null, api = null;
+    var previousTooltip = cfg.SurvivalShopTooltip;
+    if (previousTooltip && previousTooltip.DisposeTooltip) previousTooltip.DisposeTooltip();
+    function dismissFor(tooltip) {
+        if (!cfg.SurvivalTooltipDismiss || !tooltip) return null;
+        if (tooltipDismissPanel !== tooltip) {
+            if (tooltipDismiss) tooltipDismiss.Dispose();
+            tooltipDismissPanel = tooltip;
+            tooltipDismiss = cfg.SurvivalTooltipDismiss.Create({panel:tooltip,
+                getRect:tooltipRect,
+                hide:hide,
+                isAlive:function () { return (!tooltipContext || valid(tooltipContext))
+                    && (!api || cfg.SurvivalShopTooltip === api); },
+                isVisible:function () { return activeEntry !== null && !tooltip.BHasClass("Hidden"); }});
+        }
+        return tooltipDismiss;
+    }
     function byId(id) { return $("#" + id); }
     function valid(p) { return p && (!p.IsValid || p.IsValid()); }
     function setText(id, value) { var p = byId(id); if (p) p.text = String(value === undefined ? "" : value); }
@@ -13,12 +30,26 @@
         return formatter && formatter.Format ? formatter.Format(value) : String(value || 0);
     }
     function numberOr(value, fallback) { return typeof value === "number" && isFinite(value) ? value : fallback; }
+    function shopFitScale(node) {
+        for (var owner = node; owner && owner !== tooltipContext; owner = owner.GetParent ? owner.GetParent() : null) {
+            if (owner.id !== "CustomShopWindow") continue;
+            var match = String(owner.style.transform || "").match(/scale3d\(\s*([\d.eE+-]+)/);
+            return match && Number(match[1]) > 0 && isFinite(Number(match[1])) ? Number(match[1]) : 1;
+        }
+        return 1;
+    }
+    function tooltipRect(node) {
+        var at = node.GetPositionWithinWindow(), scale = shopFitScale(node);
+        // Native layout sizes omit CSS Fit; the root-level tooltip stays unscaled.
+        return {x:at.x,y:at.y,width:node.actuallayoutwidth * scale,height:node.actuallayoutheight * scale};
+    }
     function cancelHide() {
         generation++;
         if (hideJob !== null && $.CancelScheduled) $.CancelScheduled(hideJob);
         hideJob = null;
     }
     function hide() {
+        if (tooltipDismiss) tooltipDismiss.Hidden();
         cancelHide();
         if (valid(activeSource) && activeSource.SetHasClass) activeSource.SetHasClass("ShopSelected", false);
         activeEntry = null; activeSource = null; pinned = false; tooltipHovered = false;
@@ -28,8 +59,7 @@
     function requestHide() {
         cancelHide();
         var serial = generation;
-        // The frame-to-tooltip gap is traversable. An old callback cannot dismiss
-        // another item selected while moving across the grid.
+        // Preserve the source leave grace without allowing tooltip hover to keep it open.
         hideJob = $.Schedule(0.18, function () {
             hideJob = null;
             if (serial === generation && !tooltipHovered && !pinned) hide();
@@ -40,30 +70,25 @@
         var parent = tooltip.GetParent ? tooltip.GetParent() : null;
         if (!parent || !parent.GetPositionWithinWindow) return;
         function place() {
-            // Entering the tooltip cancels a hide timer, but must not cancel
-            // the layout pass that measures its newly revealed contents.
+            // A dismissed or replaced entry cannot run stale placement callbacks.
             if (!valid(tooltip) || !valid(source) || activeSource !== source) return;
             var owner = byId("CustomShopWindow");
             if (!valid(owner)) return;
             var pp = parent.GetPositionWithinWindow(), sp = source.GetPositionWithinWindow(), wp = owner.GetPositionWithinWindow();
-            var menu=owner.__shopMenuV10, viewScale=menu?menu.Scale():1;
-            var sx = Math.max(0.001, numberOr(parent.actualuiscale_x, 1)*viewScale);
-            var sy = Math.max(0.001, numberOr(parent.actualuiscale_y, 1)*viewScale);
+            var sx = Math.max(0.001, numberOr(parent.actualuiscale_x, 1));
+            var sy = Math.max(0.001, numberOr(parent.actualuiscale_y, 1));
             var y = (numberOr(sp.y, 0) - numberOr(pp.y, 0)) / sy;
             var wx = (numberOr(wp.x, 0) - numberOr(pp.x, 0)) / sx;
-            var ww = 1672;
-            var nativeScale=Math.max(.001,numberOr(parent.actualuiscale_y,1));
-            var frame=byId("ShopTooltipFrame"),th=Math.min(704,Math.max(246,(Number(frame&&frame.actuallayoutheight)||250*nativeScale)/nativeScale+48));
-            var tw=368;
-            if(tooltipSkin)tooltipSkin.Resize(tw,th);
-            tooltip.style.width=tw+"px";tooltip.style.height=th+"px";
-            var ph=941;
-            var sw=144;
-            var sourceX=(numberOr(sp.x,0)-numberOr(pp.x,0))/sx;
-            var left=sourceX+sw+8;
-            if(left+tw>wx+ww-24)left=sourceX-tw-8;
-            left=Math.max(wx+24,Math.min(left,wx+ww-tw-24));
-            var top = Math.max(128, Math.min(y - 24, ph - th - 40));
+            var ww = numberOr(owner.actuallayoutwidth, 464) * shopFitScale(owner) / sx;
+            var tw = (numberOr(tooltip.actuallayoutwidth, 370) || 370) / sx;
+            var th = (numberOr(tooltip.actuallayoutheight, 300) || 300) / sy;
+            var pw = numberOr(parent.actuallayoutwidth, 1920) / sx;
+            var ph = numberOr(parent.actuallayoutheight, 1080) / sy;
+            // The transparent 22px gutter contains the pointer; native parents clip negative children.
+            var left = wx + ww;
+            if (left + tw > pw - 12) left = wx - tw - 22;
+            left = Math.max(12, Math.min(left, pw - tw - 12));
+            var top = Math.max(12, Math.min(y - 32, ph - th - 12));
             tooltip.style.position = Math.round(left) + "px " + Math.round(top) + "px 0px";
             var arrow = byId("ShopTooltipArrow");
             if (arrow) {
@@ -74,66 +99,54 @@
         place();[0,.05,.2,.4].forEach(function(delay){$.Schedule(delay,place);});
     }
     function createIcon(parent, entry) {
-        var art = cfg.SurvivalItemArt;
-        if (art && art.Create(parent, entry, "ShopTooltipMainIcon")) return;
+        var art = cfg.SurvivalItemArt,presentation=cfg.SurvivalRewardPresentation;
+        var rendered = art && art.Create(parent, entry, "ShopTooltipMainIcon");
+        if (rendered) { if(presentation&&presentation.FillIcon)presentation.FillIcon(rendered,entry); return; }
         var p = $.CreatePanel(entry.icon_type === "ability" ? "DOTAAbilityImage" : "DOTAItemImage", parent, "");
         if (entry.icon_type === "ability") p.abilityname = entry.icon || "ability_upgrade_wall";
         else p.itemname = entry.icon || "item_branches";
         p.AddClass("ShopTooltipMainIcon"); p.hittest = false;
+        if(presentation&&presentation.FillIcon)presentation.FillIcon(p,entry);
     }
-    function ensureActions(tooltip) {
-        if (purchaseButton || !$.CreatePanel || !tooltip.SetPanelEvent) return;
+    function ensureFrame(tooltip) {
+        if (frameReady || !$.CreatePanel || !tooltip.SetPanelEvent) return;
+        frameReady = true;
         tooltip.AddClass("ShopPurpleTooltip");
-        tooltip.AddClass("MenuV10ShopTooltip");
-        var frame = byId("ShopTooltipFrame") || tooltip;
-        if(cfg.SurvivalMenuV10){tooltipSkin=cfg.SurvivalMenuV10.SkinTooltip(tooltip);frame.SetParent(tooltipSkin.surface);}
         var arrow = $.CreatePanel("Panel", tooltip, "ShopTooltipArrow");
         arrow.hittest = false; arrow.hittestchildren = false;
-        arrow.visible=false;
-        purchaseButton = $.CreatePanel("Button", frame, "ShopTooltipPurchase");
-        purchaseButton.AddClass("ShopTooltipPurchase"); purchaseButton.hittestchildren = false;
-        purchaseLabel = $.CreatePanel("Label", purchaseButton, ""); purchaseLabel.hittest = false;
-        purchaseButton.SetPanelEvent("onactivate", function () {
-            if (!activeEntry || purchaseButton.enabled === false || !cfg.SurvivalShop) return;
-            // Resolve the latest authoritative row in the shop controller.
-            cfg.SurvivalShop.PurchaseEntry(activeEntry.entry_id);
+        ["TL","TR","BL","BR"].forEach(function(c) {
+            var corner = $.CreatePanel("Panel", tooltip, "");
+            corner.AddClass("ShopFrameCorner"); corner.AddClass("ShopFrameCorner" + c);
+            corner.hittest = false; corner.hittestchildren = false;
         });
-        autoButton = $.CreatePanel("Button", frame, "ShopTooltipAutoPurchase");
-        autoButton.AddClass("ShopTooltipAutoPurchase"); autoButton.hittestchildren = false;
-        autoLabel = $.CreatePanel("Label", autoButton, ""); autoLabel.text = "自动购买"; autoLabel.hittest = false;
-        autoButton.SetPanelEvent("onactivate", function () {
-            if (activeEntry && cfg.SurvivalShop && cfg.SurvivalShop.ToggleAutoPurchaseEntry)
-                cfg.SurvivalShop.ToggleAutoPurchaseEntry(activeEntry.entry_id);
+        ["ShopTooltipPurchase", "ShopTooltipAutoPurchase"].forEach(function (id) {
+            var old = byId(id);
+            if (old) { old.visible = false; old.enabled = false; old.hittest = false; old.hittestchildren = false; }
         });
-        tooltip.SetPanelEvent("onmouseover", function () { tooltipHovered = true; cancelHide(); });
-        tooltip.SetPanelEvent("onmouseout", function () { tooltipHovered = false; requestHide(); });
-    }
-    function updateAutoPurchaseState() {
-        if (!autoButton || !activeEntry) return;
-        var values = CustomNetTables.GetTableValue("survival_shop_config", "auto_purchase_" + Game.GetLocalPlayerID()) || {};
-        var enabled = Number(values[activeEntry.entry_id] || 0) === 1;
-        autoButton.SetHasClass("AutoBookEnabled", enabled);
-        autoLabel.text = enabled ? "停止自动购买" : "自动购买";
+        tooltip.SetPanelEvent("onmouseover", function () {
+            if (tooltipDismiss) tooltipDismiss.Dismiss(); else hide();
+        });
     }
     function show(entry, source, keepOpen) {
         if (!entry) return;
+        var tooltip = byId("ShopEntryTooltip"), iconHost = byId("ShopTooltipIconHost"), fields = byId("ShopTooltipFields");
+        if (!tooltip || !iconHost || !fields) return;
+        ensureFrame(tooltip);
+        var dismiss = dismissFor(tooltip);
+        if (dismiss && !dismiss.CanShow(source)) { hide(); return; }
         cancelHide();
         if (activeSource !== source) tooltipHovered = false;
         if (activeSource !== source && valid(activeSource) && activeSource.SetHasClass) activeSource.SetHasClass("ShopSelected", false);
         pinned = keepOpen === true || !!(activeEntry && activeEntry.entry_id === entry.entry_id && pinned);
         activeEntry = entry; activeSource = source || null;
         if (valid(source) && source.SetHasClass) source.SetHasClass("ShopSelected", true);
-        var tooltip = byId("ShopEntryTooltip"), iconHost = byId("ShopTooltipIconHost"), fields = byId("ShopTooltipFields");
-        if (!tooltip || !iconHost || !fields) return;
-        ensureActions(tooltip);
         var owner = byId("CustomShopWindow");
         tooltip.style.zIndex = String(Math.max(100000, Number(owner && owner.style.zIndex) || 0) + 1);
         var definition = CustomNetTables.GetTableValue("survival_tooltips", entry.tooltip_id || ("shop_item:" + entry.entry_id)) || {};
         iconHost.RemoveAndDeleteChildren(); fields.RemoveAndDeleteChildren(); createIcon(iconHost, entry);
         setText("ShopTooltipTitle", entry.name || definition.name || entry.content_id);
-        var types = {weapon:"装备",equipment:"装备",item:"道具",challenge:"挑战",rebirth:"转职",technology:"科技",service:"其他"};
-        setText("ShopTooltipType", types[entry.content_type] || entry.type_name || "物品");
-        byId("ShopTooltipType").visible = true;
+        setText("ShopTooltipType", "");
+        byId("ShopTooltipType").visible = false;
         var description = entry.content_type === "technology" ? (entry.description || definition.desc || "") : (definition.desc || entry.description || "");
         setText("ShopTooltipDescription", description);
         byId("ShopTooltipDescription").visible = String(description).trim().length > 0;
@@ -150,20 +163,15 @@
         var prerequisite = entry.content_type === "technology" && entry.prerequisite_met !== undefined;
         var locked = prerequisite ? Number(entry.prerequisite_met) === 0 : Number(entry.purchasable) !== 1;
         tooltip.SetHasClass("Unavailable", locked); tooltip.SetHasClass("PrerequisiteLocked", prerequisite && locked);
-        if (purchaseButton) {
-            purchaseButton.enabled = !locked && Number(entry.completed || 0) !== 1 && Number(entry.removed || 0) !== 1;
-            purchaseButton.SetHasClass("UIDisabled", !purchaseButton.enabled);
-            var challenge = entry.content_type === "challenge" || entry.content_type === "rebirth";
-            purchaseLabel.text = locked ? (entry.disabled_reason || "条件未达成") : entry.content_type === "technology" ? "研究" : challenge ? "挑战" : "购买";
-            autoButton.visible = entry.entry_id === "shop_item_knowledge_book" || entry.entry_id === "shop_item_super_knowledge_book";
-            updateAutoPurchaseState();
-        }
+        purchaseEnabled = !locked && Number(entry.completed || 0) !== 1 && Number(entry.removed || 0) !== 1;
         tooltip.hittest = true; tooltip.hittestchildren = true; tooltip.RemoveClass("Hidden");
         placeBesideSource(tooltip, source);
+        if (dismiss) dismiss.Shown(source);
     }
-    cfg.SurvivalShopTooltip = { Show:show, Hide:hide, RequestHide:requestHide,
-        UpdateAutoPurchaseState:updateAutoPurchaseState,
+    cfg.SurvivalShopTooltip = api = { Show:show, Hide:hide, RequestHide:requestHide,
+        DisposeTooltip:function () { hide(); if (tooltipDismiss) tooltipDismiss.Dispose(); },
+        UpdateAutoPurchaseState:function () {},
         UpdateEntry:function (entry) { if (activeEntry && entry && entry.entry_id === activeEntry.entry_id) show(entry, activeSource, pinned); },
-        Inspect:function () { return {entry:activeEntry && activeEntry.entry_id,pinned:pinned,hovered:tooltipHovered,purchaseEnabled:purchaseButton && purchaseButton.enabled}; }
+        Inspect:function () { return {entry:activeEntry && activeEntry.entry_id,pinned:pinned,hovered:tooltipHovered,purchaseEnabled:!!activeEntry && purchaseEnabled,actions:false}; }
     };
 })();

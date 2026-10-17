@@ -13,12 +13,12 @@
     function later(time,fn){augment.Later(time,fn);}
     function cancel(){generation++;augment.Cancel();}
     function active(){return Number(current.active)===1&&!!current.token;}
-    function updateButtons(){cards.forEach(function(c){c.button.enabled=ready&&!pending;});panel("RogueRewardReroll").enabled=active()&&ready&&!pending&&Number(current.rerolls_remaining)>0;panel("RogueRewardRerollText").text=Number(current.rerolls_remaining)>0?"免费重抽  "+current.rerolls_remaining:"本次已重抽";}
+    function updateButtons(){cards.forEach(function(c){c.button.enabled=ready&&!pending&&(!current.pending_card_id||c.id===current.pending_card_id);});panel("RogueRewardReroll").enabled=active()&&ready&&!pending&&!current.pending_card_id&&Number(current.rerolls_remaining)>0;panel("RogueRewardRerollText").text=Number(current.rerolls_remaining)>0?"免费重抽  "+current.rerolls_remaining:"本次已重抽";if(ready&&!pending&&current.pending_card_id)panel("RogueRewardStatus").text="神许愿已有部分效果生效，请重试完成剩余效果";}
     function fit(){U.Fit(panel("RogueRewardSurface"),$.GetContextPanel(),1672,941,{reference:[1672,941]});}
     function watchFit(){if(!active())return;fit();later(.25,watchFit);}
     function showFront(c){c.front.visible=true;c.back.visible=false;}
-    function finish(){cards.forEach(function(c){c.slot.AddClass("RogueInstant");c.slot.style.opacity="1";c.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";c.flip.AddClass("RogueInstant");showFront(c);c.flip.style.transform="rotateY(0deg)";});ready=true;updateButtons();panel("RogueRewardStatus").text="请选择一项强化";}
-    function choose(id){if(!active()||!ready||pending||!cards.some(function(c){return c.id===id;}))return;pending=true;cards.forEach(function(c){c.slot.SetHasClass("RogueChosen",c.id===id);c.slot.SetHasClass("RogueNotChosen",c.id!==id);});updateButtons();panel("RogueRewardStatus").text="正在确认强化…";Game.EmitSound("ui_generic_button_click");GameEvents.SendCustomGameEventToServer("ui_rogue_reward_select",{token:current.token,card_id:id});}
+    function finish(){cards.forEach(function(c){c.slot.AddClass("RogueInstant");c.slot.style.opacity="1";c.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";c.flip.AddClass("RogueInstant");showFront(c);c.flip.style.transform="rotateY(0deg)";});ready=true;panel("RogueRewardStatus").text="请选择一项强化";updateButtons();}
+    function choose(id){if(!active()||!ready||pending||(current.pending_card_id&&id!==current.pending_card_id)||!cards.some(function(c){return c.id===id;}))return;pending=true;cards.forEach(function(c){c.slot.SetHasClass("RogueChosen",c.id===id);c.slot.SetHasClass("RogueNotChosen",c.id!==id);});updateButtons();panel("RogueRewardStatus").text="正在确认强化…";Game.EmitSound("ui_generic_button_click");GameEvents.SendCustomGameEventToServer("ui_rogue_reward_select",{token:current.token,card_id:id});}
     function createCard(data,index,total){var x=836-total*272/2-(total-1)*62/2+index*334;
         var slot=$.CreatePanel("Panel",panel("RogueRewardCards"),"");slot.AddClass("RogueSlot");slot.style.position=x+"px 170px 0px";
         var button=$.CreatePanel("Button",slot,"");button.AddClass("RoguePick");button.hittestchildren=true;button.enabled=false;
@@ -42,8 +42,8 @@
         panel("RogueRewardStatus").text="命运正在展开…";cards=rows(value.cards).map(function(c,i,all){return createCard(c,i,all.length);});watchFit();updateButtons();
         if(reduced)finish();else later(1.30+Math.max(0,cards.length-1)*.11,finish);
     }
-    panel("RogueRewardReroll").SetPanelEvent("onactivate",function(){if(!active()||!ready||pending||Number(current.rerolls_remaining)<=0)return;pending=true;updateButtons();panel("RogueRewardStatus").text="正在重抽…";GameEvents.SendCustomGameEventToServer("ui_rogue_reward_reroll",{token:current.token});});
-    GameEvents.Subscribe("ui_rogue_reward_result",function(result){if(!active()||String(result.token)!==String(current.token)||!pending)return;if(result.ok===true||Number(result.ok)===1)return;pending=false;cards.forEach(function(c){c.slot.RemoveClass("RogueChosen");c.slot.RemoveClass("RogueNotChosen");});panel("RogueRewardStatus").text="操作未完成，请重试（"+String(result.error||"unknown")+"）";updateButtons();});
+    panel("RogueRewardReroll").SetPanelEvent("onactivate",function(){if(!active()||!ready||pending||current.pending_card_id||Number(current.rerolls_remaining)<=0)return;pending=true;updateButtons();panel("RogueRewardStatus").text="正在重抽…";GameEvents.SendCustomGameEventToServer("ui_rogue_reward_reroll",{token:current.token});});
+    GameEvents.Subscribe("ui_rogue_reward_result",function(result){if(!active()||String(result.token)!==String(current.token)||!pending)return;if(result.ok===true||Number(result.ok)===1)return;pending=false;cards.forEach(function(c){c.slot.RemoveClass("RogueChosen");c.slot.RemoveClass("RogueNotChosen");});panel("RogueRewardStatus").text=current.pending_card_id?"神许愿已有部分效果生效，请重试完成剩余效果":"操作未完成，请重试（"+String(result.error||"unknown")+"）";updateButtons();});
     CustomNetTables.SubscribeNetTableListener("survival_rogue_reward",function(_,key,value){if(String(key)===String(playerId))render(value);});
     config.SurvivalRogueReward={SetReducedMotion:function(enabled){reduced=!!enabled;config.RogueReducedMotion=reduced;if(active()&&!ready&&reduced){cancel();finish();watchFit();}}};
     U.FullscreenShell.Adopt({panel:panel("RogueRewardBackdrop"),liveGame:true});

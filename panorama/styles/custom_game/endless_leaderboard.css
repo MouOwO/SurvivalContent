@@ -1,0 +1,25 @@
+/* Shares the archive's existing parchment shell; only the right content changes. */
+.EndlessLeaderboardHost { flow-children:none; overflow:noclip; }
+.EndlessLeaderboardText { font-family:"Source Han Sans SC"; font-size:20px; font-weight:normal; color:#eee5cf; white-space:nowrap; text-overflow:ellipsis; text-shadow:none; padding:0px; margin:0px; }
+.EndlessLeaderboardColumns { background-color:#181b1966; border-bottom:1px solid #ad986b66; }
+.EndlessLeaderboardHeading { color:#c6baa0; font-size:18px; }
+.EndlessLeaderboardRank { text-align:center; color:#dac99a; font-size:24px; }
+.EndlessLeaderboardNumber { text-align:right; text-overflow:shrink; }
+.EndlessLeaderboardPinned { flow-children:none; overflow:noclip; }
+.EndlessLeaderboardScroll { flow-children:none; overflow:squish scroll; }
+.EndlessLeaderboardRow { flow-children:none; background-color:#080c0b55; border:1px solid #b9a46b16; }
+.EndlessLeaderboardPodium { background-color:gradient(linear,0% 0%,100% 0%,from(#8d712b36),to(#080c0b55)); border-color:#c4a96650; }
+.EndlessLeaderboardPodium .EndlessLeaderboardRank { color:#f8d58b; }
+.EndlessLeaderboardAvatar { border:1px solid #ae98675c; background-color:#131713; }
+.EndlessLeaderboardVIP { flow-children:none; overflow:noclip; }
+.EndlessLeaderboardMedal { color:#f6d68c; font-size:15px; text-align:center; border:1px solid #d9ba6b99; border-radius:4px; background-color:gradient(linear,0% 0%,100% 100%,from(#8b6e3155),to(#45354f99)); }
+.EndlessLeaderboardPlayer { font-family:"Source Han Sans SC"; font-size:21px; color:#f1ebd9; white-space:nowrap; text-overflow:ellipsis; }
+.EndlessLeaderboardPlayer Label { width:100%; font-family:"Source Han Sans SC"; font-size:21px; color:#f1ebd9; white-space:nowrap; text-overflow:ellipsis; }
+.EndlessLeaderboardOwn { background-color:gradient(linear,0% 0%,100% 0%,from(#b59a4855),to(#5b613b55)); border:1px solid #e7c77bb3; }
+.EndlessLeaderboardOwn .EndlessLeaderboardText,
+.EndlessLeaderboardOwn .EndlessLeaderboardPlayer Label { color:#ffe4a1; }
+.EndlessLeaderboardDivider { background-color:gradient(linear,0% 0%,100% 0%,from(#b69b4c00),color-stop(.5,#d5b87188),to(#b69b4c00)); }
+.EndlessLeaderboardFooter { font-size:18px; color:#dfcda3; text-align:center; }
+.EndlessLeaderboardEmpty { font-size:21px; color:#c8bfa8; text-align:center; }
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #EndlessLeaderboardScroll VerticalScrollBar { width:13px; background-color:#1b190f; background-image:url("file://{images}/custom_game/archive_parchment_v1/scroll_track.png"); background-size:100% 100%; border:1px solid #15130d; }
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #EndlessLeaderboardScroll VerticalScrollBar .ScrollThumb { background-color:#8b835c; background-image:url("file://{images}/custom_game/archive_parchment_v1/scroll_thumb.png"); background-size:100% 100%; border:1px solid #b0a573; border-radius:0px; }

@@ -5,11 +5,101 @@
     var tableName = "survival_ui_state";
     var tableKey = "player_" + playerId;
     var lastSequence = -1;
-    var lastSnapshotAt = 0;
+    var hasSnapshot = false, lastSnapshotReceiptAt = 0;
+    var syncEpoch = 0, syncRequestSerial = 0, snapshotRequest = null;
+    var retryFailures = 0, nextRetryAt = 0, recoveryUntil = Date.now() / 1000 + 30;
+    var builderRecoveryUntil = recoveryUntil, builderRetryPending = false;
+    var recoveryTask = null, startupSignature = "";
+    var lifecycleConfig = GameUI.CustomUIConfig(), lifecycleContext = $.GetContextPanel();
+    var disposed = false, scheduledJobs = [], subscriptions = [];
+    var counters = {polls:0, startupReads:0, legacyReads:0, requests:0,
+        requestCoalesced:0, retryTimeouts:0, received:0, applied:0, builderSteps:0};
+    var previousSync = lifecycleConfig.SurvivalHUDSnapshotSync;
+    if (previousSync && previousSync.Dispose) previousSync.Dispose();
+    var syncAPI = {
+        Inspect:function(){return {epoch:syncEpoch, session:setupSession, hasSnapshot:hasSnapshot,
+            inFlight:!!snapshotRequest, retryFailures:retryFailures, recoveryScheduled:!!recoveryTask,
+            builderPending:builderRetryPending, builderFinished:initialBuilderSelectionFinished,
+            lastReceiptAt:lastSnapshotReceiptAt, disposed:disposed, counters:counters};},
+        Dispose:function(){
+            if (disposed) return;
+            disposed = true;
+            scheduledJobs.slice().forEach(cancelHUDJob);
+            recoveryTask = null; snapshotRequest = null; builderRetryPending = false;
+            subscriptions.forEach(function(item){
+                try {
+                    if (item.kind === "event" && GameEvents.Unsubscribe) GameEvents.Unsubscribe(item.id);
+                    else if (item.kind === "table" && CustomNetTables.UnsubscribeNetTableListener)
+                        CustomNetTables.UnsubscribeNetTableListener(item.id);
+                } catch (error) {}
+            });
+            subscriptions = [];
+            (notificationItems || []).forEach(function(item){
+                if (item && item.IsValid && item.IsValid() && item.DeleteAsync) item.DeleteAsync(0);
+            });
+        }
+    };
+    lifecycleConfig.SurvivalHUDSnapshotSync = syncAPI;
+    function syncActive() {
+        if (disposed || lifecycleConfig.SurvivalHUDSnapshotSync !== syncAPI) return false;
+        try { return !lifecycleContext.IsValid || lifecycleContext.IsValid(); }
+        catch (error) { return false; }
+    }
+    function cancelHUDJob(job) {
+        if (!job || job.cancelled) return;
+        job.cancelled = true;
+        var index = scheduledJobs.indexOf(job);
+        if (index >= 0) scheduledJobs.splice(index, 1);
+        if (job.handle !== undefined && $.CancelScheduled) {
+            try { $.CancelScheduled(job.handle); } catch (error) {}
+        }
+    }
+    function scheduleHUD(delay, callback) {
+        var job = {cancelled:false};
+        scheduledJobs.push(job);
+        job.handle = $.Schedule(delay, function(){
+            var index = scheduledJobs.indexOf(job);
+            if (index >= 0) scheduledJobs.splice(index, 1);
+            if (!job.cancelled && syncActive()) callback();
+        });
+        return job;
+    }
+    function subscribeHUD(kind, name, callback) {
+        var guarded = function(){
+            if (syncActive()) return callback.apply(null, arguments);
+        };
+        var id = kind === "event" ? GameEvents.Subscribe(name, guarded)
+            : CustomNetTables.SubscribeNetTableListener(name, guarded);
+        subscriptions.push({kind:kind, id:id});
+    }
+    function resetSnapshotRecovery(resetBuilder) {
+        syncEpoch++;
+        hasSnapshot = false; lastSequence = -1; snapshotRequest = null;
+        retryFailures = 0; nextRetryAt = 0; lastSnapshotReceiptAt = 0;
+        recoveryUntil = Date.now() / 1000 + 30;
+        builderRecoveryUntil = recoveryUntil;
+        initialBuilderSelectionSerial++;
+        builderRetryPending = false;
+        if (resetBuilder) {
+            initialBuilderSelectionFinished = false;
+        }
+    }
+    function scheduleRecovery(delay) {
+        if (!syncActive()) return;
+        if (recoveryTask) {
+            if (delay !== 0) return;
+            cancelHUDJob(recoveryTask);
+        }
+        var epoch = syncEpoch;
+        recoveryTask = scheduleHUD(delay, function(){
+            recoveryTask = null;
+            if (epoch === syncEpoch) pollSnapshot();
+        });
+    }
     var difficultyRequestPending = false;
     var difficultyOptionsSignature = "";
     var difficultyWave = null, difficultyChoice = "", difficultyRows = {};
-    var difficultyModal = null, difficultyConfirm = null, difficultyRequestSerial = 0;
+    var difficultyModal = null, difficultyRequestSerial = 0;
     var difficultyDismissed = false, difficultyPhase = "", difficultyResume = null;
     var startupState = null, setupSession = "", modeChoice = "", modeAcknowledged = "";
     var modePending = false, modeError = "", modeRequestSerial = 0, modeSignature = "", modeRows = {};
@@ -22,6 +112,7 @@
         dev_mode: "准备阶段",
         waiting: "准备阶段",
         selecting_difficulty: "选择难度",
+        fishing: "自动挂机",
         countdown: "准备阶段",
         spawning: "生成阶段",
         fighting: "战斗阶段",
@@ -36,7 +127,10 @@
 
     function setText(id, value) {
         var target = panel(id);
-        if (target) target.text = String(value);
+        if (target) {
+            target.text = String(value);
+            if (id === "DifficultySelectionError") target.visible = target.text !== "";
+        }
     }
 
     function numberValue(value) {
@@ -86,49 +180,65 @@
     function modeOptions() {
         var seen = {};
         return optionArray(setup() && setup().mode_options).filter(function (option) {
-            if (!option || (option.mode_id !== "pure" && option.mode_id !== "standard") || seen[option.mode_id]) return false;
+            if (!option || (option.mode_id !== "pure" && option.mode_id !== "standard" && option.mode_id !== "fishing") || seen[option.mode_id]) return false;
             seen[option.mode_id] = true; return true;
         });
     }
     function acceptStartup(next) {
         if (!next || typeof next.session_id !== "string" || !next.session_id) return;
+        if (!syncActive()) return;
+        var signature = JSON.stringify(next);
+        if (signature === startupSignature) return;
+        startupSignature = signature;
+        var previousAdmission = admissionComplete(), previousPhase = startupState && startupState.phase;
+        var previousProfilesReady = canConfirmDifficulty(), previousMode = confirmedMode();
         if (setupSession !== next.session_id) {
+            resetSnapshotRecovery(!!setupSession);
             setupSession = next.session_id; modeChoice = ""; modeAcknowledged = "";
             modePending = false; modeError = ""; modeRequestSerial++;
             difficultyChoice = ""; difficultyRequestPending = false; difficultyRequestSerial++;
             profileRetryPending = false; profileRetrySerial++;
         }
         startupState = next;
+        if (previousAdmission !== admissionComplete() || previousPhase !== next.phase
+            || previousProfilesReady !== canConfirmDifficulty() || previousMode !== confirmedMode())
+            recoveryUntil = Date.now() / 1000 + 30;
+        if (!previousAdmission && admissionComplete()) builderRecoveryUntil = recoveryUntil;
         renderDifficultySelection(difficultyWave);
+        if (!hasSnapshot || !initialBuilderSelectionFinished) scheduleRecovery(0);
     }
-    function readStartup() { acceptStartup(CustomNetTables.GetTableValue("survival_loading", "state")); }
+    function readStartup() {
+        counters.startupReads++;
+        acceptStartup(CustomNetTables.GetTableValue("survival_loading", "state"));
+    }
     function confirmMode() {
+        if (!syncActive()) return;
         if (!admissionComplete() || !needsMode() || !modeSelector() || modePending || !setupSession
             || !modeOptions().some(function (option) { return option.mode_id === modeChoice; })) return;
-        modePending = true; modeError = "正在确认模式……";
+        modePending = true; modeError = "";
         var serial = ++modeRequestSerial, requestedSession = setupSession;
         GameEvents.SendCustomGameEventToServer("survival_loading_mode_select", {session_id: setupSession, mode_id: modeChoice});
         renderDifficultySelection(difficultyWave);
-        $.Schedule(12, function () {
+        scheduleHUD(12, function () {
             if (serial !== modeRequestSerial || requestedSession !== setupSession || !modePending || !needsMode()) return;
-            modePending = false; modeError = "确认尚未完成，请检查连接后重试。";
+            modePending = false; modeError = "选择未完成，请检查连接后重试。";
             renderDifficultySelection(difficultyWave);
         });
     }
     function handleModeResult(payload) {
         if (!modePending || !needsMode() || payload && payload.session_id && payload.session_id !== setupSession) return;
         if (payload && yes(payload.success) && payload.mode_id === modeChoice) {
-            // A successful server acknowledgement moves this same dialog to
-            // difficulty immediately; it never asserts profile readiness.
+            // Combat modes continue to difficulty in this dialog. Fishing has
+            // no difficulty; neither acknowledgement asserts profile readiness.
             modeAcknowledged = payload.mode_id; modePending = false; modeError = ""; modeRequestSerial++;
             renderDifficultySelection(difficultyWave); readStartup(); requestSnapshot(); return;
         }
         modePending = false; modeRequestSerial++;
         var messages = {selection_not_host: "由房主统一选择本局模式。", mode_selector_required: "由房主统一选择本局模式。",
-            mode_locked: "本局模式已经确认，正在刷新状态。", invalid_mode: "该模式不可用，请重新选择。",
+            mode_locked: "本局模式已选择，正在刷新。", invalid_mode: "该模式不可用，请重新选择。",
             mode_not_found: "该模式不可用，请重新选择。", match_session_mismatch: "游戏状态已更新，请等待刷新后重试。",
             session_mismatch: "游戏状态已更新，请等待刷新后重试。", startup_not_ready: "入场准备尚未完成，请稍候。"};
-        modeError = messages[payload && payload.error] || "模式确认失败，请重试。";
+        modeError = messages[payload && payload.error] || "模式选择失败，请重试。";
         readStartup(); renderDifficultySelection(difficultyWave);
     }
     function renderModeChoice(ui) {
@@ -140,24 +250,21 @@
             options.forEach(function (option) {
                 var button = $.CreatePanel("Button", panel("MatchModeOptions"), ""); button.AddClass("MatchModeOption"); button.hittestchildren = false;
                 var name = $.CreatePanel("Label", button, ""); name.AddClass("MatchModeOptionName"); name.html = false;
-                name.text = option.display_name || (option.mode_id === "pure" ? "纯净模式" : "常规模式");
-                var description = $.CreatePanel("Label", button, ""); description.AddClass("MatchModeOptionDescription"); description.html = false;
-                description.text = option.description || "";
+                name.text = option.display_name || (option.mode_id === "pure" ? "纯净模式" : option.mode_id === "fishing" ? "摸鱼模式" : "常规模式");
                 ui.State.Bind(button, function () {
-                    if (!needsMode() || !modeSelector() || modePending) return;
-                    modeChoice = option.mode_id; modeError = ""; renderDifficultySelection(difficultyWave);
+                    if (!admissionComplete() || !needsMode() || !modeSelector() || modePending) return;
+                    modeChoice = option.mode_id; modeError = ""; confirmMode();
                 });
                 modeRows[option.mode_id] = button;
             });
         }
-        options.forEach(function (option) { ui.State.Set(modeRows[option.mode_id], {selected: option.mode_id === modeChoice, enabled: selector && !modePending}); });
-        var selected = options.filter(function (option) { return option.mode_id === modeChoice; })[0];
+        options.forEach(function (option) { ui.State.Set(modeRows[option.mode_id], {
+            selected: option.mode_id === modeChoice, enabled: selector && !modePending,
+            busy: modePending && option.mode_id === modeChoice}); });
         setText("DifficultySelectionTitle", "模式选择");
-        setText("DifficultySelectionMode", "选择模式  ·  选择难度");
-        setText("DifficultySelectionHint", selector ? "请选择本局模式，确认后立即选择难度" : "等待房主统一选择本局模式");
-        setText("DifficultySelectionCurrent", "当前选择：" + (selected ? selected.display_name || selected.mode_id : "尚未选择"));
+        setText("DifficultySelectionHint", selector ? "" : "等待房主选择模式");
+        panel("DifficultySelectionHint").visible = !selector;
         setText("DifficultySelectionError", modeError);
-        ui.State.Set(difficultyConfirm, {enabled: selector && !!selected && !modePending, busy: modePending});
     }
     function difficultyUnlocked(option) { return !!option && (option.unlocked === true || Number(option.unlocked) === 1); }
     function difficultySelector() {
@@ -166,7 +273,7 @@
         return id >= 0 && selector !== undefined && id === Number(selector);
     }
     function difficultyAvailable() {
-        return admissionComplete() && !!confirmedMode() && (!difficultyWave || !isDifficultySelected(difficultyWave))
+        return admissionComplete() && !!confirmedMode() && confirmedMode() !== "fishing" && (!difficultyWave || !isDifficultySelected(difficultyWave))
             && (!!setup() || difficultyWave && difficultyWave.status === "selecting_difficulty");
     }
     function canConfirmDifficulty() {
@@ -188,11 +295,12 @@
         profileErrorShown = !!text;
         if (!profileRetry && retryable) profileRetry = ui.ActionButton(panel("MatchSetupRetryHost"), {
             id: "MatchSetupRetry", label: "重试读取档案", enabled: true, action: function () {
+                if (!syncActive()) return;
                 if (profileRetryPending || !setupSession || !setup() || !setup().error || canConfirmDifficulty()) return;
                 profileRetryPending = true; var serial = ++profileRetrySerial;
                 GameEvents.SendCustomGameEventToServer("survival_loading_retry", {session_id: setupSession});
                 renderProfileError(ui);
-                $.Schedule(5, function () {
+                scheduleHUD(5, function () {
                     if (serial !== profileRetrySerial) return;
                     profileRetryPending = false; renderDifficultySelection(difficultyWave);
                 });
@@ -209,21 +317,22 @@
         return optionArray(source || difficultyWave && difficultyWave.difficulty_options);
     }
     function refreshDifficultyChoice() {
+        if (!syncActive()) return;
         var ui = GameUI.CustomUIConfig().SurvivalUI;
         var selected = selectedDifficulty();
-        if (!selected) difficultyChoice = "";
+        if (!selected || (!canConfirmDifficulty() && !difficultyRequestPending)) difficultyChoice = "";
         Object.keys(difficultyRows).forEach(function (id) {
             var row = difficultyRows[id];
             ui.State.Set(row.button, {selected: id === difficultyChoice,
-                enabled: difficultySelector() && difficultyUnlocked(row.option) && !difficultyRequestPending});
+                enabled: difficultyAvailable() && canConfirmDifficulty() && difficultySelector()
+                    && difficultyUnlocked(row.option) && !difficultyRequestPending});
             row.availability.text = !difficultyUnlocked(row.option) ? row.option.unlock_hint || "通关前一级难度解锁"
-                : (id === difficultyChoice ? "已选择" : "可选择");
+                : "";
+            row.availability.visible = !difficultyUnlocked(row.option);
         });
-        setText("DifficultySelectionCurrent", "当前选择：" + (selected ? selected.difficulty_id : "尚未选择"));
-        if (difficultyConfirm) ui.State.Set(difficultyConfirm, {enabled: difficultyAvailable()
-            && canConfirmDifficulty() && difficultySelector() && !!selected && !difficultyRequestPending, busy: difficultyRequestPending});
     }
     function selectDifficulty() {
+        if (!syncActive()) return;
         var selected = selectedDifficulty();
         if (!difficultyAvailable() || !canConfirmDifficulty() || !difficultySelector() || difficultyRequestPending || !selected) return;
         difficultyRequestPending = true;
@@ -235,7 +344,7 @@
             difficulty_id: String(selected.difficulty_id)
         });
         refreshDifficultyChoice();
-        $.Schedule(12, function () {
+        scheduleHUD(12, function () {
             if (serial !== difficultyRequestSerial || !difficultyRequestPending || !difficultyAvailable()) return;
             difficultyRequestPending = false;
             overlay.SetHasClass("DifficultyPending", false);
@@ -251,6 +360,7 @@
     }
 
     function renderDifficultySelection(wave) {
+        if (!syncActive()) return;
         var overlay = panel("DifficultySelectionOverlay");
         var container = panel("DifficultySelectionButtons");
         if (!overlay || !container) return;
@@ -271,6 +381,8 @@
             difficultyResume.__survivalResumeText.text = choosingMode ? "继续选择模式" : "继续选择难度";
         }
         if (!shouldShow) {
+            panel("MatchModeOptions").visible = false;
+            container.visible = false;
             difficultyRequestPending = false;
             overlay.SetHasClass("DifficultyPending", false);
             if (difficultyModal && difficultyModal.IsOpen()) difficultyModal.Close();
@@ -286,36 +398,41 @@
         if (!difficultyModal) {
             difficultyModal = ui.ModalShell.Adopt({id: "survival_difficulty", panel: panel("DifficultySelectionDialog"),
                 header: panel("DifficultySelectionHeader"), titlePanel: panel("DifficultySelectionTitle"),
-                scrim: overlay, root: $.GetContextPanel(), width: 1100, height: 820, closePolicy: "mandatory",
+                scrim: overlay, root: $.GetContextPanel(), width: 275, height: 670,
+                fit: {reference: [1920, 1080]}, closePolicy: "mandatory",
                 onClose: hideDifficultySelection});
-            difficultyConfirm = ui.ActionButton(panel("DifficultySelectionConfirmHost"), {
-                id: "DifficultySelectionConfirm", variant: "gold", label: "确认选择", enabled: false,
-                action: function () { if (needsMode()) confirmMode(); else selectDifficulty(); }});
+            panel("DifficultySelectionDialog").style.backgroundColor = "#100d24";
+            panel("DifficultySelectionDialog").style.border = "1px solid #9d804b";
+            panel("DifficultySelectionHeader").style.backgroundColor = "transparent";
+            panel("DifficultySelectionHeader").style.borderBottom = "1px solid #9d804b";
+            panel("DifficultySelectionTitle").style.color = "#f3e4b0";
             difficultyResume = $.CreatePanel("Button", $.GetContextPanel(), "DifficultySelectionResume");
+            difficultyResume.AddClass("DifficultySelectionResume");
             difficultyResume.hittest = true; difficultyResume.hittestchildren = false;
-            difficultyResume.style.width = "200px"; difficultyResume.style.height = "44px";
-            difficultyResume.style.horizontalAlign = "right"; difficultyResume.style.verticalAlign = "center";
-            difficultyResume.style.marginRight = "28px"; difficultyResume.style.marginTop = "120px";
-            difficultyResume.style.backgroundColor = "#23414d"; difficultyResume.style.border = "1px solid #b59d69";
             var resumeText = $.CreatePanel("Label", difficultyResume, "");
             resumeText.text = choosingMode ? "继续选择模式" : "继续选择难度";
-            resumeText.hittest = false; resumeText.style.horizontalAlign = "center"; resumeText.style.verticalAlign = "center";
-            resumeText.style.fontSize = "20px"; resumeText.style.color = "#eee0b7";
+            resumeText.hittest = false;
             difficultyResume.__survivalResumeText = resumeText;
             difficultyResume.visible = false;
             difficultyResume.SetPanelEvent("onactivate", function () {
                 difficultyDismissed = false; renderDifficultySelection(difficultyWave);
             });
         }
+        panel("DifficultySelectionDialog").style.width = "275px";
+        var modeNotice = choosingMode && (!!modeError || !modeSelector());
+        var extraModeHeight = Math.max(0, modeOptions().length - 2) * 56;
+        panel("DifficultySelectionDialog").style.height = (choosingMode ? (modeNotice ? 248 : 190) + extraModeHeight : 670) + "px";
+        panel("DifficultySelectionDialog").SetHasClass("MatchSetupMode", choosingMode);
         if (!difficultyDismissed && !difficultyModal.IsOpen()) difficultyModal.Open();
         var wasChoosingMode = panel("MatchModeOptions").visible;
         panel("MatchModeOptions").visible = choosingMode;
         container.visible = !choosingMode;
         if (choosingMode) { panel("MatchSetupRetryHost").visible = false; renderModeChoice(ui); return; }
         setText("DifficultySelectionTitle", "难度选择");
-        setText("DifficultySelectionMode", (confirmedMode() === "pure" ? "纯净模式" : "常规模式") + "  ·  请选择难度");
-        setText("DifficultySelectionHint", !difficultySelector() ? "等待房主统一选择本局难度" :
-            (canConfirmDifficulty() ? "选中难度后点击确认，本局将无法更改" : "可以先选择难度，玩家档案准备完成后即可确认"));
+        var hint = !difficultySelector() ? "等待房主选择难度" :
+            (canConfirmDifficulty() ? "" : "正在读取玩家档案……");
+        setText("DifficultySelectionHint", hint);
+        panel("DifficultySelectionHint").visible = hint !== "";
         if (wasChoosingMode) setText("DifficultySelectionError", "");
         var options = difficultyOptions().filter(function (option) {
             return option && /^N(?:[1-9]|10)$/.test(String(option.difficulty_id));
@@ -336,9 +453,10 @@
             var availability = $.CreatePanel("Label", header, ""); availability.AddClass("DifficultyOptionAvailability"); availability.html = false;
             difficultyRows[option.difficulty_id] = {button: button, option: option, availability: availability};
             ui.State.Bind(button, function () {
-                if (!difficultyAvailable() || !difficultySelector() || difficultyRequestPending || !difficultyUnlocked(option)) return;
+                if (!difficultyAvailable() || !canConfirmDifficulty() || !difficultySelector()
+                    || difficultyRequestPending || !difficultyUnlocked(option)) return;
                 difficultyChoice = String(option.difficulty_id);
-                setText("DifficultySelectionError", ""); refreshDifficultyChoice();
+                setText("DifficultySelectionError", ""); selectDifficulty();
             });
             });
             if (options.length === 0) {
@@ -350,14 +468,25 @@
         renderProfileError(ui);
     }
 
-    function update(snapshot) {
-        if (!snapshot) return;
+    function update(snapshot, receipt) {
+        if (!syncActive() || !snapshot) return;
+        if (snapshot.session_id && setupSession && snapshot.session_id !== setupSession) return;
+        if (snapshot.player_id !== undefined && playerId >= 0 && Number(snapshot.player_id) !== playerId) return;
+        if (receipt !== false) {
+            counters.received++;
+            lastSnapshotReceiptAt = Date.now() / 1000;
+            snapshotRequest = null; retryFailures = 0; nextRetryAt = 0;
+        }
         var sequence = sequenceOf(snapshot);
         // NetTable 轮询会反复读到同一快照；没有新 sequence 时不重写整套
         // HUD，也不重新安装 hover 回调，避免形成固定间隔的客户端卡顿。
         if (sequence >= 0 && sequence <= lastSequence) return;
         if (sequence >= 0) lastSequence = sequence;
-        lastSnapshotAt = Game.GetGameTime();
+        var firstSnapshot = !hasSnapshot;
+        hasSnapshot = true;
+        snapshotRequest = null; retryFailures = 0; nextRetryAt = 0;
+        counters.applied++;
+        if (firstSnapshot) scheduleRecovery(0);
 
         var resources = snapshot.resources || {};
         var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
@@ -397,14 +526,14 @@
         });
         setText(
             "WaveNumber",
-            (isDifficultySelected(wave)
+            wave.game_mode === "fishing" || wave.status === "fishing" ? "摸鱼模式" : (isDifficultySelected(wave)
                 ? String(wave.difficulty_id || "N1") + " · " : "")
                 + "波次 " + numberValue(wave.current_wave)
                 + "/" + numberValue(wave.total_waves || 30)
         );
         var phase = waveStatusText[wave.status] || "准备阶段";
         setText("WaveState", phase);
-        setText("WaveTimer", "倒计时 " + Math.max(0, Math.ceil(Number(wave.timer || 0))) + "秒");
+        setText("WaveTimer", wave.game_mode === "fishing" || wave.status === "fishing" ? "" : "倒计时 " + Math.max(0, Math.ceil(Number(wave.timer || 0))) + "秒");
         setText("AliveValue", "存活 " + numberValue(wave.alive));
         setText("PendingValue", "待生成 " + numberValue(wave.pending));
     }
@@ -438,23 +567,57 @@
     }
 
     function readSnapshot() {
-        update(CustomNetTables.GetTableValue(tableName, tableKey));
+        counters.legacyReads++;
+        update(CustomNetTables.GetTableValue(tableName, tableKey), false);
     }
 
-    function requestSnapshot() {
+    function expireSnapshotRequest(now) {
+        if (!snapshotRequest || now < snapshotRequest.deadline) return;
+        snapshotRequest = null;
+        retryFailures++;
+        counters.retryTimeouts++;
+        nextRetryAt = now + Math.min(5, 0.5 * Math.pow(2, Math.min(4, retryFailures - 1)));
+    }
+    function requestSnapshot(recovery) {
+        if (!syncActive()) return false;
+        var now = Date.now() / 1000;
+        expireSnapshotRequest(now);
+        if (snapshotRequest) { counters.requestCoalesced++; return false; }
+        if (recovery === true && now < nextRetryAt) return false;
+        if (Game.GetLocalPlayerID() < 0) return false;
+        var request = {epoch:syncEpoch, deadline:now + 3};
+        snapshotRequest = request;
+        counters.requests++;
         GameEvents.SendCustomGameEventToServer("ui_request_full_snapshot", {
-            request_id: "hud_" + String(Date.now())
+            request_id: "hud_" + syncEpoch + "_" + (++syncRequestSerial) + "_" + String(Date.now())
         });
+        return true;
     }
 
     function pollSnapshot() {
-        readStartup();
-        readSnapshot();
-        if (!initialBuilderSelectionFinished) {
-            recoverInitialBuilderSelection("hud_poll", 20, initialBuilderSelectionSerial);
+        if (!syncActive()) return;
+        counters.polls++;
+        var now = Date.now() / 1000, localId = Number(Game.GetLocalPlayerID());
+        if (isFinite(localId) && localId >= 0 && localId !== playerId) {
+            playerId = localId; tableKey = "player_" + playerId;
+            resetSnapshotRecovery(true);
         }
-        if (Game.GetGameTime() - lastSnapshotAt > 2.0) requestSnapshot();
-        $.Schedule(0.25, pollSnapshot);
+        // Stable HUDs receive private events. Absence of a new sequence is not
+        // a failed connection: the server has no periodic snapshot heartbeat.
+        // A sparse startup read only repairs missed session/phase notifications.
+        readStartup();
+        expireSnapshotRequest(now);
+        if (!hasSnapshot && now < recoveryUntil) {
+            readSnapshot();
+            if (!hasSnapshot) requestSnapshot(true);
+        }
+        if (!initialBuilderSelectionFinished && admissionComplete()
+            && now < builderRecoveryUntil && !builderRetryPending) {
+            recoverInitialBuilderSelection("hud_recovery", 20, initialBuilderSelectionSerial);
+        }
+        var recovering = (!hasSnapshot || !admissionComplete()) && now < recoveryUntil;
+        var seekingBuilder = !initialBuilderSelectionFinished && admissionComplete() && now < builderRecoveryUntil;
+        scheduleRecovery(recovering || seekingBuilder ? 0.5 : 5);
     }
 
     function showNotification(payload) {
@@ -522,7 +685,7 @@
             text(message);
         }
         notificationItems.push(item);
-        $.Schedule(broadcast ? 5.0 : 3.5, function () {
+        scheduleHUD(broadcast ? 5.0 : 3.5, function () {
             if (item && item.IsValid()) {
                 item.AddClass("NotificationDismissed");
                 item.DeleteAsync(0.25);
@@ -531,6 +694,7 @@
     }
 
     function sendClientDiagnostic(stage, payload) {
+        if (!syncActive()) return;
         var data = payload || {};
         data.stage = stage;
         GameEvents.SendCustomGameEventToServer("ui_client_diagnostic", data);
@@ -549,7 +713,7 @@
     }
 
     function focusHeroWithoutLock(payload) {
-        if (!payload) return;
+        if (!syncActive() || !payload) return;
         var entindex = Number(payload.entindex || payload.focus_hero_entindex || -1);
         if (entindex <= 0) return;
         var x = Number(payload.target_x !== undefined
@@ -601,14 +765,20 @@
     }
 
     function recoverInitialBuilderSelection(reason, attempt, serial) {
-        if (initialBuilderSelectionFinished || serial !== initialBuilderSelectionSerial) return;
+        if (!syncActive() || initialBuilderSelectionFinished || serial !== initialBuilderSelectionSerial
+            || !admissionComplete() || Date.now() / 1000 >= builderRecoveryUntil) return;
+        counters.builderSteps++;
         var identity = CustomNetTables.GetTableValue(
             "survival_builder_identity", "player_" + String(playerId)
         ) || {};
         var builder = Number(identity.entindex);
         if (!validUnit(builder)) {
-            if (attempt < 20) {
-                $.Schedule(0.10, function () {
+            if (attempt < 20 && !builderRetryPending) {
+                var epoch = syncEpoch;
+                builderRetryPending = true;
+                scheduleHUD(0.10, function () {
+                    if (epoch !== syncEpoch || serial !== initialBuilderSelectionSerial) return;
+                    builderRetryPending = false;
                     recoverInitialBuilderSelection(reason, attempt + 1, serial);
                 });
             }
@@ -650,32 +820,34 @@
     }
 
     function scheduleInitialBuilderSelection(reason) {
-        if (initialBuilderSelectionFinished) return;
+        if (!syncActive() || initialBuilderSelectionFinished || builderRetryPending) return;
+        builderRecoveryUntil = Date.now() / 1000 + 30;
         var serial = ++initialBuilderSelectionSerial;
         recoverInitialBuilderSelection(String(reason || "unknown"), 0, serial);
+        scheduleRecovery(0);
     }
 
-    CustomNetTables.SubscribeNetTableListener(tableName, function (name, key, value) {
+    subscribeHUD("table", tableName, function (name, key, value) {
         if (key === tableKey) update(value);
     });
-    CustomNetTables.SubscribeNetTableListener("survival_loading", function (name, key, value) {
+    subscribeHUD("table", "survival_loading", function (name, key, value) {
         if (key === "state") acceptStartup(value);
     });
-    CustomNetTables.SubscribeNetTableListener(
+    subscribeHUD("table",
         "survival_builder_identity", function (name, key) {
             if (key === "player_" + String(playerId)) {
                 scheduleInitialBuilderSelection("identity_update");
             }
         }
     );
-    GameEvents.Subscribe("survival_ui_private_snapshot", update);
-    GameEvents.Subscribe("ui_state_snapshot", update);
+    subscribeHUD("event", "survival_ui_private_snapshot", update);
+    subscribeHUD("event", "ui_state_snapshot", update);
 
-    GameEvents.Subscribe("ui_notification", showNotification);
-    GameEvents.Subscribe("ui_difficulty_select_result", handleDifficultyResult);
-    GameEvents.Subscribe("survival_loading_mode_result", handleModeResult);
-    GameEvents.Subscribe("ui_camera_follow_hero", focusHeroWithoutLock);
-    GameEvents.Subscribe("survival_select_unit", function (data) {
+    subscribeHUD("event", "ui_notification", showNotification);
+    subscribeHUD("event", "ui_difficulty_select_result", handleDifficultyResult);
+    subscribeHUD("event", "survival_loading_mode_result", handleModeResult);
+    subscribeHUD("event", "ui_camera_follow_hero", focusHeroWithoutLock);
+    subscribeHUD("event", "survival_select_unit", function (data) {
         if (data && data.reason === "builder_ready") {
             scheduleInitialBuilderSelection("builder_ready");
             return;
@@ -697,11 +869,67 @@
     });
 
     $.Msg("[SurvivalUI] realtime HUD listener ready.");
+    readStartup();
     scheduleInitialBuilderSelection("hud_ready");
-    $.Schedule(0.10, function () {
+    scheduleHUD(0.10, function () {
         readStartup();
         readSnapshot();
         requestSnapshot();
-        pollSnapshot();
+        scheduleRecovery(0);
     });
+    // Explicit Tools console bridge: no UI refresh, request or timer is started.
+    function registerReadOnlyIdleInspect() {
+        try {
+            if (typeof Game.IsInToolsMode !== "function" || !Game.IsInToolsMode()
+                || typeof Game.AddCommand !== "function") return;
+            var config = GameUI.CustomUIConfig();
+            var serial = Number(config.SurvivalHUDIdleInspectSerial || 0);
+            serial = isFinite(serial) && serial >= 0 ? Math.floor(serial) + 1 : 1;
+            config.SurvivalHUDIdleInspectSerial = serial;
+            var command = "survival_hud_idle_inspect_" + Date.now() + "_" + serial;
+            var result = Game.AddCommand(command, function(){
+                var args = Array.prototype.slice.call(arguments);
+                var nonce = args.length ? args[args.length - 1] : null;
+                var response = {api:"SurvivalHUDSnapshotSync.Inspect",command:command,readonly:true};
+                if ((args.length !== 1 && !(args.length === 2 && args[0] === command))
+                    || typeof nonce !== "string" || !/^[0-9a-f]{32}$/i.test(nonce)) {
+                    response.status = "invalid_nonce";
+                    $.Msg("[IDLE_HUD_INSPECT] " + JSON.stringify(response));
+                    return;
+                }
+                response.nonce = nonce;
+                var current = GameUI.CustomUIConfig().SurvivalHUDSnapshotSync;
+                if (!syncActive() || current !== syncAPI) {
+                    response.status = "inactive_context";
+                    $.Msg("[IDLE_HUD_INSPECT] " + JSON.stringify(response));
+                    return;
+                }
+                try {
+                    if (!current || typeof current.Inspect !== "function") throw new Error("inspect_unavailable");
+                    var state = current.Inspect() || {};
+                    response.status = "ok";
+                    ["hasSnapshot", "inFlight", "builderPending", "builderFinished", "recoveryScheduled", "disposed"].forEach(function(key){response[key] = typeof state[key] === "boolean" ? state[key] : null;});
+                    ["epoch", "retryFailures"].forEach(function(key){
+                        var value = state[key];
+                        response[key] = typeof value === "number" && isFinite(value) ? value : null;
+                    });
+                    response.counters = {};
+                    ["polls", "startupReads", "legacyReads", "requests", "requestCoalesced", "retryTimeouts", "received", "applied", "builderSteps"].forEach(function(key){
+                        var value = state.counters && state.counters[key];
+                        response.counters[key] = typeof value === "number" && isFinite(value) ? value : null;
+                    });
+                } catch (error) { response.status = "inspect_failed"; }
+                $.Msg("[IDLE_HUD_INSPECT] " + JSON.stringify(response));
+            }, "Tools read-only idle UI counters; requires one 32 hex nonce", 0);
+            if (result === false) {
+                $.Msg("[IDLE_UI_COMMAND] " + JSON.stringify({api:"SurvivalHUDSnapshotSync.Inspect",status:"registration_failed",readonly:true}));
+                return;
+            }
+            syncAPI.InspectCommand = command;
+            $.Msg("[IDLE_UI_COMMAND] " + JSON.stringify({api:"SurvivalHUDSnapshotSync.Inspect",command:command,nonce:"32hex",readonly:true}));
+        } catch (error) {
+            $.Msg("[IDLE_UI_COMMAND] " + JSON.stringify({api:"SurvivalHUDSnapshotSync.Inspect",status:"registration_failed",readonly:true}));
+        }
+    }
+    registerReadOnlyIdleInspect();
 })();

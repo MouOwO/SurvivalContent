@@ -1,18 +1,29 @@
 (function () {
     "use strict";
-    var CAPACITY=20,cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel(),M=cfg.SurvivalMenuV10;
+    var CAPACITY=20,COLUMNS=4,ROWS=5,CELL=60,GAP=8,WIDTH=292,HEIGHT=404;
+    var cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel(),U=cfg.SurvivalUI;
     if(cfg.SurvivalTreasure&&cfg.SurvivalTreasure.Dispose)cfg.SurvivalTreasure.Dispose();
-    if(!M)return;
+    if(!U||!U.ModalShell)return;
     var opened=false,history=[],detailAnchor=null,disposed=false,netSubscription=null,view;
+    var scale=1,navAnchor=null,navGeneration=-1,origin={x:16,y:102};
     function valid(panel){return panel&&(!panel.IsValid||panel.IsValid());}
     function p(id){return valid(root)?root.FindChildTraverse(id):null;}
-    function active(){return !disposed&&valid(p("TreasureWindow"));}
+    function active(){return !disposed&&valid(panel);}
+    function style(panel,values){Object.keys(values).forEach(function(key){panel.style[key]=values[key];});}
+    function place(panel,x,y,width,height){style(panel,{position:x+"px "+y+"px 0px",width:width+"px",height:height+"px",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px"});}
     function hideDetail(){
+        if(!detailAnchor)return;
         if(valid(detailAnchor))detailAnchor.RemoveClass("TreasureHovered");
-        detailAnchor=null;if(view)view.TooltipHide();
-        if(valid(p("TreasureTooltip")))p("TreasureTooltip").AddClass("ArchiveHidden");
+        detailAnchor=null;
+        $.DispatchEvent("DOTAHideTextTooltip");
     }
-    function close(){opened=false;hideDetail();if(view)view.Close();}
+    function close(){
+        if(disposed)return;
+        opened=false;hideDetail();
+        if(view)view.Close();
+        if(valid(p("TreasureWindow")))p("TreasureWindow").AddClass("ArchiveHidden");
+        if(valid(p("TreasureScrim")))p("TreasureScrim").AddClass("ArchiveHidden");
+    }
     function quantity(reward){
         var value=reward.quantity!==undefined?reward.quantity:reward.qty!==undefined?reward.qty:reward.count;
         return value!==undefined&&value!==null&&String(value).trim()!==""&&isFinite(Number(value))&&Number(value)>=0?String(value):"";
@@ -21,53 +32,101 @@
         if(!active()||!opened||!valid(card))return;
         hideDetail();detailAnchor=card;card.AddClass("TreasureHovered");
         var qty=quantity(reward),name=reward.name||"宝物",effect=reward.description||"暂无效果说明";
-        // Compatibility anchors retain their original data, while the common
-        // V10 tooltip owns all visible framing and measured layout.
         p("TreasureTooltipName").text=name;p("TreasureTooltipEffect").text=effect;
-        view.TooltipShow({name:name,state:"本局获得",description:effect,quantity:qty||undefined,metric:qty?"拥有数量":""},card);
+        // Native tooltips stay within the viewport independently of the small window.
+        $.DispatchEvent("DOTAShowTextTooltip",card,name+"\n"+effect+(qty!==""?"\n拥有数量："+qty:""));
     }
     function icon(parent,item){
+        var resources=cfg.SurvivalItemResources,presentation=cfg.SurvivalRewardPresentation;
+        if(resources&&resources.Lookup(item)&&presentation&&presentation.CreateRegisteredIcon){
+            var registered=presentation.CreateRegisteredIcon(parent,item,"TreasureCompactIcon");
+            if(registered){place(registered,1,1,CELL-2,CELL-2);return;}
+        }
         if(item.icon_name){
             var name=String(item.icon_name),texture=name.indexOf("/")>=0,isItem=name.indexOf("item_")===0;
             var art=$.CreatePanel(texture?"Image":isItem?"DOTAItemImage":"DOTAAbilityImage",parent,"");
             if(texture)art.SetImage("file://{images}/spellicons/"+name+".png");
             else if(isItem)art.itemname=name;else art.abilityname=name;
-            if(art.SetScaling)art.SetScaling("stretch-to-fit-preserve-aspect");
-            M.Place(art,0,0,120,120);art.hittest=false;return art;
+            if(presentation&&presentation.FillIcon)presentation.FillIcon(art,item);
+            art.AddClass("TreasureCompactIcon");place(art,1,1,CELL-2,CELL-2);art.hittest=false;return;
         }
-        return M.Label(parent,String(item.name||"宝").substring(0,1),0,32,120,54,34,"#c7addf","center");
+        var glyph=$.CreatePanel("Label",parent,"");glyph.AddClass("TreasureCompactGlyph");
+        glyph.text=String(item.name||"宝").substring(0,1);glyph.hittest=false;
     }
     function render(){
         if(!active())return;hideDetail();var grid=p("TreasureCards");grid.RemoveAndDeleteChildren();
         p("TreasureCount").text=history.length+" / "+CAPACITY;
-        var hint=history.length?"最近获得的宝物在前 · 最多展示 20 件":"尚未获得宝物 · 在命运抉择中选择强化后，将在这里展示";
-        p("TreasureHint").text=hint;p("TreasureEmpty").visible=history.length===0;
-        view.SetStatus(hint);view.SetTitle("本局宝物");
-        history.forEach(function(item,i){
-            var card=$.CreatePanel("Panel",grid,"");card.AddClass("TreasureCard");card.hittestchildren=false;
+        for(var i=0;i<CAPACITY;i++){
+            var card=$.CreatePanel("Panel",grid,"TreasureCard_"+i),item=history[i];
+            card.AddClass("TreasureCard");place(card,(i%COLUMNS)*(CELL+GAP),Math.floor(i/COLUMNS)*(CELL+GAP),CELL,CELL);
+            card.hittest=!!item;card.hittestchildren=false;
+            if(!item){card.AddClass("TreasureVacant");continue;}
+            icon(card,item);if(i===0)card.AddClass("TreasureLatest");
             var qty=quantity(item);
-            view.DecorateCell(card,{index:i,name:item.name||"宝物",count:qty||undefined,iconBuilder:function(parent){return icon(parent,item);}});
-            if(card.SetHasClass)card.SetHasClass("TreasureLatest",i===0);else if(i===0)card.AddClass("TreasureLatest");
-            card.SetPanelEvent("onmouseover",function(){showDetail(item,card);});card.SetPanelEvent("onmouseout",hideDetail);
-        });
+            if(qty!==""){
+                var badge=$.CreatePanel("Label",card,"");badge.AddClass("TreasureQuantity");badge.text=qty;badge.hittest=false;
+            }
+            (function(reward,anchor){
+                anchor.SetPanelEvent("onmouseover",function(){showDetail(reward,anchor);});
+                anchor.SetPanelEvent("onmouseout",hideDetail);
+            })(item,card);
+        }
     }
     function update(value){
         if(!active())return;var data=value&&value.history||{};
         history=Array.isArray(data)?data.slice(0,CAPACITY):Object.keys(data).sort(function(a,b){return Number(a)-Number(b);}).slice(0,CAPACITY).map(function(key){return data[key];});
         if(opened)render();
     }
-    view=M.Adopt({id:"treasure",navId:"treasure",panel:p("TreasureWindow"),root:root,scrim:p("TreasureScrim"),title:"本局宝物",onClose:close});
-    p("TreasureWindow").AddClass("TreasureV10Page");
-    p("TreasureWindow").RemoveClass("TreasurePurple");
-    ["TreasureAtmosphere","TreasureFrame","TreasureContent","TreasureTooltip"].forEach(function(id){var node=p(id);if(valid(node))node.style.visibility="collapse";});
-    view.Move(p("TreasureCards"),view.content);M.Place(p("TreasureCards"),0,0,1113,610);M.Style(p("TreasureCards"),{flowChildren:"none",overflow:"squish scroll",backgroundImage:"none",backgroundColor:"transparent",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top"});
-    view.Move(p("TreasureCount"),view.header);M.Place(p("TreasureCount"),1344,148,168,28);M.Style(p("TreasureCount"),{fontSize:"18px",color:"#bbb2d2",textAlign:"right"});
-    var empty=p("TreasureEmpty");if(!valid(empty))empty=$.CreatePanel("Label",p("TreasureContent"),"TreasureEmpty");
-    view.Move(empty,view.content);empty.text="尚未获得宝物";empty.hittest=false;empty.AddClass("TreasureV10Empty");M.Place(empty,0,225,1113,44);M.Style(empty,{fontSize:"24px",color:"#ad99c2",textAlign:"center"});
-    view.SetSidebar([{id:"history",label:"本局宝物"}],"history",function(){hideDetail();});
+    function findNav(){
+        var generation=cfg.HandoffGeneration||0;
+        if(valid(navAnchor)&&navGeneration===generation)return navAnchor;
+        var ancestor=root;
+        while(valid(ancestor)&&ancestor.GetParent&&valid(ancestor.GetParent()))ancestor=ancestor.GetParent();
+        navAnchor=valid(ancestor)?ancestor.FindChildTraverse("HandoffNav_treasure"):null;navGeneration=generation;
+        return navAnchor;
+    }
+    function position(fitScale){
+        if(!active()||!opened)return;
+        scale=Math.max(.01,Math.min(1,Number(fitScale)||1));
+        var panel=p("TreasureWindow"),parent=panel.GetParent(),sx=parent.actualuiscale_x||1,sy=parent.actualuiscale_y||1;
+        var width=(parent.actuallayoutwidth||1920)/sx,height=(parent.actuallayoutheight||1080)/sy;
+        var at=parent.GetPositionWithinWindow?parent.GetPositionWithinWindow():{x:0,y:0},anchor=findNav(),x=16,y=102;
+        if(valid(anchor)&&anchor.GetPositionWithinWindow){
+            var navAt=anchor.GetPositionWithinWindow();
+            x=(navAt.x-at.x)/sx;y=(navAt.y+(anchor.actuallayoutheight||0)-at.y)/sy+4;
+        }
+        x=Math.max(8,Math.min(x,width-WIDTH*scale-8));
+        y=Math.max(8,Math.min(y,height-HEIGHT*scale-8));
+        origin={x:x,y:y};
+        style(panel,{horizontalAlign:"left",verticalAlign:"top",position:x+"px "+y+"px 0px",transformOrigin:"0% 0%",transform:"scale3d("+scale+","+scale+",1)"});
+    }
+    function fit(){if(active()&&opened)position(U.Fit(p("TreasureWindow"),root,WIDTH,HEIGHT,{widthFraction:.95,heightFraction:.9}));}
+    var panel=p("TreasureWindow"),scrim=p("TreasureScrim");
+    panel.AddClass("TreasureCompact");panel.RemoveClass("MenuV10Page");panel.RemoveClass("TreasureV10Page");panel.RemoveClass("TreasurePurple");
+    ["TreasureContent","TreasureHeader","TreasureHeading","TreasureTitle","TreasureCount","TreasureCards"].forEach(function(id){var node=p(id);if(valid(node)){node.visible=true;node.style.visibility="visible";}});
+    ["TreasureAtmosphere","TreasureFrame","TreasureEmblem","TreasureSubtitle","TreasureHint","TreasureDetail","TreasureEmpty"].forEach(function(id){var node=p(id);if(valid(node)){node.visible=false;node.style.visibility="collapse";}});
+    place(p("TreasureContent"),0,0,WIDTH,HEIGHT);p("TreasureContent").style.flowChildren="none";
+    place(p("TreasureHeader"),0,0,WIDTH,44);p("TreasureHeader").style.flowChildren="none";
+    place(p("TreasureHeading"),14,8,142,30);p("TreasureHeading").style.flowChildren="none";
+    place(p("TreasureTitle"),0,0,142,30);p("TreasureTitle").text="本局宝物";
+    place(p("TreasureCount"),166,12,78,24);
+    place(p("TreasureClose"),254,6,28,30);
+    p("TreasureClose").Children().forEach(function(node){node.visible=false;});
+    var closeGlyph=p("TreasureCloseGlyph");if(!valid(closeGlyph))closeGlyph=$.CreatePanel("Label",p("TreasureClose"),"TreasureCloseGlyph");
+    closeGlyph.visible=true;closeGlyph.text="×";closeGlyph.hittest=false;
+    p("TreasureClose").hittestchildren=false;p("TreasureClose").SetPanelEvent("onactivate",close);
+    place(p("TreasureCards"),14,58,264,332);p("TreasureCards").style.flowChildren="none";
+    // The former V10 shell left its input shield on this retained native panel.
+    panel.Children().forEach(function(node){if(node.BHasClass&&node.BHasClass("UIModalInputShield"))node.DeleteAsync(0);});
+    var existingChildren=panel.Children();
+    view=U.ModalShell.Adopt({id:"treasure",panel:panel,root:root,scrim:scrim,width:WIDTH,height:HEIGHT,fit:{widthFraction:.95,heightFraction:.9},onFit:position,onClose:close});
+    var shellChildren=panel.Children().filter(function(node){return existingChildren.indexOf(node)<0;});
+    style(panel,{backgroundColor:"gradient(linear, 0% 0%, 0% 100%, from(#2e243dfc), to(#21182ffc))",border:"2px solid #b6996e",borderRadius:"2px",boxShadow:"#000000b0 0px 4px 18px 0px",padding:"0px",flowChildren:"none",overflow:"clip",horizontalAlign:"left",verticalAlign:"top",transformOrigin:"0% 0%"});
+    scrim.style.backgroundColor="#00000000";
+    close();
     netSubscription=CustomNetTables.SubscribeNetTableListener("survival_rogue_reward",function(_,key,value){if(active()&&String(key)===String(Game.GetLocalPlayerID()))update(value);});
-    function open(){if(!active()||opened)return;opened=true;p("TreasureWindow").RemoveClass("ArchiveHidden");p("TreasureScrim").RemoveClass("ArchiveHidden");view.Open();update(CustomNetTables.GetTableValue("survival_rogue_reward",String(Game.GetLocalPlayerID())));p("TreasureWindow").SetFocus();}
-    cfg.SurvivalTreasure={Close:close,IsOpen:function(){return active()&&opened;},Open:open,Toggle:function(){if(!active())return;if(opened)close();else open();},Dispose:function(){if(disposed)return;close();disposed=true;if(netSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(netSubscription);netSubscription=null;if(view)view.Dispose();}};
+    function open(){if(!active()||opened)return;opened=true;panel.RemoveClass("ArchiveHidden");scrim.RemoveClass("ArchiveHidden");view.Open();fit();update(CustomNetTables.GetTableValue("survival_rogue_reward",String(Game.GetLocalPlayerID())));panel.SetFocus();}
+    cfg.SurvivalTreasure={Close:close,IsOpen:function(){return active()&&opened;},Open:open,Toggle:function(){if(!active())return;if(opened)close();else open();},Fit:fit,Inspect:function(){return {width:WIDTH,height:HEIGHT,cellSize:CELL,columns:COLUMNS,rows:ROWS,count:history.length,scale:scale,anchorId:valid(navAnchor)?navAnchor.id:null,x:origin.x,y:origin.y};},Dispose:function(){if(disposed)return;close();disposed=true;if(netSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(netSubscription);netSubscription=null;if(view)view.Dispose();shellChildren.forEach(function(node){if(valid(node))node.DeleteAsync(0);});}};
     $.RegisterEventHandler("Cancelled",p("TreasureWindow"),function(){var layers=cfg.SurvivalUILayers;if(layers&&layers.HandleEscape)return layers.HandleEscape("treasure");close();return true;});
     if(Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){var command="treasure_style_review_"+Date.now();Game.AddCommand(command,function(){if(active())open();},"Inspect real treasure history without changing rewards",0);$.Msg("TREASURE_STYLE_COMMAND "+command);}
 })();

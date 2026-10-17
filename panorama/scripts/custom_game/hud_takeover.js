@@ -4,6 +4,24 @@
     var config = GameUI.CustomUIConfig();
     var takeover = config.SurvivalHudTakeover || {};
     var playerId = Game.GetLocalPlayerID();
+    var tooltipContext = $.GetContextPanel(), tooltipApi = null;
+    var tooltipDismiss = null, tooltipDismissPanel = null;
+    var previousTooltip = config.SurvivalAbilityTakeover;
+    if (previousTooltip && previousTooltip.DisposeTooltip) previousTooltip.DisposeTooltip();
+    function dismissFor(tooltip) {
+        if (!config.SurvivalTooltipDismiss || !tooltip) return null;
+        if (tooltipDismissPanel !== tooltip) {
+            if (tooltipDismiss) tooltipDismiss.Dispose();
+            tooltipDismissPanel = tooltip;
+            tooltipDismiss = config.SurvivalTooltipDismiss.Create({panel:tooltip,
+                hide:hideTooltip,
+                isAlive:function () { return tooltipContext && tooltipContext.IsValid()
+                    && (!tooltipApi || config.SurvivalAbilityTakeover === tooltipApi); },
+                isVisible:function () { return tooltip.__survivalTooltipOwner === takeoverTooltipOwner
+                    && !tooltip.BHasClass("Hidden"); }});
+        }
+        return tooltipDismiss;
+    }
     var hotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
     var builderHotkeysBySlotOrder = {
         1: "Q", 2: "W", 3: "E", 4: "R", 5: "T", 6: "C", 7: "G"
@@ -267,6 +285,7 @@
     }
 
     function addField(container, label, value) {
+        if (String(label || "").trim() === "解锁条件") return;
         if (!container || value === undefined || value === null || value === "") return;
         var row = $.CreatePanel("Panel", container, "");
         row.AddClass("AbilityFieldRow");
@@ -1056,6 +1075,7 @@
     }
 
     function hideTooltip() {
+        if (tooltipDismiss) tooltipDismiss.Hidden();
         nativeTooltipSuppressionSerial += 1;
         activeAbility = -1;
         activePanel = null;
@@ -1101,6 +1121,8 @@
     }
 
     function showTooltip(entry, panel) {
+        var dismiss = dismissFor(byId("CustomAbilityTooltip"));
+        if (dismiss && !dismiss.CanShow(panel)) { hideTooltip(); return; }
         activeAbility = entry.ability;
         activePanel = panel;
         suppressNativeAbilityTooltipBurst(entry, panel);
@@ -1115,6 +1137,8 @@
         var tooltip = byId("CustomAbilityTooltip");
         var fields = byId("CustomAbilityFields");
         if (!tooltip || !fields) return;
+        var archiveChallengeMode = Number(runtime.archive_challenge) === 1
+            || /^ability_archive_/.test(entry.name);
         var previousOwner = String(tooltip.__survivalTooltipOwner || "none");
         tooltip.__survivalTooltipOwner = takeoverTooltipOwner;
         tooltip.__survivalTakeoverForeignOwnerDiagnostic = "";
@@ -1125,12 +1149,15 @@
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(entry.ability) || 0); } catch (error) {}
         if (isPassiveAbility(entry.ability, runtime, behavior)) behavior |= 2;
-        setText("CustomAbilityExtensionLabel", "生存防守 · 自定义技能详情");
+        tooltip.SetHasClass("ArchiveChallenge", archiveChallengeMode);
+        setText("CustomAbilityExtensionLabel", archiveChallengeMode ? "" : "生存防守 · 自定义技能详情");
         setText("CustomAbilityTitle", runtime.display_name || tooltipDefinition.name
             || definition.abilityname || localizedName(entry.name));
+        var buildMode = /^ability_build_/.test(entry.name);
+        tooltip.SetHasClass("BuildAbility", buildMode);
         var currentLevel = runtime.current_level;
         if (currentLevel === undefined) currentLevel = abilityLevel(entry.ability);
-        setText("CustomAbilityLevel", Number(currentLevel || 0) > 0
+        setText("CustomAbilityLevel", !buildMode && !archiveChallengeMode && Number(currentLevel || 0) > 0
             ? "【等级】 " + String(currentLevel) : "");
         var description = runtime.upgrade_description || tooltipDefinition.desc
             || definition.abilitydesc || localizedDescription(entry.name)
@@ -1146,22 +1173,24 @@
         setText("CustomAbilityGoldCost", goldCost);
         setText("CustomAbilityWoodCost", woodCost);
         fields.RemoveAndDeleteChildren();
-        addField(fields, "施法类型", behaviorText(behavior));
+        if (!archiveChallengeMode) addField(fields, "施法类型", behaviorText(behavior));
         var mana = manaCost(entry.ability);
         if (mana > 0) addField(fields, "魔法消耗", Math.round(mana));
         var cooldown = cooldownLength(entry.ability);
         if (cooldown > 0) addField(fields, "冷却时间", cooldown + " 秒");
         asArray(runtime.fields).forEach(function (field) {
-            if (field) addField(fields, field.label, field.value);
+            if (field && !(archiveChallengeMode && field.label === "解锁条件")) addField(fields, field.label, field.value);
         });
         var unavailable = runtime.removed === 1 || (runtime.prerequisite_met !== undefined
             ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);
         var lacksResources = !unavailable && runtime.resource_check_on_cast !== 1 && runtime.can_afford === 0;
         var passive = (behavior & 2) !== 0;
-        setText("CustomAbilityType", unavailable ? "不可施法技能"
+        setText("CustomAbilityType", archiveChallengeMode ? "" : unavailable ? "不可施法技能"
             : (passive ? "被动技能"
                 : (lacksResources ? "可点击技能（资源不足）" : behaviorText(behavior))));
-        setText("CustomAbilityStatus", runtime.status_text
+        setText("CustomAbilityStatus", archiveChallengeMode
+            ? (unavailable ? runtime.status_text || "前置条件未满足" : "")
+            : runtime.status_text
             || (unavailable ? "不可施法 · 前置条件未满足"
                 : (passive ? "被动生效"
                     : (lacksResources ? "当前资源不足 · 由服务器最终校验" : "可施法"))));
@@ -1170,6 +1199,7 @@
         if (positioner) positioner.PlaceAbilityAbove(tooltip, panel, 337);
         tooltip.RemoveClass("FadingOut");
         tooltip.RemoveClass("Hidden");
+        if (dismiss) dismiss.Shown(panel);
     }
 
     function activate(entry) {
@@ -1606,7 +1636,8 @@
         }
     }
 
-    config.SurvivalAbilityTakeover = {
+    config.SurvivalAbilityTakeover = tooltipApi = {
+        DisposeTooltip: function () { hideTooltip(); if (tooltipDismiss) tooltipDismiss.Dispose(); },
         Refresh: refresh,
         RefreshTooltip: refreshTooltip,
         SetEnabled: function (enabled) {

@@ -3,7 +3,8 @@
     var previous = cfg.SurvivalLumberjackFusionQueue;
     var generation = previous ? previous.generation + 1 : 1;
     var members = [], pending = null, rewriting = false, revision = 0, serial = 0, appliedOrder = "";
-    var completedAbilities = {};
+    var completedAbilities = {}, changeQueued = false, changeTicket = 0;
+    var refreshCounts = {runtimeSeen:0, runtimeIgnored:0, scheduled:0, coalesced:0, executed:0};
     var api = {generation: generation, Cast: cast, Decorate: decorate, ResolveFocus: resolveFocus};
     cfg.SurvivalLumberjackFusionQueue = api;
     function active() { return cfg.SurvivalLumberjackFusionQueue === api && context.IsValid(); }
@@ -104,9 +105,13 @@
     }
     function changed() {
         if (!active() || rewriting) return;
-        var ticket = ++revision;
+        changeTicket = ++revision;
+        if (changeQueued) { refreshCounts.coalesced++; return; }
+        changeQueued = true; refreshCounts.scheduled++;
         $.Schedule(0.05,function () {
-            if (!active() || ticket !== revision) return;
+            changeQueued = false;
+            if (!active() || changeTicket !== revision) return;
+            refreshCounts.executed++;
             if (pending) {
                 var current = selected();
                 // Native deaths may shrink the selection. A deliberate selection of
@@ -208,8 +213,41 @@
         else if(valid(target))apply([target]);
     }
     GameEvents.Subscribe('survival_lumberjack_fused', committed);
-    GameEvents.Subscribe('dota_player_update_selected_unit', changed);
+    GameEvents.Subscribe('dota_player_update_selected_unit', function (payload) {
+        var pid = payload && (payload.PlayerID !== undefined ? payload.PlayerID
+            : payload.player_id !== undefined ? payload.player_id : payload.playerid);
+        if (pid !== undefined && Number(pid) !== Number(Game.GetLocalPlayerID())) return;
+        changed();
+    });
     GameEvents.Subscribe('ui_ability_cast_result', result);
-    CustomNetTables.SubscribeNetTableListener('survival_ability_runtime', function () { if (!pending) changed(); });
+    function relevantRuntime(key, value) {
+        var ability = Number(key);
+        if (!isFinite(ability) || ability < 0 || Math.floor(ability) !== ability) return false;
+        var name = String(value && value.ability_name || "");
+        if (!name) { try { name = String(Abilities.GetAbilityName(ability) || ""); } catch (error) {} }
+        if (!/^ability_fuse_lumberjack_\d+$/.test(name)) return false;
+        var current = selected(), owner = value && value.owner_entindex;
+        if (owner !== undefined && owner !== null) {
+            owner = Number(owner);
+            return current.indexOf(owner) >= 0 && worker(owner);
+        }
+        // Older/removal packets may omit the owner. Match the actual sparse
+        // engine slots, so another player's recipe never reorders our selection.
+        return current.some(function (id) {
+            if (!worker(id)) return false;
+            for (var slot = 0; slot < 32; slot++) if (Number(Entities.GetAbility(id, slot)) === ability) return true;
+            return false;
+        });
+    }
+    CustomNetTables.SubscribeNetTableListener('survival_ability_runtime', function (_, key, value) {
+        if (!active() || pending) return;
+        refreshCounts.runtimeSeen++;
+        if (!relevantRuntime(key, value)) { refreshCounts.runtimeIgnored++; return; }
+        changed();
+    });
+    api.CacheInspect = function () {
+        var counts = {}; Object.keys(refreshCounts).forEach(function (key) { counts[key] = refreshCounts[key]; });
+        return {generation:generation, queued:changeQueued, counts:counts};
+    };
     changed();
 })();
