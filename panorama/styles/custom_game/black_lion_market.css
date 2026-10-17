@@ -41,12 +41,37 @@
 .BLMarketWindow .BLMarketPriceCurrency { width:34px; height:34px; vertical-align:center; margin:0px; padding:0px; }
 .BLMarketWindow .BLMarketPriceMain { width:fit-children; max-width:190px; height:40px; vertical-align:center; margin:0px 0px 0px 8px; padding:0px; font-size:30px; line-height:35px; color:#fffbdc; white-space:nowrap; text-overflow:shrink; }
 .BLMarketWindow .BLMarketPriceSecondary { margin:0px; padding:0px; font-size:20px; line-height:27px; color:#f3f3ee; text-align:center; white-space:nowrap; text-overflow:shrink; }
-.BLMarketWindow .BLMarketBuy { margin:0px; padding:0px; flow-children:none; background-image:none; background-color:transparent; border:0px; box-shadow:none; border-radius:0px; brightness:1.18; }
-.BLMarketWindow .BLMarketBuy:hover { brightness:1.28; }
-.BLMarketWindow .BLMarketBuy:active { brightness:1.06; }
-.BLMarketWindow .BLMarketBuy:disabled,.BLMarketWindow .BLMarketBuy.UIDisabled { brightness:1; saturation:1; opacity:1; background-image:none; background-color:transparent; border:0px; }
-.BLMarketWindow .BLMarketBuy.BLMarketPending { brightness:.85; }
-.BLMarketWindow .BLMarketRow .BLMarketBuy .BLMarketBuyText { font-size:27px; line-height:36px; color:#f1eee5; text-shadow:#00000088 0px 1px 1px 1.0; white-space:nowrap; text-overflow:shrink; horizontal-align:center; vertical-align:center; font-weight:normal; }
+/* Dota 2 dotastyles.vcss_c: native ButtonPrimary.Large, scoped to purchases. */
+.BLMarketWindow .BLMarketBuy.ButtonPrimary {
+    margin:0px; padding:0px 28px; flow-children:none;
+    background-image:url("s2r://panorama/images/backgrounds/background_play_button_2x.png");
+    background-size:cover; background-img-opacity:0.3;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#525F65),to(#2F363A));
+    border:1px solid white;
+    border-brush:gradient(linear,0% 0%,0% 100%,from(#FFFFFF08),to(#FFFFFF03));
+    border-radius:3px; box-shadow:0px 2px 8px rgba(0,0,0,0.3);
+    brightness:1; saturation:1; opacity:1;
+    transition-property:background-color,border,brightness,opacity,transform;
+    transition-duration:0.1s; transition-timing-function:ease;
+}
+.BLMarketWindow .BLMarketBuy.ButtonPrimary:hover:enabled:not(.UIDisabled) { brightness:2; }
+.BLMarketWindow .BLMarketBuy.ButtonPrimary:active:enabled:not(.UIDisabled) {
+    background-color:gradient(linear,0% 0%,0% 100%,from(#2F363A),to(#525F65));
+    brightness:0.8; transition-duration:0.05s; sound:"ui_generic_button_click";
+}
+.BLMarketWindow .BLMarketBuy.ButtonPrimary:disabled,.BLMarketWindow .BLMarketBuy.ButtonPrimary.UIDisabled { saturation:0; opacity:0.3; brightness:0.5; }
+.BLMarketWindow .BLMarketBuy.ButtonPrimary.BLMarketPending { brightness:0.5; }
+.BLMarketWindow .BLMarketRow .BLMarketBuy.ButtonPrimary .BLMarketBuyText {
+    font-size:20px; line-height:24px; font-weight:semi-bold; color:white; opacity:0.8;
+    text-align:center; horizontal-align:center; vertical-align:center;
+    text-transform:uppercase; text-overflow:shrink; white-space:nowrap;
+    text-shadow:0px 1px 4px #000000; letter-spacing:1.5px;
+    transition-property:transform,text-shadow,opacity;
+    transition-duration:0.05s,0.1s; transition-timing-function:ease;
+}
+.BLMarketWindow .BLMarketRow .BLMarketBuy.ButtonPrimary:hover:enabled:not(.UIDisabled) .BLMarketBuyText { color:white; opacity:1; }
+.BLMarketWindow .BLMarketRow .BLMarketBuy.ButtonPrimary:active:enabled:not(.UIDisabled) .BLMarketBuyText { transform:translateY(0.5px); }
+.BLMarketWindow .BLMarketRow .BLMarketBuy.ButtonPrimary:disabled .BLMarketBuyText,.BLMarketWindow .BLMarketRow .BLMarketBuy.ButtonPrimary.UIDisabled .BLMarketBuyText { opacity:1; }
 .BLMarketWindow .BLMarketRow .BLMarketDisabledReason { margin:0px; padding:0px; font-size:20px; line-height:26px; color:#faf2c9; text-shadow:none; text-align:center; white-space:nowrap; text-overflow:shrink; }
 .BLMarketWindow .BLMarketNotice { position:29px 900px 0px; width:860px; height:32px; margin:0px; padding:0px; font-size:24px; line-height:32px; color:#fffbd8; white-space:nowrap; text-overflow:shrink; }
 .BLMarketWindow .BLMarketFooter { flow-children:none; margin:0px; padding:0px; background-image:none; background-color:transparent; border:0px; }
@@ -128,11 +153,21 @@
 .BLMarketDetail VerticalScrollBar .ScrollThumb,
 .BLMarketDetail .VerticalScrollBar .ScrollThumb { background-image:none; background-color:#a99769b8; border:0px; border-radius:0px; }
 
-/* Hide only the product-list bar; the list still scrolls with the mouse wheel. */
+/* Overlay the native drag track at the right edge, outside the flowing rows. */
 .BLMarketWindow #BlackLionMarketList VerticalScrollBar,
 .BLMarketWindow #BlackLionMarketList .VerticalScrollBar {
-    width:0px; opacity:0; visibility:collapse;
+    width:12px; height:100%; horizontal-align:right; vertical-align:top;
+    ignore-parent-flow:true; layout-position:fixed; z-index:50; margin:0px; padding:0px;
+    background-image:none; background-color:#171a16dd; border:1px solid #82734c88;
+    opacity:1; visibility:visible;
 }
+.BLMarketWindow #BlackLionMarketList VerticalScrollBar .ScrollThumb,
+.BLMarketWindow #BlackLionMarketList .VerticalScrollBar .ScrollThumb {
+    width:100%; min-height:40px; margin:0px; padding:0px;
+    background-image:none; background-color:#c3ae78ee; border:1px solid #e0c992; border-radius:2px;
+}
+.BLMarketWindow #BlackLionMarketList VerticalScrollBar .ScrollThumb:hover,
+.BLMarketWindow #BlackLionMarketList .VerticalScrollBar .ScrollThumb:hover { brightness:1.18; }
 
 /* Reviewed video bundles: compact member list and one complete effect at a time. */
 .BLMarketDetail.VideoBundleDetail .RCPurpleDetailIcon { width:44px; height:44px; margin-bottom:4px; }

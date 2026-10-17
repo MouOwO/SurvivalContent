@@ -58,7 +58,7 @@
         ["column_item","column_price"].forEach(function(id){
             var r=layer(id);if(id!=="column_price"){box(label(headings,r.text,"BLMarketColumnLabel"),r.x-14,r.y-160,r.width+50,r.height);return;}
             var price=priceColumn(),column=box(make("Panel",headings,"","BLMarketPriceColumnHead"),price.x,r.y-160,price.width,r.height),caption=label(column,r.text,"BLMarketColumnLabel BLMarketPriceHeading");
-            column.style.flowChildren="none";caption.style.width="100%";caption.style.height="fit-children";caption.style.verticalAlign="center";caption.style.textAlign="center";
+            column.style.flowChildren="none";caption.style.width="fit-children";caption.style.maxWidth="100%";caption.style.height="fit-children";caption.style.horizontalAlign="center";caption.style.verticalAlign="center";caption.style.textAlign="center";
         });
         box(label(headings,"显示类型","BLMarketFilterCaption"),316,6,110,32);
         var typeControl=box(make("Panel",headings,"BLMarketPurchaseType","BLMarketPurchaseType"),428,4,266,34),typeButtons={},typeCallback=null;
@@ -119,9 +119,9 @@
         var available=K.IsActionable?K.IsActionable(item):item.enabled===true||item.enabled===1,reason=K.DisabledMessage?K.DisabledMessage(item):String(item.disabled_message||"");
         if(item.purchase_method==="wallet"&&item.currency==="shop_points"&&(item.disabled_reason==="commerce_balance_insufficient"||item.disabled_reason==="insufficient_balance"))reason="";
         if(!available&&!reason)reason="未满足购买条件";row.SetHasClass("BLMarketHasReason",!!reason);
-        var b=layer(t.prefix+"_button_base"),buy=box(make("Button",row,"","BLMarketBuy ButtonPrimary Large"),b.x-r.x,b.y-r.y,b.width,b.height);buy.hittestchildren=false;
+        var b=layer(t.prefix+"_button_base"),buy=box(make("Button",row,"","BLMarketBuy ButtonPrimary Large"),b.x-r.x,0,b.width,b.height);buy.style.verticalAlign="center";buy.hittestchildren=false;
         var buyText=label(buy,available?(item.purchase_method==="wallet"?"兑换":"购买"):"暂不可购","BLMarketBuyText");buyText.style.width="fit-children";buyText.style.maxWidth=(b.width-16)+"px";buyText.style.height="fit-children";buyText.style.position="0px 0px 0px";buyText.style.horizontalAlign="center";buyText.style.verticalAlign="center";buyText.style.margin="-1px 0px 1px";buyText.style.padding="0px";buyText.style.textAlign="center";
-        var cond=layer(t.prefix+"_condition"),reasonText=box(label(row,reason,"BLMarketDisabledReason"),cond.x-r.x,cond.y-r.y,176,32);reasonText.visible=!!reason;
+        var reasonText=box(label(row,reason,"BLMarketDisabledReason"),b.x-r.x,r.height-20,b.width,20);reasonText.style.fontSize="18px";reasonText.style.lineHeight="20px";reasonText.visible=!!reason;
         buy.enabled=available;buy.SetHasClass("UIDisabled",!available);buy.SetPanelEvent("onactivate",function(){if(valid(row)&&buy.enabled&&props.action){props.action();return true;}});
         row.__menuCell={iconPanel:well,namePanel:name,countPanel:owned};props.market=true;props.hoverPanel=well;props.sourcePanel=well;props.sourceWidth=frameSize;props.windowWidth=design().width;props.windowHeight=windowHeight();
         J.BindDetail(row,item,props,item.product_type==="bundle");return row;
