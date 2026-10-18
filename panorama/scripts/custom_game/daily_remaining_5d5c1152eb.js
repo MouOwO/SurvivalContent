@@ -39,7 +39,6 @@ function buildCelebration(){
  // A fantasy title vignette, using native transparent art above the reward grid.
  var header=component(canvas,null,0,0,size[0],104,"DailyGW2CelebrationHeader");style(header,{overflow:"clip"});
  celebrationArt(header,"DailyGW2CelebrationRibbon","events/international_2026/artwork/gold_ribbon_png",155,-96,1072,246,{opacity:".34",brightness:"1.25"});
- celebrationArt(header,"DailyGW2CelebrationTitleOrnament","fantasy_craft/player_card_ornament_png",592,68,198,20,{opacity:".9"});
  [{side:"Left",x:456},{side:"Right",x:848}].forEach(function(mark){
   celebrationArt(header,"DailyGW2CelebrationStars"+mark.side,"events/dark_carnival/overworld/gift_icon_star_orbit_png",mark.x,4,78,78,{opacity:".84",brightness:"1.6"});
   celebrationArt(header,"DailyGW2CelebrationGift"+mark.side,"received_gift_png",mark.x+10,16,60,59,{brightness:"1.04"});
@@ -80,13 +79,15 @@ function fitWindow(value){
 function build(){
  var win=p("DailyWindow");win.AddClass("DailyGW2Page");win.RemoveClass("DailyV10Page");win.RemoveClass("DailyPurple");
  shell=U.ModalShell.Adopt({id:"daily_rewards",panel:win,root:dailyRoot,scrim:p("DailyScrim"),width:size[0],height:size[1],fit:fitOptions,onClose:close,onFit:fitWindow});
- style(win,{width:size[0]+"px",height:size[1]+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"#211f1c",border:"0px",boxShadow:"none",overflow:"noclip"});
+ style(win,{width:size[0]+"px",height:size[1]+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"#101925",border:"0px",boxShadow:"none",overflow:"noclip"});
  canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,0,size[0],size[1]);canvas.hittest=false;canvas.hittestchildren=true;
- // Native Dota popup stone stays at its original color; cover crops without stretching.
- var backdrop=component(canvas,null,0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{backgroundImage:'url("s2r://panorama/images/textures/popup_rock_bg_square_png.vtex")',backgroundColor:"#16191c",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
+ // Native DPC panel gradient, composed over an opaque blue base.
+ var backdrop=component(canvas,null,0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 100%,from(#141c23),to(#1d2a35cc))"});
  buildCelebration();
  var edge=component(canvas,null,0,0,size[0],size[1],"DailyGW2WindowEdge");style(edge,{backgroundImage:"none",backgroundColor:"transparent",borderTop:"1px solid #3b404777",borderLeft:"1px solid #4c434677",borderRight:"1px solid #00000088",borderBottom:"1px solid #00000088"});
  component(canvas,"header_rule",44,82,1321,5,"DailyGW2HeaderRule");
+ // Foreground crest paints over both the ribbon and the header divider.
+ celebrationArt(canvas,"DailyGW2CelebrationTitleOrnament","fantasy_craft/player_card_ornament_png",592,68,198,20,{opacity:"1",brightness:"1.15"});
  var heading=label(canvas,"每日登录奖励",190,17,size[0]-380,58,40,"#f4f0e5","DailyGW2Title");style(heading,{textAlign:"center",fontWeight:"normal"});
  var closeButton=make("Button",canvas,"DailyGW2Close","DailyGW2CloseButton");rect(closeButton,1319,20,44,47);
  component(closeButton,"close_base",0,0,44,47);component(closeButton,"close",10,10,24,27);
