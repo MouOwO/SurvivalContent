@@ -5,6 +5,7 @@
 var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,RH=cfg.RemainingHandoff,P=cfg.DailyGW2Data||{},size=P.canvas||[1382,784];
 var layout=P.layout||{cellWidth:118,cellHeight:119,cellPadding:5,columns:[62,207,355,505,652,802,952],rows:[152,293,437,582],monthlyX:1175};
 var cellWidth=layout.cellWidth,cellHeight=layout.cellHeight,cellPadding=layout.cellPadding,columns=layout.columns,rows=layout.rows;
+var iconInset=2; // Fill the frame interior; retain only its visible border.
 var gridWidth=columns[6]-columns[0]+cellWidth,gridHeight=rows[3]-rows[0]+cellHeight;
 var fitOptions={widthFraction:.94,heightFraction:.9};
 var data=null,waiting=null,errorText="",buying=false,sequence=0,active=true,life=U.Lifecycle(),viewLife=U.Lifecycle(),fetching=false,fetchSerial=0;
@@ -22,7 +23,11 @@ function array(v){return Array.isArray(v)?v:Object.keys(v||{}).sort(function(a,b
 function style(node,values){Object.keys(values).forEach(function(key){if(node.style[key]!==values[key])node.style[key]=values[key];});}
 function rect(node,x,y,w,h){style(node,{position:x+"px "+y+"px 0px",width:w+"px",height:h+"px",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top"});}
 function make(type,parent,id,cls){var node=$.CreatePanel(type,parent,id||"");if(cls)node.AddClass(cls);return node;}
-function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling("stretch-to-cover-preserve-aspect");return icon;}
+function fillIcon(icon,item){
+ var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)shared.FillIcon(icon,item);
+ // The calendar crops to its slot even when the shared catalog prefers contain.
+ if(icon&&icon.SetScaling){icon.SetScaling("stretch-to-cover-preserve-aspect");icon.__survivalItemFill="cover";}return icon;
+}
 function skin(node,key){var asset=P.assets&&P.assets[key];if(asset)style(node,{backgroundImage:'url("'+asset.file+'")',backgroundColor:"transparent",backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",border:"0px"});}
 function component(parent,key,x,y,w,h,id){var node=make("Panel",parent,id,"DailyGW2Art");rect(node,x,y,w,h);node.hittest=false;node.hittestchildren=false;skin(node,key);return node;}
 function label(parent,text,x,y,w,h,font,color,id){var node=make("Label",parent,id,"DailyGW2Text");node.text=String(text===undefined?"":text);node.hittest=false;rect(node,x,y,w,h);style(node,{fontSize:font+"px",color:color||"#f0efeb",fontFamily:'"Source Han Sans SC"',whiteSpace:"nowrap",textOverflow:"ellipsis"});return node;}
@@ -124,8 +129,7 @@ function quantity(parent,value,w,h,inset,x,y){
 function mark(parent,key){var node=component(parent,key,cellWidth-cellPadding-33,cellPadding,33,key==="lock"?38:29);node.AddClass(key==="lock"?"DailyGW2Lock":"DailyGW2Check");return node;}
 function reward(parent,item,x,y,w,h,cls,hideQuantity){
  var slot=make("Panel",parent,"",cls||"DailyGW2Reward");rect(slot,x,y,w,h);slot.hittest=true;slot.hittestchildren=false;
- var artSize=Math.min(w,h);
- var art=(cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(slot,item,"DailyGW2ItemArt"))||RH.DailyImage(slot,artId(item),"DailyGW2ItemArt");rect(art,(w-artSize)/2,(h-artSize)/2,artSize,artSize);art.hittest=false;fillIcon(art,item);
+ var art=(cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(slot,item,"DailyGW2ItemArt"))||RH.DailyImage(slot,artId(item),"DailyGW2ItemArt");rect(art,0,0,w,h);art.hittest=false;fillIcon(art,item);
  var known=rewardQuantity(item)!==null;
  if(known&&!hideQuantity)quantity(parent,item.count,w,h+cellPadding,0,x,y);
  tip(slot,item.name,(item.description||"奖励说明待同步")+(known?"\n数量："+item.count:""));return slot;
@@ -140,9 +144,9 @@ function renderCards(){
   var card=make("Panel",p("DailyCards"),"DailyGW2Day_"+(i+1),"DailyGW2Day");rect(card,columns[i%7]-columns[0],rows[Math.floor(i/7)]-rows[0],cellWidth,cellHeight);card.hittest=true;card.hittestchildren=true;
   var status=day.status||"not_open",today=Number(day.is_today)===1;card.SetHasClass("DailyGW2Today",today);card.SetHasClass("DailyGW2Claimed",status==="claimed");card.SetHasClass("DailyGW2Future",status==="not_open");
   var frame=component(card,"reward_frame",0,0,cellWidth,cellHeight);frame.AddClass("DailyGW2RewardFrame");
-  var items=array(day.rewards),gap=4,width=items.length>1?(cellWidth-cellPadding*2-gap)/2:cellWidth-cellPadding*2,sharedQuantity=items.length>1?rewardQuantity(items[0]):null;
+  var items=array(day.rewards),gap=0,width=items.length>1?(cellWidth-iconInset*2-gap)/2:cellWidth-iconInset*2,sharedQuantity=items.length>1?rewardQuantity(items[0]):null;
   if(sharedQuantity!==null&&!items.every(function(item){return rewardQuantity(item)!==null&&Number(item.count)===Number(sharedQuantity);}))sharedQuantity=null;
-  items.slice(0,2).forEach(function(item,j){reward(card,item,cellPadding+j*(width+gap),cellPadding,width,cellHeight-cellPadding*2,undefined,sharedQuantity!==null);});
+  items.slice(0,2).forEach(function(item,j){reward(card,item,iconInset+j*(width+gap),iconInset,width,cellHeight-iconInset*2,undefined,sharedQuantity!==null);});
   if(sharedQuantity!==null)quantity(card,sharedQuantity,cellWidth,cellHeight,cellPadding);
   if(items.length>2)label(card,"+"+(items.length-2),cellPadding,cellPadding,28,22,16,"#eedbab");
   if(status==="claimed")mark(card,"check");
@@ -157,7 +161,7 @@ function renderSpecials(){
   var frame=component(card,"premium_frame",0,0,cellWidth,cellHeight);frame.AddClass("DailyGW2SpecialFrame");
   var owned=Number(item.owned)>0,pass=Number(data.has_pass)===1;
   card.SetHasClass("DailyGW2Locked",!pass&&!owned);card.SetHasClass("DailyGW2Owned",owned);
-  var slot=reward(card,item,cellPadding,cellPadding,cellWidth-cellPadding*2,cellHeight-cellPadding*2,"DailyGW2PassReward");
+  var slot=reward(card,item,iconInset,iconInset,cellWidth-iconInset*2,cellHeight-iconInset*2,"DailyGW2PassReward");
   var status=owned?"已获得":!pass?"开通月卡后解锁":Number(data.count)>=Number(item.day)?"下次签到时发放":"累计签到 "+item.day+" 次";
   if(owned)mark(card,"check");else if(!pass)mark(card,"lock");
   var details=(item.description||"奖励说明待同步")+"\n领取条件：累计签到"+item.day+"次\n领取状态："+status+"\n月卡奖励随符合条件的签到自动发放。";
