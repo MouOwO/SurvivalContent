@@ -62,8 +62,9 @@ function build(){
  shell=U.ModalShell.Adopt({id:"daily_rewards",panel:win,root:dailyRoot,scrim:p("DailyScrim"),width:size[0],height:size[1],fit:fitOptions,onClose:close,onFit:fitWindow});
  style(win,{width:size[0]+"px",height:size[1]+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"#211f1c",border:"0px",boxShadow:"none",overflow:"noclip"});
  canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,0,size[0],size[1]);canvas.hittest=false;canvas.hittestchildren=true;
- var backdrop=component(canvas,"window_background",0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{saturation:"0",washColor:"#8a765a",brightness:".48"});
- component(canvas,"window_edge",0,0,size[0],size[1],"DailyGW2WindowEdge");
+ // Native Dota popup stone stays at its original color; cover crops without stretching.
+ var backdrop=component(canvas,null,0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{backgroundImage:'url("s2r://panorama/images/textures/popup_rock_bg_square_png.vtex")',backgroundColor:"#16191c",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
+ var edge=component(canvas,null,0,0,size[0],size[1],"DailyGW2WindowEdge");style(edge,{backgroundImage:"none",backgroundColor:"transparent",borderTop:"1px solid #3b404777",borderLeft:"1px solid #4c434677",borderRight:"1px solid #00000088",borderBottom:"1px solid #00000088"});
  component(canvas,"header_rule",44,82,1321,5,"DailyGW2HeaderRule");
  var heading=label(canvas,"每日登录奖励",190,17,size[0]-380,58,40,"#f4f0e5","DailyGW2Title");style(heading,{textAlign:"center",fontWeight:"normal"});
  var closeButton=make("Button",canvas,"DailyGW2Close","DailyGW2CloseButton");rect(closeButton,1319,20,44,47);
