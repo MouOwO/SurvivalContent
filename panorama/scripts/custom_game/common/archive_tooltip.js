@@ -178,7 +178,8 @@
             if (viewport.ScrollToTop) viewport.ScrollToTop();
             var state=S.State(item,category), name=options.categoryName ? options.categoryName(category) : category;
             elements.Title.text=String(item.name||"");
-            elements.State.text=onlyEffect ? "" : name+" · "+(state===null ? "状态待同步" : state ? (["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
+            var unlockItem=S.IsUnlockItem&&S.IsUnlockItem(item,category);
+            elements.State.text=onlyEffect ? "" : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
             var rarityColor=colors.caption, titleColor=colors.title;
             if (rarityLine) {
                 var rarityParts=[],quality=String(item.quality||"").trim().toUpperCase();
@@ -202,6 +203,11 @@
             if (["building","work","starjoy_points"].indexOf(category)>=0 && source) details+=(details?"\n":"")+source;
             if (category==="map_level" && item.count!==undefined) details+=(details?"\n":"")+"累计有效在线 "+item.count+" 分钟";
             if(item.availability_note)details+=(details?"\n":"")+String(item.availability_note);
+            if(unlockItem){
+                var duplicatePoints=Number(item.duplicate_points),duplicateCurrency=({shop_points:"商城积分",starjoy_points:"星悦积分"})[item.duplicate_currency||item.converted_currency];
+                details+=(details?"\n":"")+"唯一持有";
+                if(item.duplicate_points!==undefined&&item.duplicate_points!==null&&isFinite(duplicatePoints)&&duplicatePoints>=0&&duplicateCurrency)details+=" · 重复获得转化为 "+duplicatePoints+" "+duplicateCurrency;
+            }
             elements.Condition.text=details; elements.Condition.visible=!!details;
             metric.visible=!onlyEffect; caption.text=S.Metric(item,category); quantity.text=S.Quantity(item,category);
             var textRoles=["Title","State","EffectCaption","Effect","Condition"]; if(rarityLine)textRoles.push("Rarity");

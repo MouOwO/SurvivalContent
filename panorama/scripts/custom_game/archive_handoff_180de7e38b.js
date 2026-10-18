@@ -7,6 +7,9 @@
     function img(parent,name,cls){var el=$.CreatePanel('Image',parent,'');el.AddClass(cls);el.SetImage(assets[name]);el.hittest=false;return el;}
     function label(parent,text,cls){var el=$.CreatePanel('Label',parent,'');el.AddClass(cls);el.text=String(text);el.hittest=false;return el;}
     function unlocked(item,category){
+        // This helper loads first; resolve points semantics when the filter runs.
+        var semantics=cfg.ArchiveV10Semantics;
+        if(category==='points'&&semantics&&typeof semantics.State==='function')return semantics.State(item,category);
         if(item.unlocked!==undefined)return Number(item.unlocked)===1;
         // Achievement progress is not an unlock until the target is completed.
         if(item.completed!==undefined && ['clear','endless','boss','map_level','starjoy_points','gift'].indexOf(category)>=0)return Number(item.completed)===1;
@@ -23,6 +26,8 @@
     function isAchievement(category){return ['clear','endless','boss','map_level','starjoy_points','gift'].indexOf(category)>=0;}
     function ownedCount(item){return item.count_known!==undefined&&Number(item.count_known)!==1?'—':item.count!==undefined&&isFinite(Number(item.count))?String(item.count):'—';}
     function cardProgress(item,category){
+        var semantics=cfg.ArchiveV10Semantics;
+        if(category==='points'&&semantics&&semantics.IsUnlockItem&&semantics.IsUnlockItem(item,category))return semantics.Quantity(item,category);
         if(category==='starjoy_points')return String(item.target);
         if(isAchievement(category))return progress(item);
         if(category==='building'||category==='work')return 'LV'+(Number(item.level)||0)+' / '+(Number(item.target)||1);

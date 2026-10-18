@@ -197,7 +197,7 @@
             leaderboardView.Show(gridHost);return true;
         }
         if(leaderboardView)leaderboardView.Hide();p("ArchiveGrid").visible=true;p("ArchiveV10SectionTitle").text="收集条目";
-        var ownership=["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(current)>=0;
+        var ownership=["shadow","pet","fishing","friend","ex","wife","beast","commerce_goods","shop"].indexOf(current)>=0;
         filters.unlocked.text.text=ownership?"已拥有":"已解锁";filters.locked.text.text=ownership?"未拥有":"未解锁";
         p("ArchiveV10FilterText").text=mode==="unlocked"?filters.unlocked.text.text:mode==="locked"?filters.locked.text.text:"全部存档";
         Object.keys(filters).forEach(function(key){filters[key].panel.SetHasClass("ArchiveV10Selected",key===(mode||"all"));});

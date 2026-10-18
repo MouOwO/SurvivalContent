@@ -25,6 +25,7 @@
         var value = item.max_owned !== undefined ? item.max_owned : item.target;
         return number(value) !== null && Number(value) > 0 ? String(value) : null;
     }
+    function isUnlockItem(item, category) { return category === "points" && Number(cap(item || {})) === 1; }
     function level(item) {
         if (item.level !== undefined) return number(item.level);
         return known(item) ? number(item.count) : null;
@@ -52,6 +53,10 @@
     }
     function quantity(item, category) {
         item = item || {};
+        if (isUnlockItem(item, category)) {
+            var unlocked = state(item, category);
+            return unlocked === null ? "状态待同步" : unlocked ? "已解锁" : "未解锁";
+        }
         if (category === "titles") return "";
         if (category === "map_level") {
             var current = number(item.__v10CurrentLevel), target = number(item.__v10TargetLevel);
@@ -70,6 +75,8 @@
     }
     function progress(item, category) {
         item = item || {};
+        if (isUnlockItem(item, category)) return { known: state(item, category) !== null,
+            ratio: null, current: null, target: null, text: quantity(item, category) };
         if (category === "titles") {
             var titleState = state(item, category);
             return { known: titleState !== null, ratio: null, current: null, target: null,
@@ -97,6 +104,7 @@
     }
     function metric(item, category) {
         item = item || {};
+        if (isUnlockItem(item, category)) return "解锁状态";
         if (category === "clear") return "累计通关次数";
         if (category === "boss") return "进攻BOSS击杀次数";
         if (category === "endless") return item.progress_kind === "wave" ? "历史最高通关层数" : "累计无尽积分";
@@ -161,5 +169,5 @@
         });
         return ordered;
     }
-    cfg.ArchiveV10Semantics = { Normalize: normalize, Quantity: quantity, Progress: progress, Metric: metric, State: state, Known: known };
+    cfg.ArchiveV10Semantics = { Normalize: normalize, Quantity: quantity, Progress: progress, Metric: metric, State: state, Known: known, IsUnlockItem: isUnlockItem };
 })();
