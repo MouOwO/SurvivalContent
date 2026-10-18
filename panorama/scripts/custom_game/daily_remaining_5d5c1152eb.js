@@ -30,6 +30,26 @@ function fillIcon(icon,item){
 }
 function skin(node,key){var asset=P.assets&&P.assets[key];if(asset)style(node,{backgroundImage:'url("'+asset.file+'")',backgroundColor:"transparent",backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",border:"0px"});}
 function component(parent,key,x,y,w,h,id){var node=make("Panel",parent,id,"DailyGW2Art");rect(node,x,y,w,h);node.hittest=false;node.hittestchildren=false;skin(node,key);return node;}
+function celebrationArt(parent,id,file,x,y,w,h,appearance){
+ var node=component(parent,null,x,y,w,h,id);node.AddClass("DailyGW2Celebration");
+ style(node,{backgroundImage:'url("s2r://panorama/images/'+file+'.vtex")',backgroundSize:"contain",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
+ if(appearance)style(node,appearance);return node;
+}
+function buildCelebration(){
+ // A fantasy title vignette, using native transparent art above the reward grid.
+ var header=component(canvas,null,0,0,size[0],104,"DailyGW2CelebrationHeader");style(header,{overflow:"clip"});
+ celebrationArt(header,"DailyGW2CelebrationRibbon","events/international_2026/artwork/gold_ribbon_png",155,-96,1072,246,{opacity:".34",brightness:"1.25"});
+ celebrationArt(header,"DailyGW2CelebrationTitleOrnament","fantasy_craft/player_card_ornament_png",592,68,198,20,{opacity:".9"});
+ [{side:"Left",x:456},{side:"Right",x:848}].forEach(function(mark){
+  celebrationArt(header,"DailyGW2CelebrationStars"+mark.side,"events/dark_carnival/overworld/gift_icon_star_orbit_png",mark.x,4,78,78,{opacity:".84",brightness:"1.6"});
+  celebrationArt(header,"DailyGW2CelebrationGift"+mark.side,"received_gift_png",mark.x+10,16,60,59,{brightness:"1.04"});
+ });
+ [{side:"Left",x:0},{side:"Right",x:size[0]-112}].forEach(function(corner){
+  var top=celebrationArt(canvas,"DailyGW2CelebrationTop"+corner.side,"hud/international_topcorner_png",corner.x,0,112,53,{opacity:".9",brightness:"1.25",washColor:"#e2c68e"});
+  var bottom=celebrationArt(canvas,"DailyGW2CelebrationBottom"+corner.side,"hud/international_btmcorner_psd",corner.side==="Left"?0:size[0]-44,size[1]-57,44,57,{opacity:".9",brightness:"1.25",washColor:"#e2c68e"});
+  if(corner.side==="Right"){style(top,{transform:"scaleX(-1)"});style(bottom,{transform:"scaleX(-1)"});}
+ });
+}
 function label(parent,text,x,y,w,h,font,color,id){var node=make("Label",parent,id,"DailyGW2Text");node.text=String(text===undefined?"":text);node.hittest=false;rect(node,x,y,w,h);style(node,{fontSize:font+"px",color:color||"#f0efeb",fontFamily:'"Source Han Sans SC"',whiteSpace:"nowrap",textOverflow:"ellipsis"});return node;}
 function move(id,parent){var node=p(id);if(!valid(node))return null;moved.push({node:node,parent:node.GetParent()});node.SetParent(parent);node.style.visibility="visible";return node;}
 function escapedLines(value){return String(value||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g,"<br>");}
@@ -64,6 +84,7 @@ function build(){
  canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,0,size[0],size[1]);canvas.hittest=false;canvas.hittestchildren=true;
  // Native Dota popup stone stays at its original color; cover crops without stretching.
  var backdrop=component(canvas,null,0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{backgroundImage:'url("s2r://panorama/images/textures/popup_rock_bg_square_png.vtex")',backgroundColor:"#16191c",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
+ buildCelebration();
  var edge=component(canvas,null,0,0,size[0],size[1],"DailyGW2WindowEdge");style(edge,{backgroundImage:"none",backgroundColor:"transparent",borderTop:"1px solid #3b404777",borderLeft:"1px solid #4c434677",borderRight:"1px solid #00000088",borderBottom:"1px solid #00000088"});
  component(canvas,"header_rule",44,82,1321,5,"DailyGW2HeaderRule");
  var heading=label(canvas,"每日登录奖励",190,17,size[0]-380,58,40,"#f4f0e5","DailyGW2Title");style(heading,{textAlign:"center",fontWeight:"normal"});
