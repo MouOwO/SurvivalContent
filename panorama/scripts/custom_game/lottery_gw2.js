@@ -85,7 +85,9 @@
         style(tooltip,{zIndex:"100",flowChildren:"none"});
         var tipSkin=cfg.SurvivalBlackLionMarket.SkinTooltip(tooltip);tipSkin.Resize(368,340);
         var tipIconStage=make("Panel",tooltip,"LotteryGW2TooltipIconStage");place(tipIconStage,20,22,48,48);tipIconStage.hittest=false;
-        var tipName=label(tooltip,"LotteryGW2TooltipName","",80,22,264,42,21,"#f0dfb8");
+        var tipTitleRow=make("Panel",tooltip,"LotteryGW2TooltipTitleRow");place(tipTitleRow,80,22,264,48);tipTitleRow.hittest=false;tipTitleRow.hittestchildren=false;
+        var tipName=label(tipTitleRow,"LotteryGW2TooltipName","",0,0,264,48,21,"#f0dfb8");
+        style(tipName,{width:"fit-children",height:"fit-children",maxWidth:"264px",horizontalAlign:"left",verticalAlign:"center",whiteSpace:"nowrap",textOverflow:"shrink"});
         var tipState=label(tooltip,"LotteryGW2TooltipState","",80,67,264,24,16,"#b5bfbb");
         var tipScroll=make("Panel",tooltip,"LotteryGW2TooltipScroll"); place(tipScroll,22,116,322,178); style(tipScroll,{flowChildren:"down",overflow:"squish scroll"});
         var tipDescription=label(tipScroll,"LotteryGW2TooltipDescription","",0,0,316,178,18,"#e0d6c5"); style(tipDescription,{height:"fit-children",ignoreParentFlow:"false",whiteSpace:"normal"});
@@ -142,6 +144,12 @@
             var b=make("Button",view.previewItems,"LotteryGW2Preview_"+index,"LotteryGW2PreviewCard");place(b,index*128,0,118,106);b.hittestchildren=false;
             art(b,"","slot_background",21,0,76,76);var icon=cfg.SurvivalRewardPresentation&&cfg.SurvivalRewardPresentation.CreateIcon(b,item,"LotteryGW2PreviewIcon");if(icon){place(icon,22,1,74,74);fillItemIcon(icon,item);}
             art(b,"","slot_frame",21,0,76,76);label(b,"",String(item.name||item.id||""),0,79,118,26,16,"#dbd3c2");
+            var cardWidth=parseFloat(b.style.width),cardHeight=parseFloat(b.style.height),rowWidth=parseFloat(view.previewItems.style.width),gap=4;
+            place(b,(rowWidth-(cardWidth*items.length+gap*(items.length-1)))/2+index*(cardWidth+gap),0,cardWidth,cardHeight);
+            var nameAt=String(itemName.style.position).split(" "),nameHeight=parseFloat(itemName.style.height),nameHost=make("Panel",b,"","LotteryGW2PreviewNameHost");
+            place(nameHost,0,parseFloat(nameAt[1]),cardWidth,nameHeight);nameHost.hittest=false;nameHost.hittestchildren=false;
+            itemName.SetParent(nameHost);place(itemName,0,0,cardWidth,nameHeight);
+            style(itemName,{width:"fit-children",height:"fit-children",maxWidth:cardWidth+"px",horizontalAlign:"center",verticalAlign:"center",textAlign:"center"});
             if(icon){var hover=make("Panel",b,"","LotteryGW2PreviewHover"),at=String(icon.style.position).split(" ");place(hover,parseFloat(at[0]),parseFloat(at[1]),parseFloat(icon.style.width),parseFloat(icon.style.height));bindTooltipIcon(b,hover,item);}
             b.SetPanelEvent("onactivate",function(){hideTooltip();invoke("Feature","details");});
         });
@@ -276,6 +284,15 @@
         var names={details:"奖池详情",history:"抽奖记录",announcement:"开奖公告",update:"奖励更新公告",reward:p("LotteryInfoTitle")&&p("LotteryInfoTitle").text||"奖励详情",firstgift:"首充礼包",privilege:"礼包特权"};view.title.text=names[name]||"功能提示";sidebar();
     }
     function tooltipRect(node) {var at=node.GetPositionWithinWindow();return {x:at.x,y:at.y,width:node.actuallayoutwidth*scale,height:node.actuallayoutheight*scale};}
+    function raiseTooltip(){
+        var canvas=p("LotteryMainCanvas");if(!valid(canvas))return;
+        for(var branch=view.tooltip;valid(branch)&&branch!==canvas;branch=branch.GetParent()){
+            var parent=branch.GetParent();if(!valid(parent))break;
+            var above=0;parent.Children().forEach(function(sibling){if(sibling!==branch)above=Math.max(above,Number(sibling.style.zIndex)||0);});
+            // Modal layers can re-raise a sibling after this view was built.
+            style(branch,{zIndex:String(Math.max(Number(branch.style.zIndex)||0,above+1))});
+        }
+    }
     function cancelTooltipHide(){tipEpoch++;if(tipHideJob!==null&&$.CancelScheduled)$.CancelScheduled(tipHideJob);tipHideJob=null;}
     function tooltipOverflows(){return alive()&&view&&valid(view.tipDescription)&&valid(view.tipScroll)&&view.tipDescription.actuallayoutheight>view.tipScroll.actuallayoutheight+1;}
     function cursorInsideTooltipRegion(node){if(!valid(node)||!GameUI.GetCursorPosition)return false;var at=GameUI.GetCursorPosition(),box=tooltipRect(node);return at&&at[0]>=box.x&&at[0]<box.x+box.width&&at[1]>=box.y&&at[1]<box.y+box.height;}
@@ -351,7 +368,7 @@
             }
         }
         place(view.tooltip,x,y,368,h);view.tipSkin.Resize(368,h);place(view.tipScroll,20,98,328,h-144);place(view.tipDescription,0,0,320,0);style(view.tipDescription,{height:"fit-children",ignoreParentFlow:"false"});place(view.tipCount,20,h-38,328,24);view.tooltip.visible=true;
-        function syncTooltipInput(){if(!alive()||!view.tooltip.visible||tipAnchor!==anchor)return;var interactive=tooltipOverflows();[view.tooltip,view.tipSkin.surface,view.tipScroll].forEach(function(node){node.hittest=interactive;node.hittestchildren=interactive;});}
+        function syncTooltipInput(){if(!alive()||!view.tooltip.visible||tipAnchor!==anchor)return;raiseTooltip();var interactive=tooltipOverflows();[view.tooltip,view.tipSkin.surface,view.tipScroll].forEach(function(node){node.hittest=interactive;node.hittestchildren=interactive;});}
         syncTooltipInput();[0,.05,.2].forEach(function(delay){$.Schedule(delay,syncTooltipInput);});
         tipDismiss.Shown(anchor);return true;
     }
