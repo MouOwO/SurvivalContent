@@ -148,7 +148,6 @@ function renderCards(){
   if(sharedQuantity!==null&&!items.every(function(item){return rewardQuantity(item)!==null&&Number(item.count)===Number(sharedQuantity);}))sharedQuantity=null;
   items.slice(0,2).forEach(function(item,j){reward(card,item,iconInset+j*(width+gap),iconInset,width,cellHeight-iconInset*2,undefined,sharedQuantity!==null);});
   if(sharedQuantity!==null)quantity(card,sharedQuantity,cellWidth,cellHeight,cellPadding);
-  if(items.length>2)label(card,"+"+(items.length-2),cellPadding,cellPadding,28,22,16,"#eedbab");
   if(status==="claimed")mark(card,"check");
   var summary=items.map(function(item){return item.name+(item.count!==undefined?" ×"+item.count:"")+"\n"+(item.description||"");}).join("\n\n");
   tip(card,columnLabels[i%7]+" · 第"+(day.day||i+1)+"天 · "+stateText(status),summary||"正在读取该日奖励");
