@@ -16,6 +16,13 @@
     function style(n, values) { if (valid(n)) Object.keys(values).forEach(function (k) { n.style[k] = values[k]; }); }
     function place(n, x, y, w, h) { style(n, {position:x + "px " + y + "px 0px", width:w + "px", height:h + "px", margin:"0px", padding:"0px", horizontalAlign:"left", verticalAlign:"top", ignoreParentFlow:"true"}); }
     function fillItemIcon(icon,item){var presentation=cfg.SurvivalRewardPresentation;if(presentation&&presentation.FillIcon)presentation.FillIcon(icon,item);}
+    function bindTooltipIcon(card,source,item){
+        for(var owner=source.GetParent();valid(owner);owner=owner.GetParent()){owner.hittestchildren=true;if(owner===card)break;}
+        card.SetPanelEvent("onmouseover",function(){});card.SetPanelEvent("onmouseout",function(){});
+        source.hittest=true;source.hittestchildren=false;
+        source.SetPanelEvent("onmouseover",function(){if(!card.BHasClass("LotteryCardCovered"))tooltip(item,source);});
+        source.SetPanelEvent("onmouseout",function(){if(!requestTooltipHide())hideTooltip();});
+    }
     function walk(n, fn) { if (!valid(n)) return; fn(n); n.Children().forEach(function (c) { walk(c, fn); }); }
     function make(type, parent, id, cls) { var n = $.CreatePanel(type, parent, id || ""); if (id) nodes[id] = n; if (cls) n.AddClass(cls); owned.push(n); return n; }
     function label(parent, id, text, x, y, w, h, size, color) { var n = make("Label", parent, id, "LotteryGW2Label"); n.text = text; n.hittest = false; place(n,x,y,w,h); style(n,{fontSize:size + "px",color:color || "#eaddc4"}); return n; }
@@ -74,19 +81,18 @@
         var detail=make("Panel",shell,"LotteryGW2DetailLayer"); place(detail,0,0,1536,864); detail.hittest=false;
         // UILayers raises the details ancestry. Keep its tooltip in that same
         // layer so the authoritative details panel cannot cover the tooltip.
-        var tooltip=make("Panel",detail,"LotteryGW2Tooltip","LotteryGW2Tooltip"); tooltip.AddClass("MenuTooltipHost"); tooltip.hittest=true; tooltip.hittestchildren=true; tooltip.visible=false;
+        var tooltip=make("Panel",detail,"LotteryGW2Tooltip","LotteryGW2Tooltip"); tooltip.hittest=false; tooltip.hittestchildren=false; tooltip.visible=false;
         style(tooltip,{zIndex:"100",flowChildren:"none"});
-        // Feather the art layer only; text and scroll controls remain unmasked.
-        var tipShadow=make("Panel",tooltip,"LotteryGW2TooltipSoftShadow","MenuTooltipSoftShadow"); place(tipShadow,0,0,366,340); tipShadow.hittest=false; tipShadow.hittestchildren=false;
-        var tipBacking=art(tooltip,"LotteryGW2TooltipBacking","tooltip_background",0,0,366,340); tipBacking.AddClass("MenuTooltipBacking");
-        art(tooltip,"LotteryGW2TooltipFrame","tooltip_frame",0,0,366,340);
+        var tipSkin=cfg.SurvivalBlackLionMarket.SkinTooltip(tooltip);tipSkin.Resize(368,340);
         var tipIconStage=make("Panel",tooltip,"LotteryGW2TooltipIconStage");place(tipIconStage,20,22,48,48);tipIconStage.hittest=false;
         var tipName=label(tooltip,"LotteryGW2TooltipName","",80,22,264,42,21,"#f0dfb8");
         var tipState=label(tooltip,"LotteryGW2TooltipState","",80,67,264,24,16,"#b5bfbb");
         var tipScroll=make("Panel",tooltip,"LotteryGW2TooltipScroll"); place(tipScroll,22,116,322,178); style(tipScroll,{flowChildren:"down",overflow:"squish scroll"});
         var tipDescription=label(tipScroll,"LotteryGW2TooltipDescription","",0,0,316,178,18,"#e0d6c5"); style(tipDescription,{height:"fit-children",ignoreParentFlow:"false",whiteSpace:"normal"});
         var tipCount=label(tooltip,"LotteryGW2TooltipQuantity","",22,294,322,24,17,"#b5bfbb");
-        view={root:shell,header:header,sidebar:sidebarPanel,content:content,detailLayer:detail,tooltip:tooltip,tipShadow:tipShadow,tipBacking:tipBacking,tipName:tipName,tipState:tipState,tipDescription:tipDescription,tipCount:tipCount,tipScroll:tipScroll,tipIconStage:tipIconStage,tabs:[]};
+        [tipName,tipState,tipDescription,tipCount].forEach(function(node){style(node,{textShadow:"none"});});
+        style(tipDescription,{fontSize:"17px",lineHeight:"24px",color:"#d7d9cb",textOverflow:"clip"});
+        view={root:shell,header:header,sidebar:sidebarPanel,content:content,detailLayer:detail,tooltip:tooltip,tipSkin:tipSkin,tipName:tipName,tipState:tipState,tipDescription:tipDescription,tipCount:tipCount,tipScroll:tipScroll,tipIconStage:tipIconStage,tabs:[]};
         tipDismiss=cfg.SurvivalTooltipDismiss.Create({panel:tooltip,getRect:tooltipRect,hide:hideTooltip,allowTooltipHover:tooltipOverflows,isAlive:alive,isVisible:function(){return canAct()&&valid(tooltip)&&tooltip.visible;}});
         tooltip.SetPanelEvent("onmouseover",function(){if(tooltipOverflows())cancelTooltipHide();else tipDismiss.Dismiss();});
         tooltip.SetPanelEvent("onmouseout",function(){if(!requestTooltipHide())hideTooltip();});
@@ -136,7 +142,8 @@
             var b=make("Button",view.previewItems,"LotteryGW2Preview_"+index,"LotteryGW2PreviewCard");place(b,index*128,0,118,106);b.hittestchildren=false;
             art(b,"","slot_background",21,0,76,76);var icon=cfg.SurvivalRewardPresentation&&cfg.SurvivalRewardPresentation.CreateIcon(b,item,"LotteryGW2PreviewIcon");if(icon){place(icon,22,1,74,74);fillItemIcon(icon,item);}
             art(b,"","slot_frame",21,0,76,76);label(b,"",String(item.name||item.id||""),0,79,118,26,16,"#dbd3c2");
-            b.SetPanelEvent("onmouseover",function(){tooltip(item,b);});b.SetPanelEvent("onmouseout",function(){if(!requestTooltipHide())hideTooltip();});b.SetPanelEvent("onactivate",function(){hideTooltip();invoke("Feature","details");});
+            if(icon){var hover=make("Panel",b,"","LotteryGW2PreviewHover"),at=String(icon.style.position).split(" ");place(hover,parseFloat(at[0]),parseFloat(at[1]),parseFloat(icon.style.width),parseFloat(icon.style.height));bindTooltipIcon(b,hover,item);}
+            b.SetPanelEvent("onactivate",function(){hideTooltip();invoke("Feature","details");});
         });
     }
     function action(id,primary) {
@@ -165,6 +172,7 @@
             place(card,result?(host.Children().length===1?488:52+(index%5)*212):5+(index%8)*137,result?10+Math.floor(index/5)*190:8+Math.floor(index/8)*178,134,168);
             style(card,{flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",overflow:"noclip",transform:"none"});
             cell.name.text=String(item.name||item.id||cell.name.text||"道具");cell.count.text=result?"×"+number(item.count===undefined?(item.quantity===undefined?1:item.quantity):item.count):quantity(item);
+            if(result)bindTooltipIcon(card,cell.stage,item);
             if(cover){place(cover,0,0,134,168);skin(cover,"slot_background");style(cover,{zIndex:"20"});}
         });
     }
@@ -278,20 +286,51 @@
         tipHideJob=$.Schedule(.15,function(){if(!alive()||epoch!==tipEpoch)return;tipHideJob=null;if(cursorInsideTooltipRegion(tipAnchor)||cursorInsideTooltipRegion(view.tooltip))return;hideTooltip();});
         return true;
     }
+    function effectLines(value) {
+        var source=String(value||"").replace(/\r\n?/g,"\n"),out="",depth=0;
+        var attribute=/^(?:英雄|箭塔|城墙|墙|伐木工?|金矿|地图等级|星悦积分|攻击|生命|护甲|金币|木材)[\u3400-\u9fffA-Za-z]{0,18}[+＋-]\s*\d/;
+        for(var i=0;i<source.length;i++){
+            var c=source.charAt(i),tail=source.slice(i),line=out.split("\n").pop();
+            if(!depth){
+                if(c===";"||c==="；"||c==="|"||c==="\n"){out+="\n";continue;}
+                if((c===","||c==="，")&&!(c===","&&/\d/.test(source.charAt(i-1))&&/\d/.test(source.charAt(i+1)))
+                    &&/[+＋-]|提高|增加|减少|获得/.test(line)){out+="\n";continue;}
+                if(/[ \t]/.test(c)){
+                    var next=i;while(next<source.length&&/[ \t]/.test(source.charAt(next)))next++;
+                    var rest=source.slice(next);
+                    if(/[0-9%％wW）)]$/.test(out)||attribute.test(rest)||/^(?:开局自带|获得英雄|购买后自动|获得后自动)/.test(rest)){
+                        out+="\n";i=next-1;continue;
+                    }
+                }
+                // Some recorded descriptions concatenate complete attributes.
+                // Require the next attribute's own signed value, keeping prose
+                // such as "额外增加4%英雄最终伤害" together.
+                if(/[0-9%％wW]$/.test(out)&&(attribute.test(tail)||/^(?:获得英雄|在城墙处)/.test(tail)))out+="\n";
+            }
+            if(c==="("||c==="（"||c==="["||c==="【")depth++;
+            if(c===")"||c==="）"||c==="]"||c==="】")depth=Math.max(0,depth-1);
+            out+=c;
+        }
+        return out.split("\n").map(function(line){return line.trim();}).filter(function(line){return !!line;}).join("\n");
+    }
     function tooltip(item,anchor) {
         if(!ensure()||!valid(anchor))return false;if(!canAct()){hideTooltip();return true;}if(!tipDismiss.CanShow(anchor))return true;item=item||{};
         cancelTooltipHide();tipAnchor=anchor;if(view.tipScroll.ScrollToTop)view.tipScroll.ScrollToTop();
-        var lines=[String(item.description||"暂无效果说明")];if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
+        var lines=[effectLines(item.description||"暂无效果说明")];if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
         if(item.count!==undefined||item.quantity!==undefined)lines.push("本次获得："+number(item.count===undefined?item.quantity:item.count));
         if(item.duplicate===true||Number(item.duplicate)===1)lines.push("本次已转化 "+number(item.converted_points)+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
         view.tipIconStage.RemoveAndDeleteChildren();var tipIcon=cfg.SurvivalRewardPresentation.CreateIcon(view.tipIconStage,item,"LotteryGW2TooltipIcon");if(tipIcon){place(tipIcon,0,0,48,48);fillItemIcon(tipIcon,item);}prune();
         view.tipName.text=String(item.name||item.id||"道具");view.tipState.text=String(item.quality||"").toUpperCase()+(item.duration_text?" · "+item.duration_text:"");
         style(view.tipName,{color:cfg.SurvivalRewardPresentation.NameColor(item.quality)});view.tipDescription.text=lines.join("\n");view.tipCount.text="拥有 "+quantity(item);
         var lineCount=0;lines.join("\n").split("\n").forEach(function(line){lineCount+=Math.max(1,Math.ceil(line.length/17));});
-        var h=Math.max(212,Math.min(490,145+lineCount*23));
+        var h=Math.max(176,Math.min(704,145+lineCount*24));
         var cp=p("LotteryMainCanvas").GetPositionWithinWindow(),at=anchor.GetPositionWithinWindow(),sx=(p("LotteryMainCanvas").actualuiscale_x||1)*scale,sy=(p("LotteryMainCanvas").actualuiscale_y||1)*scale;
-        var x=(at.x-cp.x)/sx+(anchor.actuallayoutwidth||72)+12,y=(at.y-cp.y)/sy;if(x+366>1508)x=(at.x-cp.x)/sx-378;x=Math.max(28,Math.min(1142,x));y=Math.max(25,Math.min(839-h,y));
-        place(view.tooltip,x,y,366,h);place(view.tipShadow,0,0,366,h);place(view.tipBacking,0,0,366,h);place(p("LotteryGW2TooltipFrame"),0,0,366,h);place(view.tipScroll,22,98,322,h-144);place(view.tipCount,22,h-46,322,24);view.tooltip.visible=true;tipDismiss.Shown(anchor);return true;
+        var headerAt=String(view.header.style.position).split(" "),sidebarAt=String(view.sidebar.style.position).split(" "),left=parseFloat(headerAt[0]),right=left+parseFloat(view.header.style.width),top=parseFloat(headerAt[1]),bottom=parseFloat(sidebarAt[1])+parseFloat(view.sidebar.style.height);
+        var x=(at.x-cp.x)/sx+(anchor.actuallayoutwidth||72)+12,y=(at.y-cp.y)/sy;if(x+368>right)x=(at.x-cp.x)/sx-380;x=Math.max(left,Math.min(right-368,x));y=Math.max(top,Math.min(bottom-h,y));
+        place(view.tooltip,x,y,368,h);view.tipSkin.Resize(368,h);place(view.tipScroll,20,98,328,h-144);place(view.tipDescription,0,0,320,0);style(view.tipDescription,{height:"fit-children",ignoreParentFlow:"false"});place(view.tipCount,20,h-38,328,24);view.tooltip.visible=true;
+        function syncTooltipInput(){if(!alive()||!view.tooltip.visible||tipAnchor!==anchor)return;var interactive=tooltipOverflows();[view.tooltip,view.tipSkin.surface,view.tipScroll].forEach(function(node){node.hittest=interactive;node.hittestchildren=interactive;});}
+        syncTooltipInput();[0,.05,.2].forEach(function(delay){$.Schedule(delay,syncTooltipInput);});
+        tipDismiss.Shown(anchor);return true;
     }
     var originalDialog=R&&R.LotteryDialog,originalReward=R&&R.RewardCard,presentation=cfg.SurvivalRewardPresentation,originalIcon=presentation&&presentation.CreateIcon;
     function iconWrapper(parent,item,className){var icon=originalIcon.call(presentation,parent,item,className);return alive()&&lotteryParent(parent)?existingRewardArt(icon,item):icon;}
