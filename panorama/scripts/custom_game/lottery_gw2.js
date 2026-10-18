@@ -208,6 +208,8 @@
         place(p("LotteryDrawPity"),593,495,497,31);place(p("LotteryDrawPityCaptionBounds"),0,0,497,31);place(p("LotteryDrawPityCaption"),0,0,497,31);style(p("LotteryDrawPityCaption"),{fontSize:"21px",minHeight:"0px",textAlign:"center",transform:"none",color:"#dbc999"});
         place(p("LHDetails"),18,616,142,40);place(p("LHHistory"),171,616,142,40);place(p("LotteryAnnouncement"),323,616,132,40);style(p("LotteryAnnouncement"),{visibility:"visible"});place(p("LotterySkipAnimation"),475,619,165,34);
         place(p("LotteryStatus"),659,618,430,40);style(p("LotteryStatus"),{fontSize:"17px",color:"#cfc8b5",whiteSpace:"normal",textShadow:"none",zIndex:"8"});
+        ["LotteryTitle","LotteryTagline","LotteryUnlockNotice","LotteryDrawPityCaption"].forEach(function(id){style(p(id),{textShadow:"0px 0px 2px 3.0 #000000, 0px 1px 4px 2.0 #000000"});});
+        ["LotteryTaglineBounds","LotteryDrawPityCaptionBounds"].forEach(function(id){style(p(id),{overflow:"noclip"});});
         ["LotterySingleButton","LotteryTenButton","LotteryAgain","LotteryConfirm","LotteryGW2InfoBack"].forEach(function(id){action(id,id==="LotteryTenButton"||id==="LotteryAgain");});
         ["LotterySingleCost","LotteryTenCost"].forEach(function(id){style(p(id),{visibility:"visible",fontSize:"22px",color:"#f2e4c8"});});
         ["LHDetails","LHHistory","LotteryAnnouncement","LotteryTicketPurchase","LotteryGW2Back"].forEach(function(id){var b=p(id);if(valid(b))b.AddClass("LotteryGW2Action");});
