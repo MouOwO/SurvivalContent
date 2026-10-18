@@ -121,13 +121,16 @@
         if(signature!==tabKey){view.sidebar.RemoveAndDeleteChildren();prune();view.tabs=[];tabKey=signature;
             pools.forEach(function(pool,index){
                 var id=String(pool.id),b=make("Button",view.sidebar,"LotteryGW2Pool_"+id,"LotteryGW2Pool"); place(b,0,index*132,250,116); b.hittestchildren=false;
+                var frame=make("Panel",b,"","ButtonBevel");place(frame,0,0,parseFloat(b.style.width),parseFloat(b.style.height));frame.hittest=false;frame.hittestchildren=false;
+                style(frame,{padding:"0px",minWidth:"0px",minHeight:"0px",backgroundImage:"none",borderStyle:"solid",borderWidth:"2px",boxShadow:"#00000088 0px 0px 4px 0px",overflow:"clip"});
                 var name=label(b,"",String(pool.display_name||id),18,22,214,35,25,"#e4d6bc");
                 var state=label(b,"","",18,66,214,25,16,"#aaa99c");
                 b.SetPanelEvent("onactivate",function(){if(!canAct())return;hideTooltip();if(mode==="history")invoke("SelectHistoryPool",id);else invoke("SelectPool",id);});
-                view.tabs.push({id:id,button:b,name:name,state:state});
+                view.tabs.push({id:id,button:b,frame:frame,name:name,state:state});
             });
         }
-        view.tabs.forEach(function(tab,index){var pool=pools[index]||{},on=tab.id===selected;tab.button.SetHasClass("Selected",on);skin(tab.button,on?"tab_selected":"tab_background");
+        view.tabs.forEach(function(tab,index){var pool=pools[index]||{},on=tab.id===selected;tab.button.SetHasClass("Selected",on);style(tab.button,{backgroundImage:"none",backgroundColor:"transparent"});
+            style(tab.frame,{backgroundColor:on?"gradient(linear, 0% 0%, 0% 100%, from(#393a32d8), to(#242b27e8))":"gradient(linear, 0% 0%, 0% 100%, from(#29312dc0), to(#141c1cc0))",borderTopColor:on?"#a69a77":"#77796c",borderLeftColor:on?"#8b8266":"#64675e",borderBottomColor:on?"#534a39":"#303932",borderRightColor:on?"#625740":"#3d453a"});
             tab.state.text=pool.unlocked===false?"未解锁  "+number(pool.unlock_progress)+" / "+number(pool.unlock_required):String(pool.ticket_name||((pool.ticket_content_id==="special_lottery_ticket")?"金色抽奖券":""));
             style(tab.name,{color:on?"#f3e7ce":"#c5c8bf"});
         });
