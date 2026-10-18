@@ -103,6 +103,10 @@
         view.ticket=label(header,"LotteryGW2TicketBalance","抽奖券 —",628,16,278,36,20,"#e6d4ad");
         view.points=label(header,"LotteryGW2Points","商城积分 —",907,9,236,25,18,"#b6cac9");
         view.starjoy=label(header,"LotteryGW2StarjoyPoints","星悦积分 —",907,34,236,22,15,"#a9b3b0");
+        var ticketAt=String(view.ticket.style.position).split(" "),ticketWidth=parseFloat(view.ticket.style.width),ticketHeight=parseFloat(view.ticket.style.height);
+        view.ticketHost=make("Panel",header,"LotteryGW2TicketCurrency");place(view.ticketHost,parseFloat(ticketAt[0]),parseFloat(ticketAt[1]),ticketWidth,ticketHeight);view.ticketHost.hittest=false;view.ticketHost.hittestchildren=false;
+        view.ticket.SetParent(view.ticketHost);place(view.ticket,44,0,ticketWidth-44,ticketHeight);style(view.ticket,{height:"fit-children",verticalAlign:"center"});view.ticket.text="—";
+        view.ticketIcon=make("Panel",view.ticketHost,"LotteryGW2TicketIcon");place(view.ticketIcon,0,0,36,29);style(view.ticketIcon,{verticalAlign:"center"});view.ticketIcon.hittest=false;view.ticketIcon.hittestchildren=false;
         move("LotteryTicketPurchase",header); place(p("LotteryTicketPurchase"),1158,9,186,47); p("LotteryTicketPurchase").AddClass("LotteryGW2Action");
         p("LotteryTicketPurchase").Children().forEach(function(c){c.visible=false;}); label(p("LotteryTicketPurchase"),"LotteryGW2PurchaseLabel","获取抽奖券",0,0,186,47,19);
         move("LotteryCloseButton",header); place(p("LotteryCloseButton"),1362,8,48,48); skin(p("LotteryCloseButton"),"close"); p("LotteryCloseButton").Children().forEach(function(c){c.visible=false;});
@@ -136,6 +140,11 @@
         });
     }
     function number(raw) { if(raw===undefined||raw===null||raw==="")return "—";var n=Number(raw);return isFinite(n)&&n>=0?String(n):"—"; }
+    function ticketIcon(node,pool) {
+        var id=String(pool&&pool.ticket_content_id||""),poolId=String(pool&&pool.id||selected);
+        if(!id)id=poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket";
+        style(node,{backgroundImage:'url("s2r://panorama/images/icon_ticket_png.vtex")',backgroundSize:"contain",backgroundPosition:"center",backgroundRepeat:"no-repeat",opacityMask:"none",washColor:id==="special_lottery_ticket"?"#f1cc72":"#c4dce8",opacity:"1"});
+    }
     function quantity(item) {var current=number(item&&item.owned_count),max=Number(item&&item.max_owned);return current+(current!=="—"&&isFinite(max)&&max>0?"/"+max:"");}
     function previews() {
         if(!alive()||!view||!valid(view.previewItems))return;
@@ -160,6 +169,9 @@
     function action(id,primary) {
         var b=p(id);if(!valid(b))return;b.AddClass("LotteryGW2Action");b.SetHasClass("LotteryGW2Primary",!!primary);skin(b,"draw_button");style(b,{boxShadow:"none",flowChildren:"none",borderRadius:"0px"});
         walk(b,function(n){if(n.paneltype==="Label")style(n,{color:b.enabled===false?"#9b9383":"#f2e4c8",textShadow:"#000000 0px 1px 2px 1.0"});if(n.BHasClass("ZXActionSkin")||n.BHasClass("LHDrawVisual"))n.visible=false;});
+        if(id==="LotterySingleButton"||id==="LotteryTenButton"){
+            walk(b,function(n){if(n.BHasClass("LHDrawTicket"))ticketIcon(n,snapshot&&(snapshot.selected_pool||snapshot));});
+        }
     }
     function compactCards(host,single) {
         if(!valid(host)||!ensure())return;
@@ -221,7 +233,7 @@
         var film=p("LotteryCinematicSurface");if(valid(film)){moveNode(film,view.content);place(film,0,0,1113,669);}
         view.preview.style.visibility=drawVisible?"visible":"collapse";
         if(!mode)view.title.text="抽奖";
-        view.ticket.text=String(pool&&pool.ticket_name||"抽奖券")+"  "+number(pool&&pool.tickets);
+        view.ticket.text=number(pool&&pool.tickets);ticketIcon(view.ticketIcon,pool);
         view.points.text="商城积分  "+number(snapshot&&snapshot.shop_points);
         view.starjoy.text="星悦积分  "+number(snapshot&&snapshot.starjoy_points);
         fit();
