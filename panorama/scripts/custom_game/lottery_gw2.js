@@ -167,7 +167,10 @@
         });
     }
     function action(id,primary) {
-        var b=p(id);if(!valid(b))return;b.AddClass("LotteryGW2Action");b.SetHasClass("LotteryGW2Primary",!!primary);skin(b,"draw_button");style(b,{boxShadow:"none",flowChildren:"none",borderRadius:"0px"});
+        var b=p(id);if(!valid(b))return;b.AddClass("LotteryGW2Action");b.AddClass("LotteryGW2NativeButton");b.SetHasClass("LotteryGW2Primary",!!primary);style(b,{backgroundImage:"none",backgroundColor:"transparent",boxShadow:"none",flowChildren:"none",borderRadius:"0px",border:"0px",overflow:"clip"});
+        var skins=view.actionSkins||(view.actionSkins={}),surface=skins[id];
+        if(!valid(surface)){surface=skins[id]=make("Panel",b,"","LotteryGW2ButtonSurface");surface.hittest=false;surface.hittestchildren=false;var first=b.Children()[0];if(first!==surface&&b.MoveChildBefore)b.MoveChildBefore(surface,first);}
+        place(surface,0,0,0,0);style(surface,{width:"100%",height:"100%",zIndex:"0",backgroundImage:"none",backgroundColor:"transparent",borderStyle:"solid",borderColor:"transparent",borderWidth:"16px",borderImageSource:'url("s2r://panorama/images/hud/button_thin_secondary_png.vtex")',borderImageSlice:"16px 16px 16px 16px fill",borderImageRepeat:"stretch"});
         walk(b,function(n){if(n.paneltype==="Label")style(n,{color:b.enabled===false?"#9b9383":"#f2e4c8",textShadow:"#000000 0px 1px 2px 1.0"});if(n.BHasClass("ZXActionSkin")||n.BHasClass("LHDrawVisual"))n.visible=false;});
         if(id==="LotterySingleButton"||id==="LotteryTenButton"){
             walk(b,function(n){if(n.BHasClass("LHDrawTicket"))ticketIcon(n,snapshot&&(snapshot.selected_pool||snapshot));});
