@@ -4,8 +4,7 @@
     var prior=GameUI.CustomUIConfig().SurvivalRogueReward;if(prior&&prior.Dispose)prior.Dispose();var disposed=false;var U=GameUI.CustomUIConfig().SurvivalUI,life=U.Lifecycle();
     var playerId=Game.GetLocalPlayerID(),current={},signature="",cards=[],timers=[],generation=0,ready=false,pending=false,opened=false,dismissed=false;
     var config=GameUI.CustomUIConfig(),reduced=false;config.RogueReducedMotion=false;
-    // Presentation mapping only. Candidate generation and effects remain server-owned.
-    var artGroups={defense:["frozen_wall","ion_shield","feast","corrosive_shield","wall_recovery","fortified_defense","emergency_reinforcement","endless_rebirth"],growth:["divine_wish","tower_growth","boss_promise","far_sighted","command_change","infrastructure_maniac","radiant_sapling","fiscal_subsidy","goblin_duplicator","lucky_watch","bounty_order","construction_order","internship_certificate","infrastructure_outsourcing","wealthy_start","infrastructure_maniac_start","precision_lumber","peaceful_labor","woodcutting_bounty","instant_wood","gold_mining_secret","population_expansion","natures_gift"]};
+    var cardWidth=304,cardHeight=600,cardTop=206,cardGap=62,cardPadding=32,fitScale=1,hovered=null,tiltEpoch=0;
     function panel(id){return $("#"+id);}
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function rows(v){return !v?[]:Array.isArray(v)?v:Object.keys(v).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return v[k];});}
@@ -18,28 +17,45 @@
     var resumeText=label(resume,"","继续选牌");resumeText.style.horizontalAlign="center";resumeText.style.verticalAlign="center";resumeText.style.fontSize="20px";resumeText.style.color="#eee0b7";
     resume.SetPanelEvent("onactivate",open);
     function later(time,fn){augment.Later(time,fn);}
-    function cancel(){generation++;augment.Cancel();}
+    function resetTilt(){tiltEpoch++;hovered=null;cards.forEach(function(c){if(valid(c.tilt))c.tilt.style.transform="none";if(valid(c.slot))c.slot.style.zIndex="0";});}
+    function cancel(){generation++;augment.Cancel();resetTilt();}
     function active(){return Number(current.active)===1&&!!current.token;}
     function updateButtons(){cards.forEach(function(c){c.button.enabled=opened&&ready&&!pending&&(!current.pending_card_id||c.id===current.pending_card_id);});panel("RogueRewardReroll").enabled=opened&&active()&&ready&&!pending&&!current.pending_card_id&&Number(current.rerolls_remaining)>0;panel("RogueRewardRerollText").text=Number(current.rerolls_remaining)>0?"免费重抽  "+current.rerolls_remaining:"本次已重抽";if(ready&&!pending&&current.pending_card_id)panel("RogueRewardStatus").text="神许愿已有部分效果生效，请重试完成剩余效果";}
     function show(){var backdrop=panel("RogueRewardBackdrop");if(valid(backdrop)){backdrop.SetHasClass("RogueRewardHidden",!opened);backdrop.visible=opened;backdrop.hittest=opened;backdrop.hittestchildren=opened;}if(valid(resume))resume.visible=!disposed&&active()&&dismissed;}
     function close(){if(disposed)return;dismissed=active();opened=false;cancel();show();updateButtons();if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");}
     function open(){if(disposed||!active()||opened)return;dismissed=false;opened=true;show();if(config.SurvivalUILayers)config.SurvivalUILayers.Open("rogue_choice",panel("RogueRewardBackdrop"),close);if(!ready)finish();else updateButtons();watchFit();}
-    function fit(){U.Fit(panel("RogueRewardSurface"),$.GetContextPanel(),1672,941,{reference:[1672,941]});}
+    function fit(){fitScale=Number(U.Fit(panel("RogueRewardSurface"),$.GetContextPanel(),1672,941,{reference:[1672,941]}))||1;}
     function watchFit(){if(disposed||!active()||!opened)return;fit();later(.25,watchFit);}
-    function showFront(c){c.front.visible=true;c.back.visible=false;}
-    function finish(){cards.forEach(function(c){c.slot.AddClass("RogueInstant");c.slot.style.opacity="1";c.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";c.flip.AddClass("RogueInstant");showFront(c);c.flip.style.transform="rotateY(0deg)";});ready=true;panel("RogueRewardStatus").text="请选择一项强化";updateButtons();}
-    function choose(id){if(!opened||!active()||!ready||pending||(current.pending_card_id&&id!==current.pending_card_id)||!cards.some(function(c){return c.id===id;}))return;pending=true;cards.forEach(function(c){c.slot.SetHasClass("RogueChosen",c.id===id);c.slot.SetHasClass("RogueNotChosen",c.id!==id);});updateButtons();panel("RogueRewardStatus").text="正在确认强化…";Game.EmitSound("ui_generic_button_click");GameEvents.SendCustomGameEventToServer("ui_rogue_reward_select",{token:current.token,card_id:id});}
-    function createCard(data,index,total){var x=836-total*290/2-(total-1)*68/2+index*358;
-        var slot=$.CreatePanel("Panel",panel("RogueRewardCards"),"");slot.AddClass("RogueSlot");slot.style.position=x+"px 181px 0px";
+    function tiltCard(c){
+        if(!opened||!ready||pending||reduced||!valid(c.slot)||!valid(c.tilt))return;
+        var point=GameUI.GetCursorPosition?GameUI.GetCursorPosition():null;
+        if(!point||!c.slot.GetPositionWithinWindow)return;
+        // Read the stable slot, never its moving child, to avoid hover feedback.
+        var origin=c.slot.GetPositionWithinWindow(),uiScale=Number($.GetContextPanel().actualuiscale_x)||1;
+        var width=cardWidth*fitScale*uiScale,height=cardHeight*fitScale*uiScale;
+        var pad=cardPadding*fitScale*uiScale;
+        var x=Math.max(-1,Math.min(1,2*(point[0]-origin.x-pad)/width-1));
+        var y=Math.max(-1,Math.min(1,2*(point[1]-origin.y-pad)/height-1));
+        c.tilt.style.transform="translate3d(0px,-8px,8px) rotateX("+(-y*4).toFixed(2)+"deg) rotateY("+(x*6).toFixed(2)+"deg) scale3d(1.025,1.025,1)";
+    }
+    function followTilt(c,epoch){if(disposed||!opened||!ready||pending||hovered!==c||tiltEpoch!==epoch||reduced)return;tiltCard(c);later(1/30,function(){followTilt(c,epoch);});}
+    function hover(c){if(disposed||!opened||pending||!c.button.enabled)return;if(hovered===c)return;resetTilt();hovered=c;c.slot.style.zIndex="5";Game.EmitSound("ui_rollover_micro");if(!reduced)followTilt(c,tiltEpoch);}
+    function leave(c){if(hovered===c)resetTilt();}
+    function finish(){cards.forEach(function(c){c.slot.AddClass("RogueInstant");c.slot.style.opacity="1";c.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";});ready=true;panel("RogueRewardStatus").text="";updateButtons();}
+    function choose(id){if(!opened||!active()||!ready||pending||(current.pending_card_id&&id!==current.pending_card_id)||!cards.some(function(c){return c.id===id;}))return;pending=true;resetTilt();cards.forEach(function(c){c.slot.SetHasClass("RogueChosen",c.id===id);c.slot.SetHasClass("RogueNotChosen",c.id!==id);});updateButtons();panel("RogueRewardStatus").text="正在确认强化…";Game.EmitSound("ui_generic_button_click");GameEvents.SendCustomGameEventToServer("ui_rogue_reward_select",{token:current.token,card_id:id});}
+    function createCard(data,index,total){var x=836-(total*cardWidth+(total-1)*cardGap)/2+index*(cardWidth+cardGap);
+        // Native paint bounds still clip transformed children despite noclip.
+        // Transparent margins contain the complete hovered face.
+        var slot=$.CreatePanel("Panel",panel("RogueRewardCards"),"");slot.AddClass("RogueSlot");slot.style.position=(x-cardPadding)+"px "+(cardTop-cardPadding)+"px 0px";
         var button=$.CreatePanel("Button",slot,"");button.AddClass("RoguePick");button.hittestchildren=true;button.enabled=false;
-        var flip=$.CreatePanel("Panel",button,"");flip.AddClass("RogueFlip");
-        var front=$.CreatePanel("Panel",flip,"");front.AddClass("RogueFront");var group="combat";Object.keys(artGroups).forEach(function(k){if(artGroups[k].indexOf(data.card_id)>=0)group=k;});front.AddClass("RogueArt_"+group);GameUI.CustomUIConfig().SurvivalRogueArt.Apply(front,data);
-        var copy=$.CreatePanel("Panel",front,"");copy.AddClass("RogueCopy");label(copy,"RogueCardName",data.display_name||data.card_id);var description=label(copy,"RogueCardDescription",data.description||"");description.hittest=true;
-        var back=$.CreatePanel("Panel",flip,"");back.AddClass("RogueBack");front.visible=false;
-        button.SetPanelEvent("onactivate",function(){choose(data.card_id);});button.SetPanelEvent("onmouseover",function(){if(ready&&!pending)Game.EmitSound("ui_rollover_micro");});
-        var c={id:data.card_id,slot:slot,button:button,flip:flip,front:front,back:back};
-        // All slot centers start at the same design-space point (836, 850).
-        slot.style.transform="translate3d("+(836-x-145)+"px,333px,0px) scale3d(0.08,0.08,1)";slot.style.opacity="0";
+        var tilt=$.CreatePanel("Panel",button,"");tilt.AddClass("RogueTilt");tilt.hittest=false;tilt.hittestchildren=true;
+        var front=$.CreatePanel("Panel",tilt,"");front.AddClass("RogueFront");front.visible=true;front.hittest=false;front.hittestchildren=true;GameUI.CustomUIConfig().SurvivalRogueArt.Apply(front,data);
+        label(front,"RogueCardName",data.display_name||data.card_id);
+        var copy=$.CreatePanel("Panel",front,"");copy.AddClass("RogueCopy");copy.hittest=false;copy.hittestchildren=true;var description=label(copy,"RogueCardDescription",String(data.description||"").replace(/[；;][ \t]*/g,"\n"));description.hittest=true;
+        var c={id:data.card_id,slot:slot,button:button,tilt:tilt,front:front};
+        button.SetPanelEvent("onactivate",function(){choose(data.card_id);});button.SetPanelEvent("onmouseover",function(){hover(c);});button.SetPanelEvent("onmouseout",function(){leave(c);});
+        // Every face leaves the same deck point, without a back or a flip phase.
+        slot.style.transform="translate3d("+(836-x-cardWidth/2)+"px,"+(870-cardTop-cardHeight/2)+"px,0px) scale3d(0.12,0.12,1)";slot.style.opacity="0";
         if(!reduced&&opened)augment.Animate(c,index);
         return c;
     }
@@ -50,14 +66,14 @@
         if(!active()){if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");return;}
         // Dismiss only the presentation; the server offer stays pending until a choice is made.
         if(opened&&config.SurvivalUILayers)config.SurvivalUILayers.Open("rogue_choice",panel("RogueRewardBackdrop"),close);
-        panel("RogueRewardStatus").text="命运正在展开…";cards=rows(value.cards).map(function(c,i,all){return createCard(c,i,all.length);});updateButtons();
-        if(opened){watchFit();if(reduced)finish();else later(1.60+Math.max(0,cards.length-1)*.11,finish);}
+        panel("RogueRewardStatus").text="正在发牌…";cards=rows(value.cards).map(function(c,i,all){return createCard(c,i,all.length);});updateButtons();
+        if(opened){watchFit();if(reduced)finish();else later(1,finish);}
     }
     panel("RogueRewardReroll").SetPanelEvent("onactivate",function(){if(!opened||!active()||!ready||pending||current.pending_card_id||Number(current.rerolls_remaining)<=0)return;pending=true;updateButtons();panel("RogueRewardStatus").text="正在重抽…";GameEvents.SendCustomGameEventToServer("ui_rogue_reward_reroll",{token:current.token});});
     life.Subscribe("ui_rogue_reward_result",function(result){if(!active()||String(result.token)!==String(current.token)||!pending)return;if(result.ok===true||Number(result.ok)===1)return;pending=false;cards.forEach(function(c){c.slot.RemoveClass("RogueChosen");c.slot.RemoveClass("RogueNotChosen");});panel("RogueRewardStatus").text=current.pending_card_id?"神许愿已有部分效果生效，请重试完成剩余效果":"操作未完成，请重试（"+String(result.error||"unknown")+"）";updateButtons();});
     var tableSubscription=CustomNetTables.SubscribeNetTableListener("survival_rogue_reward",function(_,key,value){if(String(key)===String(playerId))render(value);});
-    config.SurvivalRogueReward={Open:open,Close:close,IsOpen:function(){return !disposed&&opened;},Dispose:function(){disposed=true;opened=false;cancel();life.Dispose();if(augment.Dispose)augment.Dispose();show();if(valid(resume))resume.DeleteAsync(0);if(CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(tableSubscription);if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");},SetReducedMotion:function(enabled){reduced=!!enabled;config.RogueReducedMotion=reduced;if(opened&&active()&&!ready&&reduced){cancel();finish();watchFit();}}};
-    U.FullscreenShell.Adopt({panel:panel("RogueRewardBackdrop")});panel("RogueRewardBackdrop").style.backgroundColor="transparent";panel("RogueRewardBackdrop").style.backgroundImage="none";
+    config.SurvivalRogueReward={Open:open,Close:close,IsOpen:function(){return !disposed&&opened;},Dispose:function(){if(disposed)return;disposed=true;opened=false;cancel();life.Dispose();if(augment.Dispose)augment.Dispose();show();if(valid(resume))resume.DeleteAsync(0);if(CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(tableSubscription);if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");},SetReducedMotion:function(enabled){reduced=!!enabled;config.RogueReducedMotion=reduced;if(reduced)resetTilt();if(opened&&active()&&!ready&&reduced){cancel();finish();watchFit();}}};
+    U.FullscreenShell.Adopt({panel:panel("RogueRewardBackdrop")});panel("RogueRewardBackdrop").style.backgroundColor="#00000080";panel("RogueRewardBackdrop").style.backgroundImage="none";
     panel("RogueRewardReroll").visible=false;panel("RogueRewardReroll").hittest=false;
     render(CustomNetTables.GetTableValue("survival_rogue_reward",String(playerId))||{});
 })();

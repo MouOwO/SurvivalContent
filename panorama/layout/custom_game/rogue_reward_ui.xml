@@ -5,9 +5,9 @@
         <Panel id="RogueRewardBackdrop" class="RogueRewardHidden" hittest="true">
             <Panel id="RogueRewardSurface" hittest="true">
                 <Label class="RogueRewardTitle" text="命运抉择" />
-                <Label class="RogueRewardSubtitle" text="选择一项强化 · 塑造本局成长" />
+                <Label class="RogueRewardSubtitle" text="选择一项强化" />
                 <Panel id="RogueRewardCards" />
-                <Label id="RogueRewardStatus" text="命运正在展开…" />
+                <Label id="RogueRewardStatus" text="正在发牌…" />
                 <Button id="RogueRewardReroll"><Label id="RogueRewardRerollText" text="免费重抽" /></Button>
             </Panel>
         </Panel>

@@ -1,30 +1,280 @@
 (function(){
-    'use strict';
-    var cfg=GameUI.CustomUIConfig(),entries={"frozen_wall":{"uri":"file://{images}/spellicons/survival/native/shivas_guard.png"},"recruit_training":{"uri":"file://{images}/spellicons/survival/native/skill_multi_arrow.png"},"ion_shield":{"uri":"file://{images}/spellicons/survival/native/skill_ion_shield.png"},"weakening_orb":{"uri":"file://{images}/spellicons/survival/native/skill_poison.png"},"divine_wish":{"uri":"file://{images}/spellicons/survival/native/skill_wish.png"},"tower_growth":{"uri":"file://{images}/spellicons/survival/native/building_arrow_tower.png"},"fortifications":{"uri":"file://{images}/spellicons/survival/native/talent_fortified_defense.png"},"feast":{"uri":"file://{images}/spellicons/survival/native/population.png"},"boss_promise":{"uri":"file://{images}/spellicons/survival/native/skill_pie.png"},"far_sighted":{"uri":"file://{images}/spellicons/survival/native/skill_take_aim.png"},"command_change":{"uri":"file://{images}/spellicons/survival/native/recipe.png"},"infrastructure_maniac":{"uri":"file://{images}/spellicons/survival/native/talent_infrastructure_maniac_start.png"},"gunpowder_splash":{"uri":"file://{images}/spellicons/survival/native/skill_flak_cannon.png"},"radiant_sapling":{"uri":"file://{images}/spellicons/survival/native/talent_natures_gift.png"},"kick_when_down":{"uri":"file://{images}/spellicons/survival/native/talent_heavy_hand.png"},"tower_network":{"uri":"file://{images}/spellicons/survival/native/skill_network.png"},"fiscal_subsidy":{"uri":"file://{images}/spellicons/survival/native/gold_stack.png"},"corrosive_shield":{"uri":"file://{images}/spellicons/survival/native/skill_corrosive_shield.png"},"goblin_duplicator":{"uri":"file://{images}/spellicons/survival/native/skill_fusion.png"},"lucky_watch":{"uri":"file://{images}/spellicons/survival/native/skill_endless.png"},"nuclear_bomb":{"uri":"file://{images}/spellicons/survival/native/skill_nuclear.png"},"bounty_order":{"uri":"file://{images}/spellicons/survival/native/recipe.png"},"high_morale":{"uri":"file://{images}/spellicons/survival/native/skill_morale.png"},"in_step":{"uri":"file://{images}/spellicons/survival/native/talent_wind_strategy.png"},"construction_order":{"uri":"file://{images}/spellicons/survival/native/recipe.png"},"internship_certificate":{"uri":"file://{images}/spellicons/survival/native/tome_of_knowledge.png"},"bloodthirst_potion":{"uri":"file://{images}/spellicons/survival/native/skill_potion_blood.png"},"infrastructure_outsourcing":{"uri":"file://{images}/spellicons/survival/native/mithril_hammer.png"},"burst_potion":{"uri":"file://{images}/spellicons/survival/native/skill_potion_burst.png"},"iron_fist_policy":{"uri":"file://{images}/spellicons/survival/native/talent_heavy_hand.png"},"training_dummy":{"uri":"file://{images}/spellicons/survival/native/skill_dummy.png"},"wall_recovery":{"uri":"file://{images}/spellicons/survival/native/talent_wall_recovery.png"},"wealthy_start":{"uri":"file://{images}/spellicons/survival/native/talent_wealthy_start.png"},"sharp_volley":{"uri":"file://{images}/spellicons/survival/native/talent_sharp_volley.png"},"lumberjack_assault":{"uri":"file://{images}/spellicons/survival/native/talent_lumberjack_assault.png"},"fortified_defense":{"uri":"file://{images}/spellicons/survival/native/talent_fortified_defense.png"},"infrastructure_maniac_start":{"uri":"file://{images}/spellicons/survival/native/talent_infrastructure_maniac_start.png"},"precision_lumber":{"uri":"file://{images}/spellicons/survival/native/talent_precision_lumber.png"},"peaceful_labor":{"uri":"file://{images}/spellicons/survival/native/talent_peaceful_labor.png"},"woodcutting_bounty":{"uri":"file://{images}/spellicons/survival/native/talent_woodcutting_bounty.png"},"instant_wood":{"uri":"file://{images}/spellicons/survival/native/talent_instant_wood.png"},"gold_mining_secret":{"uri":"file://{images}/spellicons/survival/native/talent_gold_mining_secret.png"},"hero_descent":{"uri":"file://{images}/spellicons/survival/native/talent_hero_descent.png"},"population_expansion":{"uri":"file://{images}/spellicons/survival/native/talent_population_expansion.png"},"natures_gift":{"uri":"file://{images}/spellicons/survival/native/talent_natures_gift.png"},"emergency_reinforcement":{"uri":"file://{images}/spellicons/survival/native/talent_emergency_reinforcement.png"},"wind_strategy":{"uri":"file://{images}/spellicons/survival/native/talent_wind_strategy.png"},"allround_tempering":{"uri":"file://{images}/spellicons/survival/native/talent_allround_tempering.png"},"heavy_hand":{"uri":"file://{images}/spellicons/survival/native/talent_heavy_hand.png"},"first_to_strike":{"uri":"file://{images}/spellicons/survival/native/talent_first_to_strike.png"},"endless_rebirth":{"uri":"file://{images}/spellicons/survival/native/talent_endless_rebirth.png"},"long_range_volley":{"uri":"file://{images}/spellicons/survival/native/talent_long_range_volley.png"}},base="file://{images}/custom_game/remaining_handoff_ready/rogue_combat.png",cleanBase="s2r://panorama/images/custom_game/rogue_clean_base_v1/blank_png.vtex";
-    function make(type,parent,cls){var p=$.CreatePanel(type,parent,'');p.AddClass(cls);p.hittest=false;p.hittestchildren=false;return p;}
-    function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling('stretch-to-cover-preserve-aspect');return icon;}
-    function rect(p,x,y,w,h){p.style.position=x+'px '+y+'px 0px';p.style.width=w+'px';p.style.height=h+'px';p.style.minWidth=w+'px';p.style.minHeight=h+'px';p.style.maxWidth='10000px';p.style.maxHeight='10000px';}
-    // Display crops of the unchanged approved 352 x 816 card. Its outer frame,
-    // header jewel and entire text footer retain their original proportions.
-    function framePart(parent,x,y,w,h){
-        var clip=make('Panel',parent,'RogueFrameCrop');rect(clip,x,y,w,h);clip.style.overflow='clip';
-        var source=make('Panel',clip,'RogueFrameSource');rect(source,-x,-y,290,672);source.style.backgroundImage='url("'+base+'")';source.style.backgroundSize='100% 100%';source.style.backgroundPosition='0px 0px';source.style.backgroundRepeat='no-repeat';
-    }
-    cfg.SurvivalRogueArt={Apply:function(front,data){
-        var native=cfg.SurvivalNativeIcons&&cfg.SurvivalNativeIcons.Resolve(data.card_id);
-        var entry=native||entries[String(data.card_id)];if(!entry)return false;
-        front.style.backgroundImage='none';front.style.backgroundColor='transparent';
-        var skin=make('Panel',front,'RogueArtSkin');rect(skin,0,0,290,672);
-        // Layer 1: complete parchment base; explicit background sizing avoids Image native-size cropping.
-        skin.style.backgroundImage='url("'+cleanBase+'")';
-        skin.style.backgroundSize='100% 100%';skin.style.backgroundRepeat='no-repeat';
-        skin.style.zIndex='0';
-        // Preserve the approved frame and footer, with no baked sword illustration.
-        framePart(skin,0,0,290,38);framePart(skin,0,38,14,376);
-        framePart(skin,276,38,14,376);framePart(skin,0,414,290,258);
-        // Layer 2: illustration only, confined above the text compartment.
-        var art=make('Image',front,'RogueOptionIllustration');rect(art,29,native?108:50,232,native?232:348);art.style.zIndex='1';
-        art.SetImage(entry.uri);fillIcon(art,data);
+    "use strict";
+    // Native high-resolution artwork; this mapping never changes reward effects.
+    var cfg=GameUI.CustomUIConfig(),entries={
+  "frozen_wall": {
+    "uri": "s2r://panorama/images/loadingscreens/lich_lord_of_permafrost_lord_of_permafrost/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/lich_frost_shield_png.vtex",
+    "position": "56% 50%"
+  },
+  "recruit_training": {
+    "uri": "s2r://panorama/images/loadingscreens/clinkz_the_faith_of_avengers_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/medusa_split_shot_png.vtex",
+    "position": "33% 50%"
+  },
+  "ion_shield": {
+    "uri": "s2r://panorama/images/loadingscreens/abaddon_endless_night_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/abaddon_aphotic_shield_png.vtex",
+    "position": "66% 50%"
+  },
+  "weakening_orb": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_alchemist_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/alchemist_acid_spray_png.vtex",
+    "position": "55% 50%"
+  },
+  "divine_wish": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_ogremagi_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/ogre_magi_multicast_png.vtex",
+    "position": "60% 50%"
+  },
+  "tower_growth": {
+    "uri": "s2r://panorama/images/loadingscreens/clinkz_the_faith_of_avengers_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/clinkz_strafe_png.vtex",
+    "position": "33% 50%"
+  },
+  "fortifications": {
+    "uri": "s2r://panorama/images/loadingscreens/dotapit3_sven_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/sven_warcry_png.vtex",
+    "position": "43% 50%"
+  },
+  "feast": {
+    "uri": "s2r://panorama/images/loadingscreens/meepo_crystal_scavenger_loading_screen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/meepo_divided_we_stand_png.vtex",
+    "position": "50% 50%"
+  },
+  "boss_promise": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_ogremagi_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/ogre_magi_bloodlust_png.vtex",
+    "position": "60% 50%"
+  },
+  "far_sighted": {
+    "uri": "s2r://panorama/images/loadingscreens/dreamhack_sniper_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/sniper_take_aim_png.vtex",
+    "position": "50% 50%"
+  },
+  "command_change": {
+    "uri": "s2r://panorama/images/loadingscreens/tinker_vagrant_loading_screen/loadingscreen_png.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/tinker_rearm_png.vtex",
+    "position": "43% 50%"
+  },
+  "infrastructure_maniac": {
+    "uri": "s2r://panorama/images/loadingscreens/tinker_vagrant_loading_screen/loadingscreen_png.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/tinker_rearm_png.vtex",
+    "position": "43% 50%"
+  },
+  "gunpowder_splash": {
+    "uri": "s2r://panorama/images/loadingscreens/dwarven_gyrocopter_loading_screen/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/gyrocopter_flak_cannon_png.vtex",
+    "position": "20% 50%"
+  },
+  "radiant_sapling": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_treant_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/furion_force_of_nature_png.vtex",
+    "position": "55% 50%"
+  },
+  "kick_when_down": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_ogremagi_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/ogre_magi_multicast_png.vtex",
+    "position": "60% 50%"
+  },
+  "tower_network": {
+    "uri": "s2r://panorama/images/loadingscreens/bounch_luna_ls/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/luna_lunar_blessing_png.vtex",
+    "position": "50% 50%"
+  },
+  "fiscal_subsidy": {
+    "uri": "s2r://panorama/images/loadingscreens/ti6_keyart_bounty_hunter/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/bounty_hunter_track_png.vtex",
+    "position": "65% 50%"
+  },
+  "corrosive_shield": {
+    "uri": "s2r://panorama/images/loadingscreens/king_of_vipers_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/viper_corrosive_skin_png.vtex",
+    "position": "50% 50%"
+  },
+  "goblin_duplicator": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_alchemist_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/alchemist_chemical_rage_png.vtex",
+    "position": "55% 50%"
+  },
+  "lucky_watch": {
+    "uri": "s2r://panorama/images/loadingscreens/wraith_king_tyrant_of_the_emerald_abyss_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/skeleton_king_reincarnation_png.vtex",
+    "position": "55% 50%"
+  },
+  "nuclear_bomb": {
+    "uri": "s2r://panorama/images/loadingscreens/techies_arcana/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/techies_remote_mines_png.vtex",
+    "position": "50% 50%"
+  },
+  "bounty_order": {
+    "uri": "s2r://panorama/images/loadingscreens/tinker_vagrant_loading_screen/loadingscreen_png.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/tinker_rearm_png.vtex",
+    "position": "43% 50%"
+  },
+  "high_morale": {
+    "uri": "s2r://panorama/images/loadingscreens/dark_carnival_loadingscreen/dark_carnival_loadingscreen_legioncommander_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/legion_commander_press_the_attack_png.vtex",
+    "position": "70% 50%"
+  },
+  "in_step": {
+    "uri": "s2r://panorama/images/loadingscreens/windranger_wild_wind_loading/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/windrunner_focusfire_png.vtex",
+    "position": "30% 50%"
+  },
+  "construction_order": {
+    "uri": "s2r://panorama/images/loadingscreens/tinker_vagrant_loading_screen/loadingscreen_png.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/tinker_rearm_png.vtex",
+    "position": "43% 50%"
+  },
+  "internship_certificate": {
+    "uri": "s2r://panorama/images/loadingscreens/ti8_invoker_prism_crystal_spellcaster_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/invoker_invoke_png.vtex",
+    "position": "40% 50%"
+  },
+  "bloodthirst_potion": {
+    "uri": "s2r://panorama/images/loadingscreens/bloodseeker_relentless_hunter_loading_screen/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/bloodseeker_bloodrage_png.vtex",
+    "position": "60% 50%"
+  },
+  "infrastructure_outsourcing": {
+    "uri": "s2r://panorama/images/loadingscreens/magnus_defender_matriarch_loading_screen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/magnataur_empower_png.vtex",
+    "position": "50% 50%"
+  },
+  "burst_potion": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_alchemist_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/alchemist_chemical_rage_png.vtex",
+    "position": "55% 50%"
+  },
+  "iron_fist_policy": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_ogremagi_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/ogre_magi_multicast_png.vtex",
+    "position": "60% 50%"
+  },
+  "training_dummy": {
+    "uri": "s2r://panorama/images/loadingscreens/ti8_axe_violent_prisoner_of_war_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/axe_berserkers_call_png.vtex",
+    "position": "78% 50%"
+  },
+  "wall_recovery": {
+    "uri": "s2r://panorama/images/loadingscreens/dk_blazing_superiority/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/dragon_knight_dragon_blood_png.vtex",
+    "position": "85% 50%"
+  },
+  "wealthy_start": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_alchemist_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/alchemist_goblins_greed_png.vtex",
+    "position": "55% 50%"
+  },
+  "sharp_volley": {
+    "uri": "s2r://panorama/images/loadingscreens/clinkz_the_faith_of_avengers_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/clinkz_strafe_png.vtex",
+    "position": "33% 50%"
+  },
+  "lumberjack_assault": {
+    "uri": "s2r://panorama/images/loadingscreens/ti6_keyart_timbersaw/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/troll_warlord_fervor_png.vtex",
+    "position": "12% 50%"
+  },
+  "fortified_defense": {
+    "uri": "s2r://panorama/images/loadingscreens/dotapit3_sven_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/sven_warcry_png.vtex",
+    "position": "43% 50%"
+  },
+  "infrastructure_maniac_start": {
+    "uri": "s2r://panorama/images/loadingscreens/tinker_vagrant_loading_screen/loadingscreen_png.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/tinker_rearm_png.vtex",
+    "position": "43% 50%"
+  },
+  "precision_lumber": {
+    "uri": "s2r://panorama/images/loadingscreens/ti6_keyart_timbersaw/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/shredder_whirling_death_png.vtex",
+    "position": "12% 50%"
+  },
+  "peaceful_labor": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_treant_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/treant_living_armor_png.vtex",
+    "position": "55% 50%"
+  },
+  "woodcutting_bounty": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_treant_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/furion_wrath_of_nature_png.vtex",
+    "position": "55% 50%"
+  },
+  "instant_wood": {
+    "uri": "s2r://panorama/images/loadingscreens/ti6_keyart_timbersaw/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/shredder_chakram_png.vtex",
+    "position": "12% 50%"
+  },
+  "gold_mining_secret": {
+    "uri": "s2r://panorama/images/loadingscreens/ti6_keyart_bounty_hunter/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/bounty_hunter_track_png.vtex",
+    "position": "65% 50%"
+  },
+  "hero_descent": {
+    "uri": "s2r://panorama/images/loadingscreens/chen_eye_of_power_chen_eye_of_power_lion_loadingscreen/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/chen_hand_of_god_png.vtex",
+    "position": "80% 50%"
+  },
+  "population_expansion": {
+    "uri": "s2r://panorama/images/loadingscreens/meepo_crystal_scavenger_loading_screen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/meepo_divided_we_stand_png.vtex",
+    "position": "50% 50%"
+  },
+  "natures_gift": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_treant_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/furion_force_of_nature_png.vtex",
+    "position": "55% 50%"
+  },
+  "emergency_reinforcement": {
+    "uri": "s2r://panorama/images/loadingscreens/huskar_poseidon_huskar_poseidon_loadingscreen/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/huskar_berserkers_blood_png.vtex",
+    "position": "20% 50%"
+  },
+  "wind_strategy": {
+    "uri": "s2r://panorama/images/loadingscreens/windranger_wild_wind_loading/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/windrunner_focusfire_png.vtex",
+    "position": "30% 50%"
+  },
+  "allround_tempering": {
+    "uri": "s2r://panorama/images/loadingscreens/ti8_invoker_prism_crystal_spellcaster_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/invoker_exort_png.vtex",
+    "position": "40% 50%"
+  },
+  "heavy_hand": {
+    "uri": "s2r://panorama/images/loadingscreens/dota_keyart_ogremagi_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/ogre_magi_multicast_png.vtex",
+    "position": "60% 50%"
+  },
+  "first_to_strike": {
+    "uri": "s2r://panorama/images/loadingscreens/tiny_astral_order_loading_screen/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/tiny_tree_grab_png.vtex",
+    "position": "50% 50%"
+  },
+  "endless_rebirth": {
+    "uri": "s2r://panorama/images/loadingscreens/wraith_king_tyrant_of_the_emerald_abyss_ls/loadingscreen.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/skeleton_king_reincarnation_png.vtex",
+    "position": "55% 50%"
+  },
+  "long_range_volley": {
+    "uri": "s2r://panorama/images/loadingscreens/dreamhack_sniper_loadingscreen/loadingscreen_tga.vtex",
+    "abilityUri": "s2r://panorama/images/spellicons/sniper_take_aim_png.vtex",
+    "position": "50% 50%"
+  }
+};
+    function make(type,parent,cls){var p=$.CreatePanel(type,parent,"");p.AddClass(cls);p.hittest=false;p.hittestchildren=false;return p;}
+    cfg.SurvivalRogueArt={Resolve:function(id){return entries[String(id)]||null;},Apply:function(front,data){
+        var entry=entries[String(data.card_id)];
+        front.style.backgroundImage='url("s2r://panorama/images/hud/aghs_tooltip_bg_psd.vtex")';
+        front.style.backgroundSize="100% 100%";front.style.backgroundRepeat="no-repeat";
+        make("Panel",front,"RogueCardHeader");
+        if(!entry)return false;
+        var art=make("Panel",front,"RogueOptionIllustration");
+        art.style.backgroundImage='url("'+entry.uri+'")';
+        art.style.backgroundSize="cover";art.style.backgroundPosition=entry.position;art.style.backgroundRepeat="no-repeat";
+        var icon=make("Image",front,"RogueAbilityIcon");icon.SetImage(entry.abilityUri);
+        if(icon.SetScaling)icon.SetScaling("stretch-to-fit-preserve-aspect");
         return true;
     }};
 })();

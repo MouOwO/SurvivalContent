@@ -181,10 +181,9 @@
     cfg.RemainingHandoff=R;
     // Local to the three-choice page; lottery result animations keep their own timeline.
     R.RogueSequence=function(){var life=U.Lifecycle();return {Later:life.Later,Cancel:life.Cancel,Dispose:life.Dispose,Animate:function(card,index){
-        var at=.30+index*.11;
-        life.Later(at,function(){card.slot.style.opacity="1";card.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";});
-        life.Later(at+.65+.10,function(){card.flip.style.transform="rotateY(90deg)";});
-        life.Later(at+.65+.10+.27,function(){card.front.visible=true;card.back.visible=false;card.flip.AddClass("RogueInstant");card.flip.style.transform="rotateY(-90deg)";life.Later(.01,function(){card.flip.RemoveClass("RogueInstant");card.flip.style.transform="rotateY(0deg)";});});
+        // Deal face-up from a shared point. The last card arrives before 1s.
+        var at=.02+Math.min(index,3)*.07;
+        life.Later(at,function(){if(card.slot.IsValid&&!card.slot.IsValid())return;card.slot.style.opacity="1";card.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";});
     }};};
     R.Dump=function(){function scan(p,depth){if(depth>2)return;$.Msg("[RH_TREE] "+depth+" "+p.id+" "+p.paneltype+" "+p.actuallayoutwidth+"x"+p.actuallayoutheight+" @"+p.actualxoffset+","+p.actualyoffset+" visible="+p.visible+" position="+p.style.position+" flow="+p.style.flowChildren+" z="+p.style.zIndex);p.Children().forEach(function(c){scan(c,depth+1);});}scan($("#LotteryInfoDialog"),0);};
     if(typeof Game!=="undefined"&&Game.AddCommand&&$("#LotteryInfoDialog")){
