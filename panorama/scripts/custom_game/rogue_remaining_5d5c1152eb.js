@@ -4,7 +4,7 @@
     var prior=GameUI.CustomUIConfig().SurvivalRogueReward;if(prior&&prior.Dispose)prior.Dispose();var disposed=false;var U=GameUI.CustomUIConfig().SurvivalUI,life=U.Lifecycle();
     var playerId=Game.GetLocalPlayerID(),current={},signature="",cards=[],timers=[],generation=0,ready=false,pending=false,opened=false,dismissed=false;
     var config=GameUI.CustomUIConfig(),reduced=false;config.RogueReducedMotion=false;
-    var cardWidth=304,cardHeight=600,cardTop=206,cardGap=62,cardPadding=32,fitScale=1,hovered=null,tiltEpoch=0;
+    var cardWidth=240,cardHeight=480,cardTop=256,cardGap=24,cardPadding=32,fitScale=1,hovered=null,tiltEpoch=0,tiltRunning=false;
     function panel(id){return $("#"+id);}
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function rows(v){return !v?[]:Array.isArray(v)?v:Object.keys(v).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return v[k];});}
@@ -17,10 +17,10 @@
     var resumeText=label(resume,"","继续选牌");resumeText.style.horizontalAlign="center";resumeText.style.verticalAlign="center";resumeText.style.fontSize="20px";resumeText.style.color="#eee0b7";
     resume.SetPanelEvent("onactivate",open);
     function later(time,fn){augment.Later(time,fn);}
-    function resetTilt(){tiltEpoch++;hovered=null;cards.forEach(function(c){if(valid(c.tilt))c.tilt.style.transform="none";if(valid(c.slot))c.slot.style.zIndex="0";});}
+    function resetTilt(){tiltEpoch++;tiltRunning=false;hovered=null;cards.forEach(function(c){if(valid(c.tilt))c.tilt.style.transform="none";if(valid(c.slot))c.slot.style.zIndex="0";});}
     function cancel(){generation++;augment.Cancel();resetTilt();}
     function active(){return Number(current.active)===1&&!!current.token;}
-    function updateButtons(){cards.forEach(function(c){c.button.enabled=opened&&ready&&!pending&&(!current.pending_card_id||c.id===current.pending_card_id);});panel("RogueRewardReroll").enabled=opened&&active()&&ready&&!pending&&!current.pending_card_id&&Number(current.rerolls_remaining)>0;panel("RogueRewardRerollText").text=Number(current.rerolls_remaining)>0?"免费重抽  "+current.rerolls_remaining:"本次已重抽";if(ready&&!pending&&current.pending_card_id)panel("RogueRewardStatus").text="神许愿已有部分效果生效，请重试完成剩余效果";}
+    function updateButtons(){cards.forEach(function(c){c.button.enabled=opened&&ready&&!pending&&(!current.pending_card_id||c.id===current.pending_card_id);});panel("RogueRewardReroll").enabled=opened&&active()&&ready&&!pending&&!current.pending_card_id&&Number(current.rerolls_remaining)>0;panel("RogueRewardRerollText").text=Number(current.rerolls_remaining)>0?"免费重抽  "+current.rerolls_remaining:"本次已重抽";if(ready&&!pending&&current.pending_card_id)panel("RogueRewardStatus").text="神许愿已有部分效果生效，请重试完成剩余效果";startTilt();}
     function show(){var backdrop=panel("RogueRewardBackdrop");if(valid(backdrop)){backdrop.SetHasClass("RogueRewardHidden",!opened);backdrop.visible=opened;backdrop.hittest=opened;backdrop.hittestchildren=opened;}if(valid(resume))resume.visible=!disposed&&active()&&dismissed;}
     function close(){if(disposed)return;dismissed=active();opened=false;cancel();show();updateButtons();if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");}
     function open(){if(disposed||!active()||opened)return;dismissed=false;opened=true;show();if(config.SurvivalUILayers)config.SurvivalUILayers.Open("rogue_choice",panel("RogueRewardBackdrop"),close);if(!ready)finish();else updateButtons();watchFit();}
@@ -31,29 +31,34 @@
         var point=GameUI.GetCursorPosition?GameUI.GetCursorPosition():null;
         if(!point||!c.slot.GetPositionWithinWindow)return;
         // Read the stable slot, never its moving child, to avoid hover feedback.
-        var origin=c.slot.GetPositionWithinWindow(),uiScale=Number($.GetContextPanel().actualuiscale_x)||1;
-        var width=cardWidth*fitScale*uiScale,height=cardHeight*fitScale*uiScale;
-        var pad=cardPadding*fitScale*uiScale;
-        var x=Math.max(-1,Math.min(1,2*(point[0]-origin.x-pad)/width-1));
-        var y=Math.max(-1,Math.min(1,2*(point[1]-origin.y-pad)/height-1));
-        c.tilt.style.transform="translate3d(0px,-8px,8px) rotateX("+(-y*4).toFixed(2)+"deg) rotateY("+(x*6).toFixed(2)+"deg) scale3d(1.025,1.025,1)";
+        var origin=c.slot.GetPositionWithinWindow(),root=$.GetContextPanel();
+        var sx=fitScale*(Number(root.actualuiscale_x)||1),sy=fitScale*(Number(root.actualuiscale_y)||Number(root.actualuiscale_x)||1);
+        // Use the whole stage so all three faces keep following outside a card.
+        var x=Math.max(-1,Math.min(1,(point[0]-origin.x-(cardPadding+cardWidth/2)*sx)/(1672*sx)));
+        var y=Math.max(-1,Math.min(1,(point[1]-origin.y-(cardPadding+cardHeight/2)*sy)/(941*sy)));
+        var raised=hovered===c,lift=raised?-6:0,zoom=raised?1.025:1;
+        c.tilt.style.transform="translate3d(0px,"+lift+"px,0px) rotateX("+(-y*4).toFixed(2)+"deg) rotateY("+(x*6).toFixed(2)+"deg) scale3d("+zoom+","+zoom+",1)";
     }
-    function followTilt(c,epoch){if(disposed||!opened||!ready||pending||hovered!==c||tiltEpoch!==epoch||reduced)return;tiltCard(c);later(1/30,function(){followTilt(c,epoch);});}
-    function hover(c){if(disposed||!opened||pending||!c.button.enabled)return;if(hovered===c)return;resetTilt();hovered=c;c.slot.style.zIndex="5";Game.EmitSound("ui_rollover_micro");if(!reduced)followTilt(c,tiltEpoch);}
-    function leave(c){if(hovered===c)resetTilt();}
+    function followTilt(epoch){if(tiltEpoch!==epoch)return;if(disposed||!opened||!ready||pending||reduced){tiltRunning=false;return;}cards.forEach(tiltCard);later(1/30,function(){followTilt(epoch);});}
+    function startTilt(){if(tiltRunning||disposed||!opened||!ready||pending||reduced)return;tiltRunning=true;followTilt(++tiltEpoch);}
+    function hover(c){if(disposed||!opened||pending||!c.button.enabled||hovered===c)return;if(hovered&&valid(hovered.slot))hovered.slot.style.zIndex="0";hovered=c;c.slot.style.zIndex="5";Game.EmitSound("ui_rollover_micro");cards.forEach(tiltCard);}
+    function leave(c){if(hovered!==c)return;hovered=null;if(valid(c.slot))c.slot.style.zIndex="0";cards.forEach(tiltCard);}
     function finish(){cards.forEach(function(c){c.slot.AddClass("RogueInstant");c.slot.style.opacity="1";c.slot.style.transform="translate3d(0px,0px,0px) scale3d(1,1,1)";});ready=true;panel("RogueRewardStatus").text="";updateButtons();}
     function choose(id){if(!opened||!active()||!ready||pending||(current.pending_card_id&&id!==current.pending_card_id)||!cards.some(function(c){return c.id===id;}))return;pending=true;resetTilt();cards.forEach(function(c){c.slot.SetHasClass("RogueChosen",c.id===id);c.slot.SetHasClass("RogueNotChosen",c.id!==id);});updateButtons();panel("RogueRewardStatus").text="正在确认强化…";Game.EmitSound("ui_generic_button_click");GameEvents.SendCustomGameEventToServer("ui_rogue_reward_select",{token:current.token,card_id:id});}
     function createCard(data,index,total){var x=836-(total*cardWidth+(total-1)*cardGap)/2+index*(cardWidth+cardGap);
         // Native paint bounds still clip transformed children despite noclip.
         // Transparent margins contain the complete hovered face.
-        var slot=$.CreatePanel("Panel",panel("RogueRewardCards"),"");slot.AddClass("RogueSlot");slot.style.position=(x-cardPadding)+"px "+(cardTop-cardPadding)+"px 0px";
+        var slot=$.CreatePanel("Panel",panel("RogueRewardCards"),"");slot.AddClass("RogueSlot");slot.hittest=false;slot.hittestchildren=true;slot.style.position=(x-cardPadding)+"px "+(cardTop-cardPadding)+"px 0px";
         var button=$.CreatePanel("Button",slot,"");button.AddClass("RoguePick");button.hittestchildren=true;button.enabled=false;
-        var tilt=$.CreatePanel("Panel",button,"");tilt.AddClass("RogueTilt");tilt.hittest=false;tilt.hittestchildren=true;
+        // Keep the hit area on the face; transparent paint margins never steal
+        // a neighbouring card's input when the choices sit close together.
+        var tilt=$.CreatePanel("Panel",slot,"");tilt.AddClass("RogueTilt");tilt.hittest=false;tilt.hittestchildren=true;
         var front=$.CreatePanel("Panel",tilt,"");front.AddClass("RogueFront");front.visible=true;front.hittest=false;front.hittestchildren=true;GameUI.CustomUIConfig().SurvivalRogueArt.Apply(front,data);
-        label(front,"RogueCardName",data.display_name||data.card_id);
+        label(front.__rogueHeader||front,"RogueCardName",data.display_name||data.card_id);
         var copy=$.CreatePanel("Panel",front,"");copy.AddClass("RogueCopy");copy.hittest=false;copy.hittestchildren=true;var description=label(copy,"RogueCardDescription",String(data.description||"").replace(/[；;][ \t]*/g,"\n"));description.hittest=true;
         var c={id:data.card_id,slot:slot,button:button,tilt:tilt,front:front};
         button.SetPanelEvent("onactivate",function(){choose(data.card_id);});button.SetPanelEvent("onmouseover",function(){hover(c);});button.SetPanelEvent("onmouseout",function(){leave(c);});
+        front.SetPanelEvent("onactivate",function(){choose(data.card_id);});front.SetPanelEvent("onmouseover",function(){hover(c);});front.SetPanelEvent("onmouseout",function(){leave(c);});
         // Every face leaves the same deck point, without a back or a flip phase.
         slot.style.transform="translate3d("+(836-x-cardWidth/2)+"px,"+(870-cardTop-cardHeight/2)+"px,0px) scale3d(0.12,0.12,1)";slot.style.opacity="0";
         if(!reduced&&opened)augment.Animate(c,index);
@@ -72,7 +77,7 @@
     panel("RogueRewardReroll").SetPanelEvent("onactivate",function(){if(!opened||!active()||!ready||pending||current.pending_card_id||Number(current.rerolls_remaining)<=0)return;pending=true;updateButtons();panel("RogueRewardStatus").text="正在重抽…";GameEvents.SendCustomGameEventToServer("ui_rogue_reward_reroll",{token:current.token});});
     life.Subscribe("ui_rogue_reward_result",function(result){if(!active()||String(result.token)!==String(current.token)||!pending)return;if(result.ok===true||Number(result.ok)===1)return;pending=false;cards.forEach(function(c){c.slot.RemoveClass("RogueChosen");c.slot.RemoveClass("RogueNotChosen");});panel("RogueRewardStatus").text=current.pending_card_id?"神许愿已有部分效果生效，请重试完成剩余效果":"操作未完成，请重试（"+String(result.error||"unknown")+"）";updateButtons();});
     var tableSubscription=CustomNetTables.SubscribeNetTableListener("survival_rogue_reward",function(_,key,value){if(String(key)===String(playerId))render(value);});
-    config.SurvivalRogueReward={Open:open,Close:close,IsOpen:function(){return !disposed&&opened;},Dispose:function(){if(disposed)return;disposed=true;opened=false;cancel();life.Dispose();if(augment.Dispose)augment.Dispose();show();if(valid(resume))resume.DeleteAsync(0);if(CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(tableSubscription);if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");},SetReducedMotion:function(enabled){reduced=!!enabled;config.RogueReducedMotion=reduced;if(reduced)resetTilt();if(opened&&active()&&!ready&&reduced){cancel();finish();watchFit();}}};
+    config.SurvivalRogueReward={Open:open,Close:close,IsOpen:function(){return !disposed&&opened;},Dispose:function(){if(disposed)return;disposed=true;opened=false;cancel();life.Dispose();if(augment.Dispose)augment.Dispose();show();if(valid(resume))resume.DeleteAsync(0);if(CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(tableSubscription);if(config.SurvivalUILayers)config.SurvivalUILayers.Close("rogue_choice");},SetReducedMotion:function(enabled){reduced=!!enabled;config.RogueReducedMotion=reduced;if(reduced)resetTilt();if(opened&&active()&&!ready&&reduced){cancel();finish();watchFit();}else if(!reduced)startTilt();}};
     U.FullscreenShell.Adopt({panel:panel("RogueRewardBackdrop")});panel("RogueRewardBackdrop").style.backgroundColor="#00000080";panel("RogueRewardBackdrop").style.backgroundImage="none";
     panel("RogueRewardReroll").visible=false;panel("RogueRewardReroll").hittest=false;
     render(CustomNetTables.GetTableValue("survival_rogue_reward",String(playerId))||{});

@@ -268,13 +268,11 @@
         var entry=entries[String(data.card_id)];
         front.style.backgroundImage='url("s2r://panorama/images/hud/aghs_tooltip_bg_psd.vtex")';
         front.style.backgroundSize="100% 100%";front.style.backgroundRepeat="no-repeat";
-        make("Panel",front,"RogueCardHeader");
+        front.__rogueHeader=make("Panel",front,"RogueCardHeader");
         if(!entry)return false;
         var art=make("Panel",front,"RogueOptionIllustration");
         art.style.backgroundImage='url("'+entry.uri+'")';
         art.style.backgroundSize="cover";art.style.backgroundPosition=entry.position;art.style.backgroundRepeat="no-repeat";
-        var icon=make("Image",front,"RogueAbilityIcon");icon.SetImage(entry.abilityUri);
-        if(icon.SetScaling)icon.SetScaling("stretch-to-fit-preserve-aspect");
         return true;
     }};
 })();
