@@ -9,7 +9,7 @@ var iconInset=2; // Fill the frame interior; retain only its visible border.
 var gridWidth=columns[6]-columns[0]+cellWidth,gridHeight=rows[3]-rows[0]+cellHeight;
 var fitOptions={widthFraction:.94,heightFraction:.9};
 var data=null,waiting=null,errorText="",buying=false,sequence=0,active=true,life=U.Lifecycle(),viewLife=U.Lifecycle(),fetching=false,fetchSerial=0;
-var dailyRoot=$.GetContextPanel(),view=null,shell=null,canvas=null,dailyTooltip=null,moved=[];
+var dailyRoot=$.GetContextPanel(),view=null,shell=null,canvas=null,titleOrnament=null,dailyTooltip=null,moved=[];
 var cardSignature="",specialSignature="",statusText="",scale=1;
 var rewardFX=null;
 var columnLabels=["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ"];
@@ -79,15 +79,17 @@ function fitWindow(value){
 function build(){
  var win=p("DailyWindow");win.AddClass("DailyGW2Page");win.RemoveClass("DailyV10Page");win.RemoveClass("DailyPurple");
  shell=U.ModalShell.Adopt({id:"daily_rewards",panel:win,root:dailyRoot,scrim:p("DailyScrim"),width:size[0],height:size[1],fit:fitOptions,onClose:close,onFit:fitWindow});
- style(win,{width:size[0]+"px",height:size[1]+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"#101925",border:"0px",boxShadow:"none",overflow:"noclip"});
- canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,0,size[0],size[1]);canvas.hittest=false;canvas.hittestchildren=true;
+ // Native window painting clips overflowing art. Reserve equal transparent
+ // margins so the crest stays inside the shell and the calendar stays centered.
+ style(win,{width:size[0]+"px",height:(size[1]+40)+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",overflow:"noclip"});
+ canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,20,size[0],size[1]);style(canvas,{backgroundColor:"#101925"});canvas.hittest=false;canvas.hittestchildren=true;
  // Native DPC panel gradient, composed over an opaque blue base.
  var backdrop=component(canvas,null,0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 100%,from(#141c23),to(#1d2a35cc))"});
  buildCelebration();
  var edge=component(canvas,null,0,0,size[0],size[1],"DailyGW2WindowEdge");style(edge,{backgroundImage:"none",backgroundColor:"transparent",borderTop:"1px solid #3b404777",borderLeft:"1px solid #4c434677",borderRight:"1px solid #00000088",borderBottom:"1px solid #00000088"});
  component(canvas,"header_rule",44,82,1321,5,"DailyGW2HeaderRule");
- // Foreground crest paints over both the ribbon and the header divider.
- celebrationArt(canvas,"DailyGW2CelebrationTitleOrnament","fantasy_craft/player_card_ornament_png",592,68,198,20,{opacity:"1",brightness:"1.15"});
+ // The crest sits above the panel, with its lower edge meeting the background.
+ titleOrnament=celebrationArt(win,"DailyGW2CelebrationTitleOrnament","fantasy_craft/player_card_ornament_png",592,0,198,20,{opacity:"1",brightness:"1.15"});
  var heading=label(canvas,"每日登录奖励",190,17,size[0]-380,58,40,"#f4f0e5","DailyGW2Title");style(heading,{textAlign:"center",fontWeight:"normal"});
  var closeButton=make("Button",canvas,"DailyGW2Close","DailyGW2CloseButton");rect(closeButton,1319,20,44,47);
  component(closeButton,"close_base",0,0,44,47);component(closeButton,"close",10,10,24,27);
@@ -119,7 +121,7 @@ function build(){
   isAlive:function(){return active&&viewValid();},isActive:function(){return shell.IsOpen()&&p("DailyRulesText").BHasClass("ArchiveHidden");},
   position:function(info){var x=info.anchor.x+cellWidth+12-info.padding;if(x+info.width>info.bounds.width)x=info.anchor.x-info.surfaceWidth-12-info.padding;return {x:Math.max(0,Math.min(info.bounds.width-info.width,x)),y:Math.max(0,Math.min(info.bounds.height-info.height,info.anchor.y-info.padding))};}
  });
- view=cfg.SurvivalDailyGW2={canvas:canvas,shell:shell,Open:function(){shell.Open();canvas.visible=true;fitWindow(U.Fit(win,dailyRoot,size[0],size[1],fitOptions));},Close:function(){shell.Close();if(valid(canvas))canvas.visible=false;},IsOpen:function(){return shell.IsOpen();},Dispose:function(){dailyTooltip.Dispose();shell.Dispose();moved.forEach(function(e){if(valid(e.node)&&valid(e.parent))e.node.SetParent(e.parent);});moved=[];if(valid(canvas))canvas.DeleteAsync(0);if(valid(win))win.RemoveClass("DailyGW2Page");}};
+ view=cfg.SurvivalDailyGW2={canvas:canvas,shell:shell,Open:function(){shell.Open();canvas.visible=true;fitWindow(U.Fit(win,dailyRoot,size[0],size[1],fitOptions));},Close:function(){shell.Close();if(valid(canvas))canvas.visible=false;},IsOpen:function(){return shell.IsOpen();},Dispose:function(){dailyTooltip.Dispose();shell.Dispose();moved.forEach(function(e){if(valid(e.node)&&valid(e.parent))e.node.SetParent(e.parent);});moved=[];if(valid(titleOrnament))titleOrnament.DeleteAsync(0);if(valid(canvas))canvas.DeleteAsync(0);if(valid(win))win.RemoveClass("DailyGW2Page");}};
 }
 build();
 if(U.RewardFX)rewardFX=U.RewardFX.Create(canvas,{channel:"daily",getScale:function(){return scale;}});
