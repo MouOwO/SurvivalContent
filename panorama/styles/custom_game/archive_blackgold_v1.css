@@ -1,0 +1,18 @@
+/* Material-only finish: the retained archive view owns layout and input. */
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveV10Sidebar VerticalScrollBar,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveGrid VerticalScrollBar {
+    background-image:none; background-color:#0b100ded; border:1px solid #4d584a88;
+}
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveV10Sidebar VerticalScrollBar .ScrollThumb,
+.ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveGrid VerticalScrollBar .ScrollThumb {
+    background-image:none;
+    background-color:gradient(linear,0% 0%,100% 0%,from(#565c43),to(#8d8c5b));
+    border:1px solid #a8a57788; border-radius:0px;
+}
+.ArchiveBlackGoldPage .ArchiveParchmentCategory:hover { background-color:#b9b17b16; }
+.ArchiveBlackGoldPage .ArchiveV10Cell:hover .ArchiveV10Name { color:#f0dfa6; }
+.ArchiveBlackGoldCorner { width:17px; height:17px; background-color:transparent; }
+.ArchiveBlackGoldCornerTopLeft { horizontal-align:left; vertical-align:top; border-top:1px solid #d6c78d88; border-left:1px solid #d6c78d88; }
+.ArchiveBlackGoldCornerTopRight { horizontal-align:right; vertical-align:top; border-top:1px solid #d6c78d88; border-right:1px solid #d6c78d88; }
+.ArchiveBlackGoldCornerBottomLeft { horizontal-align:left; vertical-align:bottom; border-bottom:1px solid #d6c78d88; border-left:1px solid #d6c78d88; }
+.ArchiveBlackGoldCornerBottomRight { horizontal-align:right; vertical-align:bottom; border-bottom:1px solid #d6c78d88; border-right:1px solid #d6c78d88; }
