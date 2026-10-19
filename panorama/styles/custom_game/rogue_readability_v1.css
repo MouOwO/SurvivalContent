@@ -1,35 +1,51 @@
-/* Face-up choices: native artwork, a narrow silver title, and effect copy. */
+/* Grey-white card stock, native artwork, and a separate grey effect panel. */
 #RogueRewardSurface, #RogueRewardCards { overflow:noclip; }
 #RogueRewardBackdrop #RogueRewardSurface .RogueSlot {
     width:304px; height:544px; overflow:noclip; transform-origin:50% 50%;
-    perspective:1000px; perspective-origin:50% 50%;
     transition-property:transform,opacity; transition-duration:.68s,.10s;
     transition-timing-function:ease-out;
 }
 #RogueRewardSurface .RogueSlot.RogueInstant { transition-duration:0s; }
 #RogueRewardSurface .RoguePick {
     position:32px 32px 0px; width:240px; height:480px; overflow:noclip; background-color:transparent;
-    border:0px; box-shadow:none; transform:none; perspective:1000px;
-    perspective-origin:50% 50%;
+    border:0px; box-shadow:none; transform:none;
 }
 #RogueRewardSurface .RoguePick:enabled:hover,
 #RogueRewardSurface .RoguePick:enabled:focus,
 #RogueRewardSurface .RogueChosen .RoguePick { transform:none; box-shadow:none; brightness:1; }
 #RogueRewardSurface .RogueTilt {
     position:32px 32px 0px; width:240px; height:480px; overflow:noclip; transform-origin:50% 50%;
-    transition-property:transform; transition-duration:.10s; transition-timing-function:ease-out;
+    transform:none; pre-transform-scale2d:1;
+    animation-name:none;
+    transition-property:transform,pre-transform-scale2d; transition-duration:.10s; transition-timing-function:ease;
+}
+#RogueRewardSurface .RogueTilt.RogueWobble {
+    transform:rotateX(5deg);
+    animation-name:RogueCardWobble; animation-duration:5s;
+    animation-iteration-count:infinite; animation-timing-function:linear;
+}
+#RogueRewardSurface .RogueTilt.RogueWobble.RogueHovered {
+    transform:rotateX(0deg); pre-transform-scale2d:1.1; animation-name:none;
+}
+@keyframes 'RogueCardWobble' {
+    0% { transform:rotateX(5deg) rotateY(0deg) rotateZ(0deg); }
+    25% { transform:rotateX(5deg) rotateY(10deg) rotateZ(1deg); }
+    50% { transform:rotateX(5deg) rotateY(0deg) rotateZ(0deg); }
+    75% { transform:rotateX(5deg) rotateY(-10deg) rotateZ(-1deg); }
+    100% { transform:rotateX(5deg) rotateY(0deg) rotateZ(0deg); }
 }
 #RogueRewardSurface .RogueFront {
     width:100%; height:100%; flow-children:none; overflow:clip;
-    background-color:#151c22; border:1px solid #959c9f;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#e1e2db),to(#b5b7b0));
+    border:1px solid #e5e6df;
     box-shadow:#00000090 0px 5px 16px 1px;
 }
 #RogueRewardSurface .RogueChosen .RogueFront { border:1px solid #e4d3a3; brightness:1.08; }
 #RogueRewardSurface .RogueNotChosen { brightness:.5; }
 #RogueRewardSurface .RogueCardHeader {
     position:0px 0px 0px; width:100%; height:36px;
-    background-color:gradient(linear,0% 0%,0% 100%,from(#c8cccb),to(#818b91));
-    border-bottom:1px solid #d5d9d588;
+    background-color:gradient(linear,0% 0%,0% 100%,from(#edede8),to(#c6c8c0));
+    border-bottom:1px solid #979b92;
 }
 #RogueRewardBackdrop #RogueRewardSurface .RogueCardName {
     position:0px 0px 0px; width:fit-children; max-width:216px; height:fit-children; max-height:34px;
@@ -41,12 +57,12 @@
 }
 #RogueRewardSurface .RogueOptionIllustration {
     position:9px 44px 0px; width:220px; height:248px;
-    background-size:cover; background-repeat:no-repeat; border:1px solid #afb7bc55;
+    background-size:cover; background-repeat:no-repeat; border:1px solid #787d74;
 }
 #RogueRewardBackdrop #RogueRewardSurface .RogueCopy {
     position:9px 302px 0px; width:220px; height:166px;
-    flow-children:down; overflow:clip; background-color:#10171dd9;
-    border:1px solid #899399; margin:0px; padding:8px;
+    flow-children:down; overflow:clip; background-color:#62655f;
+    border:1px solid #8b9085; margin:0px; padding:8px;
     opacity:1; brightness:1; saturation:1; wash-color:none; z-index:4;
 }
 #RogueRewardBackdrop #RogueRewardSurface .RogueCardDescription {
@@ -56,8 +72,8 @@
     white-space:normal; text-overflow:clip; overflow:squish scroll; text-align:left;
     opacity:1; wash-color:none;
 }
-#RogueRewardSurface .RogueCardDescription VerticalScrollBar { width:4px; background-color:#00000022; background-image:none; }
-#RogueRewardSurface .RogueCardDescription VerticalScrollBar .ScrollThumb { background-color:#89949999; background-image:none; border-radius:0px; }
+#RogueRewardSurface .RogueCardDescription VerticalScrollBar { width:4px; background-color:#444740; background-image:none; }
+#RogueRewardSurface .RogueCardDescription VerticalScrollBar .ScrollThumb { background-color:#d3d5c9; background-image:none; border-radius:0px; }
 #RogueRewardBackdrop #RogueRewardSurface .RogueRewardTitle {
     font-family:"Source Han Sans SC"; font-weight:normal; color:#f0eee6;
     letter-spacing:2px; text-shadow:#000000 0px 2px 3px 3.0;

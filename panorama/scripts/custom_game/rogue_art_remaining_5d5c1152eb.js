@@ -266,8 +266,7 @@
     function make(type,parent,cls){var p=$.CreatePanel(type,parent,"");p.AddClass(cls);p.hittest=false;p.hittestchildren=false;return p;}
     cfg.SurvivalRogueArt={Resolve:function(id){return entries[String(id)]||null;},Apply:function(front,data){
         var entry=entries[String(data.card_id)];
-        front.style.backgroundImage='url("s2r://panorama/images/hud/aghs_tooltip_bg_psd.vtex")';
-        front.style.backgroundSize="100% 100%";front.style.backgroundRepeat="no-repeat";
+        front.style.backgroundImage="none";
         front.__rogueHeader=make("Panel",front,"RogueCardHeader");
         if(!entry)return false;
         var art=make("Panel",front,"RogueOptionIllustration");
