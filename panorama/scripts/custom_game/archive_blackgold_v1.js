@@ -11,6 +11,21 @@
         section:'url("s2r://panorama/images/textures/header_texture_png.vtex")',
         row:'url("s2r://panorama/images/hud/reborn/bg_item_breakdown_psd.vtex")'
     };
+    // Match the compact official glyphs in the approved archive preview.
+    // Keep the existing sidebar hit areas and leave the large header badge alone.
+    var navigationIcons={clear:"emblems",shadow:"unusual",map_level:"stats",work:"home",gift:"treasure",fragment:"skull",pet:"unusual",boss:"skull",points:"treasure",commerce_goods:"treasure",shop:"stats",endless:"skull",fishing:"unusual",building:"emblems",starjoy_points:"stats",titles:"profile"};
+    function navigationIcon(button,selected){
+        var key=navigationIcons[String(button.id||"").replace(/^ArchiveV10Category_/,"")];
+        if(!key)return;
+        var image=key==="stats"?"s2r://panorama/images/control_icons/stats_icon_png.vtex":"file://{images}/control_icons/24px/"+key+".svg";
+        walk(button,function(child){
+            if(is(child,"ArchiveParchmentIconRing"))child.visible=false;
+            if(is(child,"ArchiveV10Icon")){
+                if(child.__archiveBlackGoldNavigationImage!==image){child.SetImage(image);child.__archiveBlackGoldNavigationImage=image;}
+                paint(child,{position:"7px 7px 0px",width:"18px",height:"18px",opacity:selected?"1":".55"});
+            }
+        });
+    }
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function find(id){return valid(root)?root.FindChildTraverse(id):null;}
     function paint(node,values,force){if(!valid(node))return;var cache=node.__archiveBlackGoldPaint||(node.__archiveBlackGoldPaint={});Object.keys(values).forEach(function(key){if(force||cache[key]!==values[key]){node.style[key]=values[key];cache[key]=values[key];}});}
@@ -38,7 +53,7 @@
         paint(find("ArchiveEmpty"),{color:"#a5ac9d"});
         // layoutSidebar writes label colors directly on every snapshot. Reapply
         // just these labels even when our own material cache has not changed.
-        var sidebar=find("ArchiveV10Sidebar");if(valid(sidebar))sidebar.Children().forEach(function(button){var selected=is(button,"ArchiveV10Selected");paint(button,{backgroundImage:"none",backgroundColor:selected?(stage>=2?"#b69a5030":"#b69a5018"):"transparent",borderLeft:selected?"3px solid #bda96c":"3px solid transparent",borderBottom:stage>=2?"1px solid #c4b87b12":"1px solid transparent"});walk(button,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:selected?"#f0dfae":"#b6beb1"},true);});});
+        var sidebar=find("ArchiveV10Sidebar");if(valid(sidebar))sidebar.Children().forEach(function(button){var selected=is(button,"ArchiveV10Selected");navigationIcon(button,selected);paint(button,{backgroundImage:"none",backgroundColor:selected?(stage>=2?"#b69a5030":"#b69a5018"):"transparent",borderLeft:selected?"3px solid #bda96c":"3px solid transparent",borderBottom:stage>=2?"1px solid #c4b87b12":"1px solid transparent"});walk(button,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:selected?"#f0dfae":"#b6beb1"},true);});});
         paint(find("ArchiveV10FilterToggle"),{backgroundImage:"none",backgroundColor:stage>=4?"gradient(linear,0% 0%,0% 100%,from(#30352e),to(#1d231e))":"#192019b8",border:stage>=4?"1px solid #8b855466":"1px solid #62694c66",boxShadow:stage>=4?"inset #00000066 0px 1px 3px 1px":"none"});
         paint(find("ArchiveV10FilterMenu"),{backgroundImage:"none",backgroundColor:"#151b17fc",border:"1px solid #8d8254",boxShadow:"#000000aa 0px 5px 16px 1px"});
         ["all","unlocked","locked"].forEach(function(id){var p=find("ArchiveV10Filter_"+id);if(!valid(p))return;paint(p,{backgroundColor:is(p,"ArchiveV10Selected")?"#ad985333":"transparent"});walk(p,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:"#d8ddcd"});});});
