@@ -1,10 +1,13 @@
 /* Material-only finish: the retained archive view owns layout and input. */
 .ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveV10Sidebar VerticalScrollBar,
 .ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveGrid VerticalScrollBar {
+    /* Match the native scrollbar layout; a heightless track leaves a corner dash. */
+    width:13px; height:100%; horizontal-align:right; layout-position:fixed;
     background-image:none; background-color:#0b100ded; border:1px solid #4d584a88;
 }
 .ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveV10Sidebar VerticalScrollBar .ScrollThumb,
 .ArchiveRoot #ArchiveWindow.ArchiveParchmentPage.ArchiveBlackGoldPage #ArchiveGrid VerticalScrollBar .ScrollThumb {
+    width:100%; min-height:32px;
     background-image:none;
     background-color:gradient(linear,0% 0%,100% 0%,from(#565c43),to(#8d8c5b));
     border:1px solid #a8a57788; border-radius:0px;
