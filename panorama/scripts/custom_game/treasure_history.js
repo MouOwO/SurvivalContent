@@ -13,9 +13,11 @@
     function place(panel,x,y,width,height){style(panel,{position:x+"px "+y+"px 0px",width:width+"px",height:height+"px",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px"});}
     function hideDetail(){
         if(!detailAnchor)return;
-        if(valid(detailAnchor))detailAnchor.RemoveClass("TreasureHovered");
+        var anchor=detailAnchor,positioner=cfg.SurvivalTooltipPosition;
+        if(valid(anchor))anchor.RemoveClass("TreasureHovered");
         detailAnchor=null;
-        $.DispatchEvent("DOTAHideTextTooltip");
+        if(positioner&&positioner.HideText)positioner.HideText(anchor);
+        else $.DispatchEvent("DOTAHideTextTooltip");
     }
     function close(){
         if(disposed)return;
@@ -33,8 +35,10 @@
         hideDetail();detailAnchor=card;card.AddClass("TreasureHovered");
         var qty=quantity(reward),name=reward.name||"宝物",effect=reward.description||"暂无效果说明";
         p("TreasureTooltipName").text=name;p("TreasureTooltipEffect").text=effect;
-        // Native tooltips stay within the viewport independently of the small window.
-        $.DispatchEvent("DOTAShowTextTooltip",card,name+"\n"+effect+(qty!==""?"\n拥有数量："+qty:""));
+        // The shared lease raises the native tooltip above the modal's ancestors.
+        var positioner=cfg.SurvivalTooltipPosition,content=name+"\n"+effect+(qty!==""?"\n拥有数量："+qty:"");
+        if(positioner&&positioner.ShowText)positioner.ShowText(card,content);
+        else $.DispatchEvent("DOTAShowTextTooltip",card,content);
     }
     function icon(parent,item){
         var resources=cfg.SurvivalItemResources,presentation=cfg.SurvivalRewardPresentation;
@@ -68,7 +72,7 @@
             }
             (function(reward,anchor){
                 anchor.SetPanelEvent("onmouseover",function(){showDetail(reward,anchor);});
-                anchor.SetPanelEvent("onmouseout",hideDetail);
+                anchor.SetPanelEvent("onmouseout",function(){if(detailAnchor===anchor)hideDetail();});
             })(item,card);
         }
     }
