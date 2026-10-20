@@ -1,6 +1,6 @@
 (function () {
     "use strict";
-    var cfg = GameUI.CustomUIConfig(), version = "1.0.1";
+    var cfg = GameUI.CustomUIConfig(), version = "1.0.2";
     if (cfg.SurvivalTooltipDismiss && cfg.SurvivalTooltipDismiss.version === version) return;
     var owners = [], blocked = null, job = null, epoch = 0;
     function valid(panel) { return panel && (!panel.IsValid || panel.IsValid()); }
@@ -63,8 +63,22 @@
             if (!owner.alive()) return false;
             var at=cursor();
             release(at);
+            // A real move to another reward must not inherit this owner's old
+            // popup region. Keep other windows and nested source entries blocked.
+            if (blocked && blocked.owner===owner && options.allowSourceSwitch && source!==blocked.anchor &&
+                inside(at,rect(source,owner.readRect)) && !inside(at,rect(blocked.anchor,owner.readRect) || blocked.anchorBox)) {
+                blocked=null;cancelIdle();
+            }
             if (blocked && (inside(at,blocked.box) || inside(at,rect(blocked.anchor,blocked.owner.readRect) || blocked.anchorBox) || (!at && source===blocked.anchor))) return false;
             return true;
+        };
+        owner.SourceLeft=function (source) {
+            if (!owner.alive() || !blocked || blocked.owner!==owner) return;
+            var at=cursor();
+            if (source) {
+                if (source!==blocked.anchor || inside(at,rect(source,owner.readRect) || blocked.anchorBox)) return;
+            } else if (inside(at,blocked.box)) return;
+            blocked=null;cancelIdle();
         };
         owner.Shown=function (source) { if (!owner.alive()) return; anchor=source;owner.shown=true;watch(); };
         owner.Hidden=function () { owner.shown=false;anchor=null;cancelIdle(); };

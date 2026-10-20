@@ -1,7 +1,7 @@
 (function () {
     "use strict";
     var cfg = GameUI.CustomUIConfig(), ui = cfg.SurvivalUI || (cfg.SurvivalUI = {});
-    if (ui.RewardFX && ui.RewardFX.version === "1.2.1") return;
+    if (ui.RewardFX && ui.RewardFX.version === "1.2.2") return;
     var layout = "file://{resources}/layout/custom_game/common/reward_feedback.xml";
     var duration = 1.6, historyLimit = 64, nextId = 0;
 
@@ -41,7 +41,7 @@
         host.style.height = h + "px";
     }
     function createGlass(root, options) {
-        var host = null, sweep = null, anchor = null, job = null, serial = 0, dead = false, alternate = false;
+        var host = null, sweep = null, anchor = null, surface = null, job = null, serial = 0, dead = false, alternate = false;
         var seen = Object.create(null), order = [], id = ++nextId;
         function clear() {
             serial++;
@@ -49,26 +49,29 @@
             job = null;
             if (valid(anchor)) anchor.RemoveClass("RewardGlassActive");
             if (valid(host)) { host.visible = false; host.DeleteAsync(0); }
-            host = sweep = anchor = null;
+            host = sweep = anchor = surface = null;
         }
         return {
             Play: function (event) {
                 if (dead || !valid(root)) { clear(); return false; }
                 event = event || {};
                 var key = event.key === undefined || event.key === null ? "" : String(event.key);
-                if (!key || key.length > 256 || seen[key] || !valid(event.anchor)) return false;
+                var target = event.surface === undefined ? event.anchor : event.surface;
+                if (!key || key.length > 256 || seen[key] || !valid(event.anchor) || !valid(target)) return false;
                 serial++;
                 if (job !== null && $.CancelScheduled) $.CancelScheduled(job);
                 job = null;
                 try {
-                    if (!valid(host) || !valid(sweep) || anchor !== event.anchor) {
+                    if (!valid(host) || !valid(sweep) || anchor !== event.anchor || surface !== target) {
                         clear();
                         anchor = event.anchor;
+                        surface = target;
                         // Daily render replaces the just-claimed card before
-                        // its first layout. Like the collection draw, attach
-                        // the glass to that card and let percentage sizing
-                        // follow layout, Fit, scrolling and UI scale natively.
-                        host = $.CreatePanel("Panel", anchor, "SurvivalRewardGlass" + id);
+                        // its first layout. Attach the glass to the reward's
+                        // icon surface, while keeping claim state on its card.
+                        // Percentage sizing follows the icon's native bounds,
+                        // layout, Fit, scrolling and UI scale natively.
+                        host = $.CreatePanel("Panel", surface, "SurvivalRewardGlass" + id);
                         host.AddClass("RewardGlassSurface");
                         host.style.position = "0px 0px 0px";
                         host.style.width = host.style.height = "100%";
@@ -204,5 +207,5 @@
             }
         };
     }
-    ui.RewardFX = { version: "1.2.1", Create: create };
+    ui.RewardFX = { version: "1.2.2", Create: create };
 })();
