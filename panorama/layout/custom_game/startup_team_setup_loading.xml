@@ -1,0 +1,37 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/startup_loading.css" />
+    </styles>
+    <scripts>
+        <include src="file://{resources}/scripts/custom_game/startup_loading.js" />
+    </scripts>
+    <Panel class="SurvivalStartupLoading StartupNativeTeamSetupContext StartupLoadingHidden" visible="false" hittest="true" hittestchildren="true">
+        <Panel id="StartupLoadingSurface" class="StartupLoadingSurface" visible="false" hittest="false" hittestchildren="false">
+            <Image id="StartupLoadingBackground" class="StartupLoadingBackground" scaling="stretch-to-cover-preserve-aspect" hittest="false" />
+            <Image class="StartupLoadingHidden" src="file://{images}/custom_game/loading/dawnward_citadel_background.png" hittest="false" />
+            <Panel class="StartupLoadingShade" hittest="false" />
+            <Panel class="StartupLoadingHeading" hittest="false">
+                <Label id="StartupLoadingTitle" class="StartupLoadingTitle" text="孤城逐晓" />
+            </Panel>
+            <Panel id="StartupLoadingFooter" class="StartupLoadingFooter" hittest="false" hittestchildren="true">
+                <Panel id="StartupLoadingProgressTrack" class="StartupLoadingProgressTrack" hittest="false">
+                    <Panel class="StartupLoadingProgressWell" hittest="false">
+                        <Panel class="StartupLoadingProgressEmpty" hittest="false">
+                            <Panel id="StartupLoadingProgressFill" class="StartupLoadingProgressFill" hittest="false" />
+                        </Panel>
+                    </Panel>
+                    <Panel class="StartupLoadingProgressFrame" hittest="false">
+                        <Image class="StartupLoadingProgressCap" src="file://{images}/custom_game/loading/warcraft_loading_frame_left.png" scaling="stretch-to-fit" hittest="false" />
+                        <Image class="StartupLoadingProgressCenter" src="file://{images}/custom_game/loading/warcraft_loading_frame_center.png" scaling="stretch-to-fit" hittest="false" />
+                        <Image class="StartupLoadingProgressCap" src="file://{images}/custom_game/loading/warcraft_loading_frame_right.png" scaling="stretch-to-fit" hittest="false" />
+                    </Panel>
+                    <Label id="StartupLoadingPercent" class="StartupLoadingPercent" text="0%" />
+                </Panel>
+                <Panel id="StartupLoadingErrorBox" class="StartupLoadingErrorBox StartupLoadingHidden" hittest="false" hittestchildren="true">
+                    <Label id="StartupLoadingError" class="StartupLoadingError" text="准备尚未完成，请重试。" />
+                    <Button id="StartupLoadingRetry" class="StartupLoadingRetry"><Label text="重试" /></Button>
+                </Panel>
+            </Panel>
+        </Panel>
+    </Panel>
+</root>

@@ -6,8 +6,8 @@
     // Some phases use an engine-owned ContextPanel around the authored root.
     var layoutRoot = surface && surface.GetParent ? surface.GetParent() : background.GetParent ? background.GetParent() : root;
     surface = surface || layoutRoot;
-    var nativeLoadingContext = !!(layoutRoot && layoutRoot.BHasClass
-        && layoutRoot.BHasClass("StartupNativeLoadingContext"));
+    var nativeTeamSetupContext = !!(layoutRoot && layoutRoot.BHasClass
+        && layoutRoot.BHasClass("StartupNativeTeamSetupContext"));
     var imagePath = "file://{images}/custom_game/loading/dawnward_citadel_background.png";
     var state = null, session = "", imageReady = false, imageError = false, stateTimeout = false;
     var imageGeneration = 0, stateGeneration = 0, lastHandshake = -100, lastRetry = -100;
@@ -60,8 +60,8 @@
                 parent: root.GetParent && root.GetParent() ? String(root.GetParent().id || "(anonymous)") : ""}));
         }
     }
-    // Decide from the first nettable snapshot before ever drawing a new phase.
-    setVisible(false);
+    // Keep the authored opaque cover until the first authoritative render.
+    // Hiding first would expose the HUD while its startup snapshot arrives.
 
     function parentOf(panel) { return panel && panel.GetParent ? panel.GetParent() : null; }
     function diagnostic(stage) {
@@ -224,10 +224,12 @@
         // or tears down its client rules object. A JS catch cannot intercept a
         // native access violation. The authoritative snapshot and completion
         // memo already cover phase gaps without querying engine rule state.
-        // Team selection and its Start button belong exclusively to Valve.
-        // An unreplicated GameSetup/HUD context must not cover that screen.
-        var nativeTeamSetup = !!state && (yes(state.native_team_setup) || state.phase === "team_setup");
-        var hidden = released() || awaitingSnapshot || nativeTeamSetup || (!state && !nativeLoadingContext);
+        // Only the GameSetup layout yields to Valve's team selection. A later
+        // HeroSelection/Strategy/HUD instance may initially receive no snapshot
+        // or the previous team_setup snapshot; neither can release its cover.
+        var nativeTeamSetup = nativeTeamSetupContext && (!state
+            || yes(state.native_team_setup) || state.phase === "team_setup");
+        var hidden = released() || awaitingSnapshot || nativeTeamSetup;
         if (hidden && released()) lastHiddenRepair = clock;
         if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
