@@ -149,7 +149,7 @@
         return items[contentId] || {};
     }
 
-    function updateItemIcon(icon, contentId, itemName) {
+    function updateItemIcon(icon, contentId, itemName, sources) {
         if(!icon)return;
         icon.itemname=itemName;
         var cfg=GameUI.CustomUIConfig(),resources=cfg.SurvivalItemResources;
@@ -166,7 +166,15 @@
         }
         if(fitted){
             fitted.visible=!!resolved;
-            if(resolved){fitted.SetImage(resolved.uri);var presentation=cfg.SurvivalRewardPresentation;if(presentation&&presentation.FillIcon)presentation.FillIcon(fitted,contentId||itemName);}
+            if(resolved){
+                fitted.SetImage(resolved.uri);
+                var artwork={content_id:contentId||itemName};
+                for(var i=0;i<(sources||[]).length;i++){
+                    var source=sources[i];if(!source||source.quality===undefined&&source.rarity===undefined)continue;
+                    ["quality","rarity"].forEach(function(field){if(source[field]!==undefined)artwork[field]=source[field];});break;
+                }
+                var presentation=cfg.SurvivalRewardPresentation;if(presentation&&presentation.FillIcon)presentation.FillIcon(fitted,artwork);
+            }
         }
     }
     function equipmentLevelText(contentId, fallback) {
@@ -222,7 +230,7 @@
                 }
             });
         });
-        updateItemIcon(icon, contentId, itemName);
+        updateItemIcon(icon, contentId, itemName, [dynamic,identity.removed!==1?identity:null,definition]);
         setText("CustomInventoryItemTitle", definition.displayname
             || definition.name
             || localize("DOTA_Tooltip_ability_" + itemName, itemName));

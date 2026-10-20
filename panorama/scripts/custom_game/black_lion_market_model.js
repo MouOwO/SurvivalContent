@@ -5,7 +5,7 @@
     var defaultPresentation={"groups":{"home":["video_p001","video_p033","video_p029","video_p005","video_p015","video_p030","video_p012","video_p032","video_p018","video_p013","video_p017","video_p020","video_p014","video_p026","video_p004","video_p028","video_p011","video_p031","video_p019","video_p023","video_p022","video_p025","video_p016","video_p024","video_p027","video_p021","video_p037","video_p038","video_p147","video_p151","video_p042","video_p043","video_p048","video_p046","video_p045","video_p049","video_p050","video_p051","video_p052","video_p056","video_p055","video_p054","video_p053","video_p057","video_p058","video_p063","video_p061","video_p065","video_p066","video_p067","video_p068","video_p072","video_p071","video_p070","video_p069","video_p075","video_p079","video_p078","video_p077","video_p082","video_p083","video_p084","video_p088","video_p087","video_p086","video_p089","video_p090","video_p092","video_p094","video_p095","video_p096","video_p100","video_p099","video_p098","video_p097","video_p101","video_p102","video_p103","video_p104","video_p108","video_p107","video_p106","video_p105","video_p109","video_p110","video_p111","video_p112","video_p114","video_p140","video_p113","video_p116","video_p117","video_p118","video_p119","video_p123","video_p122","video_p121","video_p120","video_p124","video_p125","video_p126","video_p127","video_p131","video_p130","video_p129","video_p128","video_p132","video_p133","video_p134","video_p135","video_p139","video_p138","video_p137","video_p136","video_bundle_b001","video_bundle_b002","video_bundle_b003","video_bundle_b004","video_bundle_b005","video_bundle_vip_01","video_bundle_vip_02","video_bundle_vip_03","video_bundle_vip_04","video_bundle_vip_05","video_bundle_vip_06","video_bundle_vip_07","video_bundle_vip_08","video_bundle_vip_09","video_bundle_vip_10"],"bundles":["video_bundle_b001","video_bundle_b002","video_bundle_b003","video_bundle_b004","video_bundle_b005"],"promotions":["video_p004","video_p011","video_p005","video_p012","video_p022","video_p026","video_p025","video_p023","video_p016","video_p027","video_p028","video_p024","video_p020","video_p021","video_p019","video_p018","video_p032","video_p031","video_p017","video_p013","video_p014","video_p030","video_p015","video_p029","video_p033"],"vip":["video_bundle_vip_01","video_bundle_vip_02","video_bundle_vip_03","video_bundle_vip_04","video_bundle_vip_05","video_bundle_vip_06","video_bundle_vip_07","video_bundle_vip_08","video_bundle_vip_09","video_bundle_vip_10"],"all":["video_p001","video_p033","video_p029","video_p005","video_p015","video_p030","video_p012","video_p032","video_p018","video_p013","video_p017","video_p020","video_p014","video_p026","video_p004","video_p028","video_p011","video_p031","video_p019","video_p023","video_p022","video_p025","video_p016","video_p024","video_p027","video_p021","video_p037","video_p038","video_p147","video_p151","video_p042","video_p043","video_p048","video_p046","video_p045","video_p049","video_p050","video_p051","video_p052","video_p056","video_p055","video_p054","video_p053","video_p057","video_p058","video_p063","video_p061","video_p065","video_p066","video_p067","video_p068","video_p072","video_p071","video_p070","video_p069","video_p075","video_p079","video_p078","video_p077","video_p082","video_p083","video_p084","video_p088","video_p087","video_p086","video_p089","video_p090","video_p092","video_p094","video_p095","video_p096","video_p100","video_p099","video_p098","video_p097","video_p101","video_p102","video_p103","video_p104","video_p108","video_p107","video_p106","video_p105","video_p109","video_p110","video_p111","video_p112","video_p114","video_p140","video_p113","video_p116","video_p117","video_p118","video_p119","video_p123","video_p122","video_p121","video_p120","video_p124","video_p125","video_p126","video_p127","video_p131","video_p130","video_p129","video_p128","video_p132","video_p133","video_p134","video_p135","video_p139","video_p138","video_p137","video_p136","video_bundle_b001","video_bundle_b002","video_bundle_b003","video_bundle_b004","video_bundle_b005","video_bundle_vip_01","video_bundle_vip_02","video_bundle_vip_03","video_bundle_vip_04","video_bundle_vip_05","video_bundle_vip_06","video_bundle_vip_07","video_bundle_vip_08","video_bundle_vip_09","video_bundle_vip_10"]}};
     var definitions=[{id:"home",label:"首页"},{id:"bundles",label:"礼包"},
         {id:"promotions",label:"促销"},{id:"vip",label:"VIP"},{id:"all",label:"全部商品"}];
-    var purchaseTypes=[{id:"u_coin",label:"U币"},{id:"shop_points",label:"积分"},{id:"all",label:"全部"}];
+    var purchaseTypes=[{id:"u_coin",label:"G币"},{id:"shop_points",label:"积分"},{id:"all",label:"全部"}];
     function purchaseType(item){
         if(!item)return "";
         if(item.purchase_method==="wallet")return item.currency==="shop_points"||item.currency==="shop_gold"?item.currency:"";
@@ -32,7 +32,7 @@
         if(fen===null||fen<=0||fen%1!==0||fen>1000000)return false;
         if(item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined){
             var coins=number(item.u_coin_price);
-            return coins!==null&&coins>0&&coins%1===0&&item.u_coin_per_yuan===1000&&coins===fen*10;
+            return coins!==null&&coins>0&&coins%1===0&&item.u_coin_per_yuan===100&&coins===fen;
         }
         return true;
     }
@@ -87,6 +87,13 @@
         if(id==="promotions")return discount(item);
         return false;
     }
+    function referencePrice(item){
+        // Existing promotion membership owns eligibility. This comparison never
+        // changes catalog prices, original-price metadata, grouping or checkout.
+        if(!item||item.product_type==="recharge"||item.sku==="u_coin_recharge"||item.sku==="archive_pass_monthly"||!inGroup(item,"promotions"))return null;
+        var current=item.purchase_method==="wallet"?number(item.price):item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined?number(item.u_coin_price):number(item.amount_fen)/100;
+        return current!==null&&current>0&&current<=9007199254740991/3?current*3/2:null;
+    }
     function groupFor(item){
         if(!item)return "all";
         if(item.product_type==="bundle")return isVip(item)?"vip":"bundles";
@@ -126,11 +133,11 @@
     function channelLabel(item){
         if(!item||typeof item!=="object")return "购买渠道待同步";
         if(item.purchase_method==="wallet")return item.currency==="shop_points"?"商城积分兑换":"购买渠道待同步";
-        if(item.purchase_method==="cash")return item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined?"人民币直购（U币计价）":"人民币直购";
+        if(item.purchase_method==="cash")return item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined?"人民币直购（G币计价）":"人民币直购";
         return "购买渠道待同步";
     }
     var model={Groups:groups,HomeProducts:homeProducts,GroupFor:groupFor,InGroup:inGroup,SortProducts:sortProducts,
-        IsListed:isListed,IsActionable:isActionable,DisabledMessage:disabledMessage,
+        IsListed:isListed,IsActionable:isActionable,DisabledMessage:disabledMessage,ReferencePrice:referencePrice,
         PurchaseTypes:function(){return purchaseTypes.map(function(option){return {id:option.id,label:option.label};});},
         PurchaseType:purchaseType,MatchesPurchaseType:matchesPurchaseType,
         TypeLabel:typeLabel,ChannelLabel:channelLabel,SetPresentation:function(value){localPresentation=value||null;}};

@@ -2,14 +2,16 @@
 "use strict";
 // Independent login calendar. All rewards and eligibility come from the existing
 // authoritative daily snapshot; the shell never grants or unlocks an entitlement.
-var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,RH=cfg.RemainingHandoff,P=cfg.DailyGW2Data||{},size=P.canvas||[1382,784];
-var layout=P.layout||{cellWidth:118,cellHeight:119,cellPadding:5,columns:[62,207,355,505,652,802,952],rows:[152,293,437,582],monthlyX:1175};
+var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,RH=cfg.RemainingHandoff,P=cfg.DailyGW2Data||{},size=P.canvas||[1360,844];
+var reopenAfterReload=cfg.SurvivalDailyStargoldOpen===true;
+var layout=P.layout||{cellWidth:131,cellHeight:124,cellPadding:5,slotY:23,slotHeight:101,columns:[46,189,331,474,616,759,901],rows:[193,329,465,600],monthlyX:1082,monthlyWidth:222};
 var cellWidth=layout.cellWidth,cellHeight=layout.cellHeight,cellPadding=layout.cellPadding,columns=layout.columns,rows=layout.rows;
-var iconInset=2; // Fill the frame interior; retain only its visible border.
+var iconInset=2,slotY=layout.slotY||23,slotHeight=layout.slotHeight||101;
+var monthlyWidth=layout.monthlyWidth||222;
 var gridWidth=columns[6]-columns[0]+cellWidth,gridHeight=rows[3]-rows[0]+cellHeight;
 var fitOptions={widthFraction:.94,heightFraction:.9};
 var data=null,waiting=null,errorText="",buying=false,sequence=0,active=true,life=U.Lifecycle(),viewLife=U.Lifecycle(),fetching=false,fetchSerial=0;
-var dailyRoot=$.GetContextPanel(),view=null,shell=null,canvas=null,titleOrnament=null,dailyTooltip=null,moved=[];
+var dailyRoot=$.GetContextPanel(),view=null,shell=null,canvas=null,dailyTooltip=null,moved=[];
 var cardSignature="",specialSignature="",statusText="",scale=1;
 var rewardFX=null;
 var columnLabels=["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ"];
@@ -27,35 +29,17 @@ function passPriceText(){
  return data&&data.price||"价格待配置";
 }
 function style(node,values){Object.keys(values).forEach(function(key){if(node.style[key]!==values[key])node.style[key]=values[key];});}
-function rect(node,x,y,w,h){style(node,{position:x+"px "+y+"px 0px",width:w+"px",height:h+"px",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top"});}
+function rect(node,x,y,w,h){style(node,{position:Math.round(x)+"px "+Math.round(y)+"px 0px",width:Math.round(w)+"px",height:Math.round(h)+"px",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top"});}
 function make(type,parent,id,cls){var node=$.CreatePanel(type,parent,id||"");if(cls)node.AddClass(cls);return node;}
 function fillIcon(icon,item){
  var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)shared.FillIcon(icon,item);
- // The calendar crops to its slot even when the shared catalog prefers contain.
- if(icon&&icon.SetScaling){icon.SetScaling("stretch-to-cover-preserve-aspect");icon.__survivalItemFill="cover";}return icon;
+ // The quality background belongs to the full slot, not the inset artwork.
+ style(icon,{backgroundImage:"none",backgroundColor:"transparent",border:"0px"});
+ if(icon&&icon.SetScaling){icon.SetScaling("stretch-to-fit-preserve-aspect");icon.__survivalItemFill="contain";}return icon;
 }
 function skin(node,key){var asset=P.assets&&P.assets[key];if(asset)style(node,{backgroundImage:'url("'+asset.file+'")',backgroundColor:"transparent",backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",border:"0px"});}
 function component(parent,key,x,y,w,h,id){var node=make("Panel",parent,id,"DailyGW2Art");rect(node,x,y,w,h);node.hittest=false;node.hittestchildren=false;skin(node,key);return node;}
-function celebrationArt(parent,id,file,x,y,w,h,appearance){
- var node=component(parent,null,x,y,w,h,id);node.AddClass("DailyGW2Celebration");
- style(node,{backgroundImage:'url("s2r://panorama/images/'+file+'.vtex")',backgroundSize:"contain",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
- if(appearance)style(node,appearance);return node;
-}
-function buildCelebration(){
- // A fantasy title vignette, using native transparent art above the reward grid.
- var header=component(canvas,null,0,0,size[0],104,"DailyGW2CelebrationHeader");style(header,{overflow:"clip"});
- celebrationArt(header,"DailyGW2CelebrationRibbon","events/international_2026/artwork/gold_ribbon_png",155,-96,1072,246,{opacity:".34",brightness:"1.25"});
- [{side:"Left",x:456},{side:"Right",x:848}].forEach(function(mark){
-  celebrationArt(header,"DailyGW2CelebrationStars"+mark.side,"events/dark_carnival/overworld/gift_icon_star_orbit_png",mark.x,4,78,78,{opacity:".84",brightness:"1.6"});
-  celebrationArt(header,"DailyGW2CelebrationGift"+mark.side,"received_gift_png",mark.x+10,16,60,59,{brightness:"1.04"});
- });
- [{side:"Left",x:0},{side:"Right",x:size[0]-112}].forEach(function(corner){
-  var top=celebrationArt(canvas,"DailyGW2CelebrationTop"+corner.side,"hud/international_topcorner_png",corner.x,0,112,53,{opacity:".9",brightness:"1.25",washColor:"#e2c68e"});
-  var bottom=celebrationArt(canvas,"DailyGW2CelebrationBottom"+corner.side,"hud/international_btmcorner_psd",corner.side==="Left"?0:size[0]-44,size[1]-57,44,57,{opacity:".9",brightness:"1.25",washColor:"#e2c68e"});
-  if(corner.side==="Right"){style(top,{transform:"scaleX(-1)"});style(bottom,{transform:"scaleX(-1)"});}
- });
-}
-function label(parent,text,x,y,w,h,font,color,id){var node=make("Label",parent,id,"DailyGW2Text");node.text=String(text===undefined?"":text);node.hittest=false;rect(node,x,y,w,h);style(node,{fontSize:font+"px",color:color||"#f0efeb",fontFamily:'"Source Han Sans SC"',whiteSpace:"nowrap",textOverflow:"ellipsis"});return node;}
+function label(parent,text,x,y,w,h,font,color,id){var node=make("Label",parent,id,"DailyGW2Text");node.text=String(text===undefined?"":text);node.hittest=false;rect(node,x,y,w,h);style(node,{fontSize:Math.max(18,font)+"px",color:color||"#dfd6bf",fontFamily:'"Source Han Sans SC"',fontWeight:"normal",textShadow:"none",whiteSpace:"nowrap",textOverflow:"ellipsis"});return node;}
 function move(id,parent){var node=p(id);if(!valid(node))return null;moved.push({node:node,parent:node.GetParent()});node.SetParent(parent);node.style.visibility="visible";return node;}
 function escapedLines(value){return String(value||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g,"<br>");}
 function effectLines(value){return String(value||"").replace(/\r\n?/g,"\n").replace(/[；;][ \t]*/g,"\n");}
@@ -72,52 +56,58 @@ function tip(anchor,title,body){
  });anchor.SetPanelEvent("onmouseout",function(){if(dailyTooltip)dailyTooltip.QueueHide(anchor);});
 }
 function close(){
+ if(!active)return;
+ cfg.SurvivalDailyStargoldOpen=false;
  if(rewardFX)rewardFX.Clear();if(waiting)waiting.present=false;
- if(!active)return;hideTooltip();viewLife.Cancel();fetching=false;fetchSerial++;if(view)view.Close();
+ hideTooltip();viewLife.Cancel();fetching=false;fetchSerial++;if(view)view.Close();
  if(valid(p("DailyWindow")))p("DailyWindow").AddClass("ArchiveHidden");if(valid(p("DailyScrim")))p("DailyScrim").AddClass("ArchiveHidden");
  if(valid(p("DailyRulesText"))){p("DailyRulesText").AddClass("ArchiveHidden");p("DailyRulesText").visible=false;}$.DispatchEvent("DOTAHideTextTooltip");
 }
 function fitWindow(value){
  var nextScale=Math.min(1,Number(value)||1),changed=Math.abs(scale-nextScale)>.0001;scale=nextScale;
- if(valid(p("DailyWindow")))p("DailyWindow").style.transform="scale3d("+scale+","+scale+",1)";
+ if(valid(p("DailyWindow")))p("DailyWindow").style.transform=scale===1?"none":"scale3d("+scale+","+scale+",1)";
  if(changed)hideTooltip();
 }
 function build(){
  var win=p("DailyWindow");win.AddClass("DailyGW2Page");win.RemoveClass("DailyV10Page");win.RemoveClass("DailyPurple");
  shell=U.ModalShell.Adopt({id:"daily_rewards",panel:win,root:dailyRoot,scrim:p("DailyScrim"),width:size[0],height:size[1],fit:fitOptions,onClose:close,onFit:fitWindow});
- // Native window painting clips overflowing art. Reserve equal transparent
- // margins so the crest stays inside the shell and the calendar stays centered.
- style(win,{width:size[0]+"px",height:(size[1]+40)+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",overflow:"noclip"});
- canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,20,size[0],size[1]);style(canvas,{backgroundColor:"#101925"});canvas.hittest=false;canvas.hittestchildren=true;
- // Native DPC panel gradient, composed over an opaque blue base.
- var backdrop=component(canvas,null,0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 100%,from(#141c23),to(#1d2a35cc))"});
- buildCelebration();
- var edge=component(canvas,null,0,0,size[0],size[1],"DailyGW2WindowEdge");style(edge,{backgroundImage:"none",backgroundColor:"transparent",borderTop:"1px solid #3b404777",borderLeft:"1px solid #4c434677",borderRight:"1px solid #00000088",borderBottom:"1px solid #00000088"});
- component(canvas,"header_rule",44,82,1321,5,"DailyGW2HeaderRule");
- // The crest sits above the panel, with its lower edge meeting the background.
- titleOrnament=celebrationArt(win,"DailyGW2CelebrationTitleOrnament","fantasy_craft/player_card_ornament_png",592,0,198,20,{opacity:"1",brightness:"1.15"});
- var heading=label(canvas,"每日登录奖励",190,17,size[0]-380,58,40,"#f4f0e5","DailyGW2Title");style(heading,{textAlign:"center",fontWeight:"normal"});
- var closeButton=make("Button",canvas,"DailyGW2Close","DailyGW2CloseButton");rect(closeButton,1319,20,30,30);style(closeButton,{backgroundColor:"gradient(linear,0% 0%,0% 100%,from(#737373),to(#444444))",border:"1px solid #8c8c8c"});
+ // The R5 board is authored at integer coordinates. At normal 16:9 the shared
+ // native UI scale is sufficient; avoid an additional resampled text layer.
+ style(win,{width:size[0]+"px",height:size[1]+"px",flowChildren:"none",padding:"0px",margin:"0px",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",overflow:"noclip"});
+ style(p("DailyScrim"),{backgroundImage:"none",backgroundColor:"#0000008c",washColor:"#ffffff"});
+ canvas=make("Panel",win,"DailyGW2Canvas","DailyGW2Canvas");rect(canvas,0,0,size[0],size[1]);style(canvas,{backgroundColor:"#141614",overflow:"clip"});canvas.hittest=false;canvas.hittestchildren=true;
+ var backdrop=component(canvas,"texture",0,0,size[0],size[1],"DailyGW2Background");style(backdrop,{opacity:".09",backgroundSize:"cover"});
+ var header=component(canvas,null,0,0,size[0],104,"DailyGW2Header");style(header,{backgroundColor:"#10120f",borderBottom:"1px solid #8b744640",overflow:"clip"});
+ var headerArt=component(header,"header",0,0,size[0],104,"DailyGW2HeaderArt");style(headerArt,{opacity:".23",backgroundSize:"cover",backgroundPosition:"center"});
+ var edge=component(canvas,null,0,0,size[0],size[1],"DailyGW2WindowEdge");style(edge,{border:"1px solid #8b7647"});
+ component(canvas,"title_divider",530,74,300,24,"DailyGW2TitleDivider").style.opacity=".62";
+ var heading=label(canvas,"每日登录奖励",380,20,600,54,36,"#f1ddae","DailyGW2Title");style(heading,{textAlign:"center",fontFamily:'"Source Han Sans SC"',fontWeight:"medium"});
+ var closeButton=make("Button",canvas,"DailyGW2Close","DailyGW2CloseButton");rect(closeButton,1310,18,30,30);style(closeButton,{backgroundColor:"gradient(linear,0% 0%,0% 100%,from(#737373),to(#444444))",border:"1px solid #8c8c8c"});
  var closeIcon=component(closeButton,null,5,5,20,20);style(closeIcon,{backgroundImage:'url("s2r://panorama/images/control_icons/close_png.vtex")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",opacity:"1"});
  closeButton.hittestchildren=false;
  closeButton.SetPanelEvent("onactivate",function(){if(active&&valid(closeButton)){if(shell.RequestClose)shell.RequestClose("button");else close();}});
- component(canvas,"divider",1113,112,7,665,"DailyGW2Divider");
- columnLabels.forEach(function(name,i){var header=label(canvas,name,columns[i],108,cellWidth,36,27,"#efece3","DailyGW2Weekday_"+i);style(header,{textAlign:"center"});});
- var monthHeader=label(canvas,"月卡奖励",layout.monthlyX-20,108,cellWidth+40,36,27,"#efece3","DailyGW2MonthHeader");style(monthHeader,{textAlign:"center"});
+ label(canvas,"每日签到",47,115,180,30,22,"#ddcfaa","DailyGW2CalendarHeader").style.fontWeight="medium";
+ columnLabels.forEach(function(name,i){var weekday=label(canvas,name,columns[i],149,cellWidth,66,54,"#ab9e7e","DailyGW2Weekday_"+i);style(weekday,{textAlign:"center"});});
+ var passPanel=component(canvas,null,1067,123,252,677,"DailyGW2PassPanel");style(passPanel,{backgroundColor:"gradient(linear,0% 0%,0% 100%,from(#121612),to(#0c100d))",borderLeft:"1px solid #77623b88",borderRight:"1px solid #423b29"});
+ var monthHeader=label(canvas,"月卡专属奖励",1082,135,222,30,22,"#e1c887","DailyGW2MonthHeader");style(monthHeader,{textAlign:"center",fontWeight:"medium"});
+ var monthSubtitle=label(canvas,"7 / 14 / 21 次累计签到奖励",1082,166,222,24,16,"#a2977c","DailyGW2MonthSubtitle");style(monthSubtitle,{textAlign:"center"});
  ["DailyFrame","DailyHeader","DailyClaimPage","DailyPassPage","DailyRuleLine","DailyBack","DailyTooltip"].forEach(function(id){p(id).visible=false;});
  ["DailyCards","DailySubtitle","DailyCount","DailyPassStatus","DailySpecials","PassValidity","PassPrice","PassPurchase","DailyRules","DailyMakeup","DailyClaim","DailyNotice","DailyRulesText"].forEach(function(id){move(id,canvas);});
  rect(p("DailySubtitle"),0,0,0,0);p("DailySubtitle").text="";p("DailySubtitle").visible=false;p("DailySubtitle").style.visibility="collapse";
- rect(p("DailyCount"),0,0,0,0);p("DailyCount").visible=false;
+ rect(p("DailyCount"),742,115,180,26);p("DailyCount").visible=true;style(p("DailyCount"),{fontFamily:'"Source Han Sans SC"',fontWeight:"normal",fontSize:"18px",textShadow:"none",color:"#b5a888",textAlign:"right",whiteSpace:"nowrap",textOverflow:"clip"});
+ var progress=component(canvas,null,934,130,97,2,"DailyGW2ProgressTrack");style(progress,{backgroundColor:"#afa17f20"});var progressFill=component(progress,null,0,0,0,2,"DailyGW2Progress");style(progressFill,{backgroundColor:"#ebce86"});
  rect(p("DailyCards"),columns[0],rows[0],gridWidth,gridHeight);style(p("DailyCards"),{flowChildren:"none",overflow:"clip"});
  rect(p("DailyPassStatus"),0,0,0,0);style(p("DailyPassStatus"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px"});p("DailyPassStatus").hittestchildren=false;p("DailyPassStatus").visible=false;
  rect(p("DailyPassStatusText"),0,0,233,32);style(p("DailyPassStatusText"),{fontSize:"22px",color:"#a9d7ed",textAlign:"center",margin:"0px",marginLeft:"0px"});
- rect(p("DailySpecials"),layout.monthlyX,rows[0],cellWidth,gridHeight);style(p("DailySpecials"),{flowChildren:"none",overflow:"clip"});
+ rect(p("DailySpecials"),layout.monthlyX,rows[0],monthlyWidth,gridHeight);style(p("DailySpecials"),{flowChildren:"none",overflow:"clip"});
  var passInfo=make("Panel",canvas,"DailyGW2PassInfo","DailyGW2Art");rect(passInfo,0,0,0,0);passInfo.visible=false;passInfo.hittest=false;
  rect(p("PassValidity"),0,0,0,0);p("PassValidity").visible=false;
  rect(p("PassPrice"),0,0,0,0);p("PassPrice").visible=false;
- rect(p("PassPurchase"),1141,709,194,61);rect(p("DailyRules"),729,720,76,44);rect(p("DailyMakeup"),327,720,160,44);rect(p("DailyClaim"),511,720,194,44);
- p("DailyRules").Children().forEach(function(node){if(node.paneltype==="Label")node.text="规则";});
- rect(p("DailyNotice"),columns[0],765,gridWidth,18);style(p("DailyNotice"),{fontSize:"16px",color:"#eed6a8",textAlign:"center",marginTop:"0px",whiteSpace:"nowrap",textOverflow:"ellipsis"});
+ rect(p("PassPurchase"),1081,736,224,52);rect(p("DailyRules"),929,747,100,30);rect(p("DailyMakeup"),58,747,130,30);rect(p("DailyClaim"),411,730,256,64);
+ p("DailyRules").Children().forEach(function(node){if(node.paneltype==="Label")node.text="奖励规则";});
+ var footer=component(canvas,null,36,800,1288,43,"DailyGW2Footer");style(footer,{borderTop:"1px solid #9d824422"});
+ label(canvas,"每日零点刷新   ·   按累计签到次数领取   ·   月卡奖励随符合条件的签到发放",100,811,1160,25,16,"#a89b7a","DailyGW2FooterText").style.textAlign="center";
+ rect(p("DailyNotice"),190,778,710,22);style(p("DailyNotice"),{fontFamily:'"Source Han Sans SC"',fontSize:"18px",textShadow:"none",color:"#eed6a8",textAlign:"center",marginTop:"0px",whiteSpace:"nowrap",textOverflow:"ellipsis"});
  var rulesWidth=620,rulesHeight=Math.min(570,size[1]-80),rules=p("DailyRulesText");rect(rules,(size[0]-rulesWidth)/2,(size[1]-rulesHeight)/2,rulesWidth,rulesHeight);style(rules,{flowChildren:"down",overflow:"squish scroll",backgroundColor:"#181610fc",backgroundImage:"none",border:"1px solid #a7926b",padding:"24px",zIndex:"120"});rules.hittest=true;rules.hittestchildren=true;rules.AddClass("ArchiveHidden");rules.visible=false;
  style(p("DailyRulesBody"),{width:(rulesWidth-60)+"px",height:"fit-children",fontSize:"20px",color:"#eee6d2",whiteSpace:"normal",textOverflow:"clip",lineHeight:"28px"});p("DailyRulesBody").html=true;
  // Reuse the archive renderer, materials and hover lifecycle for every daily reward.
@@ -126,7 +116,17 @@ function build(){
   isAlive:function(){return active&&viewValid();},isActive:function(){return shell.IsOpen()&&p("DailyRulesText").BHasClass("ArchiveHidden");},
   position:function(info){var x=info.anchor.x+cellWidth+12-info.padding;if(x+info.width>info.bounds.width)x=info.anchor.x-info.surfaceWidth-12-info.padding;return {x:Math.max(0,Math.min(info.bounds.width-info.width,x)),y:Math.max(0,Math.min(info.bounds.height-info.height,info.anchor.y-info.padding))};}
  });
- view=cfg.SurvivalDailyGW2={canvas:canvas,shell:shell,Open:function(){shell.Open();canvas.visible=true;fitWindow(U.Fit(win,dailyRoot,size[0],size[1],fitOptions));},Close:function(){shell.Close();if(valid(canvas))canvas.visible=false;},IsOpen:function(){return shell.IsOpen();},Dispose:function(){dailyTooltip.Dispose();shell.Dispose();moved.forEach(function(e){if(valid(e.node)&&valid(e.parent))e.node.SetParent(e.parent);});moved=[];if(valid(titleOrnament))titleOrnament.DeleteAsync(0);if(valid(canvas))canvas.DeleteAsync(0);if(valid(win))win.RemoveClass("DailyGW2Page");}};
+ // Scope the opaque R5 tooltip to this instance; keep shared archive behavior.
+ p("DailyGW2TooltipBacking").visible=false;p("DailyGW2TooltipFrame").visible=false;
+ style(p("DailyGW2TooltipSurface"),{backgroundColor:"#10150f",border:"1px solid #8a754c"});
+ style(p("DailyGW2TooltipTitle"),{fontFamily:'"Source Han Sans SC"',fontWeight:"medium",textShadow:"none",color:"#efd49a"});
+ // Native action panels can survive reload with old tooltip handlers attached.
+ ["DailyClaim","DailyMakeup","PassPurchase","DailyRules","DailyClose","DailyGW2Close"].forEach(function(id){
+  var button=p(id);if(!valid(button))return;delete button.__dailyGW2Tooltip;
+  button.SetPanelEvent("onmouseover",function(){if(active){hideTooltip();$.DispatchEvent("DOTAHideTextTooltip");}});
+  button.SetPanelEvent("onmouseout",function(){if(active)hideTooltip();});
+ });
+ view=cfg.SurvivalDailyGW2={canvas:canvas,shell:shell,Open:function(){shell.Open();canvas.visible=true;fitWindow(U.Fit(win,dailyRoot,size[0],size[1],fitOptions));},Close:function(){shell.Close();if(valid(canvas))canvas.visible=false;},IsOpen:function(){return shell.IsOpen();},Dispose:function(){dailyTooltip.Dispose();shell.Dispose();moved.forEach(function(e){if(valid(e.node)&&valid(e.parent))e.node.SetParent(e.parent);});moved=[];if(valid(canvas))canvas.DeleteAsync(0);if(valid(win))win.RemoveClass("DailyGW2Page");}};
 }
 build();
 if(U.RewardFX)rewardFX=U.RewardFX.Create(canvas,{channel:"daily",getScale:function(){return scale;}});
@@ -139,8 +139,21 @@ U.ActionButton.Adopt(p("PassPurchase"),{action:function(){if(!active||!data||Num
 function setStatus(text){statusText=String(text||"");if(valid(p("DailyNotice")))p("DailyNotice").text=statusText;}
 function paintActions(){
  ["DailyClaim","DailyMakeup","PassPurchase","DailyRules"].forEach(function(id){
-  var button=p(id),disabled=button.enabled===false;button.AddClass("DailyGW2Button");skin(button,"button");style(button,{opacity:disabled?".48":"1",backgroundColor:P.assets&&P.assets.button?"transparent":"#24292c",border:"0px",flowChildren:"none"});
-  button.hittestchildren=false;button.Children().forEach(function(node){if(node.BHasClass&&node.BHasClass("DailyGW2HoverArt")){node.visible=false;return;}if(node.paneltype==="Label"){rect(node,0,0,parseFloat(button.style.width),parseFloat(button.style.height));style(node,{fontSize:id==="PassPurchase"?"27px":"21px",color:P.assets&&P.assets.button?(disabled?"#625c50":"#201b14"):(disabled?"#999b98":"#efe7d3"),textShadow:"none",textAlign:"center",verticalAlign:"center",marginTop:"0px",marginLeft:"0px",paddingTop:"0px",whiteSpace:"nowrap",textOverflow:"shrink"});style(node,{width:"fit-children",height:"fit-children",horizontalAlign:"center"});}});
+  var button=p(id),quiet=id==="DailyRules"||id==="DailyMakeup";button.AddClass("DailyGW2Button");
+  // Surviving native panels may retain the old inline values after reload.
+  // Let CSS own interaction states so polling cannot overwrite hover/press.
+  if(!button.__dailyGW2ActionCSSStates&&button.ClearPropertyFromCode){
+   button.ClearPropertyFromCode("brightness");button.ClearPropertyFromCode("saturation");button.__dailyGW2ActionCSSStates=true;
+  }
+  style(button,{opacity:"1",backgroundColor:"transparent",backgroundImage:"none",border:"0px",flowChildren:"none"});
+  if(!quiet){
+   // Retire the old monthly outline layers when a native panel survives reload.
+   button.Children().forEach(function(node){if(node.BHasClass&&node.BHasClass("DailyGW2Art")){node.visible=false;node.DeleteAsync(0);}});
+   delete button.__stargoldBorder;
+   skin(button,"button");style(button,{backgroundSize:"cover",backgroundPosition:"center",border:"1px solid #d1ad63"});
+  }
+  if(quiet)style(button,{borderBottom:"1px solid #82704d77"});
+  button.hittestchildren=false;button.Children().forEach(function(node){if(node.BHasClass&&node.BHasClass("DailyGW2HoverArt")){node.visible=false;return;}if(node.paneltype==="Label"){rect(node,0,0,parseFloat(button.style.width),parseFloat(button.style.height));style(node,{fontFamily:'"Source Han Sans SC"',fontWeight:quiet?"normal":"medium",fontSize:quiet?"18px":id==="PassPurchase"?"20px":"22px",color:quiet?"#b4a783":"#241b0c",textShadow:"none",textAlign:"center",verticalAlign:"center",marginTop:"0px",marginLeft:"0px",paddingTop:"0px",whiteSpace:"nowrap",textOverflow:"clip"});style(node,{width:"fit-children",height:"fit-children",horizontalAlign:"center"});}});
  });
 }
 function request(){
@@ -150,16 +163,31 @@ function request(){
 }
 function artId(item){return item.art_id&&RH.DailyResourceInfo(item.art_id).runtime?item.art_id:"daily.item.crystals";}
 function rewardQuantity(item){var value=item&&item.count;return value!==undefined&&value!==null&&String(value).trim()!==""&&isFinite(Number(value))&&Number(value)>=0?value:null;}
+function rewardDescription(item){
+ var text=String(item.description||"");
+ if(Number(item.max_owned)===1){
+  text+=(text?"\n":"")+"每种道具最多拥有1件";
+  var points=Number(item.duplicate_points);
+  if(item.duplicate_currency==="shop_points"&&item.duplicate_points!==undefined&&isFinite(points)&&points>=0)text+="\n重复奖励每件转化为 "+points+" 商城积分";
+ }
+ return text;
+}
 function quantity(parent,value,w,h,inset,x,y){
- var width=Math.min(68,w),host=make("Panel",parent,"","DailyGW2QuantityHost");rect(host,(x||0)+w-width-inset,(y||0)+h-39,width,36);host.hittest=false;host.hittestchildren=false;
+ var width=Math.min(68,w),host=make("Panel",parent,"","DailyGW2QuantityHost");rect(host,(x||0)+w-width-inset,(y||0)+h-30,width,24);host.hittest=false;host.hittestchildren=false;
  // Native Label text alignment does not reliably move a single-line glyph.
  // Anchor its intrinsic box to the right of a separate, fixed-size host.
- var count=label(host,String(value),0,0,width,36,32,"#f5f1e6");count.AddClass("DailyGW2Quantity");style(count,{width:"fit-children",maxWidth:width+"px",height:"fit-children",horizontalAlign:"right",verticalAlign:"bottom",textAlign:"right",textOverflow:"shrink",textShadow:"#000000 0px 1px 2px 3.0"});return count;
+ var count=label(host,String(value),0,0,width,24,20,"#eee4c6");count.AddClass("DailyGW2Quantity");style(count,{width:"fit-children",maxWidth:width+"px",height:"fit-children",horizontalAlign:"right",verticalAlign:"bottom",fontWeight:"medium",textAlign:"right",textOverflow:"clip",textShadow:"none"});return count;
 }
-function mark(parent,key){var node=component(parent,key,cellWidth-cellPadding-33,cellPadding,33,key==="lock"?38:29);node.AddClass(key==="lock"?"DailyGW2Lock":"DailyGW2Check");return node;}
+function mark(parent,key){var monthly=parent.BHasClass("DailyGW2MonthlyIconFrame"),width=parseFloat(parent.style.width),node=component(parent,key,width-(monthly?23:25),monthly?8:slotY+7,15,15);node.AddClass(key==="lock"?"DailyGW2Lock":"DailyGW2Check");return node;}
+function rewardFrame(parent,cls,x,y,w,h){
+ var frame=make("Panel",parent,"",cls);rect(frame,x||0,y||0,w||cellWidth,h||cellHeight);frame.hittest=false;frame.hittestchildren=false;skin(frame,cls==="DailyGW2SpecialFrame"?"premium_frame":"reward_frame");
+ style(frame,{backgroundColor:"#10110f",border:"1px solid #76643e"});return frame;
+}
 function reward(parent,item,x,y,w,h,cls,hideQuantity){
  var slot=make("Panel",parent,"",cls||"DailyGW2Reward");rect(slot,x,y,w,h);slot.hittest=true;slot.hittestchildren=false;
- var art=(cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(slot,item,"DailyGW2ItemArt"))||RH.DailyImage(slot,artId(item),"DailyGW2ItemArt");rect(art,0,0,w,h);art.hittest=false;fillIcon(art,item);
+ var resources=cfg.SurvivalItemResources;if(resources&&resources.ApplyBackground)resources.ApplyBackground(slot,item);
+ var inset=Math.max(4,Math.round(Math.min(w,h)*.1));
+ var art=(cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(slot,item,"DailyGW2ItemArt"))||RH.DailyImage(slot,artId(item),"DailyGW2ItemArt");rect(art,inset,inset,w-inset*2,h-inset*2);art.hittest=false;fillIcon(art,item);
  var known=rewardQuantity(item)!==null;
  if(known&&!hideQuantity)quantity(parent,item.count,w,h+cellPadding,0,x,y);
  tip(slot,item.name,(item.description||"奖励说明待同步")+(known?"\n数量："+item.count:""));return slot;
@@ -173,28 +201,37 @@ function renderCards(){
  shown.slice(0,28).forEach(function(day,i){
   var card=make("Panel",p("DailyCards"),"DailyGW2Day_"+(i+1),"DailyGW2Day");rect(card,columns[i%7]-columns[0],rows[Math.floor(i/7)]-rows[0],cellWidth,cellHeight);card.hittest=true;card.hittestchildren=true;
   var status=day.status||"not_open",today=Number(day.is_today)===1;card.SetHasClass("DailyGW2Today",today);card.SetHasClass("DailyGW2Claimed",status==="claimed");card.SetHasClass("DailyGW2Future",status==="not_open");
-  var frame=component(card,"reward_frame",0,0,cellWidth,cellHeight);frame.AddClass("DailyGW2RewardFrame");
+  var frame=rewardFrame(card,"DailyGW2RewardFrame",0,slotY,cellWidth,slotHeight);
   // The reward backing supplies the tile without an extra outer outline.
   style(frame,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none"});
-  var items=array(day.rewards),gap=0,width=items.length>1?(cellWidth-iconInset*2-gap)/2:cellWidth-iconInset*2,sharedQuantity=items.length>1?rewardQuantity(items[0]):null;
-  if(sharedQuantity!==null&&!items.every(function(item){return rewardQuantity(item)!==null&&Number(item.count)===Number(sharedQuantity);}))sharedQuantity=null;
-  items.slice(0,2).forEach(function(item,j){var image=reward(card,item,iconInset+j*(width+gap),iconInset,width,cellHeight-iconInset*2,undefined,sharedQuantity!==null);image.hittest=false;image.hittestchildren=false;if(j===0)card.__dailyRewardIcon=image;});
-  if(sharedQuantity!==null)quantity(card,sharedQuantity,cellWidth,cellHeight,cellPadding);
+  var dayLabel=label(card,String(day.day||i+1),7,slotY+5,60,31,26,"#eee4c6");dayLabel.AddClass("DailyGW2DateNumber");
+  style(dayLabel,{fontWeight:"bold",textShadow:"#000000 0px 0px 1px 3.0",textOverflow:"clip",zIndex:"6"});
+  // One picture represents the complete bundle; all rewards remain in its tooltip.
+  var items=array(day.rewards);
+  if(items.length){
+   var image=reward(card,items[0],iconInset,slotY+iconInset,cellWidth-iconInset*2,slotHeight-iconInset*2,null,true);image.hittest=false;image.hittestchildren=false;card.__dailyRewardIcon=image;
+   if(rewardQuantity(items[0])!==null)quantity(card,items[0].count,cellWidth,slotHeight,8,0,slotY);
+  }
   if(status==="claimed")mark(card,"check");
-  var summary=items.map(function(item){return item.name+(item.count!==undefined?" ×"+item.count:"")+"\n"+(item.description||"");}).join("\n\n");
+  var summary=items.map(function(item){return item.name+(item.count!==undefined?" ×"+item.count:"")+"\n"+rewardDescription(item);}).join("\n\n");
   tip(card,columnLabels[i%7]+" · 第"+(day.day||i+1)+"天 · "+stateText(status),summary||"正在读取该日奖励");
  });
 }
 function renderSpecials(){
  var specials=array(data&&data.specials).filter(function(item){return item&&item.id;}).slice(0,rows.length),signature=JSON.stringify([specials,data&&data.has_pass,data&&data.count]);if(signature===specialSignature&&p("DailySpecials").GetChildCount()===specials.length)return;specialSignature=signature;hideTooltip();p("DailySpecials").RemoveAndDeleteChildren();
  specials.forEach(function(item,i){
-  var card=make("Panel",p("DailySpecials"),"DailyGW2Special_"+item.id,"DailyGW2Special");rect(card,0,rows[i]-rows[0],cellWidth,cellHeight);
-  var frame=component(card,"premium_frame",0,0,cellWidth,cellHeight);frame.AddClass("DailyGW2SpecialFrame");
+  var height=specials.length>3?Math.floor((gridHeight-12*(specials.length-1))/specials.length):(layout.monthlyHeight||169),top=specials.length>3?i*(height+12):i*181;
+  var card=make("Panel",p("DailySpecials"),"DailyGW2Special_"+item.id,"DailyGW2Special");rect(card,0,top,monthlyWidth,height);
   var owned=Number(item.owned)>0,pass=Number(data.has_pass)===1;
   card.SetHasClass("DailyGW2Locked",!pass&&!owned);card.SetHasClass("DailyGW2Owned",owned);
-  var slot=reward(card,item,iconInset,iconInset,cellWidth-iconInset*2,cellHeight-iconInset*2,"DailyGW2PassReward");
+  var iconSize=Math.min(100,height-70),iconFrame=make("Panel",card,"","DailyGW2MonthlyIconFrame");rect(iconFrame,(monthlyWidth-iconSize)/2,35,iconSize,iconSize);style(iconFrame,{border:"0px",backgroundColor:"#10110f"});iconFrame.hittest=false;iconFrame.hittestchildren=true;
+  var slot=reward(iconFrame,item,1,1,iconSize-2,iconSize-2,"DailyGW2PassReward",true);
+  var frame=rewardFrame(iconFrame,"DailyGW2SpecialFrame",0,0,iconSize,iconSize);style(frame,{backgroundColor:"transparent",zIndex:"2"});
+  if(rewardQuantity(item)!==null)quantity(card,item.count,monthlyWidth,height,8);
+  var when=label(card,"累计签到 "+item.day+" 次",6,9,monthlyWidth-12,24,16,"#c3b38a");style(when,{textAlign:"center"});
+  var itemName=label(card,item.name,7,height-33,monthlyWidth-14,27,20,"#d9caa6");style(itemName,{textAlign:"center",fontWeight:"medium"});
   var status=owned?"已获得":!pass?"开通月卡后解锁":Number(data.count)>=Number(item.day)?"下次签到时发放":"累计签到 "+item.day+" 次";
-  if(owned)mark(card,"check");else if(!pass)mark(card,"lock");
+  if(owned)mark(iconFrame,"check");else if(!pass)mark(iconFrame,"lock");
   var details=(item.description||"奖励说明待同步")+"\n领取条件：累计签到"+item.day+"次\n领取状态："+status+"\n月卡奖励随符合条件的签到自动发放。";
   tip(card,item.name,details);tip(slot,item.name,details);
  });
@@ -210,15 +247,14 @@ function render(){
   renderCards();renderSpecials();setStatus(errorText||"正在读取每日奖励…");p("DailyNotice").visible=true;paintActions();return;
  }
  var pass=Number(data.has_pass)===1;U.State.Set(p("DailyPassStatus"),{enabled:true});p("DailyPassStatusText").text=pass?"月卡奖励 · 已解锁":"月卡奖励";
- p("DailyCount").text="累计签到 "+data.count+" 次"+(data.calendar_current_day?" · 本轮第 "+data.calendar_current_day+" / 28 天":"");
- p("DailyClaimText").text=busy?"领取中…":errorText&&ready.enabled?"重试":ready.enabled?"领取":data.ordinary_status==="claimed"?"已领取":"尚未开放";U.State.Set(p("DailyClaim"),{enabled:ready.enabled&&!busy,busy:busy});
+ var roundCount=Math.max(0,Math.min(28,Number(data.count)-(Number(data.calendar_start_count)||0)));
+ p("DailyCount").text="累计签到 "+roundCount+" / 28 天";p("DailyGW2Progress").style.width=Math.round(97*roundCount/28)+"px";
+ p("DailyClaimText").text=busy?"领取中…":errorText&&ready.enabled?"重试":ready.text;U.State.Set(p("DailyClaim"),{enabled:ready.enabled&&!busy,busy:busy});
  U.State.Set(p("DailyMakeup"),{enabled:pass&&array(data.missed).length>0&&!busy});p("DailyMakeup").visible=pass&&array(data.missed).length>0;
  p("PassValidity").text=pass?"月卡已解锁":"开通月卡后解锁";
  var expiry=Number(data.expires_at),until=expiry>0?new Date((expiry+8*3600)*1000):null;p("PassPrice").text=(data.duration_days?data.duration_days+"天 · ":"")+passPriceText()+(pass?(until?" · 有效至 "+until.getUTCFullYear()+"/"+(until.getUTCMonth()+1)+"/"+until.getUTCDate():" · 权益已生效"):"");
  p("PassPurchaseText").text=(pass?"续费":"开通")+"月卡";U.State.Set(p("PassPurchase"),{enabled:Number(data.purchase_enabled)===1&&!busy});
- tip(p("PassPurchase"),"月卡",p("PassValidity").text+"\n"+p("PassPrice").text+(Number(data.purchase_enabled)===1?"":"\n开通月卡暂未开放。")+"\n月卡奖励随签到自动发放。");
  tip(p("DailyGW2MonthHeader"),"月卡奖励","月卡有效时，按累计签到次数自动发放。具体条件请悬停奖励查看。");
- tip(p("DailyClaim"),"领取登录奖励",p("DailyCount").text+"\n"+ready.text);
  p("DailyRulesBody").text=escapedLines((data.rule_text||"奖励以服务端配置为准")+"\n补签范围：最近"+(data.makeup_days||30)+"天，需有效战令。\n\n"+array(data.specials).map(function(s){return "累计"+s.day+"次："+s.name+"\n"+effectLines(s.description);}).join("\n\n"));
  renderCards();renderSpecials();paintActions();setStatus(errorText||(busy?"正在等待服务端保存，请勿重复提交。":""));p("DailyNotice").visible=!!errorText||busy;
 }
@@ -254,8 +290,29 @@ life.Subscribe("survival_daily_snapshot",function(next){
 });
 function poll(){if(stopIfInvalid()||!shell.IsOpen())return;request();viewLife.Later(3,poll);}
 cfg.SurvivalDaily={Open:function(pass){
- if(!active||!viewValid())return;hideTooltip();buying=pass===true;p("DailyWindow").RemoveClass("ArchiveHidden");p("DailyScrim").RemoveClass("ArchiveHidden");view.Open();viewLife.Cancel();fetching=false;render();request();viewLife.Later(3,poll);
+ if(!active||!viewValid())return;cfg.SurvivalDailyStargoldOpen=true;hideTooltip();buying=pass===true;p("DailyWindow").RemoveClass("ArchiveHidden");p("DailyScrim").RemoveClass("ArchiveHidden");view.Open();viewLife.Cancel();fetching=false;render();request();viewLife.Later(3,poll);
 },Close:close,Inspect:function(){var cards=p("DailyCards");return {open:active&&viewValid()&&shell.IsOpen(),layout:"daily_gw2",canvas:size.slice(),cell:[cellWidth,cellHeight],cellPadding:cellPadding,columns:columns.slice(),rows:rows.slice(),monthlyX:layout.monthlyX,monthlySlots:valid(p("DailySpecials"))?p("DailySpecials").GetChildCount():0,pass:buying,waiting:!!waiting,fetching:fetching,today:data&&data.today,count:data&&data.count,hasPass:!!data&&Number(data.has_pass)===1,calendarDay:data&&data.calendar_current_day,days:valid(cards)?cards.GetChildCount():0,status:statusText};},
 Dispose:function(){if(!active)return;close();active=false;if(rewardFX)rewardFX.Dispose();viewLife.Dispose();life.Dispose();view.Dispose();}};
+// Local Tools-only visual inspection. These commands never claim, purchase or
+// invent reward snapshots; they show the real page and inspect native labels.
+if(Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){
+ var reviewCommand="survival_daily_stargold_"+Date.now();
+ var runReview=function(mode){
+  if(!active||!viewValid())return;
+  if(mode==="open")cfg.SurvivalDaily.Open(false);
+  if(mode==="close")close();
+  if(mode==="font_sans")style(p("DailyGW2Title"),{fontFamily:'"Source Han Sans SC"',fontWeight:"medium"});
+  if(mode==="font_serif")style(p("DailyGW2Title"),{fontFamily:'"Source Han Serif SC"',fontWeight:"bold"});
+  if(mode==="tooltip"){
+   var specials=p("DailySpecials").Children(),anchor=specials[Math.min(1,specials.length-1)],info=anchor&&anchor.__dailyGW2Tooltip;
+   if(info)dailyTooltip.Show({name:info.title,description:info.body},"daily",anchor,true);
+  }
+  function measure(node){if(!valid(node))return null;return {id:node.id,text:node.text,xy:node.GetPositionWithinWindow(),width:node.actuallayoutwidth,height:node.actuallayoutheight,uiScaleX:node.actualuiscale_x,uiScaleY:node.actualuiscale_y,font:node.style.fontFamily,weight:node.style.fontWeight,size:node.style.fontSize,shadow:node.style.textShadow,overflow:node.style.textOverflow};}
+  $.Msg("[DAILY_STARGOLD_NATIVE] "+JSON.stringify({mode:mode||"inspect",state:cfg.SurvivalDaily.Inspect(),transform:p("DailyWindow").style.transform,root:measure(dailyRoot),title:measure(p("DailyGW2Title")),count:measure(p("DailyCount")),claim:measure(p("DailyClaimText")),pass:measure(p("PassPurchaseText")),tooltip:measure(p("DailyGW2TooltipEffect"))}));
+ };
+ Game.AddCommand(reviewCommand,runReview,"Inspect the live daily UI and compare font faces without changing rewards",0);
+ $.Msg("[DAILY_STARGOLD_COMMAND] "+reviewCommand);
+}
 life.Later(1,request);
+if(reopenAfterReload)cfg.SurvivalDaily.Open(false);
 })();

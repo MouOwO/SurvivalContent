@@ -1,0 +1,7 @@
+<root>
+  <Panel visible="false" hittest="false" hittestchildren="false">
+    <Image src="file://{images}/custom_game/archive_user_skin_v1/background_fade.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image src="file://{images}/custom_game/archive_user_skin_v1/right_fade.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image src="s2r://panorama/images/custom_game/archive_user_skin_v1/background.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+  </Panel>
+</root>

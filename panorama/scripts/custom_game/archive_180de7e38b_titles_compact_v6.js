@@ -270,9 +270,15 @@
                     if(!active()||!valid(card))return;
                     if (submitted) return;
                     if (!canUpgrade) {
+                        if (!upgradePending && Number(item.completed) !== 1) {
+                            var nativeError = cfg.SurvivalTooltipPosition,
+                                resourceError = cardCategory === "building" ? "信仰值不足" : "软妹币不足";
+                            if (nativeError && nativeError.ShowNativeError) nativeError.ShowNativeError(root, resourceError);
+                            else GameEvents.SendEventClientSide("dota_hud_error_message", {reason:80, message:resourceError});
+                            return;
+                        }
                         panel("ArchiveStatus").text = upgradePending ? "正在保存进度，请稍候…"
-                            : Number(item.completed) === 1 ? (cardCategory === "building" ? "该神器已满级" : "该福利已激活")
-                            : cardCategory === "building" ? "信仰值不足" : "软妹币不足";
+                            : cardCategory === "building" ? "该神器已满级" : "该福利已激活";
                         return;
                     }
                     submitted = true;
@@ -292,32 +298,6 @@
             }
             if (current === "fragment") {
                 card.AddClass("ArchiveFragmentCard");
-                if (item.promotion_target) {
-                    card.hittestchildren = true;
-                    var promote = $.CreatePanel("Button", card, "");
-                    promote.AddClass("ArchivePromote");
-                    promote.enabled = Number(item.can_promote) === 1;
-                    label(promote, "晋升");
-                    // ArchivePromote owns its dark enabled/disabled palette; shared ivory buttons write an inline text color.
-                    promote.SetPanelEvent("onmouseover", function () {
-                        if(!active()||!valid(promote))return;
-                        var targetRow=rows.filter(function(row){return row.id===item.promotion_target;})[0];
-                        var targetName=targetRow?String(targetRow.name||"").replace(/^神兵[-－·]/,""):"下一阶神兵";
-                        A.ShowEffectOnly({name:"晋升兑换", description:"消耗" + item.promotion_cost + "片，兑换" + targetName + "碎片×1。累计获得超过200片后解锁。"}, promote);
-                    });
-                    promote.SetPanelEvent("onmouseout",function(){if(voidView&&voidView.RequestTooltipHide)voidView.RequestTooltipHide();else hideTooltip();});
-                    promote.SetPanelEvent("onactivate", function () {
-                        if(!active()||!valid(promote))return;
-                        if (!promote.enabled) return;
-                        promote.enabled = false;
-                        panel("ArchiveStatus").text="正在兑换神兵碎片…";
-                        if(GameUI.CustomUIConfig().SurvivalArchivePurple)GameUI.CustomUIConfig().SurvivalArchivePurple.Apply();
-                        GameEvents.SendCustomGameEventToServer("survival_archive_promote", {
-                            fragment_id:item.id, request_id:"promotion_" + Date.now() + "_" + (++requestGeneration)
-                        });
-                        later(0.5, request);
-                    });
-                }
             }
             cardFrame(card);
             if (Number(item.count) > 0) ownedTypes += 1;
@@ -424,7 +404,7 @@
         } else if (current === "work") {
             sourceText = "软妹币来源：实际在线每满 1 分钟 +1"
                 + "\n不足一分钟累计计算"
-                + "\n解锁消耗软妹币 · 通行证不翻倍";
+                + "\n软妹币不翻倍 · 月卡已激活福利效果双倍";
         }
         if (source) {source.__archivePlainText=sourceText;source.html=true;source.text=sourceText.replace(/\d+/g,function(n){return '<font color="'+GameUI.CustomUIConfig().SurvivalArchiveColors.number+'">'+n+'</font>';}).replace(/\n/g,'<br>');source.visible=!!sourceText;}
         panel("ArchiveContent").SetHasClass("ArchiveHasCurrencySource",!!sourceText);

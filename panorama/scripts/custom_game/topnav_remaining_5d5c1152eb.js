@@ -890,15 +890,17 @@
                     fitted=$.CreatePanel("Image",imageHost,"SurvivalInventoryFittedIcon");
                     fitted.hittest=false;fitted.hittestchildren=false;
                     style(fitted,{width:"100%",height:"100%",position:"0px 0px 0px",margin:"0px",padding:"0px",horizontalAlign:"center",verticalAlign:"center",zIndex:"1"});
-                    var presentation=cfg.SurvivalRewardPresentation;
-                    if(presentation&&presentation.FillIcon)presentation.FillIcon(fitted,{content_id:identity&&identity.removed!==1?identity.content_id:name});
-                    else fitted.SetScaling("stretch-to-cover-preserve-aspect");
                 }
                 if(valid(fitted)){
                     if(fitted.visible!==!!resolved)fitted.visible=!!resolved;
                     if(resolved){
                         var uri=resolved.uri;
                         if(fitted.__survivalImageUri!==uri){fitted.SetImage(uri);fitted.__survivalImageUri=uri;}
+                        var artwork={content_id:identity&&identity.removed!==1&&identity.content_id||name};
+                        if(identity&&identity.removed!==1)["quality","rarity"].forEach(function(field){if(identity[field]!==undefined)artwork[field]=identity[field];});
+                        var presentation=cfg.SurvivalRewardPresentation;
+                        if(presentation&&presentation.FillIcon)presentation.FillIcon(fitted,artwork);
+                        else fitted.SetScaling("stretch-to-cover-preserve-aspect");
                     }
                 }
             }

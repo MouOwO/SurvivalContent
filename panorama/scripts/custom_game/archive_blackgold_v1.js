@@ -26,7 +26,8 @@
         // The original view refreshes the hidden legacy image on each snapshot;
         // the official replacement keeps its own native texture and identity.
         if(glyph.__archiveBlackGoldImage!==image){glyph.SetImage(image);glyph.__archiveBlackGoldImage=image;}
-        paint(glyph,{position:large?"12px 12px 0px":"7px 7px 0px",width:large?"48px":"18px",height:large?"48px":"18px",opacity:large?".9":selected?"1":".62"});
+        var origin=String(legacy.style.position||"0px 0px 0px").split(/\s+/);
+        paint(glyph,{position:large?((parseFloat(origin[0])||0)+12)+"px "+((parseFloat(origin[1])||0)+12)+"px 0px":"7px 7px 0px",width:large?"48px":"18px",height:large?"48px":"18px",opacity:large?".9":selected?"1":".62"});
     }
     function navigationIcon(button,selected){
         var key=navigationIcons[String(button.id||"").replace(/^ArchiveV10Category_/,"")];
@@ -46,6 +47,14 @@
     function paint(node,values,force){if(!valid(node))return;var cache=node.__archiveBlackGoldPaint||(node.__archiveBlackGoldPaint={});Object.keys(values).forEach(function(key){if(force||cache[key]!==values[key]){node.style[key]=values[key];cache[key]=values[key];}});}
     function walk(node,fn){if(!valid(node))return;fn(node);node.Children().forEach(function(child){walk(child,fn);});}
     function is(node,name){return node.BHasClass&&node.BHasClass(name);}
+    function rowBacking(card,node){
+        // The retained view assigns parity from the visible slot after filtering.
+        // Use opaque surfaces: stacked alpha previously made both rows near-black.
+        var dark=is(card,"ArchiveParchmentRowAlternate");
+        paint(node,{backgroundImage:"none",backgroundColor:dark?
+            "gradient(linear,0% 0%,100% 0%,from(#191e19),to(#171c18))":
+            "gradient(linear,0% 0%,100% 0%,from(#363c30),to(#2c332a))",opacity:"1"});
+    }
     function raiseSection(node){
         if(!valid(node))return;
         var original=node.__archiveBlackGoldSectionPosition;
@@ -74,8 +83,8 @@
             paint(button,{position:"0px "+(y+(selected?0:2))+"px 0px",width:"100%",height:selected?"37px":"35px",overflow:"noclip",borderBottom:"0px"},true);
             button.Children().forEach(function(child){
                 if(is(child,"ArchiveParchmentCategoryBadge"))paint(child,{position:selected?"16px 3px 0px":"16px 1px 0px"},true);
-                // Compensate SimSun's baseline to center visible text on the glyph.
-                if(is(child,"ArchiveV10Text"))paint(child,{position:selected?"59px 3px 0px":"59px 1px 0px"},true);
+                // Keep the confirmed Source Han glyph baseline after remote synchronization.
+                if(is(child,"ArchiveV10Text"))paint(child,{position:selected?"59px 7px 0px":"59px 5px 0px"},true);
             });
             // Replace solid borders with decorative lines. The selected top line
             // takes over the preceding divider so the highlight meets it exactly.
@@ -118,13 +127,13 @@
         paint(find("ArchiveV10Close"),{backgroundImage:"none",backgroundColor:stage>=4?"gradient(linear,0% 0%,0% 100%,from(#373d36),to(#20251f))":"#24291f",border:"1px solid #96956d66"});
         var close=find("ArchiveV10Close");if(valid(close)){if(!valid(close.__archiveBlackGoldGlyph)){var glyph=$.CreatePanel("Image",close,"");glyph.hittest=false;glyph.hittestchildren=false;glyph.SetImage("file://{images}/control_icons/24px/x_close.svg");glyph.SetScaling("stretch-to-fit-preserve-aspect");paint(glyph,{position:"6px 6px 0px",width:"17px",height:"17px"});close.__archiveBlackGoldGlyph=glyph;}walk(close,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:"#dddac5"});});}
         var grid=find("ArchiveGrid");if(valid(grid))grid.Children().forEach(function(card){if(!card.__v10)return;var cell=card.__v10,unowned=is(card,"ArchiveCommerceUnowned"),unknown=is(card,"ArchiveCommerceUnknown");paint(cell.name,{color:unowned?"#7e887c":unknown?"#a0a997":"#e0e3d2"});
-            walk(card,function(node){if(is(node,"ArchiveParchmentRowBacking"))paint(node,{backgroundImage:"none",backgroundColor:stage>=3?"gradient(linear,0% 0%,100% 0%,from(#30332c88),color-stop(.62,#20251f66),to(#10171155))":"#0000002b",opacity:is(card,"ArchiveParchmentRowAlternate")?(stage>=3?".28":".24"):(stage>=3?".48":".42")});if(is(node,"ArchiveV10HoverFrame"))paint(node,{backgroundImage:"none",backgroundColor:"#d9c17a0b",border:"1px solid #c5b57b55"});if(is(node,"ArchiveCommerceIconBacking"))paint(node,{backgroundImage:"none",backgroundColor:"#080e0bee",border:unowned?"1px solid #777f6166":"1px solid #b1a26b99",boxShadow:stage>=5&&!unowned?"#c2b77b12 0px 0px 6px 1px":"inset #00000099 0px 0px 3px 1px"});});
+            walk(card,function(node){if(is(node,"ArchiveParchmentRowBacking"))rowBacking(card,node);if(is(node,"ArchiveV10HoverFrame"))paint(node,{backgroundImage:"none",backgroundColor:"#d9c17a0b",border:"1px solid #c5b57b55"});if(is(node,"ArchiveCommerceIconBacking"))paint(node,{backgroundImage:"none",backgroundColor:"#080e0bee",border:unowned?"1px solid #777f6166":"1px solid #b1a26b99",boxShadow:stage>=5&&!unowned?"#c2b77b12 0px 0px 6px 1px":"inset #00000099 0px 0px 3px 1px"});});
             if(valid(cell.track))paint(cell.track,{backgroundImage:"none",backgroundColor:"#080d09cc",border:"1px solid #6b745455"});
             if(valid(cell.fill))paint(cell.fill,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#70673e),color-stop(.7,#b9aa64),to(#e2d69b))"});
         });
         frame(find("ArchiveV10Shell_Background"));
     }
-    function wrap(view){if(!view||views.some(function(entry){return entry.view===view;}))return view;var render=view.Render;var wrapped=function(){var result=render.apply(this,arguments);apply();return result;};view.Render=wrapped;views.push({view:view,render:render,wrapped:wrapped});apply();return view;}
+    function wrap(view){if(!view||views.some(function(entry){return entry.view===view;}))return view;var render=view.Render;var wrapped=function(){var result=render.apply(this,arguments);apply();if(view.ApplyTypography)view.ApplyTypography();return result;};view.Render=wrapped;views.push({view:view,render:render,wrapped:wrapped});apply();return view;}
     var factory=function(){return wrap(originalFactory.apply(this,arguments));};
     if(originalFactory)cfg.SurvivalArchiveV10Factory=factory;
     wrap(cfg.SurvivalArchiveV10);

@@ -68,6 +68,8 @@
     var staticGrid = null;
     var gridState = null;
     var buildPlaneHeight = null;
+    var gridScope = "", gridScopeVersion = 0, gridLayoutSignature = "";
+    var profilesRetryScheduled = false;
     var warmFootprintReady = false;
     var previewSessionSequence = Math.max(
         0,
@@ -1275,7 +1277,45 @@
         framePerformance.max_complete_ms=Math.max(framePerformance.max_complete_ms,Date.now()-loopStarted);
     }
 
+    function sameGridScope(data) {
+        return gridScope ? String(data && data.grid_scope || "") === gridScope
+            && Number(data && data.grid_scope_version) === gridScopeVersion
+            : !data || !data.grid_scope;
+    }
+
+    function clearLayoutState() {
+        hidePreview();
+        pendingRelocationStart=null;pendingRelocation=null;
+        hideProjectedVisuals();
+        if(gridState && gridState.reset) gridState.reset();
+        if(staticGrid) staticGrid.configure(null,gridCellSize,previewVisual);
+        buildPlaneHeight=null;lastValidation=null;lastAreaValidation=null;completedArea="";
+        lastAnchorKey="";lastSentAnchorKey="";lastRequestAt=-100;
+        lastPoseKey="";lastPoseAt=-10000;newestResponse=requestSequence;
+        lastOverviewKey="";lastOverviewDataKey="";lastOverviewAt=-100;lastOverviewCells=[];
+        overviewSlots={};overviewDrawPending=false;areaTilesSource=null;areaTiles=[];
+        projectionCache={};projectionViewKey="";projectionCacheSize=0;projectionProbeWorld=null;
+        motionSample=null;fastMotion=false;fastUntil=-100;cursorWorldAvailable=null;
+        for(var i=0;i<cells.length;i++) {
+            cells[i].__geometryKey="";cells[i].__worldKey="";
+        }
+    }
+
     function onProfiles(data) {
+        if(!data) return;
+        var scope=String(data.grid_scope || ""),version=Number(data.grid_scope_version)||0;
+        if(gridScope && (!scope || version<gridScopeVersion
+            || (version===gridScopeVersion && scope!==gridScope))) return;
+        var ready=Number(data.layout_ready)!==0;
+        var signature=JSON.stringify([scope,data.static_grid || null,data.cell_size,ready]);
+        if(signature!==gridLayoutSignature) {
+            // The first relocation click may be waiting for its initial
+            // profile. Retain that intent only within the same region scope.
+            var queuedStart=scope===gridScope && !activeProfile ? pendingRelocationStart : null;
+            clearLayoutState();
+            pendingRelocationStart=queuedStart;
+        }
+        gridScope=scope;gridScopeVersion=version;gridLayoutSignature=signature;
         profiles = {};
         profileCount = 0;
         gridCellSize = Math.max(1, Number(data && data.cell_size) || 128);
@@ -1288,6 +1328,10 @@
             }
         }
         var list = normalizeLuaArray(data && data.profiles);
+        if(!ready) {
+            scheduleProfilesRetry();
+            return;
+        }
         buildPlaneHeight=data.static_grid && isFinite(Number(data.static_grid.height)) ? Number(data.static_grid.height) : null;
         if (staticGrid) staticGrid.configure(data.static_grid,gridCellSize,previewVisual);
         // Panorama may hot-reload the controller before its shared helper.
@@ -1303,6 +1347,7 @@
     }
 
     function onValidation(data) {
+        if(!sameGridScope(data)) return;
         var sequence = Number(data && data.request_id);
         var responseSession = Number(data && data.session_id);
         var responseAbility = String(data && data.ability_name || "");
@@ -1353,6 +1398,7 @@
 
     function onCommitResult(data) {
         if (!currentController()) return;
+        if(!sameGridScope(data)) return;
         if (pendingRelocation && data && Number(data.session_id) === pendingRelocation
             && activeProfile && activeProfile.placement_action === "relocate") {
             if (Number(data.success) === 1) {
@@ -1377,6 +1423,7 @@
     }
 
     function onArea(data) {
+        if(!sameGridScope(data)) return;
         if (!activeProfile || Number(data.session_id) !== activePreviewSession
             || data.ability_name !== activeProfile.ability_name || fastMotion) return;
         var complete=Number(data.complete)!==0;
@@ -1514,6 +1561,7 @@
     };
     subscribe("ui_grid_placement_profiles", onProfiles);
     subscribe("ui_grid_placement_static_area",function(data){
+        if(!sameGridScope(data)) return;
         if(gridState && gridState.configure(data.area)) $.Msg("[GridPlacement] static terrain atlas received");
     });
     subscribe("ui_grid_placement_validation", onValidation);
@@ -1522,11 +1570,17 @@
     bindInputHandlers();
     $.Msg("[GridPlacement] client preview initialized");
 
+    function scheduleProfilesRetry() {
+        if(profilesRetryScheduled) return;
+        profilesRetryScheduled=true;
+        $.Schedule(1.0,function(){profilesRetryScheduled=false;requestProfilesUntilReady();});
+    }
+
     function requestProfilesUntilReady() {
         if(!currentController()) return;
         if (profileCount > 0) return;
         GameEvents.SendCustomGameEventToServer("ui_grid_placement_profiles_request", {});
-        $.Schedule(1.0, requestProfilesUntilReady);
+        scheduleProfilesRetry();
     }
 
     function maintainInputPriority() {

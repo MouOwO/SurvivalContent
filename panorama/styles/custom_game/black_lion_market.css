@@ -41,6 +41,9 @@
 .BLMarketWindow .BLMarketPriceCurrency { width:34px; height:34px; vertical-align:center; margin:0px; padding:0px; }
 .BLMarketWindow .BLMarketPriceMain { width:fit-children; max-width:190px; height:40px; vertical-align:center; margin:0px 0px 0px 8px; padding:0px; font-size:30px; line-height:35px; color:#fffbdc; white-space:nowrap; text-overflow:shrink; }
 .BLMarketWindow .BLMarketPriceSecondary { margin:0px; padding:0px; font-size:20px; line-height:27px; color:#f3f3ee; text-align:center; white-space:nowrap; text-overflow:shrink; }
+.BLMarketWindow .BLMarketPromotionPrice { max-width:325px; }
+.BLMarketWindow .BLMarketPromotionPrice .BLMarketPriceMain { max-width:160px; }
+.BLMarketWindow .BLMarketPriceReference { width:fit-children; max-width:110px; height:fit-children; vertical-align:center; margin:0px 0px 0px 10px; padding:0px; font-size:18px; line-height:23px; color:#bcb4a0; text-decoration:line-through; white-space:nowrap; text-overflow:shrink; }
 /* Dota 2 dotastyles.vcss_c: native ButtonPrimary.Large, scoped to purchases. */
 .BLMarketWindow .BLMarketBuy.ButtonPrimary {
     margin:0px; padding:0px 28px; flow-children:none;

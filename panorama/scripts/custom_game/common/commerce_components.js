@@ -5,7 +5,7 @@
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function panel(type,parent,cls){var p=$.CreatePanel(type,parent,"");if(cls)cls.split(/\s+/).forEach(function(c){p.AddClass(c);});return p;}
     function box(p,x,y,w,h){p.style.position=x+"px "+y+"px 0px";p.style.width=w+"px";p.style.height=h+"px";return p;}
-    function label(parent,value,cls){var p=panel("Label",parent,cls);p.text=String(value===undefined?"":value);p.hittest=false;return p;}
+    function label(parent,value,cls){var p=panel("Label",parent,cls);p.text=J.RewardNameText(value);p.hittest=false;return p;}
     function original(parent,uri,cls){
         var p=panel("Image",parent,cls);
         var resolved=J.NormalizeIconURI(uri);if(resolved)p.SetImage(resolved);
@@ -15,7 +15,7 @@
     // Older catalog snapshots and saved receipts retain the original medal names.
     // Normalize display text only; stable reward IDs and settlement data stay intact.
     J.RewardNameText=function(value){
-        return String(value===undefined||value===null?"":value).replace(/(?:僵尸岛V|VIP)(10|[1-9])勋章/g,"孤城V$1勋章");
+        return String(value===undefined||value===null?"":value).replace(/(?:僵尸岛V|VIP)(10|[1-9])勋章/g,"孤城V$1勋章").replace(/U币/g,"G币");
     };
     J.RewardAmount=function(value){
         var amount=Number(value);
@@ -39,7 +39,12 @@
         var resources=cfg.SurvivalItemResources;
         return resources?resources.Resolve(item,item.icon):item.icon;
     };
+    function iconItem(item,rewards){
+        if(!item||typeof item!=="object"||item.reward_lines!==undefined||!Array.isArray(rewards)||!rewards.length)return item;
+        var display={};Object.keys(item).forEach(function(key){display[key]=item[key];});display.reward_lines=rewards;return display;
+    }
     J.ItemIcon=function(parent,item,className,options){
+        item=iconItem(item,options&&options.rewards);
         var presentation=cfg.SurvivalRewardPresentation;
         var registered=presentation&&presentation.CreateRegisteredIcon&&presentation.CreateRegisteredIcon(parent,item,className,options);
         var icon=registered||original(parent,J.ProductIcon(item)||"items/recipe.png",className);
@@ -68,26 +73,19 @@
         var wallet=item.purchase_method==="wallet",currency=wallet?item.currency_name:"元",amount=wallet?item.price:(item.amount_fen/100).toFixed(2);
         var isU=item.currency==="u_coin" || item.u_coin_price!==undefined || item.u_coin_per_yuan!==undefined;
         var fen=item.amount_fen,uCoin=item.u_coin_price;
-        var validU=isU && item.disabled_reason!=="payment_price_unavailable" && typeof uCoin==="number" && uCoin>0 && uCoin%1===0 && item.u_coin_per_yuan===1000 && typeof fen==="number" && fen>0 && fen<=1000000 && fen%1===0 && uCoin===fen*10;
+        var validU=isU && item.disabled_reason!=="payment_price_unavailable" && typeof uCoin==="number" && uCoin>0 && uCoin%1===0 && item.u_coin_per_yuan===100 && typeof fen==="number" && fen>0 && fen<=1000000 && fen%1===0 && uCoin===fen;
         var paidMeta=item.u_coin_price!==undefined || item.u_coin_per_yuan!==undefined || fen!==undefined || item.disabled_reason==="payment_price_unavailable";
         var previewCoin=!paidMeta && typeof item.price==="number" && item.price>0 && item.price%1===0?item.price:null;
         if(wallet || isU){
             var uri=item.currency==="shop_points"?"custom_game/commerce_jade_v1/crystal.png":"custom_game/commerce_jade_v1/coin.png";
             original(row,uri,"CJPriceIcon");
         }else label(row,"¥","CJYuanIcon");
-        var uText=validU?uCoin+" U币 / ¥"+(fen/100).toFixed(2):(previewCoin!==null?previewCoin+" U币":"U币价格待同步")+" / 人民币金额待同步";
+        var uText=validU?uCoin+" G币":previewCoin!==null?previewCoin+" G币":"G币价格待同步";
         label(row,isU?uText:amount+" "+currency,"CJPriceValue");p.hittest=false;p.hittestchildren=false;return p;
     };
     function detailQuality(item, rewards) {
-        var art=cfg.SurvivalItemArt;
-        function quality(row){var value=String(row&&row.quality||"").toUpperCase();return /^(N|R|SR|SSR|UR)$/.test(value)?value:"";}
-        function lookup(value){return art&&art.Lookup?art.Lookup(value):null;}
-        var value=quality(item)||quality(lookup(item));
-        if(value)return value;
-        if(item.product_type==="bundle")return "";
-        var items=(rewards||[]).filter(function(row){return row.kind==="item";});
-        if(items.length===1){value=quality(lookup({item_id:items[0].id}));if(value)return value;}
-        return "";
+        var resources=cfg.SurvivalItemResources;
+        return resources&&resources.Grade?resources.Grade(iconItem(item,rewards)):"";
     }
     function detail(card,item,props,bundle){
         // Keep ownership on the complete card so close/reopen and incremental
@@ -123,7 +121,7 @@
             if(index===selectedMember)return;
             selectedMember=index;
             memberButtons.forEach(function(button,i){button.SetHasClass("UISelected",i===index);});
-            memberEffect.text=String(props.rewards[index].description).replace(/\r\n?/g,"\n").replace(/[；;][ \t]*/g,"\n");
+            memberEffect.text=J.RewardNameText(props.rewards[index].description).replace(/\r\n?/g,"\n").replace(/[；;][ \t]*/g,"\n");
             if(tip.BHasClass("Visible")){cancel();place();followPlace();}
         }
         if(inspectBundle){
@@ -258,7 +256,7 @@
         props=props||{};var card=U.CardShell(parent,{bodyVariant:"product"});
         card.AddClass("RCProduct");card.AddClass(bundle?"CJBundle":"CJProduct");card.AddClass("CommercePurpleProduct");
         var well=box(panel("Panel",card,"CommercePurpleArtWell"),12,9,120,120);
-        box(J.ItemIcon(well,item,"RCProductArt",{width:120,height:120}),0,0,120,120);
+        box(J.ItemIcon(well,item,"RCProductArt",{width:120,height:120,rewards:props.rewards}),0,0,120,120);
         var caption=box(label(card,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"RCProductName"),7,134,130,35);
         var owned=Number(item.owned)>0?label(card,String(item.owned),"RCStockState"):null;
         card.__menuCell={iconPanel:well,namePanel:caption,countPanel:owned};

@@ -25,7 +25,7 @@
         var value = item.max_owned !== undefined ? item.max_owned : item.target;
         return number(value) !== null && Number(value) > 0 ? String(value) : null;
     }
-    function isUnlockItem(item, category) { return category === "points" && Number(cap(item || {})) === 1; }
+    function isUnlockItem(item, category) { return category === "points"; }
     function level(item) {
         if (item.level !== undefined) return number(item.level);
         return known(item) ? number(item.count) : null;
@@ -133,6 +133,18 @@
             rows.forEach(function (item) {
                 item.count_known=known(item)?1:0;
                 if (item.count_known===1) { item.count=Number(item.count); item.unlocked=item.count>0?1:0; }
+                else { delete item.count; delete item.unlocked; delete item.completed; }
+            });
+            return rows;
+        }
+        if (category === "points") {
+            rows.forEach(function (item) {
+                var unlocked = state(item, category);
+                // Every points entry, including older daily reward snapshots,
+                // is one unlock. Normalize a view copy without editing the save.
+                item.max_owned = 1; item.target = 1;
+                item.count_known = unlocked === null ? 0 : 1;
+                if (unlocked !== null) { item.count = unlocked ? 1 : 0; item.unlocked = unlocked ? 1 : 0; }
                 else { delete item.count; delete item.unlocked; delete item.completed; }
             });
             return rows;

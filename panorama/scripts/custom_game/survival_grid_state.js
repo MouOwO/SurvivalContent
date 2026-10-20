@@ -225,9 +225,20 @@
                 || y<buildBounds.min_y || y>=buildBounds.max_y)) return 1;
             return sample(atlas,x,y);
         }
+        function reset() {
+            // A mode/region has its own plane and terrain. Keep allocated UI
+            // panels, but never reuse an ordinary-island atlas in an arena.
+            atlas=null;atlasSource="";redRuns=[];terrainIndex=runIndex([]);terrainVersion++;
+            dynamic=null;dynamicUntil=0;dynamicSource="";dynamicRuns=[];
+            dynamicIndex=runIndex([]);dynamicRevision++;
+            lastTerrain=[];lastDynamic=[];buildBounds=null;outsideRuns=[];outsideZ=0;layoutKey="";
+            visibleWorld=null;viewKey="";footKey="";drawKey="";revision++;
+            terrain.concat(dynamicPanels,outsidePanels,foot,marks).forEach(function(p){p.visible=false;});
+        }
         function configureLayout(layout) {
             if(!layout || !layout.bounds || !layout.build_bounds) return;
             var key=JSON.stringify(layout);if(key===layoutKey) return;
+            reset();
             layoutKey=key;buildBounds=layout.build_bounds;outsideZ=Number(layout.height)||0;
             var a=layout.bounds,b=buildBounds;
             outsideRuns=[
@@ -301,7 +312,8 @@
             warm();
             if(!world || !profile) {hideFoot();return;}
             var size=options.cellSize(),nx=Number(profile.grid_footprint_x)||2,ny=Number(profile.grid_footprint_y)||2;
-            var x0=world[0]-nx*size/2,y0=world[1]-ny*size/2,z=atlas?atlas.z:Number(world[2]);
+            var x0=world[0]-nx*size/2,y0=world[1]-ny*size/2,
+                z=layoutKey?outsideZ:atlas?atlas.z:Number(world[2]);
             var exact={};
             if(validation && validation.cells) {
                 var cells=validation.cells;
@@ -375,7 +387,7 @@
             dynamicRuns=runs(overlay);dynamicIndex=runIndex(dynamicRuns,dynamic.size*8);dynamicRevision++;stats.dynamic_builds++;
         }
         prewarm(16);
-        return {configure:configure,warm:warm,update:update,hideFoot:hideFoot,stats:stats,
+        return {configure:configure,reset:reset,warm:warm,update:update,hideFoot:hideFoot,stats:stats,
             prewarm:prewarm,prewarmTerrain:prewarmTerrain,configureLayout:configureLayout,
             ingestDynamic:function(source){
                 // Area notifications and validation replies can carry the same

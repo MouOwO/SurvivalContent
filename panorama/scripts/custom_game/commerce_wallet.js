@@ -4,7 +4,7 @@
     if(cfg.SurvivalCommerceWallet&&cfg.SurvivalCommerceWallet.Dispose){try{cfg.SurvivalCommerceWallet.Dispose();}catch(error){if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;$.Msg("[CheckoutPurple] Previous wallet panel was already deleted.");}}
     var catalog={products:[],categories:[],balances:{}}, inflight=null, draft=null, serial=0, selected=null, pending=cfg.SurvivalCommercePending||null;
     var epoch=String(Date.now())+"_"+String(Math.random()).slice(2), shell=null, menuView=null, dialog=null, scrim=null, status=null, copy=null, buy=null;
-    var labels={u_coin:"U币",shop_points:"商城积分",shop_gold:"商城金币"};
+    var labels={u_coin:"G币",shop_points:"商城积分",shop_gold:"商城金币"};
     var invalidationVersion=0,syncedVersion=0,invalidationAttempts=0,invalidationTask=null;
     var errors={commerce_balance_insufficient:"商城余额不足。",shop_gold_not_open:"商城金币暂未开放。",already_owned:"已拥有该商品，不能重复兑换。",
         component_already_owned:"道具已达到持有上限。",attribute_limit_reached:"属性已达到上限。",commerce_busy:"操作处理中，请稍后重试。",
@@ -33,11 +33,12 @@
     }
     function rows(v){return Array.isArray(v)?v:Object.keys(v||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return v[k];});}
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
-    function escapedLines(v){var shared=cfg.SurvivalCommerceComponents;return (shared&&shared.RewardNameText?shared.RewardNameText(v):String(v||"")).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g,"<br>");}
+    function escapedLines(v){var shared=cfg.SurvivalCommerceComponents;return (shared&&shared.RewardNameText?shared.RewardNameText(v):String(v||"").replace(/U币/g,"G币")).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g,"<br>");}
     function paint(button,primary){if(!valid(button))return;button.style.backgroundImage="none";button.style.backgroundColor=button.enabled===false?"#21172f":primary?"gradient(linear,0% 0%,0% 100%,from(#734a9e),to(#382346))":"#281b3e";button.style.border="1px solid "+(button.enabled===false?"#594363":"#b18a50");if(button.Children)button.Children().forEach(function(c){if(c.paneltype==="Label")c.style.color=button.enabled===false?"#a795b8":"#ffdc87";});}
     function publish(){if(cfg.SurvivalCommerceView && cfg.SurvivalCommerceView.UpdateWalletCatalog)cfg.SurvivalCommerceView.UpdateWalletCatalog(catalog);if(cfg.SurvivalMenuV10&&cfg.SurvivalMenuV10.Refresh)cfg.SurvivalMenuV10.Refresh();}
     function text(parent,value,cls){var p=$.CreatePanel("Label",parent,"");p.text=value;p.AddClass(cls);return p;}
     function close(){if(menuView)menuView.Close();}
+    function backToStore(){close();var view=cfg.SurvivalCommerceView;if(view&&(!view.IsOpen||!view.IsOpen()))view.Open();}
     function prepare(){
         if(disposed||!valid(root))return false;
         if(shell)return valid(dialog);
@@ -46,11 +47,11 @@
         dialog=$.CreatePanel("Panel",root,"");dialog.AddClass("RCWindow");dialog.AddClass("MenuV10Exchange");
         menuView=cfg.SurvivalMenuV10.Adopt({id:"commerce_exchange",navId:"commerce",root:root,panel:dialog,scrim:scrim,title:"商品兑换",onClose:close});
         shell=menuView.shell;
-        menuView.SetSidebar([{id:"confirm",label:"商品兑换"},{id:"back",label:"返回商城"}],"confirm",function(id){if(id==="back"){close();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();}});
+        menuView.SetSidebar([{id:"confirm",label:"商品兑换"},{id:"back",label:"返回商城"}],"confirm",function(id){if(id==="back")backToStore();});
         copy=text(menuView.content,"","CommerceConfirmCopy");status=text(menuView.content,"","CommerceConfirmStatus");
         copy.html=true;
         buy=U.ActionButton(menuView.actions,{label:"确认兑换",action:purchase});buy.AddClass("CommerceConfirmBuy");
-        var back=U.ActionButton(menuView.actions,{label:"返回商城",action:function(){close();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();}});
+        var back=U.ActionButton(menuView.actions,{label:"返回商城",action:backToStore});
         back.AddClass("CommerceConfirmBack");paint(back,false);return true;
     }
     function render(message){
@@ -61,7 +62,7 @@
         var insufficient=pointsInsufficient(p);
         status.text=message || (pending?"兑换结果待确认，重试会查询同一笔兑换。":p.enabled===true || p.enabled===1 || insufficient?"确认后扣除商城余额，奖励自动存入账号。":errors[p.disabled_reason]||"暂不可兑换。");
         buy.enabled=!inflight && (!!pending || p.enabled===true || p.enabled===1 || insufficient);
-        if(menuView)menuView.SetResources([{icon:"gold",name:"U币",value:catalog.balances.u_coin||0},
+        if(menuView)menuView.SetResources([{icon:"gold",name:"G币",value:catalog.balances.u_coin||0},
             {icon:"purple_gem",name:"商城积分",value:catalog.balances.shop_points||0},{icon:"ticket",name:"商城金币",value:catalog.balances.shop_gold||0}]);
         paint(buy,true);
     }

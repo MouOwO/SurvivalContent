@@ -15,12 +15,13 @@
     var layers={};D.layers.forEach(function(x){if(x.id)layers[x.id]=x;});
     function p(id){var el=panelCache[id];if(!valid(el))el=panelCache[id]=root.FindChildTraverse(id);return el;}
     function valid(el){return el&&(!el.IsValid||el.IsValid());}
+    function displayText(value){var shared=cfg.SurvivalCommerceComponents;return shared&&shared.RewardNameText?shared.RewardNameText(value):String(value===undefined||value===null?"":value).replace(/U币/g,"G币");}
     function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling("stretch-to-cover-preserve-aspect");return icon;}
     function set(el,values){Object.keys(values).forEach(function(k){el.style[k]=values[k];});}
     function pos(el,x,y,w,h){set(el,{position:Math.round(x)+"px "+Math.round(y)+"px 0px",width:w+"px",height:h+"px",margin:"0px",padding:"0px"});}
     function make(type,parent,id,cls){var el=$.CreatePanel(type,parent,id||"");if(cls)el.AddClass(cls);if(type==="Label")set(el,{fontFamily:'"Source Han Sans SC"',fontWeight:"normal",letterSpacing:"0px",textShadow:"none"});return el;}
     function image(parent,key,x,y,w,h,cls){var asset=D.assets[key],el=make("Image",parent,"",cls||"VoidShadowImage");el.hittest=false;el.hittestchildren=false;el.SetImage(asset.file);el.SetScaling("stretch-to-fit");pos(el,x,y,w===undefined?asset.size[0]:w,h===undefined?asset.size[1]:h);return el;}
-    function text(parent,spec,value,id,offset){var b=spec.bbox,el=make("Label",parent,id||"","VoidShadowText");el.hittest=false;el.text=String(value===undefined?spec.text||"":value);pos(el,b[0]-(offset?offset[0]:0),b[1]-(offset?offset[1]:0),b[2]-b[0],b[3]-b[1]);set(el,{fontSize:spec.size+"px",color:spec.color,textAlign:spec.align||"center"});return el;}
+    function text(parent,spec,value,id,offset){var b=spec.bbox,el=make("Label",parent,id||"","VoidShadowText");el.hittest=false;el.text=displayText(value===undefined?spec.text||"":value);pos(el,b[0]-(offset?offset[0]:0),b[1]-(offset?offset[1]:0),b[2]-b[0],b[3]-b[1]);set(el,{fontSize:spec.size+"px",color:spec.color,textAlign:spec.align||"center"});return el;}
     function list(rows){if(Array.isArray(rows))return rows;return rows?Object.keys(rows).map(function(k){return rows[k];}):[];}
     function numberKnown(item){return item.count!==undefined&&item.count!==null&&String(item.count).trim()!==""&&isFinite(Number(item.count))&&Number(item.count)>=0&&(item.count_known===undefined||Number(item.count_known)===1);}
     function capFor(item){var raw=item.max_owned!==undefined?item.max_owned:item.target;return raw!==undefined&&raw!==null&&isFinite(Number(raw))&&Number(raw)>0?Number(raw):null;}
@@ -79,7 +80,7 @@
         tabs.forEach(function(id,i){var b=bounds[i],button=make("Button",canvas,"VoidShadowTop_"+id,"VoidShadowNavButton");pos(button,b[0],b[1],b[2],b[3]);text(button,layers["top_"+i],undefined,"",b);button.SetPanelEvent("onactivate",function(){if(id!=="archive"&&cfg.SurvivalPurpleShell)cfg.SurvivalPurpleShell.Navigate(id);});});
         var close=make("Button",canvas,"VoidShadowClose","VoidShadowNavButton");pos(close,1474,34,49,49);image(close,"close",7,8);close.SetPanelEvent("onactivate",function(){cfg.SurvivalArchive.Close();});
         ["all","unlocked","locked"].forEach(function(mode,i){var b=[[699,143,132,43],[839,143,131,43],[981,144,131,42]][i],button=make("Button",canvas,"VoidShadowFilter_"+mode,"VoidShadowNavButton");pos(button,b[0],b[1],b[2],b[3]);var bg=image(button,"filter_default",0,0,b[2],b[3]);var id=["filter_all_text","filter_owned_text","filter_unowned_text"][i];text(button,layers[id],undefined,"",b);button.SetPanelEvent("onactivate",function(){cfg.SurvivalArchive.Filter(mode);});filterButtons[mode]={panel:button,image:bg};});
-        ["gold_text","purple_gem_text","ticket_text"].forEach(function(id,i){var label=text(canvas,layers[id],"—","VoidShadow_"+id);label.hittest=true;balances.push(label);label.SetPanelEvent("onmouseover",function(){$.DispatchEvent("DOTAShowTextTooltip",label,["U币","积分","商城金币"][i]);});label.SetPanelEvent("onmouseout",function(){$.DispatchEvent("DOTAHideTextTooltip",label);});});
+        ["gold_text","purple_gem_text","ticket_text"].forEach(function(id,i){var label=text(canvas,layers[id],"—","VoidShadow_"+id);label.hittest=true;balances.push(label);label.SetPanelEvent("onmouseover",function(){$.DispatchEvent("DOTAShowTextTooltip",label,["G币","积分","商城金币"][i]);});label.SetPanelEvent("onmouseout",function(){$.DispatchEvent("DOTAHideTextTooltip",label);});});
         sidebar=make("Panel",canvas,"VoidShadowSidebar","VoidShadowSidebar");pos(sidebar,136,128,258,769);
         grid=make("Panel",canvas,"VoidShadowGrid","VoidShadowGrid");pos(grid,415,226,1104,649);
         if(GameEvents.Subscribe){subscriptions.push(GameEvents.Subscribe("survival_commerce_result",function(){if(!active)return;$.Schedule(0,function(){if(active&&valid(canvas))wallet();});}));}
@@ -125,6 +126,7 @@
                 card.SetPanelEvent("onmouseout",function(){if(hoveredCard===card)hoveredCard=null;cfg.ArchiveHandoff.Hide();var icon=p("ArchiveTooltipStateIcon");if(icon)icon.visible=true;});
             }
             card.__voidItem=item;if(card.visible!==true)card.visible=true;
+            fillIcon(cached.art,item);
             var moved=cached.geometryKey!==geometryKey;
             if(moved){pos(card,x-415,y-226,width,height);pos(cached.art,b[0]-x,b[1]-y,b[2]-b[0],b[3]-b[1]);pos(cached.name,n[0]-x,n[1]-y,n[2]-n[0],n[3]-n[1]);cached.geometryKey=geometryKey;}
             var value=quantity(item),plateWidth=Math.max(q[2]-q[0],Math.min(width,Math.ceil(value.length*10.6+12))),right=q[2]-x;
@@ -132,7 +134,7 @@
             var quantityGeometry=JSON.stringify([right-plateWidth,plateWidth,q[3]-q[1]]);
             if(moved||cached.quantityGeometry!==quantityGeometry){pos(cached.plaque,right-plateWidth,0,plateWidth,q[3]-q[1]);pos(cached.count,right-plateWidth,0,plateWidth,q[3]-q[1]);cached.quantityGeometry=quantityGeometry;}
             if(cached.count.text!==value)cached.count.text=value;
-            if(cached.name.text!==String(item.name||""))cached.name.text=String(item.name||"");
+            if(cached.name.text!==displayText(item.name||""))cached.name.text=displayText(item.name||"");
             if(cached.rowKey!==rowKey&&hoveredCard===card){cfg.ArchiveHandoff.Show(item,"shadow",card);var icon=p("ArchiveTooltipStateIcon");if(icon)icon.visible=known;}
             cached.rowKey=rowKey;
         });

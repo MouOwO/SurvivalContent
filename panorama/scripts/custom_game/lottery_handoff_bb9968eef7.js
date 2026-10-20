@@ -5,6 +5,7 @@
     (function remember(n){if(!valid(n))return;if(n.id)nodes[n.id]=n;n.Children().forEach(remember);})(owner);
     function p(id){if(!valid(lifetime))return null;if(valid(nodes[id]))return nodes[id];var n=owner.FindChildTraverse(id);if(valid(n))nodes[id]=n;return valid(n)?n:null;}
     function valid(node){return node&&(!node.IsValid||node.IsValid());}
+    function currentRenderer(){var view=cfg.SurvivalPurpleLottery;return view&&view.Version==="lottery_current_20261018"&&view.Owns&&view.Owns(owner)&&view.IsAlive&&view.IsAlive()&&view.IsReady&&view.IsReady()?view:null;}
     function tenRule(pity){
         var list=Array.isArray(pity)?pity:Object.keys(pity||{}).map(function(k){return pity[k];});
         for(var i=0;i<list.length;i++)if(Number(list[i].batch_size)===10)return list[i];
@@ -35,7 +36,7 @@
         return {width:w,height:h};
     }
     function fit(){
-        var renderer=cfg.SurvivalPurpleLottery;
+        var renderer=currentRenderer();
         if(renderer&&renderer.Fit)return renderer.Fit();
         // Missing integration never paints the retired full-screen layout.
         var canvas=p("LotteryMainCanvas");if(valid(canvas))canvas.style.opacity="0";
@@ -48,7 +49,7 @@
             var canvas=p("LotteryMainCanvas");
             if(!valid(canvas))return;
             canvas.RemoveClass("ReferenceWindow");canvas.RemoveClass("LotteryPurple");
-            if(cfg.SurvivalPurpleLottery)cfg.SurvivalPurpleLottery.Apply();
+            var renderer=currentRenderer();if(renderer)renderer.Apply();
             if(!fit())canvas.style.opacity="0";
         },
         Background:function(poolId){
@@ -77,6 +78,17 @@
         Ticket:function(selected){
             var gold=selected&&selected.ticket_content_id==="special_lottery_ticket";
             p("LotteryWindow").SetHasClass("LotteryGoldenTicket",!!gold);
+            var id=String(selected&&selected.ticket_content_id||""),poolId=String(selected&&selected.id||"");
+            if(!id)id=poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket";
+            var resources=cfg.SurvivalItemResources,uri=resources&&resources.Resolve(id);
+            (function paint(node){
+                if(!valid(node))return;
+                if(node.BHasClass("LHTicket")||node.BHasClass("LHDrawTicket")){
+                    node.style.backgroundImage=uri?'url("'+uri+'")':"none";node.style.backgroundSize="contain";node.style.backgroundPosition="center";node.style.backgroundRepeat="no-repeat";
+                    node.style.backgroundColor="transparent";node.style.opacityMask="none";node.style.washColor="none";node.style.saturation="1";node.style.brightness="1";node.style.opacity="1";
+                }
+                node.Children().forEach(paint);
+            })(p("LotteryWindow"));
             var notice=p("LotteryUnlockNotice");
             if(valid(notice)){
                 notice.visible=!!selected&&selected.unlocked===false;
@@ -99,7 +111,7 @@
             var hint=p("LotteryDrawPity");if(valid(hint))hint.visible=!!rule;
             var free=selected&&Number(selected.single_cost)===0;
             p("LotterySingleButton").SetHasClass("ZXFreeDraw",!!free);
-            if(cfg.SurvivalPurpleLottery)cfg.SurvivalPurpleLottery.Apply();
+            var renderer=currentRenderer();if(renderer)renderer.Apply();
         },
         Guarantee:function(rules){
             var rule=tenRule(rules);quality(p("LHGuaranteeQuality"),rule);

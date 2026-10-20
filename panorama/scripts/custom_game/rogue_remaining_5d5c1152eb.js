@@ -27,7 +27,7 @@
     function open(){if(disposed||!active()||opened)return;dismissed=false;opened=true;show();if(config.SurvivalUILayers)config.SurvivalUILayers.Open("rogue_choice",panel("RogueRewardBackdrop"),close);if(!ready)finish();else updateButtons();watchFit();}
     function fit(){U.Fit(panel("RogueRewardSurface"),$.GetContextPanel(),1672,941,{reference:[1672,941]});}
     function watchFit(){if(disposed||!active()||!opened)return;fit();later(.25,watchFit);}
-    // The reference rocks every card on a fixed cycle. Hover settles one face;
+    // A native float keeps each face axis-aligned. Hover settles one face;
     // cursor coordinates never drive the other cards or a per-frame script loop.
     function hover(c){if(disposed||!opened||pending||!c.button.enabled||hovered===c)return;hovered=c;updateMotion();Game.EmitSound("ui_rollover_micro");}
     function leave(c){if(hovered!==c)return;hovered=null;updateMotion();}

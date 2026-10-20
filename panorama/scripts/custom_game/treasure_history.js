@@ -40,11 +40,17 @@
         if(positioner&&positioner.ShowText)positioner.ShowText(card,content);
         else $.DispatchEvent("DOTAShowTextTooltip",card,content);
     }
+    function fillCardIcon(art){
+        place(art,0,0,CELL,CELL);
+        style(art,{width:"100%",height:"100%",border:"0px",overflow:"clip"});
+        if(art.SetScaling)art.SetScaling("stretch-to-cover-preserve-aspect");
+        art.hittest=false;art.hittestchildren=false;
+    }
     function icon(parent,item){
         var resources=cfg.SurvivalItemResources,presentation=cfg.SurvivalRewardPresentation;
         if(resources&&resources.Lookup(item)&&presentation&&presentation.CreateRegisteredIcon){
             var registered=presentation.CreateRegisteredIcon(parent,item,"TreasureCompactIcon");
-            if(registered){place(registered,1,1,CELL-2,CELL-2);return;}
+            if(registered){fillCardIcon(registered);return;}
         }
         if(item.icon_name){
             var name=String(item.icon_name),texture=name.indexOf("/")>=0,isItem=name.indexOf("item_")===0;
@@ -52,7 +58,7 @@
             if(texture)art.SetImage("file://{images}/spellicons/"+name+".png");
             else if(isItem)art.itemname=name;else art.abilityname=name;
             if(presentation&&presentation.FillIcon)presentation.FillIcon(art,item);
-            art.AddClass("TreasureCompactIcon");place(art,1,1,CELL-2,CELL-2);art.hittest=false;return;
+            art.AddClass("TreasureCompactIcon");fillCardIcon(art);return;
         }
         var glyph=$.CreatePanel("Label",parent,"");glyph.AddClass("TreasureCompactGlyph");
         glyph.text=String(item.name||"宝").substring(0,1);glyph.hittest=false;

@@ -8,7 +8,7 @@
 #LotteryCinematicCaption {
     position:36px 22px 0px; width:700px; height:32px; z-index:3;
     font-family:"Source Han Sans SC", "Microsoft YaHei", sans-serif;
-    font-size:23px; font-weight:normal; color:#d9c8a7; letter-spacing:4px; text-shadow:none;
+    font-size:23px; font-weight:normal; color:#d9c8a7; letter-spacing:4px; text-shadow:#000000 0px 0px 2px 4.0;
 }
 #LotteryCinematicSkip { position:0px 0px 0px; align:right top; margin:24px 32px 0px 0px; width:172px; height:44px; z-index:4; background-color:#081221dd; border:1px solid #a4987355; border-radius:5px; }
 #LotteryCinematicSkip Label { align:center center; color:#eddfbf; font-size:21px; font-weight:normal; text-shadow:none; }

@@ -37,5 +37,23 @@
     <Image id="ArchiveParchmentPreload_tooltip_background" src="file://{images}/custom_game/archive_parchment_v1/tooltip_background.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
     <Image id="ArchiveParchmentPreload_tooltip_frame" src="file://{images}/custom_game/archive_parchment_v1/tooltip_frame.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
     <Image id="ArchiveParchmentPreload_tooltip_shadow" src="file://{images}/custom_game/archive_parchment_v1/tooltip_shadow.png" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_icon_ring" src="file://{images}/custom_game/archive_polish_v2/icon_ring.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_beast" src="file://{images}/custom_game/archive_polish_v2/nav/beast.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_boss" src="file://{images}/custom_game/archive_polish_v2/nav/boss.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_building" src="file://{images}/custom_game/archive_polish_v2/nav/building.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_clear" src="file://{images}/custom_game/archive_polish_v2/nav/clear.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_endless" src="file://{images}/custom_game/archive_polish_v2/nav/endless.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_ex" src="file://{images}/custom_game/archive_polish_v2/nav/ex.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_fishing" src="file://{images}/custom_game/archive_polish_v2/nav/fishing.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_fragment" src="file://{images}/custom_game/archive_polish_v2/nav/fragment.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_friend" src="file://{images}/custom_game/archive_polish_v2/nav/friend.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_gift" src="file://{images}/custom_game/archive_polish_v2/nav/gift.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_map_level" src="file://{images}/custom_game/archive_polish_v2/nav/map_level.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_pet" src="file://{images}/custom_game/archive_polish_v2/nav/pet.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_points" src="file://{images}/custom_game/archive_polish_v2/nav/points.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_shadow" src="file://{images}/custom_game/archive_polish_v2/nav/shadow.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_starjoy_points" src="file://{images}/custom_game/archive_polish_v2/nav/starjoy_points.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_titles" src="file://{images}/custom_game/archive_polish_v2/nav/titles.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="ArchivePolishV2Preload_nav_work" src="file://{images}/custom_game/archive_polish_v2/nav/work.svg" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
   </Panel>
 </root>

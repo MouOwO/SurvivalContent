@@ -184,6 +184,11 @@
             backing.Resize(padding,padding,surfaceWidth,measuredHeight); frame.Resize(padding,padding,surfaceWidth,measuredHeight);
             rect(surface,padding,padding,surfaceWidth,measuredHeight); rect(shadow,padding,padding,surfaceWidth,measuredHeight);
             style(viewport,{height:Math.max(1,measuredHeight-verticalGutter)+"px"});
+            // Passive descriptions must not consume entry into an icon behind
+            // their painted rectangle. Only real overflow needs mouse input.
+            var interactive=contentHeight>measuredHeight-verticalGutter+1 || tooltipOverflows();
+            panel.hittestchildren=interactive;surface.hittest=interactive;surface.hittestchildren=interactive;
+            viewport.hittest=interactive;viewport.hittestchildren=interactive;
         }
         function trackAnchor(epoch, origin) {
             if (!options.watchAnchor) return;
@@ -201,7 +206,7 @@
             var state=S.State(item,category), name=options.categoryName ? options.categoryName(category) : category;
             elements.Title.text=String(item.name||"");
             var unlockItem=S.IsUnlockItem&&S.IsUnlockItem(item,category);
-            elements.State.text=onlyEffect ? "" : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
+            elements.State.text=onlyEffect ? "" : category==="points" ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
             var rarityColor=colors.caption, titleColor=colors.title;
             if (rarityLine) {
                 var rarityParts=[],quality=String(item.quality||"").trim().toUpperCase();
@@ -239,7 +244,9 @@
                 if(item.duplicate_points!==undefined&&item.duplicate_points!==null&&isFinite(duplicatePoints)&&duplicatePoints>=0&&duplicateCurrency)details+=" · 重复获得转化为 "+duplicatePoints+" "+duplicateCurrency;
             }
             elements.Condition.text=details; elements.Condition.visible=!!details;
-            metric.visible=!onlyEffect; caption.text=S.Metric(item,category); quantity.text=S.Quantity(item,category);
+            metric.visible=!onlyEffect&&category!=="points";
+            caption.text=category==="points" ? "" : S.Metric(item,category);
+            quantity.text=category==="points" ? "" : S.Quantity(item,category);
             var textRoles=["Title","State","EffectCaption","Effect","Condition"]; if(rarityLine)textRoles.push("Rarity");
             textRoles.forEach(function (role) {
                 var gap=compact ? (role==="State"||role==="Rarity"?6:role==="EffectCaption"?3:4) : (role==="Title"?6:role==="State"||role==="Rarity"?8:role==="Effect"?8:4);
@@ -253,7 +260,7 @@
         }
         return {
             Show:show, Hide:reset, QueueHide:queueHide, IsVisible:function () { return alive() && panel.visible; }, panel:panel, elements:elements,
-            Inspect:function () { return {visible:alive()&&panel.visible,category:currentCategory,itemId:currentItem&&currentItem.id,anchorId:anchor&&anchor.id,prefix:prefix,surfaceHeight:measuredHeight,nineSlices:{Backing:{count:pieces.Backing.length,asset:backing.__v10Slice.asset,insets:backing.__v10Slice.insets.slice()},Frame:{count:pieces.Frame.length,asset:frame.__v10Slice.asset,insets:frame.__v10Slice.insets.slice()}}}; },
+            Inspect:function () { return {visible:alive()&&panel.visible,category:currentCategory,itemId:currentItem&&currentItem.id,anchorId:anchor&&anchor.id,prefix:prefix,surfaceHeight:measuredHeight,coordinateSpace:alive()?{fit:fitScale,parentX:parent.actualuiscale_x,parentY:parent.actualuiscale_y,rootX:root.actualuiscale_x,rootY:root.actualuiscale_y,parentPosition:parent.GetPositionWithinWindow(),hostPosition:panel.GetPositionWithinWindow(),hostStyle:panel.style.position,anchorWidth:valid(anchor)?anchor.actuallayoutwidth:0,anchorHeight:valid(anchor)?anchor.actuallayoutheight:0}:null,surfaceRect:alive()?tooltipRect(surface):null,anchorRect:valid(anchor)?tooltipRect(anchor):null,nineSlices:{Backing:{count:pieces.Backing.length,asset:backing.__v10Slice.asset,insets:backing.__v10Slice.insets.slice()},Frame:{count:pieces.Frame.length,asset:frame.__v10Slice.asset,insets:frame.__v10Slice.insets.slice()}}}; },
             Dispose:function () { if (disposed) return; hide(); if (dismiss) dismiss.Dispose(); disposed=true; life.Dispose(); if (valid(panel)) panel.DeleteAsync(0); }
         };
     }

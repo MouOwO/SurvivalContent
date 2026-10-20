@@ -1,4 +1,4 @@
-/* Match setup shares the existing purple menu artwork; difficulty is a compact list. */
+/* Match setup controls retain their native event and state bindings. */
 #DifficultySelectionOverlay { background-color: #070512aa; }
 #DifficultySelectionDialog.UIModal
 {
@@ -91,6 +91,7 @@
 .MatchModeOption:hover, .MatchModeOption.UISelected { border-color: #edcd8a; brightness: 1.12; }
 .MatchModeOptionName { width: 100%; vertical-align: center; text-align: center; font-size: 22px; color: #f2d59b; margin: 0px; }
 .MatchModeOption:disabled, .MatchModeOption.UIDisabled { opacity: 0.42; brightness: 1; }
+.MatchModeOption.MatchModeOptionLocked { saturation: 0; border-color: #776b80; }
 .MatchModeOption.UISelected.UIBusy
 {
     opacity: 1; brightness: 1; border-color: #f0ce85;
@@ -116,3 +117,96 @@
     width: 200px; height: 44px; horizontal-align: right; vertical-align: center; margin-right: 28px; margin-top: 120px;
 }
 .DifficultySelectionResume Label { horizontal-align: center; vertical-align: center; color: #f2d59b; font-size: 20px; }
+
+/* Reborn: exact Valve textures, quiet iron panels, and natural text height. */
+#DifficultySelectionOverlay { background-color:#050a10a8; }
+#DifficultySelectionDialog.UIModal
+{
+    width:275px; height:670px; background-color:#111b22; border:1px solid #657780;
+    box-shadow:#000000b0 0px 8px 28px 0px;
+}
+#DifficultySelectionArt
+{
+    background-image:url("s2r://panorama/images/hud/reborn/bg_hud_inspect_psd.vtex");
+    background-size:cover; background-position:center; opacity:.8;
+}
+#DifficultySelectionHeader { height:68px; padding:0px; flow-children:none; background-color:#101a2288; border-bottom:1px solid #71838c66; }
+#DifficultySelectionTitle
+{
+    width:fit-children; height:fit-children; horizontal-align:center; vertical-align:center;
+    font-family:"Source Han Sans SC"; font-size:26px; font-weight:medium; letter-spacing:1px;
+    color:#e1e8e9; white-space:nowrap; text-overflow:clip; text-shadow:none;
+}
+#DifficultySelectionBody { padding:14px 14px 12px 14px; background-color:#0b131b55; }
+#DifficultySelectionHint
+{
+    margin:0px 0px 14px 0px; font-family:"Source Han Sans SC"; font-size:15px;
+    color:#b6c7cf; text-shadow:none;
+}
+#DifficultySelectionDialog .DifficultyOptionButton,
+#DifficultySelectionDialog .DifficultyOptionButton.DifficultyOptionLocked,
+#DifficultySelectionDialog .DifficultyOptionButton:disabled,
+.MatchModeOption
+{
+    height:46px; min-height:46px; padding:0px; background-image:none; background-color:#17232b;
+    border:5px solid white; border-image-source:url("s2r://panorama/images/gray_button_off_png.vtex");
+    border-image-slice:5px fill; transform:none; brightness:1; saturation:1; wash-color:#ffffff;
+}
+#DifficultySelectionDialog .DifficultyOptionButton:hover,
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected,
+.MatchModeOption:hover, .MatchModeOption.UISelected
+{
+    background-image:none; border:5px solid white;
+    border-image-source:url("s2r://panorama/images/gray_button_on_png.vtex"); brightness:1.08;
+}
+#DifficultySelectionDialog .DifficultyOptionButton:active { brightness:.88; }
+#DifficultySelectionDialog .DifficultyOptionButton.DifficultyOptionLocked,
+#DifficultySelectionDialog .DifficultyOptionButton:disabled,
+#DifficultySelectionDialog .DifficultyOptionButton.UIDisabled { opacity:1; saturation:1; brightness:1; }
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected.UIBusy { opacity:1; brightness:1.1; }
+#DifficultySelectionDialog .DifficultyOptionDiamond
+{
+    visibility:visible; width:2px; height:28px; vertical-align:center; horizontal-align:left;
+    background-color:#bfd2dc; opacity:0;
+}
+#DifficultySelectionDialog .UISelected .DifficultyOptionDiamond { opacity:1; }
+#DifficultySelectionDialog .DifficultyOptionCode
+{
+    width:fit-children; height:fit-children; font-family:"Source Han Sans SC";
+    font-size:23px; font-weight:medium; letter-spacing:0px; color:#dce5e9;
+    white-space:nowrap; text-overflow:clip; text-shadow:none;
+}
+#DifficultySelectionDialog .DifficultyOptionLocked .DifficultyOptionCode { margin-left:14px; color:#9baeb8; }
+#DifficultySelectionDialog .DifficultyOptionAvailability
+{
+    max-width:166px; height:fit-children; margin-right:12px; font-family:"Source Han Sans SC";
+    font-size:13px; color:#a6b7bf; white-space:nowrap; text-overflow:clip; text-shadow:none;
+}
+#DifficultySelectionDialog .DifficultyOptionButton.UISelected .DifficultyOptionCode { color:#f5f8f9; }
+#DifficultySelectionLoading { color:#aebfc7; }
+#DifficultySelectionError { font-family:"Source Han Sans SC"; color:#edc29a; text-shadow:none; }
+#DifficultySelectionDialog.MatchSetupMode #DifficultySelectionHeader { height:52px; padding:0px; }
+#DifficultySelectionDialog.MatchSetupMode #DifficultySelectionTitle { font-size:25px; }
+#DifficultySelectionDialog.MatchSetupMode #DifficultySelectionBody { padding:12px; }
+.MatchModeOptionName { height:fit-children; font-family:"Source Han Sans SC"; color:#dce5e9; text-shadow:none; }
+.MatchModeOption.UISelected.UIBusy { background-image:none; background-color:#17232b; border:5px solid white; }
+.MatchModeOption.UISelected.UIBusy .MatchModeOptionName { color:#f5f8f9; }
+#DifficultySelectionDialog .UIActionButton,
+#DifficultySelectionDialog .UIActionButton.UIGold,
+#DifficultySelectionDialog .UIActionButton.UIIvory,
+.DifficultySelectionResume, .MatchProfileRetryNotice
+{
+    border:5px solid white; background-color:#17232b; background-image:none;
+    border-image-source:url("s2r://panorama/images/gray_button_off_png.vtex"); border-image-slice:5px fill;
+}
+#DifficultySelectionDialog .UIActionButton:hover, .DifficultySelectionResume:hover, .MatchProfileRetryNotice:hover
+{
+    background-image:none; border-image-source:url("s2r://panorama/images/gray_button_on_png.vtex"); brightness:1.1;
+}
+#DifficultySelectionDialog .UIActionButton Label { color:#dce5e9; text-shadow:none; }
+.MatchProfileRetryNotice { width:320px; height:48px; horizontal-align:center; vertical-align:top; margin-top:118px; z-index:100; }
+.DifficultySelectionResume Label, .MatchProfileRetryNotice Label
+{
+    width:fit-children; height:fit-children; horizontal-align:center; vertical-align:center;
+    font-family:"Source Han Sans SC"; color:#dce5e9; font-size:17px; text-shadow:none;
+}

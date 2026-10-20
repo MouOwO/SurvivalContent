@@ -1,16 +1,12 @@
 <root>
   <Panel hittest="false" hittestchildren="false">
-    <Image id="DailyGW2Preload_window_edge" src="s2r://panorama/images/custom_game/daily_accepted_v1/window_edge_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_header_rule" src="s2r://panorama/images/custom_game/daily_accepted_v1/header_rule_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_divider" src="s2r://panorama/images/custom_game/daily_accepted_v1/divider_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_reward_frame" src="s2r://panorama/images/custom_game/daily_accepted_v1/reward_frame_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_button" src="s2r://panorama/images/custom_game/daily_accepted_v1/button_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_close_base" src="s2r://panorama/images/custom_game/daily_accepted_v1/close_base_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_close" src="s2r://panorama/images/custom_game/daily_accepted_v1/close_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_lock" src="s2r://panorama/images/custom_game/daily_accepted_v1/lock_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_check" src="s2r://panorama/images/custom_game/daily_accepted_v1/check_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_window_background" src="s2r://panorama/images/custom_game/daily_accepted_v1/window_background_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_tooltip_background" src="s2r://panorama/images/custom_game/daily_accepted_v1/tooltip_background_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
-    <Image id="DailyGW2Preload_tooltip_frame" src="s2r://panorama/images/custom_game/daily_accepted_v1/tooltip_frame_v10.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_header" src="s2r://panorama/images/dota_plus/dota_plus_horizontal_banner_background_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_texture" src="s2r://panorama/images/dota_plus/dota_plus_background_texture_large_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_reward_frame" src="s2r://panorama/images/events/international_2026/artwork/cell_border_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_button" src="s2r://panorama/images/dota_plus/relic_rare_button_psd.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_title_divider" src="s2r://panorama/images/events/crownfall/fishing/divider_graphic_minigame_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_close" src="s2r://panorama/images/control_icons/x_close_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_check" src="s2r://panorama/images/control_icons/check_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+    <Image id="DailyGW2Preload_lock" src="s2r://panorama/images/control_icons/lock_large_png.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
   </Panel>
 </root>

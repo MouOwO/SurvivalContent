@@ -14,9 +14,9 @@
 .ArchiveV10Button:hover { brightness:1.10; }
 .ArchiveV10Button:active { brightness:.95; }
 .ArchiveV10Sidebar { flow-children:none; overflow:squish scroll; }
-.ArchiveV10GridHost { flow-children:none; overflow:noclip; }
+.ArchiveV10GridHost { flow-children:none; overflow:clip; }
 .ArchiveV10Page #ArchiveGrid { flow-children:none; overflow:squish scroll; background-color:transparent; background-image:none; padding:0px; margin:0px; }
-.ArchiveV10ItemVisual { flow-children:none; overflow:noclip; }
+.ArchiveV10ItemVisual { flow-children:none; overflow:clip; }
 .ArchiveV10HoverFrame { opacity:0; }
 .ArchiveV10Cell:hover .ArchiveV10HoverFrame,
 .ArchiveV10Cell.ArchiveHovered .ArchiveV10HoverFrame { opacity:1; }
@@ -40,10 +40,10 @@
 .ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveV10Sidebar VerticalScrollBar .ScrollThumb,
 .ArchiveRoot #ArchiveWindow.ArchiveParchmentPage #ArchiveV10TooltipViewport VerticalScrollBar .ScrollThumb { background-color:#8b835c; background-image:url("file://{images}/custom_game/archive_parchment_v1/scroll_thumb.png"); background-size:100% 100%; border:1px solid #b0a573; border-radius:0px; }
 .ArchiveParchmentCanvas { flow-children:none; overflow:noclip; }
-#ArchiveV10Shell_Background { background-color:#1c1c17; }
-#ArchiveV10Shell_Sidebar { background-color:#202b2ce8; }
-#ArchiveV10Shell_Content { background-color:#35291be6; }
-#ArchiveV10Shell_Header { background-color:#554024; }
+#ArchiveV10Shell_Background { background-color:transparent; }
+#ArchiveV10Shell_Sidebar { background-color:transparent; }
+#ArchiveV10Shell_Content { background-color:transparent; }
+#ArchiveV10Shell_Header { background-color:#090c0ff5; }
 .ArchiveParchmentInput,
 .ArchiveParchmentSearch { background-color:#191d1ecb; background-image:none; border:1px solid #80775f; box-shadow:inset #00000099 1px 1px 3px 1px; border-radius:0px; }
 .ArchiveParchmentSearch { font-family:"Source Han Sans SC"; font-size:20px; color:#f1ebd9; padding:3px 10px; white-space:nowrap; }
@@ -69,6 +69,10 @@
 .ArchiveV10Cell:hover { brightness:1.08; }
 .ArchiveV10Cell:hover .ArchiveV10Name { color:#ffdf9b; }
 .ArchiveParchmentIconStage { border-radius:50%; overflow:clip; background-color:#10120dc9; }
+.ArchiveParchmentCategoryBadge { flow-children:none; padding:0px; margin:0px; border:0px; background-color:transparent; }
+.ArchiveParchmentIconRing { margin:0px; padding:0px; border:0px; background-image:none; background-color:transparent; border-radius:0px; overflow:clip; }
+/* Row, visual and viewport clipping also contain the independent vector rings. */
+.ArchiveV10GridHost .ArchiveParchmentIconRing { overflow:clip; }
 .ArchiveParchmentTrack { background-color:#131511b8; border:1px solid #090b08; }
 .ArchiveParchmentFill { background-color:gradient(linear,0% 0%,100% 0%,from(#d78a0b),color-stop(.7,#efaa24),to(#fff0ac)); }
 .ArchiveParchmentPage #ArchiveStatus,
@@ -81,12 +85,10 @@
 .ArchiveParchmentPage .ArchivePromote:disabled { saturation:.2; brightness:.65; }
 
 /* Goods reuse the archive shell and tooltip, with only icon/name cells. */
-.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceIconBacking { background-color:#090d0ee8; border:1px solid #77613c; border-radius:1px; box-shadow:inset #000000b0 0px 0px 3px 1px; }
+.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceIconBacking { background-color:transparent; border:0px; border-radius:0px; box-shadow:none; }
 .ArchiveCommerceIcon { brightness:1; saturation:1; opacity:1; }
 .ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceUnowned .ArchiveCommerceIcon { saturation:0; brightness:.38; opacity:.82; }
 .ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceUnknown .ArchiveCommerceIcon { saturation:.3; brightness:.62; opacity:.9; }
-.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceOwned .ArchiveCommerceIconBacking { border-color:#c6a75d; box-shadow:#e1b14b22 0px 0px 5px 1px; }
 .ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceUnowned .ArchiveV10Name { color:#a5a396; }
-.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceCell:hover .ArchiveCommerceIconBacking,
-.ArchiveRoot #ArchiveWindow.ArchiveV10Page .ArchiveCommerceCell.ArchiveHovered .ArchiveCommerceIconBacking { border-color:#ffe0a0; }
 .ArchiveCommerceQuantityBadge { background-color:#19170ff0; border:1px solid #8f7b4f; z-index:10; }
+.ArchivePointsState { visibility:collapse; background-color:transparent; border:0px; }

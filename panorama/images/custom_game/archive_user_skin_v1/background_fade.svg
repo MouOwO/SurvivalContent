@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 256 256" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="right" gradientUnits="userSpaceOnUse" x1="240" y1="0" x2="256" y2="0"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="0.25" stop-color="white" stop-opacity="0.9"/><stop offset="0.5" stop-color="white" stop-opacity="0.5"/><stop offset="0.75" stop-color="white" stop-opacity="0.1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+    <linearGradient id="bottom" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="256"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="0.25" stop-color="white" stop-opacity="0.9"/><stop offset="0.5" stop-color="white" stop-opacity="0.5"/><stop offset="0.75" stop-color="white" stop-opacity="0.1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+    <radialGradient id="corner" gradientUnits="userSpaceOnUse" cx="240" cy="240" r="16"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="0.25" stop-color="white" stop-opacity="0.9"/><stop offset="0.5" stop-color="white" stop-opacity="0.5"/><stop offset="0.75" stop-color="white" stop-opacity="0.1"/><stop offset="1" stop-color="white" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="240" height="240" fill="white"/>
+  <rect x="240" width="16" height="240" fill="url(#right)"/>
+  <rect y="240" width="240" height="16" fill="url(#bottom)"/>
+  <rect x="240" y="240" width="16" height="16" fill="url(#corner)"/>
+</svg>

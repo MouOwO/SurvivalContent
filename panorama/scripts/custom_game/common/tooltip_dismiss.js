@@ -29,7 +29,10 @@
         if (!blocked) return;
         if (!blocked.owner.alive()) { blocked=null; return; }
         var source=rect(blocked.anchor,blocked.owner.readRect) || blocked.anchorBox;
-        if (at && !inside(at,blocked.box) && !inside(at,source)) blocked=null;
+        // Only suppress a continuous hover on the dismissed source. Leaving
+        // that source rearms it, even while still inside the old tooltip box.
+        if (at && !inside(at,source)) blocked.leftSource=true;
+        if (at && ((!inside(at,blocked.box) && !inside(at,source)) || (blocked.leftSource && inside(at,source)))) blocked=null;
     }
     function cancelIdle() {
         if (blocked || owners.some(function (owner) { return owner.shown && owner.alive(); })) return;
@@ -63,12 +66,10 @@
             if (!owner.alive()) return false;
             var at=cursor();
             release(at);
-            // A real move to another reward must not inherit this owner's old
-            // popup region. Keep other windows and nested source entries blocked.
-            if (blocked && blocked.owner===owner && options.allowSourceSwitch && source!==blocked.anchor &&
-                inside(at,rect(source,owner.readRect)) && !inside(at,rect(blocked.anchor,owner.readRect) || blocked.anchorBox)) {
-                blocked=null;cancelIdle();
-            }
+            // A real hover on another icon must not inherit a stale surface
+            // lock from this tooltip or a different window. Geometry confirms
+            // entry; asynchronous refreshes elsewhere remain suppressed.
+            if (blocked && source!==blocked.anchor && inside(at,rect(source,owner.readRect))) blocked=null;
             if (blocked && (inside(at,blocked.box) || inside(at,rect(blocked.anchor,blocked.owner.readRect) || blocked.anchorBox) || (!at && source===blocked.anchor))) return false;
             return true;
         };
@@ -84,7 +85,7 @@
         owner.Hidden=function () { owner.shown=false;anchor=null;cancelIdle(); };
         owner.Dismiss=function () {
             if (!owner.shown || !owner.visible()) return;
-            blocked={owner:owner,anchor:anchor,anchorBox:rect(anchor,owner.readRect),box:rect(surface,owner.readRect)};
+            blocked={owner:owner,anchor:anchor,anchorBox:rect(anchor,owner.readRect),box:rect(surface,owner.readRect),leftSource:false};
             owner.shown=false;anchor=null;
             options.hide();
             // A source leave may return before the next geometry watch. Drop

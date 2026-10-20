@@ -1,0 +1,5 @@
+<root>
+  <Panel visible="false" hittest="false" hittestchildren="false">
+    <Image src="s2r://panorama/images/custom_game/collection_user_skin_v1/background.vtex" visible="false" hittest="false" style="visibility:collapse; width:0px; height:0px;" />
+  </Panel>
+</root>

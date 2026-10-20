@@ -112,14 +112,17 @@
         var sideTexture=nativeArt(shell,"LotteryGW2SidebarTexture",forest.sidebar,35,123,299,746);style(sideTexture,{backgroundSize:"cover",backgroundPosition:"center",opacity:"0.25"});
         surface(shell,"LotteryGW2FooterSkin",layout.footer,"#111f18ff");
         surface(shell,"LotteryGW2HeaderSkin",layout.header,"#101d18ee");
-        surface(shell,"LotteryGW2HeaderRule",[35,118,1608,1],"#a7c9a34d");
-        surface(shell,"LotteryGW2SidebarRule",[332,123,1,746],"#a7c9a340");
-        surface(shell,"LotteryGW2FooterRule",[334,804,1309,1],"#a7c9a333");
-        ["LotteryGW2SidebarSkin","LotteryGW2SidebarTexture","LotteryGW2FooterSkin","LotteryGW2HeaderSkin","LotteryGW2HeaderRule","LotteryGW2SidebarRule","LotteryGW2FooterRule"].forEach(function(id){style(p(id),{zIndex:"3"});});
-        // Valve's straight GoldBorder meets the rectangular backing at all four
-        // corners; an inward-cut border exposes dark blocks outside its curve.
+        surface(shell,"LotteryGW2HeaderShade",[35,46,1608,72],"#07101770");
+        surface(shell,"LotteryGW2HeaderTopRule",[35,45,1608,1],"#a7c9a390");
+        surface(shell,"LotteryGW2HeaderRule",[35,118,1608,1],"#000000bb");
+        var mainTopRule=surface(shell,"LotteryGW2MainTopRule",[334,123,1309,2],"#a7c9a388");style(mainTopRule,{opacity:"0.6"});
+        surface(shell,"LotteryGW2SidebarRule",[333,123,1,746],"#b0a17c40");
+        surface(shell,"LotteryGW2FooterRule",[334,804,1309,1],"#b1a77845");
+        ["LotteryGW2SidebarSkin","LotteryGW2SidebarTexture","LotteryGW2FooterSkin","LotteryGW2HeaderSkin","LotteryGW2HeaderShade","LotteryGW2HeaderTopRule","LotteryGW2HeaderRule","LotteryGW2MainTopRule","LotteryGW2SidebarRule","LotteryGW2FooterRule"].forEach(function(id){style(p(id),{zIndex:"3"});});
+        // R5 has independent subtle edge rules, not a metal perimeter. Keep
+        // this empty layer anchor for the existing details/tooltip lifetime.
         var officialFrame=make("Panel",shell,"LotteryGW2OfficialFrame","LotteryGW2OfficialFrame");place(officialFrame,35,45,1608,824);
-        style(officialFrame,{backgroundImage:"none",backgroundColor:"transparent",zIndex:"20"});
+        style(officialFrame,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",zIndex:"20"});
         officialFrame.hittest=false;officialFrame.hittestchildren=false;
         var header=make("Panel",shell,"LotteryGW2Header"); place(header,35,45,1608,74);style(header,{zIndex:"4"});
         var sidebarPanel=make("Panel",shell,"LotteryGW2Sidebar"); place(sidebarPanel,35,123,299,746);style(sidebarPanel,{zIndex:"4"});
@@ -136,8 +139,8 @@
         var resultCanvas=make("Panel",fullscreen,"LotteryGW2ResultCanvas","LotteryGW2ResultCanvas");
         style(resultCanvas,{width:"1672px",height:"941px",position:"0px 0px 0px",horizontalAlign:"center",verticalAlign:"center",transformOrigin:"50% 50%",margin:"0px",padding:"0px",flowChildren:"none",overflow:"noclip",zIndex:"2"});
         var detail=make("Panel",shell,"LotteryGW2DetailLayer"); place(detail,0,0,1672,941); detail.hittest=false;style(detail,{zIndex:"8"});
-        // The modal manager raises this ancestry. Keep the outer frame in the
-        // same layer so the details backing cannot paint over its bottom edge.
+        // Retain the shared presentation anchor when the modal manager raises
+        // this ancestry; edge rules stay with their own menu surfaces.
         officialFrame.SetParent(detail);
         // UILayers raises the details ancestry. Keep its tooltip in that same
         // layer so the authoritative details panel cannot cover the tooltip.

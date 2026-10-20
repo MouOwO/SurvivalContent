@@ -1,24 +1,22 @@
-#CollectionWindow.CollectionGW2Page { horizontal-align:center; vertical-align:center; transform-origin:50% 50%; flow-children:none; overflow:noclip; background-image:none; background-color:#171e24; padding:0px; margin:0px; border:0px; box-shadow:none; }
+#CollectionWindow.CollectionGW2Page { horizontal-align:center; vertical-align:center; transform-origin:50% 50%; flow-children:none; overflow:noclip; background-image:none; background-color:#111413; padding:0px; margin:0px; border:0px; box-shadow:none; }
 #CollectionScrim { width:100%; height:100%; background-color:#00000022; }
 .CollectionGW2Canvas { flow-children:none; overflow:noclip; }
 .CollectionGW2Art { background-size:100% 100%; background-repeat:no-repeat; border:0px; box-shadow:none; }
 .CollectionGW2FlatRegion { flow-children:none; background-image:none; border:0px; box-shadow:none; }
-.CollectionGW2Text { font-family:"Source Han Sans SC"; font-weight:normal; padding:0px; margin:0px; text-shadow:#00000088 0px 1px 1px 1.0; }
-#CollectionGW2Background { background-color:#171e24; opacity:1; border:0px; box-shadow:none; }
-.CollectionGW2Tab { flow-children:none; background-color:transparent; border:0px; box-shadow:none; }
+.CollectionGW2Text { font-family:"Source Han Sans SC"; font-weight:normal; font-style:normal; padding:0px; margin:0px; text-shadow:none; }
+#CollectionGW2Background { background-color:#111413; opacity:1; border:0px; box-shadow:none; }
+.CollectionGW2Tab { flow-children:none; overflow:noclip; background-color:transparent; border:0px; box-shadow:none; }
 .CollectionGW2TabSelected { opacity:0; }
-.CollectionGW2Selected { brightness:1.1; }
 .CollectionGW2Selected .CollectionGW2TabSelected { opacity:1; }
-.CollectionGW2Tab:hover { brightness:1.2; }
 .CollectionGW2Grid { flow-children:none; overflow:squish scroll; }
 .CollectionGW2GridBody { flow-children:none; overflow:noclip; }
 .CollectionGW2Slot { flow-children:none; background-color:transparent; border:0px; margin:0px; padding:0px; overflow:clip; box-shadow:none; }
 .CollectionGW2Portrait { flow-children:none; overflow:clip; }
 .CollectionGW2Portrait .ArchiveArt { horizontal-align:left; vertical-align:top; margin:0px; padding:0px; }
-.CollectionGW2Unowned .CollectionGW2Portrait { saturation:.35; brightness:.68; }
+.CollectionGW2Unowned .CollectionGW2Portrait { saturation:.24; brightness:.71; }
 .CollectionGW2Unknown .CollectionGW2Portrait { saturation:.1; brightness:.5; }
 .CollectionGW2Unavailable .CollectionGW2Portrait { saturation:.1; brightness:.5; }
-.CollectionGW2SlotFrame { z-index:5; }
+.CollectionGW2SlotFrame, .CollectionGoldQualityRim { z-index:5; }
 .CollectionGW2SlotSelection { z-index:6; }
 .CollectionGW2RarityLabel, .CollectionGW2CardLabel { z-index:7; }
 .CollectionGW2Slot:hover .CollectionGW2PortraitImage { brightness:1.12; }
@@ -26,10 +24,8 @@
 .CollectionGW2Hover { opacity:0; }
 .CollectionGW2Slot:hover .CollectionGW2Hover,
 .CollectionGW2Button:hover .CollectionGW2Hover { opacity:.65; }
-.CollectionGW2Search { font-size:16px; color:#d8ddd6; background-color:transparent; border:0px; padding:0px; box-shadow:none; }
 .CollectionGW2Button { flow-children:none; background-color:transparent; border:0px; padding:0px; margin:0px; box-shadow:none; }
 .CollectionGW2Button:hover { brightness:1.12; }
-.CollectionGW2Button:active { brightness:.9; }
 .CollectionGW2Disabled { saturation:.2; brightness:.55; }
 .CollectionGW2Tooltip { flow-children:none; overflow:noclip; z-index:150; }
 .CollectionGW2Tooltip .ArchiveSharedTooltipViewport VerticalScrollBar,
@@ -45,3 +41,29 @@
     box-shadow: none;
     z-index: 2;
 }
+
+/* Official black/gold parts: fixed corners and stretchable edges. */
+.CollectionGoldNine, .CollectionGoldWindowFrame, .CollectionGoldRailFrame, .CollectionGoldTabSkin, .CollectionGoldQuietControl, .CollectionGoldPrimary, .CollectionGoldNinePiece { flow-children:none; overflow:clip; }
+.CollectionGoldWindowFrame { z-index:90; }
+.CollectionGoldWindowFrame, .CollectionGoldRailFrame { wash-color:#e7ce91; brightness:1.65; }
+.CollectionGoldTabSkin { saturation:.15; brightness:.56; }
+.CollectionGW2Selected .CollectionGoldTabSkin { saturation:1; brightness:1.16; }
+.CollectionGoldTabIcon { saturation:0; opacity:.56; }
+.CollectionGW2Selected .CollectionGoldTabIcon { saturation:1; opacity:1; }
+.CollectionGoldQuietControl { saturation:.3; brightness:.65; }
+.CollectionGW2Selected { brightness:1; }
+.CollectionGW2Tab:hover { brightness:1.12; }
+.CollectionGW2SlotFrame .CollectionGoldNinePiece { opacity:.8; }
+.CollectionGW2Button:hover { brightness:1.12; }
+.CollectionGW2Button:active { brightness:.88; }
+#CollectionGW2DrawText { font-weight:semi-bold; letter-spacing:2px; }
+.CollectionGW2Tooltip .ArchiveSharedTooltipNineFrame { wash-color:#d8c394; }
+
+/* Native dropdown colors, without resampling the large gold button bevel. */
+#CollectionGW2OwnershipFilter { background-image:none; background-color:gradient(linear,0% 0%,0% 100%,from(#292e2e),to(#191e1e)); border:1px solid #81734e; box-shadow:none; }
+#CollectionGW2OwnershipFilter:hover, #CollectionGW2OwnershipFilter.CollectionGW2FilterExpanded { border:1px solid #c0a56b; }
+.CollectionGW2FilterDismiss { flow-children:none; background-image:none; background-color:transparent; border:0px; padding:0px; margin:0px; box-shadow:none; }
+.CollectionGW2FilterMenu { flow-children:none; overflow:clip; background-color:#171c19; border:0px; padding:0px; margin:0px; }
+.CollectionGoldFilterFrame { flow-children:none; overflow:clip; }
+.CollectionGW2FilterOption.CollectionGW2FilterSelected { background-color:#b69a5033; }
+.CollectionGW2FilterOption:hover { background-color:#bda66725; }

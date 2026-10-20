@@ -1,7 +1,7 @@
 var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, PaymentChannel, PaymentCancel, PaymentQuantityChange, PaymentQuantityInputChanged;
 (function () {
     "use strict";
-    var cfg = GameUI.CustomUIConfig(), disposed = false, subscriptions = [];
+    var cfg = GameUI.CustomUIConfig(), disposed = false, subscriptions = [], api = null;
     if (cfg.SurvivalPayments && cfg.SurvivalPayments.Dispose){try{cfg.SurvivalPayments.Dispose();}catch(error){if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;$.Msg("[CheckoutPurple] Previous payment panel was already deleted.");}}
     var products = [], selected = "", orders = {}, busy = false, opened = false, generation = 0, lastMatrix = "", ticks = 0;
     var gameValues={}, gameEntitlements={}, wallet={}, matchFrozen=false, catalog={products:[],categories:[]};
@@ -16,8 +16,10 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     var scrim=$("#PaymentScrim"), inputShield=$("#PaymentInputShield");
     var shell=null, menuView=null, shellShield=null,shellProps=null,root=$.GetContextPanel?$.GetContextPanel():null;
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
-    function alive(){return !disposed&&(!root||valid(root))&&valid(dialog);}
-    function rewardNameText(value){var shared=cfg.SurvivalCommerceComponents;return shared&&shared.RewardNameText?shared.RewardNameText(value):String(value||"");}
+    var lifetime=valid(dialog)?$.CreatePanel("Panel",dialog,""):null;
+    if(lifetime){lifetime.visible=false;lifetime.hittest=false;lifetime.hittestchildren=false;}
+    function alive(){return !disposed&&(!root||valid(root))&&valid(dialog)&&valid(lifetime)&&(!api||cfg.SurvivalPayments===api);}
+    function rewardNameText(value){var shared=cfg.SurvivalCommerceComponents;return shared&&shared.RewardNameText?shared.RewardNameText(value):String(value||"").replace(/U币/g,"G币");}
     function escapedLines(v){return String(v||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\r?\n/g,"<br>");}
     function paintActions(){if(!alive())return;["PaymentBack","PaymentBuy","PaymentRefresh","PaymentCancel","PaymentQuantityMinus","PaymentQuantityPlus","PaymentWeChat","PaymentAlipay"].forEach(function(id){var b=$("#"+id);if(!valid(b))return;var primary=id==="PaymentBuy"||b.BHasClass&&b.BHasClass("Selected"),disabled=b.enabled===false;b.style.backgroundImage="none";b.style.backgroundColor=disabled?"#21172f":primary?"gradient(linear,0% 0%,0% 100%,from(#734a9e),to(#382346))":"#281b3e";b.style.border="1px solid "+(disabled?"#594363":"#b18a50");function paint(n){if(n.paneltype==="Label")n.style.color=disabled?"#a795b8":"#ffdc87";if(n.Children)n.Children().forEach(paint);}if(b.Children)b.Children().forEach(paint);});}
     function setText(id,value){var panel=$("#"+id);if(panel)panel.text=value;}
@@ -58,7 +60,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         var hasStatus=!!String(status.text||"").replace(/\s/g,"")&&!boilerplate;
         show(status,hasStatus);
         if(hasStatus){var statusHeight=Math.min(132,Math.max(24,copyHeight(status.text,532,16)));y+=14;rect(status,0,y,532,statusHeight);paint(status,{overflow:"squish scroll"});y+=statusHeight;}
-        var canOpen=pending&&order.state==="pending"&&!order.expired&&priceValid(order)&&validURL(order.checkout_url);
+        var canOpen=pending&&order.state==="pending"&&!order.expired&&priceValid(order,true)&&validURL(order.checkout_url);
         show(open,canOpen);if(canOpen){y+=10;rect(open,0,y,532,24);y+=24;}
         y+=14;rect(notice,0,y,532,24);paint(notice,{fontSize:"15px",color:"#bcaeca",textAlign:"center"});show(notice,true);y+=24;
         rect(body,24,70,532,y);
@@ -125,13 +127,23 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         var commerce=cfg.SurvivalCommerceWallet,snapshot=commerce && commerce.GetCatalog && commerce.GetCatalog();
         return !!snapshot && rows(snapshot.products).some(function(p){return p && p.sku===value.sku && p.currency==="u_coin";});
     }
-    function uPrice(value) { return value && !isRecharge(value) && !cashPass(value) && typeof value.u_coin_price==="number" && value.u_coin_price>0 && value.u_coin_price%1===0 && value.u_coin_per_yuan===1000 && typeof value.amount_fen==="number" && value.amount_fen>0 && value.amount_fen<=1000000 && value.amount_fen%1===0 && value.u_coin_price===value.amount_fen*10; }
-    function priceValid(value) { return isRecharge(value)?rechargeValid(value):cashPass(value)?typeof value.amount_fen==="number" && value.amount_fen>0 && value.amount_fen<=1000000 && value.amount_fen%1===0:!hasUPrice(value) || uPrice(value); }
-    function priceText(value,rate) {
+    function uPrice(value,storedQuote) {
+        if(!value||isRecharge(value)||cashPass(value))return false;
+        var stored=orders[value.sku],rate=value.u_coin_per_yuan;
+        // Only an authenticated order already received by this HUD may retain
+        // its historical quote. New catalog prices always use 100 U-coins/yuan.
+        var frozen=storedQuote&&stored&&typeof value.order_id==="string"&&value.order_id===stored.order_id;
+        return typeof value.u_coin_price==="number"&&value.u_coin_price>0&&value.u_coin_price%1===0
+            &&(rate===100||(frozen&&rate===1000))&&typeof value.amount_fen==="number"
+            &&value.amount_fen>0&&value.amount_fen<=1000000&&value.amount_fen%1===0
+            &&value.u_coin_price===value.amount_fen*rate/100;
+    }
+    function priceValid(value,storedQuote) { return isRecharge(value)?rechargeValid(value):cashPass(value)?typeof value.amount_fen==="number" && value.amount_fen>0 && value.amount_fen<=1000000 && value.amount_fen%1===0:!hasUPrice(value) || uPrice(value,storedQuote); }
+    function priceText(value,rate,storedQuote) {
         if(!value)return "";
-        if(!priceValid(value))return isRecharge(value)?"充值金额及到账数量待同步":"U币价格及人民币金额待同步";
+        if(!priceValid(value,storedQuote))return isRecharge(value)?"充值金额及到账数量待同步":"G币价格及人民币金额待同步";
         if(isRecharge(value))return money(value.amount_fen);
-        return uPrice(value)?Number(value.u_coin_price)+" U币 / "+money(value.amount_fen)+(rate?"，1元=1000U币":""):money(value.amount_fen);
+        return uPrice(value,storedQuote)?Number(value.u_coin_price)+" G币 / "+money(value.amount_fen)+(rate?"，1元="+value.u_coin_per_yuan+"G币":""):money(value.amount_fen);
     }
     function quantityMaximum(p){
         // A legacy catalogue without an authoritative bulk limit remains single-item.
@@ -209,7 +221,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
             if(gameValues[field]!==undefined)detail+=" · 本局："+number(gameValues[field]);
             var resource=field==="initial_wood"?"wood":field==="initial_gold"?"gold":null;
             if(resource && wallet[resource]!==undefined)detail+=" · 当前"+(resource==="wood"?"木材":"金币")+"："+number(wallet[resource]);
-            text.push((names[field]||field)+" — "+detail);
+            text.push(rewardNameText(names[field]||field)+" — "+detail);
         });
         if(matchFrozen)text.push("本局已结算冻结，新奖励下局生效。");
         return text.join("\n");
@@ -246,22 +258,29 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         dialog.SetHasClass("HasOrder",hasOrder);dialog.SetHasClass("Receipt",receipt);
         setText("PaymentHeading",receipt?"支付结果":hasOrder?"扫码支付":"订单确认");
         if(menuView)menuView.SetTitle(receipt?"支付结果":hasOrder?"扫码支付":"订单确认");
-        setText("PaymentHint",receipt?"订单结果已保存 · 可返回商城继续查看":hasOrder?"订单有效期 30 分钟 · 付款后自动到账":isRecharge(p)?"数量可输入或用 + / − 调整 · 每份1元=100U币":"数量可输入或用 + / − 调整 · 1元=1000U币");
+        setText("PaymentHint",receipt?"订单结果已保存 · 可返回商城继续查看":hasOrder?"订单有效期 30 分钟 · 付款后自动到账":isRecharge(p)?"数量可输入或用 + / − 调整 · 每份1元=100G币":"数量可输入或用 + / − 调整 · 1元=100G币");
         ["wechat","alipay"].forEach(function(value){
             var button=$(value==="wechat"?"#PaymentWeChat":"#PaymentAlipay");
             button.enabled=!busy && !active && channelAvailable(value);
             button.SetHasClass("Selected",shownChannel===value);
         });
         var shown=order && order.state!=="closed" ? order : quote(p,quantity);
-        $("#PaymentTitle").text = shown ? shown.title : "正在加载商品";
+        $("#PaymentTitle").text = shown ? rewardNameText(shown.title) : "正在加载商品";
         $("#PaymentDescription").text = shown ? rewardNameText(shown.description) : "请先完成对局登录";
         var art=$("#PaymentProductArt"),artwork={sku:shown&&shown.sku||p&&p.sku,icon:shown&&(shown.icon||(p&&p.icon))};
+        var gradeSource=shown&&(shown.quality!==undefined||shown.rarity!==undefined)?shown:p;
+        ["quality","rarity"].forEach(function(field){if(gradeSource&&gradeSource[field]!==undefined)artwork[field]=gradeSource[field];});
+        ["reward_lines","product_type"].forEach(function(field){
+            if(shown&&shown[field]!==undefined)artwork[field]=shown[field];
+            else if(p&&p[field]!==undefined)artwork[field]=p[field];
+        });
         var icons=cfg.SurvivalCommerceComponents,icon=icons&&icons.ProductIcon?icons.ProductIcon(artwork):artwork.icon;
         var uri=icons&&icons.NormalizeIconURI?icons.NormalizeIconURI(icon):typeof icon==="string"&&/^custom_game\/[A-Za-z0-9_\/-]+\.png$/.test(icon)&&icon.indexOf("..")<0?"file://{images}/"+icon:"";
         if(art){
             art.style.visibility=uri?"visible":"collapse";
             var resource=cfg.SurvivalItemResources&&cfg.SurvivalItemResources.Lookup(artwork);
-            var special=resource&&(resource.kind==="vip"||resource.kind==="hero"),key=special?[resource.id,resource.kind,resource.uri,resource.vip_level].join(":"):"";
+            var grade=cfg.SurvivalItemResources&&cfg.SurvivalItemResources.Grade?cfg.SurvivalItemResources.Grade(artwork):"";
+            var special=resource&&(resource.kind==="vip"||resource.kind==="hero"),key=special?[resource.id,resource.kind,resource.uri,resource.vip_level,grade].join(":"):"";
             if(art.__paymentResourceKey!==key){
                 if(art.__paymentResourceIcon&&art.__paymentResourceIcon.IsValid())art.__paymentResourceIcon.DeleteAsync(0);
                 art.__paymentResourceIcon=null;art.__paymentResourceKey=key;
@@ -272,16 +291,16 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
                 }
             }
             if(art.SetImage)art.SetImage(special?"":uri);
-            if(!special&&cfg.SurvivalRewardPresentation&&cfg.SurvivalRewardPresentation.FillIcon)cfg.SurvivalRewardPresentation.FillIcon(art,artwork);
+            if(cfg.SurvivalRewardPresentation&&cfg.SurvivalRewardPresentation.FillIcon)cfg.SurvivalRewardPresentation.FillIcon(special?art.__paymentResourceIcon:art,artwork);
         }
-        $("#PaymentPrice").text = "合计 "+priceText(shown,false);
-        setText("PaymentUnitPrice",isRecharge(shown)?rechargeValid(shown)?"每份 1 元 = 100 U币\n到账 "+shown.recharge_u_coin_per_unit*quantity+" U币（"+quantity+" 份）":"充值金额及到账数量待同步":shown?"单价 "+priceText(unitQuote(shown,quantity),false)+" · "+quantity+" 件":"");
+        $("#PaymentPrice").text = "合计 "+priceText(shown,false,hasOrder);
+        setText("PaymentUnitPrice",isRecharge(shown)?rechargeValid(shown)?"每份 1 元 = 100 G币\n到账 "+shown.recharge_u_coin_per_unit*quantity+" G币（"+quantity+" 份）":"充值金额及到账数量待同步":shown?"单价 "+priceText(unitQuote(shown,quantity),false,hasOrder)+" · "+quantity+" 件":"");
         $("#PaymentValues").html=true;$("#PaymentValues").text = escapedLines(valuesText(shown,order));
         buy.enabled = !busy && !!p && enabled(p.enabled) && priceValid(p) && (!order || order.state === "closed" || order.state==="delivered");
         buy.enabled=buy.enabled && !catalogDirty && channelAvailable(shownChannel) && !quantityInputInvalid && quantity<=quantityMaximum(p);
         var buyPrice=active?order:quote(p,quantity);
-        $("#PaymentBuyLabel").text = p ? (shownChannel==="alipay"?"支付宝":"微信")+(isRecharge(buyPrice)?"充值 ":"购买 ")+(uPrice(buyPrice)?buyPrice.u_coin_price+" U币":priceText(buyPrice,false)) : "加载中";
-        var canOpen = order && priceValid(order) && order.state === "pending" && !order.expired && validURL(order.checkout_url);
+        $("#PaymentBuyLabel").text = p ? (shownChannel==="alipay"?"支付宝":"微信")+(isRecharge(buyPrice)?"充值 ":"购买 ")+(uPrice(buyPrice,active)?buyPrice.u_coin_price+" G币":priceText(buyPrice,false,active)) : "加载中";
+        var canOpen = order && priceValid(order,true) && order.state === "pending" && !order.expired && validURL(order.checkout_url);
         $("#PaymentOpen").style.visibility = canOpen ? "visible" : "collapse";
         $("#PaymentOpenLabel").text=shownChannel==="alipay" && order && order.checkout_mode!=="qr"?"打开支付宝收银台":"浏览器备用付款页";
         $("#PaymentCancel").style.visibility=active?"visible":"collapse";
@@ -300,12 +319,12 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
                 : shownChannel==="alipay" && order.checkout_mode!=="qr"?"此订单使用网页收银台，点击“打开支付宝收银台”付款。内置二维码需商户开通扫码支付。"
                 : "二维码暂未显示，请查询付款结果或打开备用付款页。";
             var labels = {created:"订单正在确认，请查询结果后重试。", pending:pendingText,
-                delivered:isRecharge(order)?"充值成功："+(order.recharge_u_coin_per_unit*quantity)+" U币已到账。":"支付成功：" + order.title + " 的全部奖励已写入存档。",
+                delivered:isRecharge(order)?"充值成功："+(order.recharge_u_coin_per_unit*quantity)+" G币已到账。":"支付成功：" + rewardNameText(order.title) + " 的全部奖励已写入存档。",
                 paid_review:"已收到付款，奖励暂未到账，请保留订单号联系处理，请勿重复付款。",
                 closed:"订单已关闭，可以重新购买。"};
             status.text = order.expired && !terminal(order.state) ? "付款码已过期，正在核对最终状态。" : labels[order.state] || "正在查询…";
-            if(active && !priceValid(order))status.text=isRecharge(order)?"充值金额及到账数量尚未同步，请查询付款结果核对。":"U币订单价格尚未同步，请查询付款结果核对。";
-            if (order.state === "created") buy.enabled = !busy && !!p && enabled(p.enabled) && priceValid(p) && priceValid(order) && channelAvailable(shownChannel);
+            if(active && !priceValid(order,true))status.text=isRecharge(order)?"充值金额及到账数量尚未同步，请查询付款结果核对。":"G币订单价格尚未同步，请查询付款结果核对。";
+            if (order.state === "created") buy.enabled = !busy && !!p && enabled(p.enabled) && priceValid(p) && priceValid(order,true) && channelAvailable(shownChannel);
         } else status.text = !p?"商品支付目录尚未同步，请刷新目录后重试。":!enabled(p.enabled) ? messages[p.disabled_reason] || "此商品暂不可购买。" : uPrice(p)?"直接购买此道具，付款后全部奖励一起到账，自动刷新。":"付款后全部奖励一起到账，自动刷新。";
         if(quantityInputInvalid&&!hasOrder){buy.enabled=false;status.text="请输入 1–"+quantityMaximum(p)+" 的整数数量。";}
         products.forEach(function(item) {
@@ -395,7 +414,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
           products.forEach(function(p, index) {
             var card=$.CreatePanel("Button",list,""); card.AddClass("PaymentProduct"); p.panel=card;
             var number=$.CreatePanel("Label",card,""); number.AddClass("PaymentProductNumber"); number.text="0"+(index+1);
-            var title=$.CreatePanel("Label",card,""); title.AddClass("PaymentProductTitle"); title.text=p.title;
+            var title=$.CreatePanel("Label",card,""); title.AddClass("PaymentProductTitle"); title.text=rewardNameText(p.title);
             var price=$.CreatePanel("Label",card,""); price.AddClass("PaymentProductOwned"); p.ownedLabel=price;
             card.SetPanelEvent("onactivate",function(){selected=p.sku; render();});
           });
@@ -418,25 +437,46 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     function closeShop() { setOpen(false); }
     PaymentToggle=function(){setOpen(!opened);if(opened)refreshCatalog();};
     function openShop() { if(!alive())return;closeShop();if(cfg.SurvivalCommerceView)cfg.SurvivalCommerceView.Open();else {setOpen(true);refreshCatalog();} }
-    PaymentShop=openShop;
+    PaymentShop=function(){
+        if(!alive())return;
+        closeShop();
+        var view=cfg.SurvivalCommerceView;
+        if(view){if(!view.IsOpen||!view.IsOpen())view.Open();}
+        else {setOpen(true);refreshCatalog();}
+    };
     function inspectCache(){return {ready:catalogReady,dirty:catalogDirty,pending:activeRequest?activeRequest.action:"",catalogRequests:catalogRequests,
         ageSeconds:catalogReady?Math.floor((Date.now()-catalogCheckedAt)/1000):null,quantity:quantity,maxQuantity:quantityMaximum(current()),opened:opened,layout:"compact_checkout",width:580,height:parseFloat(dialog.style.height)||334};}
-    cfg.SurvivalPayments={Open:openShop,GetCatalog:function(){return catalog;},RefreshCatalog:refreshCatalog,Inspect:inspectCache,
+    cfg.SurvivalPayments=api={Open:openShop,GetCatalog:function(){return catalog;},RefreshCatalog:refreshCatalog,Inspect:inspectCache,
         Checkout:function(sku){if(!alive())return false;if(orders[sku]&&terminal(orders[sku].state)&&orders[sku].state!=="paid_review")delete orders[sku];selected=sku;quantitySku=sku;quantity=1;quantityInputInvalid=false;setOpen(true);render();refreshCatalog();return true;},
-        Dispose:function(){if(disposed)return;closeShop();disposed=true;if(menuView)menuView.Dispose();if(valid(shellShield))shellShield.DeleteAsync(0);subscriptions.forEach(function(id){GameEvents.Unsubscribe(id);});}};
+        Dispose:function(){
+            if(disposed)return;
+            // Native panels can already be gone during a HUD rebuild. Retire
+            // callbacks first so a failed shell cleanup cannot keep them alive.
+            disposed=true;opened=false;busy=false;activeRequest=null;generation++;
+            var previousSubscriptions=subscriptions;subscriptions=[];
+            previousSubscriptions.forEach(function(id){GameEvents.Unsubscribe(id);});
+            try{if(menuView)menuView.Dispose();else if(shell)shell.Dispose();}
+            finally{
+                if(valid(dialog)){dialog.hittest=false;dialog.hittestchildren=false;dialog.SetHasClass("Open",false);}
+                if(valid(scrim)){scrim.hittest=false;scrim.hittestchildren=false;scrim.SetHasClass("Open",false);}
+                if(valid(inputShield)){inputShield.hittest=false;inputShield.hittestchildren=false;}
+                if(valid(shellShield))shellShield.DeleteAsync(0);
+                if(valid(lifetime))lifetime.DeleteAsync(0);
+            }
+        }};
     PaymentBuy=function(){
         if(!alive())return;
         var p=current(), order=orders[selected];
-        if (!p || !enabled(p.enabled) || !priceValid(p) || quantityInputInvalid || quantity>quantityMaximum(p) || catalogDirty || busy || (order && order.state!=="closed" && order.state!=="created" && order.state!=="delivered") || (order && order.state==="created" && !priceValid(order))) return;
+        if (!p || !enabled(p.enabled) || !priceValid(p) || quantityInputInvalid || quantity>quantityMaximum(p) || catalogDirty || busy || (order && order.state!=="closed" && order.state!=="created" && order.state!=="delivered") || (order && order.state==="created" && !priceValid(order,true))) return;
         if(!channelAvailable(channel))return;
         if (request("create",selected)) setStatus("正在创建 "+quantity+(isRecharge(p)?" 份充值":" 件")+" · " + priceText(quote(p,quantity),false) + (channel==="alipay"?" 支付宝":" 微信")+"订单…");
     };
     PaymentChannel=function(value){if(!alive())return;var order=orders[selected];if(busy || (order && !terminal(order.state)))return;if((value==="wechat" || value==="alipay") && channelAvailable(value)){channel=value;render();}};
     PaymentCancel=function(){var order=orders[selected];if(order && !terminal(order.state) && request("cancel",selected))setStatus("正在核对并关闭订单，请稍候…");};
-    PaymentOpen=function(){if(!alive())return;var order=orders[selected];if(order && priceValid(order) && order.state==="pending" && !order.expired && validURL(order.checkout_url))$.DispatchEvent("ExternalBrowserGoToURL",order.checkout_url);};
+    PaymentOpen=function(){if(!alive())return;var order=orders[selected];if(order && priceValid(order,true) && order.state==="pending" && !order.expired && validURL(order.checkout_url))$.DispatchEvent("ExternalBrowserGoToURL",order.checkout_url);};
     PaymentRefresh=function(){if(orders[selected])request("status",selected);else refreshCatalog(true);};
     var messages={quantity_invalid:"请输入有效的整数数量。",quantity_limit_exceeded:"数量超过本商品当前可购买上限。",order_quantity_conflict:"已恢复此前未完成订单的数量，请先完成或取消原订单。",order_provider_conflict:"已恢复原订单的支付方式，请先完成或取消原订单。",vip_level_required:"VIP等级不足，暂不可购买此礼包。",test_account_required:"商城当前仅对指定测试账号开放。",already_owned:"你已经拥有此商品。",
-        payment_price_unavailable:"U币商品价格尚未同步，请刷新支付目录后重试。",
+        payment_price_unavailable:"G币商品价格尚未同步，请刷新支付目录后重试。",
         payment_channel_unavailable:"此支付方式尚未开放，请选择已开放的方式。",
         "ACQ.ACCESS_FORBIDDEN":"支付宝扫码支付权限尚未开通，请联系商户开通后再试。",
         "isv.insufficient-isv-permissions":"支付宝应用尚无扫码支付接口权限，请联系商户完成配置。",
@@ -493,11 +533,20 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         if(data.warning)setStatus(messages[data.warning]||"已恢复未完成订单，请核对数量和支付方式。");
     }));
     subscriptions.push(GameEvents.Subscribe("survival_payment_open",function(data){
+        if(!alive())return;
         if(data && typeof data.sku==="string" && /^[a-z0-9_]{4,64}$/.test(data.sku)){
-            if(cfg.SurvivalDaily && cfg.SurvivalDaily.Close)cfg.SurvivalDaily.Close();
-            cfg.SurvivalPayments.Checkout(data.sku);
+            api.Checkout(data.sku);
         }else openShop();
     }));
+    if(typeof Game!=="undefined"&&Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){
+        var monthlyInspectCommand="survival_monthly_ui_inspect_"+Date.now();
+        Game.AddCommand(monthlyInspectCommand,function(){
+            var daily=cfg.SurvivalDaily,U=cfg.SurvivalUI,modal=U&&U.ModalManager&&U.ModalManager.Get("daily_rewards"),parents=[],node=modal&&modal.panel;
+            while(valid(node)&&parents.length<8){parents.push({id:node.id,visible:node.visible,visibility:node.style.visibility,opacity:node.style.opacity,z:node.style.zIndex,width:node.actuallayoutwidth,height:node.actuallayoutheight});node=node.GetParent();}
+            $.Msg("[MONTHLY_UI_STATE] "+JSON.stringify({alive:alive(),disposed:disposed,current:cfg.SurvivalPayments===api,daily:daily&&daily.Inspect?daily.Inspect():null,checkout:opened,top:cfg.SurvivalUILayers&&cfg.SurvivalUILayers.Top(),dailyParents:parents}));
+        },"Inspect daily and monthly checkout visibility; no orders",0);
+        $.Msg("[MONTHLY_UI_INSPECT_COMMAND] "+monthlyInspectCommand);
+    }
     // Read-only UI diagnostics: no prices, account identity, checkout tokens or grants.
     if(typeof Game!=="undefined" && Game.AddCommand)Game.AddCommand("survival_shop_open",function(){
         openShop();$.Msg("PAYMENT_UI_DIAG:"+JSON.stringify({checkout:opened,products:products.length,cache:inspectCache(),

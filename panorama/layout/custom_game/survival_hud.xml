@@ -10,16 +10,14 @@
         <include src="file://{resources}/styles/custom_game/combat_stats.css" />
         <include src="file://{resources}/styles/custom_game/game_info_panel.css" />
         <include src="file://{resources}/styles/custom_game/gold_mine_income_numbers.css" />
-        <include src="file://{resources}/styles/custom_game/lottery.css" />
         <include src="file://{resources}/styles/custom_game/archive_difficulty.css" />
-        <include src="file://{resources}/styles/custom_game/lottery_celestial.css" />
         <include src="file://{resources}/styles/custom_game/handoff_v1.css" />
         <include src="file://{resources}/styles/custom_game/enemy_population_warning.css" />
         <include src="file://{resources}/styles/custom_game/production_progress.css" />
         <include src="file://{resources}/styles/custom_game/minimap_shortcuts.css" />
         <include src="file://{resources}/styles/custom_game/handoff_assets.css" />
-    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/lottery_handoff_bb9968eef7.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/lottery_fullscreen_v2.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/><include src="file://{resources}/styles/custom_game/common/menu_v10.css" /><include src="file://{resources}/styles/custom_game/menus_v10_commerce.css" /><include src="file://{resources}/styles/custom_game/lottery_gw2.css" /><include src="file://{resources}/styles/custom_game/black_lion_market.css" /></styles>
-    <scripts><include src="file://{resources}/scripts/custom_game/common/item_resources.js" /><include src="file://{resources}/scripts/custom_game/common/vip_badges.js" /><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/common/reward_feedback.js" /><include src="file://{resources}/scripts/custom_game/common/tooltip_dismiss.js" />
+    <include src="file://{resources}/styles/custom_game/common/ui_components.css"/><include src="file://{resources}/styles/custom_game/common/ui_typography.css"/><include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css"/><include src="file://{resources}/styles/custom_game/topnav_windows.css"/><include src="file://{resources}/styles/custom_game/topnav_refinement_v5.css"/><include src="file://{resources}/styles/custom_game/nav_windows_modern_20260929.css"/><include src="file://{resources}/styles/custom_game/reference_windows.css" /><include src="file://{resources}/styles/custom_game/lottery_cinematic_v1.css" /><include src="file://{resources}/styles/custom_game/common/commerce_jade.css"/><include src="file://{resources}/styles/custom_game/common/menu_v10.css" /><include src="file://{resources}/styles/custom_game/menus_v10_commerce.css" /><include src="file://{resources}/styles/custom_game/lottery_gw2.css" /><include src="file://{resources}/styles/custom_game/black_lion_market.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/common/item_resources.js" /><include src="file://{resources}/scripts/custom_game/common/vip_badges.js" /><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/lottery_catalog_seed.js" /><include src="file://{resources}/scripts/custom_game/common/lottery_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/common/reward_feedback.js" /><include src="file://{resources}/scripts/custom_game/common/tooltip_dismiss.js" />
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/archive_v10_data.js" /><include src="file://{resources}/scripts/custom_game/common/menu_v10.js" /><include src="file://{resources}/scripts/custom_game/common/purple_shell.js"/>
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/native_ui_icons.js"/><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>
         <include src="file://{resources}/scripts/custom_game/ui_bootstrap.js" />
@@ -215,17 +213,8 @@
     </Panel>
 </Panel>
 
-        <Panel id="LotteryItemTooltip" class="Hidden" hittest="false" hittestchildren="false">
-            <Panel id="LotteryTooltipHeader">
-                <Panel id="LotteryTooltipIconHost" />
-                <Panel id="LotteryTooltipTitleBlock">
-                    <Label id="LotteryTooltipName" text="道具名称" />
-                    <Label id="LotteryTooltipType" text="类型：积分道具" />
-                    <Label id="LotteryTooltipDuration" text="期限：永久" />
-                </Panel>
-            </Panel>
-            <Label id="LotteryTooltipEffectHeading" text="效果" /><Label id="LotteryTooltipDescription" text="简介：" />
-        </Panel>
+        <!-- Retired tooltip anchor stays inert for old close hooks. -->
+        <Panel id="LotteryItemTooltip" class="Hidden" style="visibility:collapse;" hittest="false" hittestchildren="false" />
         <Panel id="HeroCombatDebugPanel" hittest="false">
             <Label id="HeroCombatDebugTitle" text="英雄伤害 / 科技状态" />
             <Panel id="HeroCombatDamageSummary">

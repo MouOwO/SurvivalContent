@@ -18,14 +18,11 @@
     function finish(){var callback=complete;cancel();if(callback)callback();}
     function build(){
         if(valid(surface))return true;
-        var canvas=$('#LotteryWindow'),popup=$('#LotteryMainCanvas');
-        var v10=valid(popup)&&popup.BHasClass('LotteryV10');
-        if(v10){var content=cfg.SurvivalPurpleLottery&&cfg.SurvivalPurpleLottery.Content?cfg.SurvivalPurpleLottery.Content():null;canvas=valid(content)?content:popup;}
-        else if(valid(popup)&&popup.BHasClass('LotteryPurple'))canvas=popup;
+        // Film owns the whole viewport, outside every scaled menu/content host.
+        var canvas=$('#LotteryWindow');
         if(!valid(canvas))return false;
         surface=$.CreatePanel('Panel',canvas,'LotteryCinematicSurface');surface.AddClass('LotteryCinematicSurface');surface.hittest=true;surface.visible=false;
-        if(v10){surface.style.position='0px 0px 0px';surface.style.height='669px';surface.style.width='1113px';}
-        else if(canvas===popup){surface.style.position='0px 128px 0px';surface.style.height='672px';surface.style.width='1280px';}
+        surface.style.position='0px 0px 0px';surface.style.width='100%';surface.style.height='100%';
         var backdrop=$.CreatePanel('Panel',surface,'LotteryCinematicBackdrop');backdrop.AddClass('LotteryCinematicBackdrop');backdrop.hittest=false;
         var caption=$.CreatePanel('Label',surface,'LotteryCinematicCaption');caption.AddClass('LotteryCinematicCaption');caption.hittest=false;
         var skip=$.CreatePanel('Button',surface,'LotteryCinematicSkip');skip.AddClass('LotteryCinematicSkip');skip.hittestchildren=false;
@@ -36,15 +33,10 @@
     function resize(w,h){
         if(!valid(movie))return;
         if(!(w>0&&h>0)){
-            var popup=$('#LotteryMainCanvas');
-            if(valid(popup)&&popup.BHasClass('LotteryV10')){w=1113;h=669;}
-            else if(valid(popup)&&popup.BHasClass('LotteryPurple')){w=1280;h=672;}
-        }
-        if(!(w>0&&h>0)){
             var viewport=cfg.LotteryHandoff&&cfg.LotteryHandoff.Viewport?cfg.LotteryHandoff.Viewport():null;
             var root=$('#LotteryWindow');
-            w=viewport?viewport.width:(root.actuallayoutwidth||1280)/(root.actualuiscale_x||1);
-            h=viewport?viewport.height:(root.actuallayoutheight||720)/(root.actualuiscale_y||1);
+            w=viewport?viewport.width:(valid(root)&&root.actuallayoutwidth||1280)/(valid(root)&&root.actualuiscale_x||1);
+            h=viewport?viewport.height:(valid(root)&&root.actuallayoutheight||720)/(valid(root)&&root.actualuiscale_y||1);
         }
         // Keep the entire 16:9 film visible. Cover scaling clips the animation
         // on ultrawide / 4:3 windows; the surface supplies letterbox bars instead.
