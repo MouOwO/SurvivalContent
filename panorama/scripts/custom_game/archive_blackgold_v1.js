@@ -74,7 +74,8 @@
             paint(button,{position:"0px "+(y+(selected?0:2))+"px 0px",width:"100%",height:selected?"37px":"35px",overflow:"noclip",borderBottom:"0px"},true);
             button.Children().forEach(function(child){
                 if(is(child,"ArchiveParchmentCategoryBadge"))paint(child,{position:selected?"16px 3px 0px":"16px 1px 0px"},true);
-                if(is(child,"ArchiveV10Text"))paint(child,{position:selected?"59px 7px 0px":"59px 5px 0px"},true);
+                // Compensate SimSun's baseline to center visible text on the glyph.
+                if(is(child,"ArchiveV10Text"))paint(child,{position:selected?"59px 3px 0px":"59px 1px 0px"},true);
             });
             // Replace solid borders with decorative lines. The selected top line
             // takes over the preceding divider so the highlight meets it exactly.
