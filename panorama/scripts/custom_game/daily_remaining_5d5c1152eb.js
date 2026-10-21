@@ -305,7 +305,7 @@ function renderBenefits(){
  var group=benefitData("weekly_time");label(weekly,"本周累计："+(group?Math.max(0,Number(group.progress)||0):"—")+" 分钟",800,9,470,29,20,"#b8ac8a").style.textAlign="right";
  var pass=!!data&&Number(data.has_pass)===1;
 
- label(weekly,pass?"月卡已生效 · 每档基础奖励双倍，另赠金色抽奖券 ×1":"月卡可享每档基础奖励双倍，另赠金色抽奖券 ×1",16,43,1256,28,18,"#b7aa87");
+ label(weekly,pass?"月卡已生效 · 每档基础奖励双倍，最后三档另赠金色抽奖券 ×1":"月卡可享每档基础奖励双倍，最后三档另赠金色抽奖券 ×1",16,43,1256,28,18,"#b7aa87");
  var entries=array(group&&group.rows);
  if(!entries.length)label(weekly,"正在同步福利进度…",16,112,1256,40,22,"#a8a18c");
  entries.slice(0,9).forEach(function(row,index){benefitRow(weekly,"weekly_time",row,index,(index%3)*436,92+Math.floor(index/3)*178,416,168,true);});
