@@ -236,8 +236,9 @@
             || localize("DOTA_Tooltip_ability_" + itemName, itemName));
         setText("CustomInventoryItemType", definition.item_type || "物品");
         setText("CustomInventoryItemLevel", equipmentLevelText(contentId, definition.level_text));
-        setText("CustomInventoryItemDescription", definition.description
-            || localize("DOTA_Tooltip_ability_" + itemName + "_Description", ""));
+        var description=definition.description||localize("DOTA_Tooltip_ability_"+itemName+"_Description","");
+        if(config.SurvivalItemResources&&config.SurvivalItemResources.DisplayDescription)description=config.SurvivalItemResources.DisplayDescription({content_id:contentId},description);
+        setText("CustomInventoryItemDescription",description);
 
         fields.__fieldCursor = 0;
         (fields.__fieldRows || []).forEach(function(row) { row.visible = false; });

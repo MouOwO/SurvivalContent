@@ -169,8 +169,9 @@ function request(){
 }
 function artId(item){return item.art_id&&RH.DailyResourceInfo(item.art_id).runtime?item.art_id:"daily.item.crystals";}
 function rewardQuantity(item){var value=item&&item.count;return value!==undefined&&value!==null&&String(value).trim()!==""&&isFinite(Number(value))&&Number(value)>=0?value:null;}
+function itemDescription(item,value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayDescription?resources.DisplayDescription(item,value):String(value||"");}
 function rewardDescription(item){
- var text=String(item.description||"");
+ var text=itemDescription(item,item.description||"");
  if(Number(item.max_owned)===1){
   text+=(text?"\n":"")+"每种道具最多拥有1件";
   var points=Number(item.duplicate_points);
@@ -196,7 +197,7 @@ function reward(parent,item,x,y,w,h,cls,hideQuantity){
  var art=(cfg.SurvivalItemArt&&cfg.SurvivalItemArt.Create(slot,item,"DailyGW2ItemArt"))||RH.DailyImage(slot,artId(item),"DailyGW2ItemArt");rect(art,inset,inset,w-inset*2,h-inset*2);art.hittest=false;fillIcon(art,item);
  var known=rewardQuantity(item)!==null;
  if(known&&!hideQuantity)quantity(parent,item.count,w,h+cellPadding,0,x,y);
- tip(slot,item.name,(item.description||"奖励说明待同步")+(known?"\n数量："+item.count:""));return slot;
+ tip(slot,item.name,itemDescription(item,item.description||"奖励说明待同步")+(known?"\n数量："+item.count:""));return slot;
 }
 function stateText(status){return {claimed:"已领取",claimable:"今日可领",not_open:"尚未开放",requires_pass:"开通月卡后解锁",unconfigured:"暂无奖励配置"}[status]||"等待同步";}
 function calendar(){return data?array(data.calendar28||data.calendar||data.cycle):[];}
@@ -238,7 +239,7 @@ function renderSpecials(){
   var itemName=label(card,item.name,7,height-33,monthlyWidth-14,27,20,"#d9caa6");style(itemName,{textAlign:"center",fontWeight:"medium"});
   var status=owned?"已获得":!pass?"开通月卡后解锁":Number(data.count)>=Number(item.day)?"下次签到时发放":"累计签到 "+item.day+" 次";
   if(owned)mark(iconFrame,"check");else if(!pass)mark(iconFrame,"lock");
-  var details=(item.description||"奖励说明待同步")+"\n领取条件：累计签到"+item.day+"次\n领取状态："+status+"\n月卡奖励随符合条件的签到自动发放。";
+  var details=itemDescription(item,item.description||"奖励说明待同步")+"\n领取条件：累计签到"+item.day+"次\n领取状态："+status+"\n月卡奖励随符合条件的签到自动发放。";
   tip(card,item.name,details);tip(slot,item.name,details);
  });
 }
@@ -256,35 +257,40 @@ function paintPages(){
  p("DailyGW2FooterText").text=activePage==="weekly"?"北京时间每周一 05:00 刷新   ·   各档奖励每周可领取一次   ·   月卡奖励与基础奖励一并领取":activePage==="daily"?"北京时间每日 05:00 刷新   ·   时长与胜场分别累计   ·   各档奖励每日可领取一次":"北京时间每日 05:00 刷新   ·   按累计签到次数领取   ·   月卡奖励随符合条件的签到发放";
 }
 function benefitRewards(row,monthly){return array(row&&(monthly?row.monthly_rewards:row.base_rewards));}
-function benefitRewardStrip(parent,items,x,y,w,monthly){
- label(parent,monthly?"月卡加赠":"基础奖励",x,y+7,82,27,18,monthly?"#cdb679":"#aaa38e");
+function benefitRewardStrip(parent,items,x,y,w,monthly,compact,monthlyOnly){
+ var iconSize=compact?26:32;
+ label(parent,monthly?(monthlyOnly?"月卡奖励":"月卡加赠"):"基础奖励",x,y+(compact?3:7),82,compact?24:27,18,monthly?"#cdb679":"#aaa38e");
  var width=Math.min(134,(w-86)/Math.max(1,items.length));
  items.forEach(function(item,index){
-  var slot=reward(parent,item,x+86+index*width,y,32,32,"DailyGW2BenefitReward",true);slot.SetHasClass("DailyGW2BenefitMonthlyReward",monthly);
-  label(parent,"×"+item.count,x+122+index*width,y+4,width-36,26,18,monthly?"#ddc786":"#e2dac6");
+  var slot=reward(parent,item,x+86+index*width,y,iconSize,iconSize,"DailyGW2BenefitReward",true);slot.SetHasClass("DailyGW2BenefitMonthlyReward",monthly);
+  label(parent,"×"+item.count,x+90+iconSize+index*width,y+(compact?2:4),width-iconSize-4,compact?24:26,18,monthly?"#ddc786":"#e2dac6");
   tip(slot,item.name,rewardDescription(item)+"\n数量："+item.count);
  });
  if(!items.length)label(parent,"—",x+88,y+5,80,25,18,"#777768");
 }
 function benefitState(row){return row.status==="claimed"||row.claimed===true||Number(row.claimed)===1?"claimed":row.status==="claimable"||row.can_claim===true||Number(row.can_claim)===1?"claimable":"locked";}
+function benefitLogin(row,track){return track==="daily_time"&&Number(row.required)===0;}
+function benefitMonthlyOnly(row){return row.monthly_only===true||Number(row.monthly_only)===1||benefitRewards(row,false).length===0&&benefitRewards(row,true).length>0;}
+function benefitAutomatic(row,track){return row.auto_claim===true||Number(row.auto_claim)===1||benefitLogin(row,track)&&benefitMonthlyOnly(row);}
 function benefitRow(parent,track,row,index,x,y,w,h,weekly){
  var card=make("Panel",parent,"DailyGW2Benefit_"+track+"_"+row.id,"DailyGW2BenefitCard");rect(card,x,y,w,h);style(card,{backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#302b1c55),to(#181b1644))",borderBottom:"1px solid #8d79542c",overflow:"clip"});
  var state=benefitState(row),group=benefitData(track)||{},progress=Math.max(0,Number(group.progress)||0),required=Number(row.required)||0;
  card.SetHasClass("DailyGW2BenefitClaimed",state==="claimed");card.SetHasClass("DailyGW2BenefitReady",state==="claimable");
  if(state==="claimable")style(card,{backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#b5903324),to(#181b1644))"});
- var title=track==="daily_wins"?"胜利 "+required+" 场":"游玩 "+required+" 分钟";
- label(card,title,16,weekly?13:8,w-148,30,weekly?22:20,"#e8d6ad").style.fontWeight="medium";
- var current=label(card,Math.min(progress,required)+" / "+required+(track==="daily_wins"?" 场":" 分钟"),weekly?16:w-232,weekly?46:10,weekly?w-32:106,25,18,"#acaa90");if(!weekly)current.style.textAlign="right";
- var rewardsY=weekly?78:38;
- benefitRewardStrip(card,benefitRewards(row,false),16,rewardsY,w-(weekly?32:140),false);
- benefitRewardStrip(card,benefitRewards(row,true),16,rewardsY+37,w-(weekly?32:140),true);
- var pass=!!data&&Number(data.has_pass)===1;
+ var login=benefitLogin(row,track),monthlyOnly=benefitMonthlyOnly(row),automatic=benefitAutomatic(row,track),compact=!weekly&&h<108;
+ var title=login?"每日登录":track==="daily_wins"?"胜利 "+required+" 场":"游玩 "+required+" 分钟";
+ label(card,title,16,weekly?13:compact?2:8,w-148,compact?26:30,weekly?22:20,"#e8d6ad").style.fontWeight="medium";
+ var current=label(card,login?"月卡专属":Math.min(progress,required)+" / "+required+(track==="daily_wins"?" 场":" 分钟"),weekly?16:w-232,weekly?46:compact?4:10,weekly?w-32:106,25,18,"#acaa90");if(!weekly)current.style.textAlign="right";
+ var rewardsY=weekly?78:compact?30:38;
+ if(!monthlyOnly)benefitRewardStrip(card,benefitRewards(row,false),16,rewardsY,w-(weekly?32:140),false,compact);
+ benefitRewardStrip(card,benefitRewards(row,true),16,monthlyOnly?(compact?42:54):rewardsY+(compact?29:37),w-(weekly?32:140),true,compact,monthlyOnly);
+ var pass=!!data&&Number(data.has_pass)===1,requiresPass=monthlyOnly&&!pass;
  if(!pass)card.SetHasClass("DailyGW2BenefitNoPass",true);
- var button=make("Button",card,"DailyGW2BenefitClaim_"+track+"_"+row.id,"DailyGW2Button DailyGW2BenefitClaim");rect(button,w-112,weekly?13:47,96,42);skin(button,"button");style(button,{backgroundSize:"cover",backgroundPosition:"center",border:"1px solid #b99a5f"});button.hittestchildren=false;
+ var button=make("Button",card,"DailyGW2BenefitClaim_"+track+"_"+row.id,"DailyGW2Button DailyGW2BenefitClaim");rect(button,w-112,weekly?13:compact?37:47,96,42);skin(button,"button");style(button,{backgroundSize:"cover",backgroundPosition:"center",border:"1px solid #b99a5f"});button.hittestchildren=false;
  var matching=benefitWaiting&&benefitWaiting.track===track&&benefitWaiting.id===String(row.id),busy=!!benefitWaiting||!!waiting||Number(data&&data.pending)===1;
- var text=label(button,matching?"领取中…":state==="claimed"?"已领取":state==="claimable"?"领取":"未达成",0,7,96,28,18,"#251c0e");text.style.textAlign="center";
- U.State.Set(button,{enabled:state==="claimable"&&!busy,busy:matching});U.State.Bind(button,function(){claimBenefit(track,row.id);});
- var details=benefitRewards(row,false).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n月卡加赠："+benefitRewards(row,true).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n"+(pass?"月卡已生效，领取时一并发放":"月卡未生效，仅领取基础奖励");
+ var text=label(button,matching?"领取中…":state==="claimed"?"已领取":requiresPass?"需月卡":automatic?"发放中…":state==="claimable"?"领取":"未达成",0,7,96,28,18,"#251c0e");text.style.textAlign="center";
+ U.State.Set(button,{enabled:state==="claimable"&&!busy&&!requiresPass&&!automatic,busy:matching});U.State.Bind(button,function(){claimBenefit(track,row.id);});
+ var details=(monthlyOnly?"":benefitRewards(row,false).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n")+"月卡加赠："+benefitRewards(row,true).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n"+(automatic?(pass?"月卡已生效，每日登录奖励由系统自动发放":"开通月卡后，每日登录奖励由系统自动发放"):pass?"月卡已生效，领取时一并发放":"月卡未生效，仅领取基础奖励");
  tip(card,title,details);
  // Reward icons own their detailed tooltip; empty card space shows the full bundle.
  card.hittestchildren=true;card.__benefitRow=row;
@@ -295,7 +301,8 @@ function benefitGroup(parent,track,title,x,w){
  label(panel,"今日累计："+(group?Math.max(0,Number(group.progress)||0):"—")+(track==="daily_wins"?" 场":" 分钟")+(data&&Number(data.has_pass)===1?"   ·   月卡已生效":"   ·   月卡未生效"),16,42,w-32,28,18,"#a9a38c");
  var entries=array(group&&group.rows);
  if(!entries.length){label(panel,"正在同步福利进度…",16,103,w-32,36,22,"#a8a18c");return;}
- entries.slice(0,5).forEach(function(row,index){benefitRow(panel,track,row,index,0,86+index*111,w,108,false);});
+ var shown=entries.slice(0,track==="daily_time"?6:5),compact=shown.length>5;
+ shown.forEach(function(row,index){benefitRow(panel,track,row,index,0,86+index*(compact?93:111),w,compact?90:108,false);});
 }
 function renderBenefits(){
  var signature=JSON.stringify([data&&data.benefits,data&&data.has_pass,data&&data.pending,!!waiting,benefitWaiting]);if(signature===benefitSignature)return;benefitSignature=signature;hideTooltip();
@@ -312,7 +319,7 @@ function renderBenefits(){
 }
 function claimBenefit(track,id){
  var group=benefitData(track),row=array(group&&group.rows).filter(function(item){return String(item.id)===String(id);})[0];
- if(!active||!shell.IsOpen()||!row||benefitState(row)!=="claimable"||benefitWaiting||waiting||Number(data.pending)===1)return;
+ if(!active||!shell.IsOpen()||!row||benefitState(row)!=="claimable"||benefitAutomatic(row,track)||benefitWaiting||waiting||Number(data.pending)===1)return;
  benefitWaiting={track:track,id:String(id),period:String(group.period_id||""),present:true};benefitErrorText="";errorText="";render();
  GameEvents.SendCustomGameEventToServer("survival_benefit_claim",{track:track,tier_id:String(id)});
 }

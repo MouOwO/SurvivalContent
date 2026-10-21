@@ -592,7 +592,8 @@
         if(!tooltipGuard().CanShow(anchor))return true;item=item||{};
         anchor.SetPanelEvent("onmouseout",function(){if(!requestTooltipHide(anchor))hideTooltip();});
         cancelTooltipHide();tipAnchor=anchor;if(view.tipScroll.ScrollToTop)view.tipScroll.ScrollToTop();
-        var lines=[effectLines(item.description||"暂无效果说明")];if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
+        var description=item.description||"暂无效果说明";if(cfg.SurvivalItemResources&&cfg.SurvivalItemResources.DisplayDescription)description=cfg.SurvivalItemResources.DisplayDescription(item,description);
+        var lines=[effectLines(description)];if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
         if(item.count!==undefined||item.quantity!==undefined)lines.push("本次获得："+number(item.count===undefined?item.quantity:item.count));
         if(item.duplicate===true||Number(item.duplicate)===1)lines.push("本次已转化 "+number(item.converted_points)+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
         qualityWell(view.tipIconStage,item);

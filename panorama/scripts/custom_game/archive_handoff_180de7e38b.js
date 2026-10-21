@@ -194,8 +194,10 @@ function formatArchiveEffects(value) {
         var dimEffect=!!item.id&&category!=='fragment'&&state!==true;
         effect.style.color=dimEffect?'#788b93':cfg.SurvivalArchiveColors.body;
         effect.html=true;
-        effect.text=dimEffect?escapedEffectText(item.description||'服务端未提供效果说明').replace(/\n/g,'<br>'):
-            effectMarkup(item.description||'服务端未提供效果说明',category==='fragment'?(item.level===undefined?0:item.level):undefined,item.id?state:undefined);
+        var description=item.description||'服务端未提供效果说明';
+        if(cfg.SurvivalItemResources&&cfg.SurvivalItemResources.DisplayDescription)description=cfg.SurvivalItemResources.DisplayDescription(item,description);
+        effect.text=dimEffect?escapedEffectText(description).replace(/\n/g,'<br>'):
+            effectMarkup(description,category==='fragment'?(item.level===undefined?0:item.level):undefined,item.id?state:undefined);
         p('ArchiveTooltip').RemoveClass('ArchiveHidden');position(generation);tipDismiss.Shown(card);
     }
     function icon(parent,item,category,buildings){

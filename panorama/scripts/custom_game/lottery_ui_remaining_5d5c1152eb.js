@@ -9,6 +9,7 @@
     if(cfg.SurvivalLottery&&cfg.SurvivalLottery.Dispose)cfg.SurvivalLottery.Dispose();
     var lifetime=$.CreatePanel("Panel",owner,""),disposed=false,subscriptions=[];lifetime.visible=false;
     function alive(){return !disposed&&(!lifetime.IsValid||lifetime.IsValid());}
+    function displayDescription(item,value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayDescription?resources.DisplayDescription(item,value):value;}
     function active(fn){return function(){if(alive())return fn.apply(null,arguments);};}
     var presentationVersion="lottery_current_20261018",openRequested=false,activePresenter=null,openIntentSerial=0;
     var cache=cfg.SurvivalLotteryCache,cacheSubscription=null;
@@ -262,7 +263,7 @@
         var name = $.CreatePanel("Label", card, "");
         name.AddClass("LotteryRewardName");
         name.text = item.name || item.id || "物品";
-        label(card, item.description || "暂无效果说明", "LotteryRewardDescription");
+        label(card, displayDescription(item,item.description || "暂无效果说明"), "LotteryRewardDescription");
         label(card, item.duration_text || "永久", "LotteryRewardDuration");
         var back = $.CreatePanel("Panel", card, "");
         back.AddClass("LotteryCardBack");
@@ -652,7 +653,7 @@
         setText("LotteryInfoNote", qualityText(item.quality) + (item.duration_text ? " · " + item.duration_text : ""));
         var host = panel("LotteryInfoList"); host.RemoveAndDeleteChildren();
         createIconFrame(host, item, "LotteryDetailIcon");
-        label(host, item.description || "暂无效果说明", "LotteryDetailDescription");
+        label(host, displayDescription(item,item.description || "暂无效果说明"), "LotteryDetailDescription");
         var presenter=currentPresentation();if(presenter&&presenter.Info)presenter.Info("reward",infoOptions);
     }
 
@@ -662,7 +663,7 @@
         var host = panel("LotterySelectedIcon"); if (host) host.RemoveAndDeleteChildren();
         setText("LotterySelectedName", item ? (item.name || item.id) : "暂无奖励");
         setText("LotterySelectedMeta", item ? qualityText(item.quality) + " · 已拥有 " + Number(item.owned_count || 0) + (item.max_owned ? "/" + item.max_owned : "") + " · " + (item.duration_text || "永久") : "");
-        setText("LotterySelectedDescription", item ? item.description || "暂无效果说明" : "");
+        setText("LotterySelectedDescription", item ? displayDescription(item,item.description || "暂无效果说明") : "");
         if (item && host) createIconFrame(host, item, "LotteryDetailIcon");
         // No public probability field exists in the current server contract.
         // Do not expose server weights or manufacture percentages.
@@ -739,7 +740,7 @@
                 createIconFrame(row, item, "LotteryDetailIcon");
                 var copy = $.CreatePanel("Panel", row, ""); copy.AddClass("LotteryDetailCopy");
                 label(copy, qualityText(item.quality) + " · " + (item.name || item.id), "LotteryDetailName");
-                label(copy, item.description || "暂无效果说明", "LotteryDetailDescription");
+                label(copy, displayDescription(item,item.description || "暂无效果说明"), "LotteryDetailDescription");
                 RH.RewardCard(row,item);
                 var outline = $.CreatePanel("Panel",row,"");outline.AddClass("LotteryCardState");outline.hittest=false;
                 label(copy, (item.duration_text || "永久") + " · 重复转化 " + Number(item.duplicate_points || 0) + " "+duplicateCurrency(item), "LotteryDetailMeta");

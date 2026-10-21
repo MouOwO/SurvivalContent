@@ -148,6 +148,7 @@
         setText("ShopTooltipType", "");
         byId("ShopTooltipType").visible = false;
         var description = entry.content_type === "technology" ? (entry.description || definition.desc || "") : (definition.desc || entry.description || "");
+        if(cfg.SurvivalItemResources&&cfg.SurvivalItemResources.DisplayDescription)description=cfg.SurvivalItemResources.DisplayDescription(entry,description);
         setText("ShopTooltipDescription", description);
         byId("ShopTooltipDescription").visible = String(description).trim().length > 0;
         byId("ShopTooltipDescription").hittest = true;

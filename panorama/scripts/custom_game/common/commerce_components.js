@@ -3,6 +3,7 @@
     "use strict";
     var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,J={},activeDetail=null;
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
+    function displayDescription(item,value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayDescription?resources.DisplayDescription(item,value):value;}
     function panel(type,parent,cls){var p=$.CreatePanel(type,parent,"");if(cls)cls.split(/\s+/).forEach(function(c){p.AddClass(c);});return p;}
     function box(p,x,y,w,h){p.style.position=x+"px "+y+"px 0px";p.style.width=w+"px";p.style.height=h+"px";return p;}
     function label(parent,value,cls){var p=panel("Label",parent,cls);p.text=J.RewardNameText(value);p.hittest=false;return p;}
@@ -106,10 +107,10 @@
         label(content,item.title,"RCPurpleDetailTitle");
         var grade=detailQuality(item,props.rewards),gradeLabel=label(content,grade?"品级："+grade:"","RCPurpleDetailQuality");
         gradeLabel.visible=!!grade;
-        var summary=props.effect||item.description||"";
+        var summary=displayDescription(item,props.effect||item.description||"");
         if(inspectBundle)summary=String(item.description||"").split(/\r?\n/).slice(0,2).join("\n");
         else if(bundle&&(props.rewards||[]).length)summary=props.rewards.map(function(reward){
-            return reward.description?(reward.label?reward.label+"\n":"")+reward.description
+            return reward.description?(reward.label?reward.label+"\n":"")+displayDescription(reward,reward.description)
                 :String(reward.label||reward.id||"")+" ×"+String(reward.quantity===undefined?1:reward.quantity);
         }).join(props.rewards.some(function(reward){return !!reward.description;})?"\n\n":"\n");
         // VIP descriptions use semicolons in the formal catalog. Display each
@@ -121,7 +122,7 @@
             if(index===selectedMember)return;
             selectedMember=index;
             memberButtons.forEach(function(button,i){button.SetHasClass("UISelected",i===index);});
-            memberEffect.text=J.RewardNameText(props.rewards[index].description).replace(/\r\n?/g,"\n").replace(/[；;][ \t]*/g,"\n");
+            memberEffect.text=J.RewardNameText(displayDescription(props.rewards[index],props.rewards[index].description)).replace(/\r\n?/g,"\n").replace(/[；;][ \t]*/g,"\n");
             if(tip.BHasClass("Visible")){cancel();place();followPlace();}
         }
         if(inspectBundle){
