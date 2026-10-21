@@ -13,9 +13,7 @@
     function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling('stretch-to-cover-preserve-aspect');return icon;}
     function image(parent,row){
         if(row.category_id==='endless'){
-            var emblem=$.CreatePanel('Panel',parent,'');emblem.AddClass('ArchiveEndlessEmblem');emblem.hittest=false;
-            ['Left','Right'].forEach(function(side){var ring=$.CreatePanel('Panel',emblem,'');ring.AddClass('ArchiveEndlessRing');ring.AddClass('ArchiveEndlessRing'+side);ring.hittest=false;});
-            return emblem;
+            return cfg.SurvivalRewardPresentation.CreateRegisteredIcon(parent,row.item_id,'ArchiveRewardIcon');
         }
         var p=$.CreatePanel('Image',parent,'');p.AddClass('ArchiveRewardIcon');
         // 64px full-body textures lose the face at the native card size.

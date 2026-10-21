@@ -168,12 +168,11 @@
                 else{art=make("Panel",artStage,"","ArchiveV10Icon");label(art,"?",0,9,62,40,28,"#b9aa8c","center");if(!missingIcons[current+":"+item.id]){$.Msg("ARCHIVE_V10_MISSING_ICON "+current+":"+item.id);missingIcons[current+":"+item.id]=true;}}
             }
             pos(art,0,0,62,62);style(art,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderRadius:"0px",boxShadow:"none",overflow:"noclip",brightness:"1",saturation:"1",opacity:"1",washColor:"none",transform:"none"});art.hittest=false;if(current!=="titles")fillItemIcon(art,item);
-            if(art.BHasClass("ArchiveEndlessEmblem")){pos(art,0,7,72,56);style(art,{transformOrigin:"0% 0%",transform:"scale3d(0.861111, 0.861111, 1)"});}
+            if(art.BHasClass("ArchiveEndlessEmblem"))style(art,{washColor:"#cfb879"});
             if(current==="titles"){pos(art,0,18,62,62*55/128);if(art.SetScaling)art.SetScaling("stretch-to-fit-preserve-aspect");}
             else if(current!=="shadow"&&!art.__survivalVIPBadge)art.Children().forEach(function(child){
                 if(child.BHasClass("ArchiveRarityBadge")){child.visible=false;return;}
-                if(child.BHasClass("ArchiveEndlessEmblem")){pos(child,0,7,72,56);style(child,{transformOrigin:"0% 0%",transform:"scale3d(0.861111, 0.861111, 1)"});}
-                else if(child.SetImage||child.BHasClass("ArchiveRewardIcon")){pos(child,0,0,62,62);fillItemIcon(child,item);style(child,{horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",brightness:"1",saturation:"1",opacity:"1",transform:"none"});}
+                if(child.SetImage||child.BHasClass("ArchiveRewardIcon")){pos(child,0,0,62,62);fillItemIcon(child,item);style(child,{horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",brightness:"1",saturation:"1",opacity:"1",transform:"none"});}
             });
             var normal=iconRing(host,659,4,70);
             cell=card.__v10={host:host,artKey:artKey,sourceArtKey:JSON.stringify([current,item.id,item.icon,item.icon_type,item.icon_style]),art:art,countHost:countHost,count:count,name:name,normal:normal,track:track,fill:fill,glint:glint,state:state};

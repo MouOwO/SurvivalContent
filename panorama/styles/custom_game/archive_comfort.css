@@ -419,15 +419,6 @@
 .ArchiveRoot #ArchiveNativeCardText .ArchiveNativeText {
     font-size:19px; line-height:25px;
 }
-/* Endless uses a distinct, resolution-independent infinity emblem. */
-.ArchiveRoot .ArchiveEndlessEmblem { width:72px; height:56px; overflow:clip; }
-.ArchiveRoot .ArchiveEndlessRing {
-    width:35px; height:28px; border:4px solid #cfb879; border-radius:50%;
-    background-color:transparent;
-}
-.ArchiveRoot .ArchiveEndlessRingLeft { position:6px 14px 0px; transform:rotateZ(28deg); }
-.ArchiveRoot .ArchiveEndlessRingRight { position:31px 14px 0px; transform:rotateZ(-28deg); }
-
 /* Header/navigation have their own hierarchy; accepted popup/card text stays 19px. */
 .ArchiveRoot #ArchiveWindow.ArchiveHandoff #ArchiveTitleBlock {
     position:260px 22px 0px; width:349px; height:92px; padding:0px; flow-children:down;

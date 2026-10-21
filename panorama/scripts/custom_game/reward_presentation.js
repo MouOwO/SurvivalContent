@@ -47,20 +47,12 @@
             tier.style.border = "1px solid " + row.badge_color;
             tier.style.textShadow = "#000000 0px 1px 2px 1.0";
         } else if (row.kind === "endless_emblem") {
-            icon = $.CreatePanel("Panel", parent, "");
+            icon = $.CreatePanel("Image", parent, "");
             icon.AddClass("ArchiveEndlessEmblem");
-            icon.style.width = "72px"; icon.style.height = "56px"; icon.style.overflow = "clip";
-            ["Left", "Right"].forEach(function (side) {
-                var ring = $.CreatePanel("Panel", icon, "");
-                ring.AddClass("ArchiveEndlessRing");
-                ring.AddClass("ArchiveEndlessRing" + side);
-                ring.style.width = "35px"; ring.style.height = "28px";
-                ring.style.border = "4px solid #cfb879"; ring.style.borderRadius = "50%";
-                ring.style.backgroundColor = "transparent";
-                ring.style.position = (side === "Left" ? "6px" : "31px") + " 14px 0px";
-                ring.style.transform = "rotateZ(" + (side === "Left" ? "28deg" : "-28deg") + ")";
-                ring.hittest = false;
-            });
+            icon.SetImage(row.uri);
+            if (icon.SetScaling) icon.SetScaling("stretch-to-fit-preserve-aspect");
+            icon.style.width = "64px"; icon.style.height = "64px";
+            icon.style.washColor = "#cfb879";
         } else if (row.kind === "hero" && row.hero_name) {
             icon = $.CreatePanel("DOTAHeroImage", parent, "");
             icon.heroname = row.hero_name;
