@@ -202,7 +202,7 @@
             if(!canAct()||ticketContentId(snapshot&&(snapshot.selected_pool||snapshot))!=="lottery_ticket")return;
             if(ticketHelpOpen){hideTicketHelp();return;}
             hideTooltip();ticketHelpOpen=true;
-            $.DispatchEvent("DOTAShowTitleTextTooltip",view.ticketHelp,"普通抽奖券 · 获取渠道","地图玩法奖励（具体产出暂未开放）。<br>用于地图宝箱，不支持商城购买。");
+            $.DispatchEvent("DOTAShowTitleTextTooltip",view.ticketHelp,"普通抽奖券 · 获取渠道","每日福利：累计游玩时长和胜场奖励。<br>每周福利：累计游玩时长奖励。<br>用于地图宝箱，不支持商城购买。");
         });
         view.ticketHelp.SetPanelEvent("onmouseout",hideTicketHelp);
         ["LotteryHeroCopy","LotteryUnlockNotice","LotteryStatus"].forEach(function(id){move(id,content);});

@@ -56,3 +56,15 @@
 #DailyWindow.DailyGW2Page #DailyRulesText VerticalScrollBar .ScrollThumb { background-image:none; background-color:#8b7953; border-radius:0px; }
 #DailyWindow.DailyGW2Page #DailyGW2TooltipSurface { background-color:#10150f; border:1px solid #8a754c; }
 #DailyWindow.DailyGW2Page #DailyGW2Tooltip .ArchiveSharedTooltipText { text-shadow:none; }
+
+#DailyWindow.DailyGW2Page .DailyGW2Tab { flow-children:none; padding:0px; margin:0px; background-color:transparent; border-bottom:2px solid #7b684530; }
+#DailyWindow.DailyGW2Page .DailyGW2Tab:hover { background-color:#c4a75e12; brightness:1.2; }
+#DailyWindow.DailyGW2Page .DailyGW2TabSelected { background-color:gradient(linear,0% 0%,0% 100%,from(#8e6c2720),to(#bb8e3038)); border-bottom:2px solid #d1ae64; }
+#DailyWindow.DailyGW2Page .DailyGW2TabSelected Label { color:#f0d7a0; }
+#DailyWindow.DailyGW2Page .DailyGW2BenefitsPage,
+#DailyWindow.DailyGW2Page .DailyGW2BenefitGroup,
+#DailyWindow.DailyGW2Page .DailyGW2BenefitCard { flow-children:none; margin:0px; padding:0px; }
+#DailyWindow.DailyGW2Page .DailyGW2BenefitClaimed .DailyGW2BenefitReward { brightness:.65; saturation:.45; }
+#DailyWindow.DailyGW2Page .DailyGW2BenefitNoPass .DailyGW2BenefitMonthlyReward { brightness:.65; saturation:.3; }
+#DailyWindow.DailyGW2Page .DailyGW2BenefitClaim { overflow:clip; }
+#DailyWindow.DailyGW2Page .DailyGW2BenefitReward { flow-children:none; padding:0px; margin:0px; overflow:clip; }
