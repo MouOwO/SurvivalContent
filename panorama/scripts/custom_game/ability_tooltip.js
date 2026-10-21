@@ -559,8 +559,8 @@
         Object.keys(row.__icons).forEach(function(key){row.__icons[key].visible=false;});
         var iconDefinition = propertyIcon(label);
         row.SetHasClass("AbilityFieldTextRow", !iconDefinition);
-        // Reserve the same icon gutter even for text-only fields. Collapsing
-        // it moved their value column 26 px to the left of health/armor rows.
+        // Keep the host ready for pooled rows that regain a property icon.
+        // CSS collapses this host for text-only fields so their labels start left.
         row.__iconHost.visible=true;
         row.__iconHost.style.opacity=iconDefinition ? "1" : "0";
         if (iconDefinition) {
