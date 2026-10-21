@@ -8,7 +8,18 @@ function valid(n){return n&&(!n.IsValid||n.IsValid());}
 function plain(t){return String(t||"").replace(/<br\s*\/?\s*>/gi,"\n").replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">");}
 function style(n,v){Object.keys(v).forEach(function(k){n.style[k]=v[k];});}
 function render(n){
- if(!valid(n)||String(n.paneltype).toLowerCase()!=="label"||n.text==="×")return;
+ if(!valid(n)||String(n.paneltype).toLowerCase()!=="label")return;
+ // Tooltips own their changing rich text and fit-children layout. A page-wide
+ // atlas pass must not leave a snapshot of a previous item over the next one.
+ if(n.BHasClass&&n.BHasClass("ArchiveSharedTooltipText")){
+  var stale=n.FindChildTraverse("ArchiveFontV36Glyphs");
+  if(valid(stale)){stale.visible=false;stale.DeleteAsync(0);}
+  var nativeStyle=n.__archiveTooltipStyle||{};
+  if(nativeStyle.color)n.style.color=nativeStyle.color;
+  else if(n.__archiveFontInk)n.style.color=n.__archiveFontInk;
+  return;
+ }
+ if(n.text==="×")return;
  var v=n.__v10Style||n.__archiveTooltipStyle||{},raw=String(n.text||""),text=plain(raw);
  var ink=String(n.style.color||"");if(ink&&!/#ffffff00|rgba\([^)]*,\s*0(?:\.0+)?\s*\)/i.test(ink))n.__archiveFontInk=ink;
  ink=n.__archiveFontInk||v.color||"#e0e3d2";

@@ -252,6 +252,9 @@
                 var gap=compact ? (role==="State"||role==="Rarity"?6:role==="EffectCaption"?3:4) : (role==="Title"?6:role==="State"||role==="Rarity"?8:role==="Effect"?8:4);
                 style(elements[role],{width:bodyWidth+"px",height:"fit-children",ignoreParentFlow:"false",fontSize:(role==="Title"?22:role==="State"||role==="Rarity"||role==="EffectCaption"?15:17)+"px",color:role==="Title"?titleColor:role==="Effect"?colors.body:role==="State"?colors.state:role==="Rarity"?rarityColor:colors.caption,margin:"0px 0px "+gap+"px",whiteSpace:"normal",textOverflow:"clip"});
             });
+            // Also retire glyph snapshots left by the old font renderer on a
+            // retained tooltip, before measuring or showing the current item.
+            if (cfg.SurvivalArchiveFontV36 && cfg.SurvivalArchiveFontV36.Scope) cfg.SurvivalArchiveFontV36.Scope(body);
             body.style.height="fit-children"; panel.visible=true;
             var epoch=showEpoch; position(epoch); dismiss.Shown(card);
             [0,.05,.1,.2,.4,.8].forEach(function (delay) { life.Later(delay,function () { position(epoch); }); });
