@@ -355,7 +355,7 @@
         }
         if (current === "starjoy_points" && data.starjoy) {
             panel("ArchiveSummary").text = "星悦 LV" + data.starjoy.level + " / 24";
-            panel("ArchiveHint").text = "累计积分达标自动解锁 · 各等级奖励叠加 · 兑换不降级";
+            panel("ArchiveHint").text = "累计积分达标自动解锁 · 各等级奖励叠加 · 仅累计，不可兑换";
             panel("ArchiveStatus").text = "累计积分达标永久解锁 · 同类属性相加 · 裁决可斩杀BOSS";
         }
         if (current === "titles") {
@@ -398,7 +398,7 @@
                 + "\n每日上限 " + data.buildings.daily_cap + " · 今日已获 " + data.buildings.earned_today
                 + "\n余额永久累积 · 通行证不加成";
         } else if (current === "starjoy_points" && data.starjoy) {
-            sourceText = "累计星悦积分 " + data.starjoy.earned + " · 可用余额 " + data.starjoy.balance
+            sourceText = "累计星悦积分 " + data.starjoy.earned + " · 仅累计，不可兑换"
                 + "\n图标右上数字为解锁门槛 · 达标后自动点亮"
                 + "\n不消耗积分 · 各等级奖励永久叠加";
         } else if (current === "work") {

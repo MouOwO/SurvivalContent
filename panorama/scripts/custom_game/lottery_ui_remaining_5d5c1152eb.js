@@ -180,6 +180,7 @@
         var messages = {
             archive_config_mismatch: "游戏与服务器配置版本不一致，请同步配置后重新进入游戏",
             lottery_config_refresh_required: "抽奖规则已更新，请重新进入游戏后再试",
+            starjoy_exchange_disabled: "星悦积分仅累计，不能兑换",
             mode_not_selected: "请先选择游戏模式，再打开抽奖",
             http_profile_required: "服务器存档尚未连接，请稍后重新打开抽奖",
             lottery_ticket_insufficient: "抽奖券不足",

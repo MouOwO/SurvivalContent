@@ -70,7 +70,9 @@
     }
     function listedInVideo(item,id){var order=groupOrder(id);return !!order&&order.indexOf(item.sku)>=0;}
     function isVip(item){return number(item.required_vip_level)>0||item.category_id==="vip";}
+    function fixedPointsPrice(item){return item&&item.purchase_method==="wallet"&&item.currency==="shop_points"&&item.product_type==="single"&&item.price_policy==="fixed_quality_shop_points_20261021";}
     function discount(item){
+        if(fixedPointsPrice(item))return false;
         var original=number(item.original_u_coin_price===undefined?item.original_price:item.original_u_coin_price);
         var current=number(item.currency==="u_coin"?item.u_coin_price:item.price);
         return original!==null&&current!==null&&original>current;
@@ -90,7 +92,7 @@
     function referencePrice(item){
         // Existing promotion membership owns eligibility. This comparison never
         // changes catalog prices, original-price metadata, grouping or checkout.
-        if(!item||item.product_type==="recharge"||item.sku==="u_coin_recharge"||item.sku==="archive_pass_monthly"||!inGroup(item,"promotions"))return null;
+        if(!item||fixedPointsPrice(item)||item.product_type==="recharge"||item.sku==="u_coin_recharge"||item.sku==="archive_pass_monthly"||!inGroup(item,"promotions"))return null;
         var current=item.purchase_method==="wallet"?number(item.price):item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined?number(item.u_coin_price):number(item.amount_fen)/100;
         return current!==null&&current>0&&current<=9007199254740991/3?current*3/2:null;
     }

@@ -5,11 +5,12 @@
     var catalog={products:[],categories:[],balances:{}}, inflight=null, draft=null, serial=0, selected=null, pending=cfg.SurvivalCommercePending||null;
     var epoch=String(Date.now())+"_"+String(Math.random()).slice(2), shell=null, menuView=null, dialog=null, scrim=null, status=null, copy=null, buy=null;
     var labels={u_coin:"G币",shop_points:"商城积分",shop_gold:"商城金币"};
-    var invalidationVersion=0,syncedVersion=0,invalidationAttempts=0,invalidationTask=null;
+    var invalidationVersion=0,syncedVersion=0,invalidationAttempts=0,invalidationTask=null,stalePrice=false,reconfirmPrice=false;
     var errors={commerce_balance_insufficient:"商城余额不足。",shop_gold_not_open:"商城金币暂未开放。",already_owned:"已拥有该商品，不能重复兑换。",
         component_already_owned:"道具已达到持有上限。",attribute_limit_reached:"属性已达到上限。",commerce_busy:"操作处理中，请稍后重试。",
         profile_not_ready:"请先完成对局登录。",archive_config_mismatch:"商城正在更新，请稍后重新进入对局。",
-        product_unavailable:"商品暂不可兑换。",archive_id_conflict:"兑换请求不一致，请重新打开商城。"};
+        product_unavailable:"商品暂不可兑换。",archive_id_conflict:"兑换请求不一致，请重新打开商城。",
+        commerce_price_changed:"商品价格已更新，请重新确认。",starjoy_exchange_disabled:"星悦积分仅累计，不能兑换。"};
     function pointsInsufficient(item){
         if(!item || item.currency!=="shop_points")return false;
         var reason=item.disabled_reason;
@@ -60,8 +61,8 @@
         copy.text=escapedLines(p.title+"\n\n售价："+p.price+" "+labels[p.currency]+"\n商城余额："+balance+" "+labels[p.currency]+"\n"+
             (p.purchase_limit>0?"永久商品，限持有 "+p.purchase_limit+" 件":"可重复兑换")+"\n\n"+p.description);
         var insufficient=pointsInsufficient(p);
-        status.text=message || (pending?"兑换结果待确认，重试会查询同一笔兑换。":p.enabled===true || p.enabled===1 || insufficient?"确认后扣除商城余额，奖励自动存入账号。":errors[p.disabled_reason]||"暂不可兑换。");
-        buy.enabled=!inflight && (!!pending || p.enabled===true || p.enabled===1 || insufficient);
+        status.text=message || (reconfirmPrice?errors.commerce_price_changed:pending?"兑换结果待确认，重试会查询同一笔兑换。":p.enabled===true || p.enabled===1 || insufficient?"确认后扣除商城余额，奖励自动存入账号。":errors[p.disabled_reason]||"暂不可兑换。");
+        buy.enabled=!inflight && !stalePrice && (!!pending || p.enabled===true || p.enabled===1 || insufficient);
         if(menuView)menuView.SetResources([{icon:"gold",name:"G币",value:catalog.balances.u_coin||0},
             {icon:"purple_gem",name:"商城积分",value:catalog.balances.shop_points||0},{icon:"ticket",name:"商城金币",value:catalog.balances.shop_gold||0}]);
         paint(buy,true);
@@ -70,7 +71,7 @@
         if(disposed || !valid(root) || inflight)return false;
         var id=token||epoch+"_"+(++serial);inflight={action:action,request_id:id,walletVersion:invalidationVersion};
         if(action==="catalog")draft=null;
-        GameEvents.SendCustomGameEventToServer("survival_commerce_request",{action:action,sku:sku||"",request_id:id});render("正在同步…");
+        GameEvents.SendCustomGameEventToServer("survival_commerce_request",{action:action,sku:sku||"",request_id:id});render(action==="catalog"&&reconfirmPrice?errors.commerce_price_changed+" 正在刷新目录…":"正在同步…");
         $.Schedule(95,function(){if(!disposed && valid(root) && inflight && inflight.request_id===id){inflight=null;draft=null;
             if(action==="catalog"){catalog.error="商城兑换目录暂未连接，请稍后重试。";publish();}
             render("请求超时，请重试；同一笔兑换不会重复扣款。");queueInvalidation();}});return true;
@@ -92,7 +93,7 @@
         invalidationVersion++;invalidationAttempts=0;queueInvalidation();return true;
     }
     function purchase(){
-        if(disposed||!valid(root)||!selected || inflight)return;
+        if(disposed||!valid(root)||!selected || inflight || stalePrice)return;
         // An uncertain prior purchase must always query its original token.
         if(!pending && rejectPoints(selected))return;
         if(!pending)pending=cfg.SurvivalCommercePending={sku:selected.sku,id:epoch+"_buy_"+(++serial)};
@@ -110,15 +111,20 @@
                 var version=inflight.walletVersion;
                 if(version<invalidationVersion){draft=null;inflight=null;queueInvalidation();return;}
                 catalog=draft;draft=null;inflight=null;syncedVersion=version;invalidationAttempts=0;publish();
-                if(selected)selected=catalog.products.filter(function(p){return p.sku===selected.sku;})[0]||selected;render();
+                if(selected){var fresh=catalog.products.filter(function(p){return p.sku===selected.sku;})[0];if(fresh){selected=fresh;stalePrice=false;}}render();
             }
             return;
         }
         var completedVersion=inflight.walletVersion;inflight=null;
         if(result.action==="purchase"){
             if(ok || result.terminal===true || result.terminal===1)pending=cfg.SurvivalCommercePending=null;
-            if(ok){if(completedVersion===invalidationVersion)catalog.balances[result.currency]=result.balance;render("兑换成功，商品效果已保存。余额："+result.balance+" "+labels[result.currency]);
+            if(ok){reconfirmPrice=false;if(completedVersion===invalidationVersion)catalog.balances[result.currency]=result.balance;render("兑换成功，商品效果已保存。余额："+result.balance+" "+labels[result.currency]);
                 $.Schedule(1.1,function(){if(!disposed)refresh();});}
+            else if(result.error==="commerce_price_changed"&&(result.terminal===true||result.terminal===1)){
+                // A changed quote is terminal. Refresh its authoritative replacement;
+                // only another explicit confirmation may create a new purchase.
+                stalePrice=true;reconfirmPrice=true;render(errors.commerce_price_changed);refresh();
+            }
             else if((result.terminal===true || result.terminal===1) && selected && selected.currency==="shop_points"
                 && (result.error==="commerce_balance_insufficient" || result.error==="insufficient_balance")){
                 nativePointsError();
@@ -129,7 +135,7 @@
     });
     cfg.SurvivalCommerceWallet={Refresh:refresh,Invalidate:invalidate,GetCatalog:function(){return catalog;},
         Checkout:function(sku){if(disposed||!valid(root))return false;if(pending)sku=pending.sku;selected=catalog.products.filter(function(p){return p.sku===sku;})[0];
-            if(!selected || !pending && rejectPoints(selected) || !prepare())return false;render();menuView.Open();return true;},
+            if(!selected || !pending && rejectPoints(selected) || !prepare())return false;if(!stalePrice)reconfirmPrice=false;render();menuView.Open();return true;},
         Dispose:function(){if(disposed)return;disposed=true;invalidationTask=null;GameEvents.Unsubscribe(subscription);var native=cfg.SurvivalTooltipPosition;if(native&&native.HideNativeError)native.HideNativeError(root);if(menuView)menuView.Dispose();[dialog,scrim].forEach(function(p){if(valid(p))p.DeleteAsync(0);});}};
     publish();
 }());

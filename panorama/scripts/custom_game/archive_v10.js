@@ -230,7 +230,7 @@
         if(current==="work"&&data&&data.online)details="软妹币："+data.online.coins;
         if(current==="building"&&data&&data.buildings)details="信仰值："+data.buildings.faith;
         if(current==="fishing"&&data&&data.fishing&&data.fishing.faith!==undefined)details="信仰值："+data.fishing.faith;
-        if(current==="starjoy_points"&&data&&data.starjoy)details="累计星悦积分 "+data.starjoy.earned+" · 可用余额 "+data.starjoy.balance;
+        if(current==="starjoy_points"&&data&&data.starjoy)details="累计星悦积分 "+data.starjoy.earned+" · 仅累计，不可兑换";
         if(current==="commerce_goods")details="购买或兑换后自动点亮 · 悬停查看效果与解锁条件";
         if(current==="commerce_goods")p("ArchiveStatus").text="购买或兑换成功后点亮 · 效果沿用已有商品与存档记录";
         if(current==="points")details="每种道具仅可解锁一次 · 重复获得转为商城积分";

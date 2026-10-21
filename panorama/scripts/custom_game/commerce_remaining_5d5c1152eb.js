@@ -139,7 +139,7 @@
         if(!live())return;
         catalog=data||{products:[],categories:[]};
         // Keep hovered cards stable when only numeric previews have changed.
-        var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.purchase_limit,p.max_quantity,p.required_vip_level,p.disabled_message,p.original_price,p.original_u_coin_price,p.amount_fen,p.price,p.currency,p.u_coin_price,p.u_coin_per_yuan,p.purchase_method,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
+        var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.purchase_limit,p.max_quantity,p.required_vip_level,p.disabled_message,p.original_price,p.original_u_coin_price,p.price_policy,p.amount_fen,p.price,p.currency,p.u_coin_price,p.u_coin_per_yuan,p.purchase_method,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
         if(next!==revision){revision=next;render();}
         // Updating a connection notice must not destroy hovered cards or clear products.
         notice.text=noticeText();refreshResources();
