@@ -5,7 +5,7 @@
     if (cfg.SurvivalPurpleLottery && cfg.SurvivalPurpleLottery.Dispose) cfg.SurvivalPurpleLottery.Dispose();
     var disposed = false, life = $.CreatePanel("Panel", root, ""), view = null, nodes = {}, moved = [], owned = [], tipDismiss = null;
     var mode = "", pools = [], selected = "map", snapshot = null, opened = false, scale = 1, tabKey = "", previewKey = "", prizeFolded = {}, prizeGroups = [];
-    var tipAnchor = null, tipHideJob = null, tipEpoch = 0;
+    var tipAnchor = null, tipHideJob = null, tipEpoch = 0, ticketHelpOpen = false;
     // Coordinates are local to the accepted 1672 x 941 canvas, never screen pixels.
     var layout={canvas:[1672,941],header:[35,45,1608,74],sidebar:[35,123,299,746],footer:[334,804,1309,65],content:[334,123,1309,681],info:[334,123,1309,746]};
     // The selected Emerald controls use installed Valve artwork only. This
@@ -195,7 +195,16 @@
         move("LotteryCloseButton",header); place(p("LotteryCloseButton"),1547,15,44,44);p("LotteryCloseButton").AddClass("LotteryGW2ForestUtility");style(p("LotteryCloseButton"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px"});p("LotteryCloseButton").Children().forEach(function(c){c.visible=false;});
         var closeSurface=surface(p("LotteryCloseButton"),"LotteryGW2CloseSurface",[0,0,44,44],"transparent");closeSurface.AddClass("LotteryGW2UtilitySurface");style(closeSurface,{border:"1px solid transparent"});
         nativeArt(p("LotteryCloseButton"),"LotteryGW2CloseIcon","s2r://panorama/images/control_icons/x_close_png.vtex",7,7,32,32);
-        view.ticketKind=label(view.ticketHost,"LotteryGW2TicketKind","抽奖券",280,22,50,20,12,"#aaaeb0");
+        view.ticketHelp=make("Button",view.ticketHost,"LotteryGW2TicketHelp","LotteryGW2TicketHelp");place(view.ticketHelp,292,13,30,32);view.ticketHelp.hittestchildren=false;
+        style(view.ticketHelp,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",padding:"0px"});
+        var helpIcon=make("Image",view.ticketHelp,"LotteryGW2TicketHelpIcon");helpIcon.SetImage("file://{images}/status_icons/exclamation.psd");place(helpIcon,3,4,24,24);helpIcon.hittest=false;
+        view.ticketHelp.SetPanelEvent("onactivate",function(){
+            if(!canAct()||ticketContentId(snapshot&&(snapshot.selected_pool||snapshot))!=="lottery_ticket")return;
+            if(ticketHelpOpen){hideTicketHelp();return;}
+            hideTooltip();ticketHelpOpen=true;
+            $.DispatchEvent("DOTAShowTitleTextTooltip",view.ticketHelp,"普通抽奖券 · 获取渠道","地图玩法奖励（具体产出暂未开放）。<br>用于地图宝箱，不支持商城购买。");
+        });
+        view.ticketHelp.SetPanelEvent("onmouseout",hideTicketHelp);
         ["LotteryHeroCopy","LotteryUnlockNotice","LotteryStatus"].forEach(function(id){move(id,content);});
         ["LotteryResultStage","LotteryRevealStage","LotterySkipReveal"].forEach(function(id){move(id,resultCanvas);});
         move("LotteryCelestialFooter",shell);style(p("LotteryCelestialFooter"),{zIndex:"4"});
@@ -231,7 +240,7 @@
             });
         }
         view.tabs.forEach(function(tab,index){var pool=pools[index]||{},on=tab.id===selected;tab.button.SetHasClass("Selected",on);style(tab.button,{backgroundImage:"none",backgroundColor:"transparent"});
-            var locked=pool.unlocked===false;tab.state.text=locked?"未解锁  "+number(pool.unlock_progress)+" / "+number(pool.unlock_required):(pool.ticket_name||(tab.id==="dragon_knight"||tab.id==="summer"?"金色抽奖券":"普通抽奖券"));style(tab.state,{visibility:"visible"});
+            var locked=pool.unlocked===false;tab.state.text=locked?"未解锁  "+number(pool.unlock_progress)+" / "+number(pool.unlock_required):(pool.ticket_name||(tab.id==="cultivation"||tab.id==="dragon_knight"||tab.id==="summer"?"金色抽奖券":"普通抽奖券"));style(tab.state,{visibility:"visible"});
             place(tab.name,98,33,160,30);
             style(tab.frame,{backgroundImage:on?'url("'+forest.selected+'")':"none",backgroundColor:on?"#143526":"#050b1060",borderColor:on?"#719978":"#a5a08224"});
             tab.marks.forEach(function(mark){style(mark,{visibility:on?"visible":"collapse"});});
@@ -241,7 +250,11 @@
     function number(raw) { if(raw===undefined||raw===null||raw==="")return "—";var n=Number(raw);return isFinite(n)&&n>=0?String(n):"—"; }
     function ticketContentId(pool) {
         var id=String(pool&&pool.ticket_content_id||""),poolId=String(pool&&pool.id||selected);
-        return id||(poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket");
+        return id||(poolId==="cultivation"||poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket");
+    }
+    function hideTicketHelp() {
+        if(ticketHelpOpen&&view&&valid(view.ticketHelp))$.DispatchEvent("DOTAHideTitleTextTooltip",view.ticketHelp);
+        ticketHelpOpen=false;
     }
     function ticketIcon(node,pool) {
         var resources=cfg.SurvivalItemResources,uri=resources&&resources.Resolve(ticketContentId(pool));
@@ -431,6 +444,8 @@
         view.ticket.text=ticketText;place(view.ticket,ticketX,12,ticketWidth,38);style(view.ticket,{fontSize:"27px",textOverflow:"clip"});place(view.ticketIcon,ticketX-74,6,62,47);ticketIcon(view.ticketIcon,pool);
         var purchase=p("LotteryTicketPurchase"),canPurchase=ticketContentId(pool)==="special_lottery_ticket";
         purchase.visible=canPurchase;purchase.enabled=canPurchase;purchase.hittest=canPurchase;
+        view.ticketHelp.visible=ticketContentId(pool)==="lottery_ticket";view.ticketHelp.enabled=view.ticketHelp.visible;view.ticketHelp.hittest=view.ticketHelp.visible;
+        if(!view.ticketHelp.visible)hideTicketHelp();
         fit();
     }
     // Preview is presentation only: cards retain the controller's click/hover bindings.
@@ -614,14 +629,14 @@
         Owns:function(owner){return alive()&&owner===root;},
         IsReady:function(){return alive()&&!!view&&valid(view.root)&&valid(view.content)&&valid(view.header)&&cfg.LotteryGW2Data&&cfg.LotteryGW2Data.version===2;},
         Apply:apply,Info:info,Compact:compactCards,StyleTabs:function(){sidebar();},IsAlive:alive,
-        Pools:function(rows,id){if(!alive())return;pools=rows||[];selected=String(id||"map");sidebar();},
+        Pools:function(rows,id){if(!alive())return;pools=rows||[];selected=String(id||"map");hideTicketHelp();sidebar();},
         Snapshot:function(data){if(!alive())return;snapshot=data;previews();apply();},
         Open:function(){if(!alive())return;opened=true;mode="";apply();if(view&&valid(view.root))view.root.visible=true;},
-        Close:function(){if(!alive())return;opened=false;mode="";hideTooltip();if(view&&valid(view.root))view.root.visible=false;},
+        Close:function(){if(!alive())return;hideTicketHelp();opened=false;mode="";hideTooltip();if(view&&valid(view.root))view.root.visible=false;},
         CloseInfo:function(){if(!alive())return;mode="";hideTooltip();apply();},
         Content:function(){return ensure()?(view.fullscreen.visible?view.resultCanvas:view.content):null;},Fit:fit,Tooltip:tooltip,HideTooltip:hideTooltip,RequestTooltipHide:requestTooltipHide,
         Dispose:function(){
-            if(disposed)return;hideTooltip();if(tipDismiss)tipDismiss.Dispose();
+            if(disposed)return;hideTicketHelp();hideTooltip();if(tipDismiss)tipDismiss.Dispose();
             // A replacement skin must finish assembling before this window can
             // open again. Never expose the original XML skin between lifetimes.
             var window=p("LotteryWindow");if(valid(window)){window.RemoveClass("LotteryOpen");window.RemoveClass("LotteryCurrentVersion");window.AddClass("LotteryClosed");}

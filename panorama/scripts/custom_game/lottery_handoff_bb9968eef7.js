@@ -55,7 +55,7 @@
         Background:function(poolId){
             var themes=["map","cultivation","dragon_knight","summer"],scene=p("LotterySceneBackground");
             var key=themes.indexOf(poolId)>=0?poolId:"map";
-            p("LotteryWindow").SetHasClass("LotteryGoldenTicket",key==="dragon_knight"||key==="summer");
+            p("LotteryWindow").SetHasClass("LotteryGoldenTicket",key==="cultivation"||key==="dragon_knight"||key==="summer");
             if(valid(scene))themes.forEach(function(id){scene.SetHasClass("LotteryScene_"+id,id===key);});
             if(cfg.LotterySceneTransition)cfg.LotterySceneTransition.Select(key);
         },
@@ -79,7 +79,7 @@
             var gold=selected&&selected.ticket_content_id==="special_lottery_ticket";
             p("LotteryWindow").SetHasClass("LotteryGoldenTicket",!!gold);
             var id=String(selected&&selected.ticket_content_id||""),poolId=String(selected&&selected.id||"");
-            if(!id)id=poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket";
+            if(!id)id=poolId==="cultivation"||poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket";
             var resources=cfg.SurvivalItemResources,uri=resources&&resources.Resolve(id);
             (function paint(node){
                 if(!valid(node))return;
