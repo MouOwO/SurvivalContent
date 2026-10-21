@@ -669,6 +669,7 @@
         if (dismiss && !dismiss.CanShow(sourcePanel)) { hideCustomTooltip(true); return false; }
         var projectMode = managedProjectAbility(abilityIndex, abilityName);
         var buildMode = /^ability_build_/.test(abilityName);
+        var populationTrainingMode = abilityName === "ability_train_population";
         var repairerTrainingMode = abilityName === "ability_train_repairer"
             || abilityName === "ability_train_advanced_repairer";
         var heroMode = isSelectedCombatHero()
@@ -710,6 +711,7 @@
         tooltip.RemoveClass("ItemOnly");
         tooltip.RemoveClass("ExtensionOnly");
         tooltip.SetHasClass("RepairerTraining", repairerTrainingMode);
+        tooltip.SetHasClass("PopulationTraining", populationTrainingMode);
         tooltip.SetHasClass("BuildAbility", buildMode);
         tooltip.SetHasClass("ArchiveChallenge", archiveChallengeMode);
         setText("CustomAbilityExtensionLabel", archiveChallengeMode ? "" : passiveMode ? "生存防守 · 被动技能"
@@ -784,6 +786,9 @@
         } else if (projectMode || heroMode) {
             asArray(runtime.fields).forEach(function (field) {
                 if (!field) return;
+                // Current matches can still publish the old training detail rows.
+                if (populationTrainingMode
+                    && /^(当前阶段|阶段进度|本次条件)$/.test(String(field.label || "").trim())) return;
                 if (repairerTrainingMode
                     && /^(当前数量|人口消耗|木材消耗|金币消耗|修理范围|修复范围|训练上限)$/.test(String(field.label || ""))) return;
                 if (archiveChallengeMode && field.label === "解锁条件") return;

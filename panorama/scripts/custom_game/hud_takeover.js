@@ -1154,6 +1154,8 @@
         setText("CustomAbilityTitle", runtime.display_name || tooltipDefinition.name
             || definition.abilityname || localizedName(entry.name));
         var buildMode = /^ability_build_/.test(entry.name);
+        var populationTrainingMode = entry.name === "ability_train_population";
+        tooltip.SetHasClass("PopulationTraining", populationTrainingMode);
         tooltip.SetHasClass("BuildAbility", buildMode);
         var currentLevel = runtime.current_level;
         if (currentLevel === undefined) currentLevel = abilityLevel(entry.ability);
@@ -1179,7 +1181,10 @@
         var cooldown = cooldownLength(entry.ability);
         if (cooldown > 0) addField(fields, "冷却时间", cooldown + " 秒");
         asArray(runtime.fields).forEach(function (field) {
-            if (field && !(archiveChallengeMode && field.label === "解锁条件")) addField(fields, field.label, field.value);
+            if (!field) return;
+            if (populationTrainingMode
+                && /^(当前阶段|阶段进度|本次条件)$/.test(String(field.label || "").trim())) return;
+            if (!(archiveChallengeMode && field.label === "解锁条件")) addField(fields, field.label, field.value);
         });
         var unavailable = runtime.removed === 1 || (runtime.prerequisite_met !== undefined
             ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);

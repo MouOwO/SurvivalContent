@@ -441,7 +441,8 @@
 
 /* Construction hints share the cost row's left edge; real stat icons remain. */
 #CustomAbilityTooltip.BuildAbility #CustomAbilityLevel { visibility:collapse; }
-#CustomAbilityTooltip.BuildAbility .AbilityFieldTextRow .AbilityFieldIcon { visibility:collapse; }
+#CustomAbilityTooltip.BuildAbility .AbilityFieldTextRow .AbilityFieldIcon,
+#CustomAbilityTooltip.PopulationTraining .AbilityFieldTextRow .AbilityFieldIcon { visibility:collapse; }
 #CustomAbilityTooltip #CustomAbilityCostRow,
 #CustomAbilityTooltip #CustomAbilityFields { horizontal-align:left; margin-left:0px; padding-left:0px; }
 #CustomAbilityTooltip .AbilityFieldLabel,
