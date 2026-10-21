@@ -271,7 +271,7 @@ function benefitRewardStrip(parent,items,x,y,w,monthly,compact,monthlyOnly){
 function benefitState(row){return row.status==="claimed"||row.claimed===true||Number(row.claimed)===1?"claimed":row.status==="claimable"||row.can_claim===true||Number(row.can_claim)===1?"claimable":"locked";}
 function benefitLogin(row,track){return track==="daily_time"&&Number(row.required)===0;}
 function benefitMonthlyOnly(row){return row.monthly_only===true||Number(row.monthly_only)===1||benefitRewards(row,false).length===0&&benefitRewards(row,true).length>0;}
-function benefitAutomatic(row,track){return row.auto_claim===true||Number(row.auto_claim)===1||benefitLogin(row,track)&&benefitMonthlyOnly(row);}
+function benefitAutomatic(row){return row.auto_claim===true||Number(row.auto_claim)===1;}
 function benefitRow(parent,track,row,index,x,y,w,h,weekly){
  var card=make("Panel",parent,"DailyGW2Benefit_"+track+"_"+row.id,"DailyGW2BenefitCard");rect(card,x,y,w,h);style(card,{backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#302b1c55),to(#181b1644))",borderBottom:"1px solid #8d79542c",overflow:"clip"});
  var state=benefitState(row),group=benefitData(track)||{},progress=Math.max(0,Number(group.progress)||0),required=Number(row.required)||0;
@@ -290,7 +290,7 @@ function benefitRow(parent,track,row,index,x,y,w,h,weekly){
  var matching=benefitWaiting&&benefitWaiting.track===track&&benefitWaiting.id===String(row.id),busy=!!benefitWaiting||!!waiting||Number(data&&data.pending)===1;
  var text=label(button,matching?"领取中…":state==="claimed"?"已领取":requiresPass?"需月卡":automatic?"发放中…":state==="claimable"?"领取":"未达成",0,7,96,28,18,"#251c0e");text.style.textAlign="center";
  U.State.Set(button,{enabled:state==="claimable"&&!busy&&!requiresPass&&!automatic,busy:matching});U.State.Bind(button,function(){claimBenefit(track,row.id);});
- var details=(monthlyOnly?"":benefitRewards(row,false).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n")+"月卡加赠："+benefitRewards(row,true).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n"+(automatic?(pass?"月卡已生效，每日登录奖励由系统自动发放":"开通月卡后，每日登录奖励由系统自动发放"):pass?"月卡已生效，领取时一并发放":"月卡未生效，仅领取基础奖励");
+ var details=(monthlyOnly?"":benefitRewards(row,false).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n")+"月卡加赠："+benefitRewards(row,true).map(function(item){return item.name+" ×"+item.count;}).join("、")+"\n"+(automatic?(pass?"月卡已生效，每日登录奖励由系统自动发放":"开通月卡后，每日登录奖励由系统自动发放"):monthlyOnly?(pass?"月卡已生效，请点击领取每日登录奖励":"开通月卡后，可点击领取每日登录奖励"):pass?"月卡已生效，领取时一并发放":"月卡未生效，仅领取基础奖励");
  tip(card,title,details);
  // Reward icons own their detailed tooltip; empty card space shows the full bundle.
  card.hittestchildren=true;card.__benefitRow=row;
