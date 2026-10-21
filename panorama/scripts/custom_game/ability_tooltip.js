@@ -701,6 +701,7 @@
         var towerToolMode = projectMode && !passiveMode
             && (abilityName === "ability_building_blink" || abilityName === "ability_destroy_arrow_tower");
         var upgradeMode = projectMode && !passiveMode && !towerToolMode && !archiveChallengeMode;
+        var towerUpgradeMode = upgradeMode && /^ability_upgrade_tower(?:_lv[0-9]+|_max)?$/.test(abilityName);
 
         var tooltip = byId("CustomAbilityTooltip");
         var fields = byId("CustomAbilityFields");
@@ -788,6 +789,12 @@
                 if (archiveChallengeMode && field.label === "解锁条件") return;
                 var presentation=presentRuntimeField(field, upgradeMode);
                 if (!presentation) return;
+                // Older runtime snapshots can still contain upgrade details.
+                // Keep controls and requirements, while the footer names the target.
+                var fieldLabel = String(field.label || "");
+                if (towerUpgradeMode && !/^(自动升级|前置条件|路线数量)$/.test(fieldLabel)
+                    && (presentation.numeric
+                        || /^(目标等级|升级目标|攻击提升|攻击速度|人口消耗|等级|模型状态)$/.test(fieldLabel))) return;
                 var levelMatch = heroMode && /^LV([1-9][0-9]*)$/.exec(String(field.label || ""));
                 addField(fields, field.label, presentation.value, levelMatch
                     ? { current: Number(levelMatch[1]) === Number(displayedLevel) } : null, presentation.numeric);
