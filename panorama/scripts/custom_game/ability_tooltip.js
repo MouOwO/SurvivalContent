@@ -520,24 +520,74 @@
 
     function researchStatus(runtime) {
         var code = String(runtime.research_status_code || "available");
-        if (code === "syncing") return String(runtime.status_text || "正在同步科技信息");
-        if (code === "researching_other") return String(runtime.status_text || "此研究所已有科技正在研究");
-        if (["queue_available", "queue_waiting_prerequisite", "research_queue_full", "queued_max_level"].indexOf(code) >= 0) {
-            return String(runtime.status_text || "研究队列等待中");
-        }
-        var tokens = {
-            "available": "Survival_ResearchStatus_Available",
-            "max_level": "Survival_ResearchStatus_MaxLevel",
-            "researching_current": "Survival_ResearchStatus_ResearchingCurrent",
-            "researching_other": "Survival_ResearchStatus_ResearchingOther",
-            "prerequisite_not_met": "Survival_ResearchStatus_Prerequisite"
+        var statuses = {
+            "available": "可研究",
+            "syncing": "正在同步科技信息",
+            "max_level": "已达最高等级",
+            "researching_current": "研究中",
+            "researching_other": "此研究所已有科技正在研究",
+            "prerequisite_not_met": "前置条件未满足",
+            "queue_available": "可加入研究队列",
+            "queue_waiting_prerequisite": "等待前置科技完成",
+            "research_queue_full": "研究队列已满",
+            "queued_max_level": "已排队至最高等级"
         };
-        var fallback = code === "max_level" ? "Maximum level reached"
-            : (code === "researching_current" ? "Research in progress"
-            : (code === "researching_other" ? "This building is researching another technology"
-            : (code === "prerequisite_not_met" ? "Prerequisite not met"
-            : "Available to research")));
-        return localize(tokens[code] || "", fallback);
+        return statuses[code] || (Number(runtime.available) === 0 ? "暂不能研究" : "可研究");
+    }
+
+    function researchDescription(runtime) {
+        if (runtime.research_effect_description !== undefined) {
+            return [runtime.research_effect_description, runtime.current_effect_text,
+                runtime.next_effect_text].filter(function (line) {
+                return line !== undefined && line !== null && line !== "";
+            }).join("\n");
+        }
+        // Old matches still publish the original one-line description. Limit
+        // this compatibility formatting to research snapshots and exact copy
+        // authored by research_technology_description / ability_runtime_builder.
+        var text = String(runtime.upgrade_description || "");
+        ["加入研究队列，开始研究时扣费。", "即时刷新当前与后续训练的伐木工。",
+            "即时刷新当前与后续建造的防御塔。", "增加每次有效攻击大树获得的木材。",
+            "与伐木效率叠加。", "与防御塔强化叠加。", "提升基础最大生命，刷新时保持当前生命比例。",
+            "与墙强化叠加，刷新时保持当前生命比例。", "仅在有效攻击大树后增加永久攻击力。",
+            "两项生命加成共同计入基础最大生命，刷新时保持当前生命比例。",
+            "使用Dota实际护甲；生命刷新时保持当前比例。", "与普通及高级防御塔强化叠加。",
+            "同时提高攻击距离和自动搜索范围。", "由统一伤害结算在最终阶段生效。",
+            "每次普通攻击命中敌人时叠加减甲。"].forEach(function (copy) {
+            text = text.split(copy).join("");
+        });
+        var notes = [];
+        ["攻击间隔最低为0.05秒。", "采集暴击时获得2倍木材。",
+            "每次命中大树叠加减甲，大树护甲最低为100。", "科技暴击造成2倍伤害。",
+            "按英雄基础攻击与武器攻击之和计算。"].forEach(function (copy) {
+            if (text.indexOf(copy) < 0) return;
+            notes.push(copy); text = text.split(copy).join("");
+        });
+        var lines = text.replace(/[ \t]*(当前\s*Lv\.\s*\d+\s*[:：])/g, "\n$1")
+            .replace(/[ \t]*(?:升级至|升级后)\s*Lv\.\s*(\d+)\s*[:：]/g, "\n升级后Lv.$1：")
+            .replace(/\r\n/g, "\n").replace(/\n[ \t]*\n+/g, "\n").trim().split("\n");
+        if (lines[0]) lines[0] += notes.join("");
+        if (/^(max_level|queued_max_level)$/.test(String(runtime.research_status_code || ""))) {
+            lines = lines.filter(function (line) { return !/^升级后Lv\./.test(line); });
+        }
+        return lines.join("\n");
+    }
+
+    function currentResearchEffect(runtime) {
+        var current = String(runtime.current_effect_text || "");
+        if (!current) {
+            asArray(runtime.fields).some(function (field) {
+                if (!field || field.label !== "当前累计") return false;
+                current = String(field.value === undefined ? "" : field.value); return true;
+            });
+        }
+        if (!current) {
+            researchDescription(runtime).split("\n").some(function (line) {
+                if (!/^当前\s*Lv\./.test(line)) return false;
+                current = line; return true;
+            });
+        }
+        return current.replace(/^当前\s*Lv\.\s*\d+\s*[:：]\s*/, "").replace(/。$/, "");
     }
 
     function addField(container, label, value, levelState, numeric) {
@@ -553,6 +603,7 @@
             row.__right=$.CreatePanel("Label",row,"");row.__right.AddClass("AbilityFieldValue");
         }
         row.visible=true;
+        row.SetHasClass("AbilityResearchCurrentRow", false);
         row.SetHasClass("AbilitySkillLevelRow", !!levelState);
         row.SetHasClass("AbilitySkillLevelCurrent", !!levelState && levelState.current);
         row.SetHasClass("AbilityNumericFieldRow", !!numeric && !levelState);
@@ -733,12 +784,12 @@
             : upgradeMode && runtime.current_level !== undefined
             ? runtime.current_level : abilityLevel;
         setText("CustomAbilityLevel", !buildMode && (!archiveChallengeMode && (researchMode || displayedLevel > 0))
-            ? localize("Survival_UpgradeField_Level", "Level")
+            ? (researchMode ? "等级" : localize("Survival_UpgradeField_Level", "Level"))
                 + " " + displayedLevel : "");
         var description = abilityName === "ability_destroy_arrow_tower"
             ? runtime.upgrade_description || tooltipDefinition.desc || localizedAbilityDescription(abilityName)
             : researchMode
-            ? runtime.upgrade_description
+            ? researchDescription(runtime)
             : localizedAbilityDescription(abilityName)
             || (projectMode ? runtime.upgrade_description : "") || tooltipDefinition.desc
             || definition.abilitydesc
@@ -771,17 +822,12 @@
         setText("CustomAbilityWoodCost", tooltipNumber(woodCost));
 
         resetFieldRows(fields);
+        // Keep only the requested current total. Older matches may still send
+        // the removed maximum/prerequisite/fee/automation detail rows.
         if (researchMode) {
-            asArray(runtime.fields).forEach(function (field) {
-                if (!field) return;
-                var presentation=presentRuntimeField(field, upgradeMode);
-                if (presentation) addField(fields, field.label, presentation.value, null, presentation.numeric);
-            });
-            if (runtime.cost_timing_text) addField(fields, "扣费时机", runtime.cost_timing_text);
-            if (runtime.auto_research_available === 1) {
-                addField(fields, "自动研究", runtime.auto_research_enabled === 1
-                    ? "已开启 · 右键关闭" : "右键此科技开启");
-                addField(fields, "自动间隔", "完成后等待 1 秒再研究下一级");
+            addField(fields, "当前累计", currentResearchEffect(runtime));
+            if (fields.__fieldCursor > 0) {
+                fields.__fieldRows[fields.__fieldCursor - 1].SetHasClass("AbilityResearchCurrentRow", true);
             }
         } else if (projectMode || heroMode) {
             asArray(runtime.fields).forEach(function (field) {
@@ -806,10 +852,11 @@
             });
         }
         var unavailable = (projectMode || archiveChallengeMode) && (runtime.prerequisite_met !== undefined
-            ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);
+            ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0)
+            || (researchMode && Number(runtime.available) === 0);
         var lacksResources = projectMode && !passiveMode && !unavailable
             && runtime.resource_check_on_cast !== 1 && runtime.can_afford === 0;
-        setText("CustomAbilityType", archiveChallengeMode ? "" : passiveMode ? "被动" : towerToolMode ? "主动" : !upgradeMode ? ""
+        setText("CustomAbilityType", archiveChallengeMode || researchMode ? "" : passiveMode ? "被动" : towerToolMode ? "主动" : !upgradeMode ? ""
             : runtime.upgrade_in_progress === 1
             ? localize("Survival_UpgradeTooltip_InProgress", "UPGRADING")
             : (unavailable ? localize("Survival_UpgradeTooltip_Unavailable", "UNAVAILABLE")

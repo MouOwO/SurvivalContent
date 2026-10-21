@@ -117,6 +117,12 @@
 .AbilityFieldValue { width: fill-parent-flow(1.0); color: #f0d48a; font-size: 22px; white-space: normal; }
 .AbilityNumericFieldRow .AbilityFieldValue { white-space: nowrap; text-overflow: shrink; }
 
+/* The retained research total starts at the same edge as the effect and cost. */
+.AbilityFieldRow.AbilityResearchCurrentRow { horizontal-align: left; margin-left: 0px; padding-left: 0px; }
+.AbilityResearchCurrentRow .AbilityFieldIcon { visibility: collapse; }
+.AbilityResearchCurrentRow .AbilityFieldLabel { width: fit-children; margin-right: 12px; text-align: left; }
+.AbilityResearchCurrentRow .AbilityFieldValue { text-align: left; }
+
 /* Repairer details have no property icon; align them with the description. */
 .RepairerTraining .AbilityFieldIcon { visibility: collapse; }
 
