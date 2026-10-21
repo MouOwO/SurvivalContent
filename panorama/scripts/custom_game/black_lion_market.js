@@ -49,9 +49,10 @@
             balanceLabels.push(label(line,name+" —","BLMarketBalanceText"+(i===0?" BLMarketRechargeBalance":"")));
             if(i===0){
                 var recharge=make("Button",line,"BlackLionMarketRecharge","BLMarketRecharge");recharge.hittestchildren=false;
+                recharge.visible=cfg.SurvivalDevelopmentPayments===true;recharge.enabled=recharge.visible;recharge.hittest=recharge.visible;
                 var rechargeIcon=make("Image",recharge,"","BLMarketRechargeIcon");
                 rechargeIcon.SetImage("file://{images}/control_icons/24px/plus.svg");rechargeIcon.hittest=false;rechargeIcon.hittestchildren=false;
-                recharge.SetPanelEvent("onactivate",function(){var view=cfg.SurvivalCommerceView;if(view&&view.OpenRecharge)view.OpenRecharge();return true;});
+                recharge.SetPanelEvent("onactivate",function(){var view=cfg.SurvivalCommerceView;if(cfg.SurvivalDevelopmentPayments===true&&view&&view.OpenRecharge)view.OpenRecharge();return true;});
             }
         });
         var c=layer("close_button"),close=box(make("Button",canvas,"","BLMarketClose"),c.x,c.y,c.width,c.height);close.hittestchildren=false;

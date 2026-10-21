@@ -3,6 +3,21 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     "use strict";
     var cfg = GameUI.CustomUIConfig(), disposed = false, subscriptions = [], api = null;
     if (cfg.SurvivalPayments && cfg.SurvivalPayments.Dispose){try{cfg.SurvivalPayments.Dispose();}catch(error){if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;$.Msg("[CheckoutPurple] Previous payment panel was already deleted.");}}
+    // The distributed build has no cash checkout. A developer UI fixture must
+    // opt in explicitly; the server independently requires development + Tools.
+    if (cfg.SurvivalDevelopmentPayments !== true) {
+        var disabledCatalog={products:[],categories:[],catalog_hash:"noncommercial_test",real_money_enabled:false,wechat:false,alipay:false};
+        function hideCashPanel(id){var node=$("#"+id);if(node&&(!node.IsValid||node.IsValid())){node.visible=false;node.hittest=false;node.hittestchildren=false;node.style.visibility="collapse";if(node.SetHasClass)node.SetHasClass("Open",false);}}
+        ["PaymentEntry","PaymentDialog","PaymentScrim"].forEach(hideCashPanel);
+        function openWalletShop(){if(!disposed&&cfg.SurvivalCommerceView&&cfg.SurvivalCommerceView.Open)cfg.SurvivalCommerceView.Open();}
+        function unavailable(){return false;}
+        PaymentToggle=PaymentBuy=PaymentOpen=PaymentRefresh=PaymentChannel=PaymentCancel=PaymentQuantityChange=PaymentQuantityInputChanged=unavailable;
+        PaymentShop=openWalletShop;
+        cfg.SurvivalPayments={Open:openWalletShop,IsRealMoneyEnabled:unavailable,Checkout:unavailable,
+            GetCatalog:function(){return disabledCatalog;},RefreshCatalog:function(){if(!disposed&&cfg.SurvivalCommerceView&&cfg.SurvivalCommerceView.UpdateCatalog)cfg.SurvivalCommerceView.UpdateCatalog(disabledCatalog);return false;},
+            Inspect:function(){return {realMoneyEnabled:false,opened:false,catalogRequests:0,layout:"noncommercial_test"};},Dispose:function(){disposed=true;}};
+        return;
+    }
     var products = [], selected = "", orders = {}, busy = false, opened = false, generation = 0, lastMatrix = "", ticks = 0;
     var gameValues={}, gameEntitlements={}, wallet={}, matchFrozen=false, catalog={products:[],categories:[]};
     // Cache only this HUD/session's authoritative snapshot, never another account's data.
@@ -446,7 +461,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     };
     function inspectCache(){return {ready:catalogReady,dirty:catalogDirty,pending:activeRequest?activeRequest.action:"",catalogRequests:catalogRequests,
         ageSeconds:catalogReady?Math.floor((Date.now()-catalogCheckedAt)/1000):null,quantity:quantity,maxQuantity:quantityMaximum(current()),opened:opened,layout:"compact_checkout",width:580,height:parseFloat(dialog.style.height)||334};}
-    cfg.SurvivalPayments=api={Open:openShop,GetCatalog:function(){return catalog;},RefreshCatalog:refreshCatalog,Inspect:inspectCache,
+    cfg.SurvivalPayments=api={Open:openShop,IsRealMoneyEnabled:function(){return true;},GetCatalog:function(){return catalog;},RefreshCatalog:refreshCatalog,Inspect:inspectCache,
         Checkout:function(sku){if(!alive())return false;if(orders[sku]&&terminal(orders[sku].state)&&orders[sku].state!=="paid_review")delete orders[sku];selected=sku;quantitySku=sku;quantity=1;quantityInputInvalid=false;setOpen(true);render();refreshCatalog();return true;},
         Dispose:function(){
             if(disposed)return;

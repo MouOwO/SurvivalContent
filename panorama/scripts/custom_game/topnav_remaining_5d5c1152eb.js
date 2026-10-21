@@ -294,7 +294,7 @@
         topButtons[a[0]]=b;
     });
     tooltip(topButtons.vip,function(){return cfg.SurvivalVIPStatus&&cfg.SurvivalVIPStatus.UnlockRules
-        ?cfg.SurvivalVIPStatus.UnlockRules():"VIP 等级随累计实付充值提升，消费不降级。";});
+        ?cfg.SurvivalVIPStatus.UnlockRules():"VIP 状态以存档为准，测试版未开放付费开通。";});
     // One open window at a time, so the highlight is a single owner, not a list.
     var navWindowIds={treasure:"treasure",archive:"archive",lottery:"lottery",benefit:"daily_rewards",
         shop:"shop",survival_shop:"survival_shop"};

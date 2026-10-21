@@ -82,7 +82,7 @@
             original(row,uri,"CJPriceIcon");
         }else label(row,"¥","CJYuanIcon");
         var uText=validU?uCoin+" G币":previewCoin!==null?previewCoin+" G币":"G币价格待同步";
-        label(row,isU?uText:amount+" "+currency,"CJPriceValue");p.hittest=false;p.hittestchildren=false;return p;
+        label(row,wallet?amount+" "+(currency||({u_coin:"G币",shop_points:"积分",shop_gold:"金币"}[item.currency]||"")):isU?uText:amount+" "+currency,"CJPriceValue");p.hittest=false;p.hittestchildren=false;return p;
     };
     function detailQuality(item, rewards) {
         var resources=cfg.SurvivalItemResources;

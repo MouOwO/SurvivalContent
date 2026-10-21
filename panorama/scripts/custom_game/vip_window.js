@@ -23,6 +23,7 @@
             particleCount:n+2,intensity:0.35+0.65*t,duration:5-2.4*t};
     }
     function unlockRules(){
+        if(cfg.SurvivalDevelopmentPayments!==true)return "VIP 状态以存档为准。<br>测试版未开放付费开通。";
         var catalog=cfg.VIPRewardCatalog,rows=catalog&&catalog.recharge_levels||[];
         var desired=known&&current>0?current+1:1,threshold=null;
         rows.some(function(row){

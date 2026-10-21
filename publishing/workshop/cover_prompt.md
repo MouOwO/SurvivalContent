@@ -1,0 +1,9 @@
+# 孤城逐晓工坊封面
+
+生成方式：内置 `imagegen`，2026-10-21。参考图为项目现有的 `panorama/src/images/custom_game/loading/dawnward_citadel_background.png`；没有复制《守望轮回谷》的封面、标志或角色。主图为1254×1254 PNG，上传副本为同尺寸JPEG、质量90、605055字节；JPEG仅转换编码，没有裁切、缩放或改字。
+
+原图另存于 content 仓库的 `publishing/workshop/gucheng_zhuxiao_cover_master.png`。本目录的图片是工坊页面素材，不进入游戏运行资源白名单。
+
+使用的完整提示词：
+
+> Use case: ads-marketing. Asset type: original Steam Workshop square game cover, 1024 x 1024 composition. Create a finished premium Chinese fantasy cooperative tower-defense survival game cover for the game named exactly 「孤城逐晓」. The attached local image is a reference for this project's actual dawn-lit besieged mountain citadel, violet enemy portals, cool dark blue mountain valley, and warm amber defending towers. Compose a new original dynamic square promotional illustration with a clearly readable central medieval-fantasy fortress and a winding approach crowded by incoming monsters, four small defending heroic silhouettes in the foreground (an armored builder with hammer, an archer, a mage and a warrior), defensive towers firing magic toward the approaching wave, sunrise breaking behind the castle. Evoke the dramatic high-fantasy valley-defense mood of a classic Dota custom game promotional cover, polished painterly PC game key art with strong silhouettes and controlled detail, no UI screenshot, no copied logos or existing third-party poster. Put the exact FOUR Chinese title characters 「孤城逐晓」 in large crisp elegant pale-gold embossed calligraphic lettering occupying the lower quarter, strongly readable even as a small thumbnail; no frame around the whole image. Under it put only the small exact subtitle 「协作塔防 · 无尽生存」. Preserve adequate safe margins on every side; keep all title text inside the central 82% width. Bright warm gold focal point against cool blue-violet environment, dramatic depth, accurate clean typography, no watermark, no Dota logo, no payment/currency/marketing claims, no 'official' label.

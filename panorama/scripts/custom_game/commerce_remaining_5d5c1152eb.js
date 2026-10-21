@@ -16,6 +16,7 @@
     var disposed=false, category="home", page=0, catalog={products:[],categories:[]}, revision="", opened=false, ticketRequest=false,detailsDisposed=false,purchaseType="all";
     var batchSize=20, listItems=[], loadedCount=0, loadTimer=null, loadEpoch=0;
     var paidCatalog={products:[],categories:[]}, walletCatalog={products:[],categories:[],balances:{}};
+    function realMoneyEnabled(){var payments=cfg.SurvivalPayments;return cfg.SurvivalDevelopmentPayments===true&&paidCatalog.real_money_enabled!==false&&!!payments&&typeof payments.IsRealMoneyEnabled==="function"&&payments.IsRealMoneyEnabled()===true;}
     function rows(value) { return Array.isArray(value)?value:Object.keys(value||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return value[k];}); }
     function panel(type,parent,cls) { var n=$.CreatePanel(type,parent,""); if(cls)n.AddClass(cls); return n; }
     function text(parent,value,cls) { var n=panel("Label",parent,cls);n.text=J.RewardNameText(value);n.hittest=false;return n; }
@@ -71,7 +72,7 @@
         if(M&&K&&!K.IsActionable(item)){notice.text=K.DisabledMessage(item)||"此商品当前不可购买。";return false;}
         if(item.preview_only || item.disabled_reason==="bundle_pending_assets"){notice.text=item.disabled_message||"此礼包尚未开放购买。";return false;}
         if(item.disabled_reason==="payment_catalog_pending" || item.disabled_reason==="payment_product_unavailable" || item.disabled_reason==="payment_price_unavailable"){
-            notice.text=item.disabled_reason==="payment_catalog_pending"?"人民币支付目录正在连接，请稍后重试。":"此商品的人民币购买尚未开放，请稍后重试。";
+            notice.text=item.disabled_reason==="payment_catalog_pending"?"商品目录正在连接，请稍后重试。":"此商品暂未开放，请稍后重试。";
             if(cfg.SurvivalPayments && cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog(true);
             return false;
         }
@@ -84,7 +85,7 @@
         return false;
     }
     function enabled(value){return value===true || value===1;}
-    function purchaseLabel(item) { if(item.disabled_reason==="bundle_pending_assets")return "待开放 · 查看";return item.purchase_method==="wallet"?"查看 / 兑换":item.disabled_reason==="payment_catalog_pending"?"连接支付目录":item.disabled_reason==="payment_product_unavailable" || item.disabled_reason==="payment_price_unavailable"?"人民币购买尚未开放":enabled(item.enabled)?"查看 / 购买":item.owned>0?"已拥有 · 查看":"查看奖励"; }
+    function purchaseLabel(item) { if(item.disabled_reason==="bundle_pending_assets")return "待开放 · 查看";return item.purchase_method==="wallet"?"查看 / 兑换":item.disabled_reason==="payment_catalog_pending"?"连接商品目录":item.disabled_reason==="payment_product_unavailable" || item.disabled_reason==="payment_price_unavailable"?"暂未开放":enabled(item.enabled)?"查看 / 购买":item.owned>0?"已拥有 · 查看":"查看奖励"; }
     function noticeText(){
         return walletCatalog.error||"";
     }
@@ -171,7 +172,7 @@
             if(!p || typeof p.sku!=="string" || seen[p.sku])return;
             seen[p.sku]=true;
             var item=copy(p),cash=paid[p.sku];
-            if(p.currency==="u_coin"){
+            if(p.currency==="u_coin" && realMoneyEnabled()){
                 // The wallet supplies presentation while the authenticated payment row decides eligibility.
                 // Wallet balance and wallet insufficient-funds flags never authorize or block a cash order.
                 if(cash)Object.keys(cash).forEach(function(k){item[k]=cash[k];});
@@ -187,9 +188,16 @@
                     item.owned=Math.max(Number(p.owned),Number(cash.owned)||0);item.enabled=false;item.disabled_reason="already_owned";
                 }
             }
+            if(p.currency==="u_coin" && !realMoneyEnabled()){
+                // This route spends the authenticated in-game wallet. It must
+                // never inherit prices or cash eligibility from a paid row.
+                item.purchase_method="wallet";item.currency_name="G币";
+                delete item.amount_fen;delete item.u_coin_price;delete item.u_coin_per_yuan;
+            }
             products.push(decorateBundle(item));
         });
         rows(paidCatalog.products).forEach(function(p){
+            if(!realMoneyEnabled())return;
             if(!p || typeof p.sku!=="string" || seen[p.sku])return;
             // Recharge has its own balance-side entry, outside the goods list.
             if(p.sku==="u_coin_recharge"&&p.product_type==="recharge")return;
@@ -213,7 +221,7 @@
         Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},IsOpen:function(){return opened;},
         OpenRecharge:function(){
             var payments=cfg.SurvivalPayments;
-            if(!live()||!payments||!payments.Checkout)return false;
+            if(!live()||!realMoneyEnabled()||!payments||!payments.Checkout)return false;
             if(payments.Checkout("u_coin_recharge")){hideCheckoutDetails();return true;}
             return false;
         },

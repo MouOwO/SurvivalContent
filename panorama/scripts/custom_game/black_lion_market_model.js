@@ -8,7 +8,7 @@
     var purchaseTypes=[{id:"u_coin",label:"G币"},{id:"shop_points",label:"积分"},{id:"all",label:"全部"}];
     function purchaseType(item){
         if(!item)return "";
-        if(item.purchase_method==="wallet")return item.currency==="shop_points"||item.currency==="shop_gold"?item.currency:"";
+        if(item.purchase_method==="wallet")return item.currency==="shop_points"||item.currency==="shop_gold"||item.currency==="u_coin"?item.currency:"";
         return item.purchase_method==="cash"?"u_coin":"";
     }
     function matchesPurchaseType(item,id){return id==="all"||purchaseType(item)===id;}
@@ -26,7 +26,7 @@
     }
     function reason(item){return item&&typeof item.disabled_reason==="string"?item.disabled_reason:"";}
     function priceReady(item){
-        if(item.purchase_method==="wallet")return item.currency==="shop_points"&&number(item.price)!==null;
+        if(item.purchase_method==="wallet")return (item.currency==="shop_points"||item.currency==="u_coin")&&number(item.price)!==null;
         if(item.purchase_method!=="cash")return false;
         var fen=number(item.amount_fen);
         if(fen===null||fen<=0||fen%1!==0||fen>1000000)return false;
@@ -74,7 +74,7 @@
     function discount(item){
         if(fixedPointsPrice(item))return false;
         var original=number(item.original_u_coin_price===undefined?item.original_price:item.original_u_coin_price);
-        var current=number(item.currency==="u_coin"?item.u_coin_price:item.price);
+        var current=number(item.purchase_method==="wallet"?item.price:item.currency==="u_coin"?item.u_coin_price:item.price);
         return original!==null&&current!==null&&original>current;
     }
     function inGroup(item,id){
@@ -134,8 +134,8 @@
     }
     function channelLabel(item){
         if(!item||typeof item!=="object")return "购买渠道待同步";
-        if(item.purchase_method==="wallet")return item.currency==="shop_points"?"商城积分兑换":"购买渠道待同步";
-        if(item.purchase_method==="cash")return item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined?"人民币直购（G币计价）":"人民币直购";
+        if(item.purchase_method==="wallet")return item.currency==="shop_points"?"商城积分兑换":item.currency==="u_coin"?"G币兑换":"购买渠道待同步";
+        if(item.purchase_method==="cash")return "购买";
         return "购买渠道待同步";
     }
     var model={Groups:groups,HomeProducts:homeProducts,GroupFor:groupFor,InGroup:inGroup,SortProducts:sortProducts,
