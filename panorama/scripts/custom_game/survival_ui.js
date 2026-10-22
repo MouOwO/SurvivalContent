@@ -309,12 +309,12 @@
     function difficultyTemporary(option) { return !!option && (option.temporary_config === true || Number(option.temporary_config) === 1); }
     function difficultyTemporaryLabel(option) {
         var source = String(option && option.source_difficulty_id || "");
-        return "临时配置" + (/^N(?:[1-9]|10)$/.test(source) ? " · 沿用 " + source : "");
+        return "临时配置" + (/^N[1-9][0-9]*$/.test(source) ? " · 沿用 " + source : "");
     }
     function difficultyUnlockHint(option, compact) {
         var text = String(option && option.unlock_hint || "通关前一级难度解锁");
         if (!compact) return text;
-        var required = text.match(/N(?:10|[1-9])(?![0-9])/);
+        var required = text.match(/N[1-9][0-9]*(?![0-9])/);
         if (required && /队伍所有玩家|全员/.test(text)) return "全员通关 " + required[0] + " 解锁";
         return text.length > 14 ? "未解锁 · 查看条件" : text;
     }
@@ -499,23 +499,29 @@
         container.visible = !choosingMode;
         if (choosingMode) { panel("MatchSetupRetryHost").visible = false; renderModeChoice(ui); return; }
         setText("DifficultySelectionTitle", "难度选择");
-        var optionRows = difficultyOptions(), highest = "";
-        optionRows.forEach(function (option) {if (difficultyUnlocked(option) && Number(String(option.difficulty_id).slice(1)) > Number(highest.slice(1) || 0)) highest = String(option.difficulty_id);});
+        var options = difficultyOptions().filter(function (option) {
+            return option && /^N[1-9][0-9]*$/.test(String(option.difficulty_id));
+        }).sort(function (a, b) { return Number(a.difficulty_id.slice(1)) - Number(b.difficulty_id.slice(1)); });
+        var highest = "";
+        options.forEach(function (option) {if (difficultyUnlocked(option) && Number(String(option.difficulty_id).slice(1)) > Number(highest.slice(1) || 0)) highest = String(option.difficulty_id);});
+        var accessPolicy = setup() && setup().difficulty_access_policy !== undefined
+            ? setup().difficulty_access_policy : difficultyWave && difficultyWave.difficulty_access_policy;
+        var allConfigured = accessPolicy === "all_configured";
         var modeNames = {pure:"纯净模式",standard:"常规模式",rich:"丰饶模式",cold:"极寒模式",scourge:"天灾模式"};
         var hint = !difficultySelector() ? "等待房主选择难度" : !canConfirmDifficulty() ? "正在读取队伍通关进度……" : "";
-        if (highest) hint = (modeNames[confirmedMode()] || "本局模式") + " · 队伍上限 " + highest + (hint ? "\n" + hint : "");
+        if (highest) hint = (modeNames[confirmedMode()] || "本局模式")
+            + (allConfigured ? " · 全难度开放至 " : " · 队伍上限 ") + highest + (hint ? "\n" + hint : "");
         setText("DifficultySelectionHint", hint);
         panel("DifficultySelectionHint").visible = hint !== "";
         var limitNames = optionArray(setup() && setup().difficulty_limit_player_ids).map(function(id){return typeof Players.GetPlayerName === "function" && Players.GetPlayerName(Number(id)) || "玩家 " + id;});
         var hintPanel = panel("DifficultySelectionHint");hintPanel.hittest = true;
         hintPanel.SetPanelEvent("onmouseover", function(){
-            $.DispatchEvent("DOTAShowTextTooltip", hintPanel, "本局可选难度按全队最低通关进度计算。" + (limitNames.length ? "\n当前进度限制：" + limitNames.join("、") : ""));
+            $.DispatchEvent("DOTAShowTextTooltip", hintPanel, allConfigured
+                ? "本模式全部已配置难度已开放，无需前置通关；仍需完成队伍准备，由房主选择。"
+                : "本局可选难度按全队最低通关进度计算。" + (limitNames.length ? "\n当前进度限制：" + limitNames.join("、") : ""));
         });
         hintPanel.SetPanelEvent("onmouseout", function(){ $.DispatchEvent("DOTAHideTextTooltip"); });
         if (wasChoosingMode) setText("DifficultySelectionError", "");
-        var options = difficultyOptions().filter(function (option) {
-            return option && /^N(?:[1-9]|10)$/.test(String(option.difficulty_id));
-        }).sort(function (a, b) { return Number(a.difficulty_id.slice(1)) - Number(b.difficulty_id.slice(1)); });
         var signature = JSON.stringify(options);
         if (signature !== difficultyOptionsSignature) {
             difficultyOptionsSignature = signature; difficultyRows = {};
