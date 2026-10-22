@@ -36,7 +36,28 @@
         } catch (error) { return []; }
     }
 
-    function isActive() { return selectedEntities().length > 1; }
+    function multiSelectionActive(selected) {
+        if (selected.length < 2) return false;
+        // Querying an enemy leaves the player's command selection intact.
+        // Only mask the single portrait while displaying that selection's grid;
+        // every consumer must use the same display identity as the bottom HUD.
+        var resolver = cfg.SurvivalSelectionResolver;
+        try {
+            var displayed;
+            if (resolver && typeof resolver.ResolveDisplayUnit === "function") {
+                displayed = resolver.ResolveDisplayUnit();
+            } else if (typeof Players.GetLocalPlayerPortraitUnit === "function") {
+                displayed = Players.GetLocalPlayerPortraitUnit();
+            } else {
+                return true;
+            }
+            if (displayed === undefined || displayed === null
+                || String(displayed).trim() === "") return false;
+            return selected.indexOf(Number(displayed)) >= 0;
+        } catch (error) { return false; }
+    }
+
+    function isActive() { return multiSelectionActive(selectedEntities()); }
 
     function find(panel, id) {
         if (!valid(panel) || !panel.FindChildTraverse) return null;
@@ -197,7 +218,7 @@
 
     function apply(group, size, stableHeight) {
         var selected = selectedEntities();
-        if (selected.length < 2 || !valid(group)) {
+        if (!multiSelectionActive(selected) || !valid(group)) {
             restore();
             lastGroup = valid(group) ? group : null;
             lastMulti = null;
@@ -301,7 +322,7 @@
         var frames = find(lastMulti, "UnitFrames");
         var container = find(lastGroup, "PortraitContainer");
         var portrait = find(lastGroup, "portraitHUD");
-        return {build: "native_grid_fit_v5", generation: generation,
+        return {build: "native_grid_fit_v6", generation: generation,
             selectedCount: selectedEntities().length, active: isActive(), mounted: mounted,
             nativeFound: valid(lastMulti), group: describe(lastGroup), multi: describe(lastMulti),
             canvas: describe(find(lastMulti, "canvas")), layout: lastLayout,
@@ -331,5 +352,5 @@
             }, "", 0);
         } catch (error) {}
     }
-    $.Msg("[MULTI_PORTRAIT_LOADED] build=native_grid_fit_v5 generation=" + generation);
+    $.Msg("[MULTI_PORTRAIT_LOADED] build=native_grid_fit_v6 generation=" + generation);
 })();
