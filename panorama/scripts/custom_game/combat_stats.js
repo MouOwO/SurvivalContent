@@ -1579,7 +1579,7 @@
         officialAttackText = attack;
         officialAttackUnit = Number(snapshot.entindex);
         writeOfficialAttackText();
-        var armor = formatNumber(snapshot.armor);
+        var armor = formatNumber(Math.floor(Number(snapshot.armor) || 0));
         // Percentage and frequency have distinct fields; never infer percent from attacks/second.
         var attackSpeedValue = Number(snapshot.attack_speed_percentage);
         if (!isFinite(attackSpeedValue) || attackSpeedValue <= 0) attackSpeedValue = 100;
