@@ -167,6 +167,14 @@
 
     function yes(value) { return value === true || value === 1; }
     function setup() { return startupState && startupState.setup; }
+    function difficultyAccessPolicy() {
+        return setup() && setup().difficulty_access_policy !== undefined
+            ? setup().difficulty_access_policy : difficultyWave && difficultyWave.difficulty_access_policy;
+    }
+    function readOnlyAcceptance() {
+        return setup() && setup().read_only_acceptance !== undefined ? yes(setup().read_only_acceptance)
+            : difficultyAccessPolicy() === "read_only_acceptance";
+    }
     function admissionComplete() {
         if (!startupState) return !setupSession; // Old HUD snapshots have no admission state.
         return startupState.admission_complete !== undefined ? yes(startupState.admission_complete) : yes(startupState.all_ready);
@@ -301,8 +309,16 @@
             selected: option.mode_id === modeChoice, enabled: selector && !modePending && modeSelectable(option),
             busy: modePending && option.mode_id === modeChoice}); });
         setText("DifficultySelectionTitle", "模式选择");
-        setText("DifficultySelectionHint", selector ? "" : "等待房主选择模式");
-        panel("DifficultySelectionHint").visible = !selector;
+        var acceptance = readOnlyAcceptance(), hint = selector ? "" : "等待房主选择模式";
+        if (acceptance) hint = "临时验收 · 不保存奖励和进度" + (hint ? "\n" + hint : "");
+        setText("DifficultySelectionHint", hint);
+        var hintPanel = panel("DifficultySelectionHint");
+        hintPanel.visible = hint !== ""; hintPanel.hittest = acceptance;
+        hintPanel.SetPanelEvent("onmouseover", function () {
+            if (acceptance) $.DispatchEvent("DOTAShowTextTooltip", hintPanel,
+                "本局仅用于验收怪物强度，模式和难度无需前置通关；不保存奖励和通关进度，也不消耗每日额度。由房主选择。");
+        });
+        hintPanel.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
         setText("DifficultySelectionError", modeError);
     }
     function difficultyUnlocked(option) { return !!option && (option.unlocked === true || Number(option.unlocked) === 1); }
@@ -489,7 +505,7 @@
             });
         }
         panel("DifficultySelectionDialog").style.width = "275px";
-        var modeNotice = choosingMode && (!!modeError || !modeSelector());
+        var modeNotice = choosingMode && (!!modeError || !modeSelector() || readOnlyAcceptance());
         var extraModeHeight = Math.max(0, modeOptions().length - 2) * 56;
         panel("DifficultySelectionDialog").style.height = (choosingMode ? (modeNotice ? 248 : 190) + extraModeHeight : 670) + "px";
         panel("DifficultySelectionDialog").SetHasClass("MatchSetupMode", choosingMode);
@@ -504,19 +520,21 @@
         }).sort(function (a, b) { return Number(a.difficulty_id.slice(1)) - Number(b.difficulty_id.slice(1)); });
         var highest = "";
         options.forEach(function (option) {if (difficultyUnlocked(option) && Number(String(option.difficulty_id).slice(1)) > Number(highest.slice(1) || 0)) highest = String(option.difficulty_id);});
-        var accessPolicy = setup() && setup().difficulty_access_policy !== undefined
-            ? setup().difficulty_access_policy : difficultyWave && difficultyWave.difficulty_access_policy;
-        var allConfigured = accessPolicy === "all_configured";
+        var accessPolicy = difficultyAccessPolicy(), acceptance = readOnlyAcceptance();
+        var allConfigured = accessPolicy === "all_configured" || accessPolicy === "read_only_acceptance";
         var modeNames = {pure:"纯净模式",standard:"常规模式",rich:"丰饶模式",cold:"极寒模式",scourge:"天灾模式"};
         var hint = !difficultySelector() ? "等待房主选择难度" : !canConfirmDifficulty() ? "正在读取队伍通关进度……" : "";
         if (highest) hint = (modeNames[confirmedMode()] || "本局模式")
             + (allConfigured ? " · 全难度开放至 " : " · 队伍上限 ") + highest + (hint ? "\n" + hint : "");
+        if (acceptance) hint += (hint ? "\n" : "") + "临时验收 · 不保存奖励和进度";
         setText("DifficultySelectionHint", hint);
         panel("DifficultySelectionHint").visible = hint !== "";
         var limitNames = optionArray(setup() && setup().difficulty_limit_player_ids).map(function(id){return typeof Players.GetPlayerName === "function" && Players.GetPlayerName(Number(id)) || "玩家 " + id;});
         var hintPanel = panel("DifficultySelectionHint");hintPanel.hittest = true;
         hintPanel.SetPanelEvent("onmouseover", function(){
-            $.DispatchEvent("DOTAShowTextTooltip", hintPanel, allConfigured
+            $.DispatchEvent("DOTAShowTextTooltip", hintPanel, acceptance
+                ? "本局全部已配置难度已开放，无需前置通关；仅验收怪物强度，不保存奖励和通关进度，也不消耗每日额度。仍需完成队伍准备，由房主选择。"
+                : allConfigured
                 ? "本模式全部已配置难度已开放，无需前置通关；仍需完成队伍准备，由房主选择。"
                 : "本局可选难度按全队最低通关进度计算。" + (limitNames.length ? "\n当前进度限制：" + limitNames.join("、") : ""));
         });
