@@ -1,0 +1,34 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{
+	_class = "CParticleSystemDefinition"
+	m_bShouldHitboxesFallbackToRenderBounds = false
+	m_nMaxParticles = 0
+	m_flConstantRadius = 72.0
+	m_ConstantColor = [ 255, 96, 96, 255 ]
+	m_nBehaviorVersion = 12
+	m_nFirstMultipleOverride_BackwardCompat = 5
+	m_Children = [ {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_shadow.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_void.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_void_twirl.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_void_twirl.vpcf"
+		m_flDelay = 0.45
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_void_twirl.vpcf"
+		m_flDelay = 0.9
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_galaxy.vpcf"
+		m_flDelay = 0.3
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_void_edge_spikes.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_light.vpcf"
+	}, {
+		m_ChildRef = resource:"particles/survival_environment/rich_portal/ambient_pointer.vpcf"
+	} ]
+	m_BoundingBoxMin = [ -1600.0, -1600.0, -1600.0 ]
+	m_BoundingBoxMax = [ 1600.0, 1600.0, 1600.0 ]
+}
