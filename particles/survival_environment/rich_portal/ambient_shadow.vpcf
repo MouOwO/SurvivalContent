@@ -137,6 +137,14 @@
 		}
 		m_nOutputField = 7
 	}, {
+		_class = "C_INIT_GlobalScale"
+		m_flScale = 3.0
+		m_nScaleControlPointNumber = -1
+		m_nControlPointNumber = 1
+		m_bScaleRadius = true
+		m_bScalePosition = true
+		m_bScaleVelocity = true
+	}, {
 		_class = "C_INIT_PositionPlaceOnGround"
 		m_CollisionGroupName = "DEBRIS"
 		m_flMaxTraceLength = 256.0
@@ -146,14 +154,6 @@
 		m_nCP = 1
 		m_nFieldOutput = 4
 		m_flOffsetRot = 90.0
-	}, {
-		_class = "C_INIT_GlobalScale"
-		m_flScale = 3.0
-		m_nScaleControlPointNumber = -1
-		m_nControlPointNumber = 1
-		m_bScaleRadius = true
-		m_bScalePosition = true
-		m_bScaleVelocity = true
 	} ]
 	m_Operators = [ {
 		_class = "C_OP_Decay"

@@ -822,7 +822,7 @@
 		m_vecTexturesInput = [ {
 			m_hTexture = resource:"materials/particle/electricity/electricity_22_d.vtex"
 		} ]
-		m_flDepthBias = -60.0
+		m_flDepthBias = -20.0
 	} ]
 	m_BoundingBoxMin = [ -1600.0, -1600.0, -1600.0 ]
 	m_BoundingBoxMax = [ 1600.0, 1600.0, 1600.0 ]
