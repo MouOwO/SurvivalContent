@@ -34,6 +34,11 @@
   "native_local_credential_applied_verified": true,
   "native_temporary_credential_removed_verified": true,
   "native_players_observed": 1,
-  "native_game_admission": "WAITING_FOR_NATIVE_TEAM_START",
+  "native_accounts_authenticated": 1,
+  "native_profiles_loaded": 1,
+  "native_phase": "ready",
+  "native_admission_complete": true,
+  "native_profiles_ready": true,
+  "native_game_admission": "VERIFIED_SINGLE_PLAYER",
   "multicomputer_play": "NOT_VERIFIED"
 }
