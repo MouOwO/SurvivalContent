@@ -252,6 +252,8 @@
             profile_load_timeout: "玩家档案读取超时，请重试。"
         };
         var preparationError = state && errorMessages[state.error] || "准备尚未完成，请重试。";
+        var pairing = state && typeof state.error === "string" && state.error.match(/^workshop_pairing_([0-9a-f]{16})$/);
+        if (pairing) preparationError = "测试服务器首次接入，请将认证指纹 " + pairing[1] + " 发给作者完成配对。";
         $("#StartupLoadingError").text = late ? "本局已开始，请重新加入下一局。" :
             (reload ? "部分初始资源加载失败，请重新启动测试地图。" :
                 (imageError ? "画面加载失败，请重试。" :

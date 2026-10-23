@@ -372,6 +372,8 @@
             profile_load_failed: "玩家档案读取失败，请重试。", profile_load_timeout: "玩家档案读取超时，请重试。",
             player_disconnected: "等待其他玩家重新连接后完成准备。", player_identity_changed: "玩家身份发生变化，请重新加入本局。"};
         var text = !profilesReady() && code ? messages[code] || "玩家档案暂未准备完成，请重试。" : "";
+        var pairing = typeof code === "string" && code.match(/^workshop_pairing_([0-9a-f]{16})$/);
+        if (!profilesReady() && pairing) text = "测试服务器首次接入，认证指纹：" + pairing[1] + "，请联系作者完成配对。";
         var retryable = !!text && code !== "player_disconnected" && code !== "player_identity_changed";
         panel("MatchSetupRetryHost").visible = retryable;
         if (text) setText("DifficultySelectionError", text);
