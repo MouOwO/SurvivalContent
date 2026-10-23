@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "workshop_id": "3824360109",
+  "visibility": "private",
+  "archive_environment": "isolated_ws4",
+  "archive_url": "https://pay.xiaofengnet.com/ws4",
+  "database": "goufayu_ws4",
+  "database_port": 15432,
+  "api_port": 18765,
+  "existing_services_unchanged": true,
+  "original_player_rows_copied": 0,
+  "four_allowed_accounts_verified": true,
+  "anonymous_unregistered_and_fifth_account_rejected": true,
+  "temporary_preflight_pin_removed": true,
+  "release_sequence": 2026102301,
+  "content_sha256": "bbeb26362dbaab7af3d03db359ee8b0eb79b31a2f2eec19e021c63b7ef611db6",
+  "runtime_files": 6623,
+  "package_files": [
+    {
+      "name": "3824360109.vpk",
+      "bytes": 273012,
+      "sha256": "66dbbb8013aabea6d1fd73ee86a17ab793da51d6f5356aca8442364cbf518262"
+    },
+    {
+      "name": "3824360109_000.vpk",
+      "bytes": 1073319193,
+      "sha256": "2a0b41afac900bc2bb5a82bb5bc6d4f68453270086b8245a80160b95e6248c3a"
+    },
+    {
+      "name": "3824360109_001.vpk",
+      "bytes": 1068730788,
+      "sha256": "68cfc41f2c46f91ade8396ebe3f3597da03ab2d1f5bb06577feee49182cddff0"
+    },
+    {
+      "name": "3824360109_002.vpk",
+      "bytes": 1072379183,
+      "sha256": "94a2a3b26731ea2a15fe0fad8116eb9043cb8bf960139a26c95e810192d56141"
+    },
+    {
+      "name": "3824360109_003.vpk",
+      "bytes": 552122163,
+      "sha256": "b3d6591353c2f26fd14e25b171f60461a2069c4e99f3af8281154f4655199094"
+    }
+  ],
+  "runtime_changes": 6,
+  "protected_modules_preserved": 180,
+  "valve_pairing": "OWNER_FINGERPRINT_REQUIRED",
+  "steam_upload": "SUCCEEDED_ORIGINAL_PRIVATE_ITEM",
+  "actual_match_entry": "NOT_YET_VERIFIED",
+  "steam_manifest": "3692243563527546877",
+  "steam_download": "FULLY_VERIFIED",
+  "steam_download_signature_valid": true,
+  "native_download_four_archive_reads_verified": true,
+  "approved_server_keys": 0
+}
