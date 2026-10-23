@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "workshop_id": "3824360109",
+  "reported_server_region": "Japan",
+  "owner_report": "Generic authentication failure persists after selecting Japan",
+  "preflight_api_healthy": true,
+  "preflight_pending_pairings": 0,
+  "root_cause": "NOT_YET_IDENTIFIED_FROM_GENERIC_UI",
+  "diagnostic_version": "WS4-02",
+  "release_sequence": 2026102302,
+  "authorization_bypass": false,
+  "save_environment": "isolated_ws4",
+  "status": "UPLOADED_PRIVATE_WS4_02_STEAM_DOWNLOAD_PENDING",
+  "actual_match_entry": "NOT_YET_VERIFIED",
+  "content_sha256": "4583e7143dfa95b8686cfb458080b78624e97d4f359b6122e0d8190ee2136543",
+  "runtime_files": 6623,
+  "package_files": [
+    {
+      "name": "3824360109.vpk",
+      "bytes": 273012,
+      "sha256": "0446e2df3aee92c2a0f04eb5d3c3756a1044f71b037a9710688e114f00e5043b"
+    },
+    {
+      "name": "3824360109_000.vpk",
+      "bytes": 1073323533,
+      "sha256": "c405fd8e3b3ff125e12568ff9ecba4214fc675e9771181fdaa75cd7f9c7b1c31"
+    },
+    {
+      "name": "3824360109_001.vpk",
+      "bytes": 1068730788,
+      "sha256": "68cfc41f2c46f91ade8396ebe3f3597da03ab2d1f5bb06577feee49182cddff0"
+    },
+    {
+      "name": "3824360109_002.vpk",
+      "bytes": 1072379183,
+      "sha256": "94a2a3b26731ea2a15fe0fad8116eb9043cb8bf960139a26c95e810192d56141"
+    },
+    {
+      "name": "3824360109_003.vpk",
+      "bytes": 552122163,
+      "sha256": "b3d6591353c2f26fd14e25b171f60461a2069c4e99f3af8281154f4655199094"
+    }
+  ],
+  "runtime_changes_from_frozen_v02": 6,
+  "protected_modules_preserved": 180,
+  "uploaded": true,
+  "steam_manifest": "6071591969406802707",
+  "public_https_pairing_response_verified": true,
+  "synthetic_probe_never_approved": true
+}

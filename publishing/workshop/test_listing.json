@@ -20,10 +20,10 @@
   "cover_width": 1024,
   "cover_height": 768,
   "real_money_payments": false,
-  "status": "PRIVATE_WS4_DOWNLOADED_VERIFIED_AWAITING_OWNER_PAIRING",
-  "test_addon": "frozen_ws4_auth_20261023",
-  "release_sequence": 2026102301,
-  "runtime_content_sha256": "bbeb26362dbaab7af3d03db359ee8b0eb79b31a2f2eec19e021c63b7ef611db6",
+  "status": "UPLOADED_PRIVATE_WS4_02_STEAM_DOWNLOAD_PENDING",
+  "test_addon": "frozen_ws4_auth_diagnostics_20261023",
+  "release_sequence": 2026102302,
+  "runtime_content_sha256": "4583e7143dfa95b8686cfb458080b78624e97d4f359b6122e0d8190ee2136543",
   "uploaded": true,
   "notes": [
     "Updates the original private test item; visibility remains private and no new Workshop item is created.",
@@ -31,50 +31,22 @@
     "The owner selected independent test saves on 2026-10-23. No existing player profiles, orders or balances were copied; existing archive/payment services remain unchanged.",
     "The dedicated Valve server obtains its credential at runtime. The backend stays closed until the owner confirms the displayed pairing fingerprint; no shared credential is included in downloadable code.",
     "Only six runtime files differ from the frozen v02 release, including two new transport modules; all gameplay/resources and 180 protected modules are preserved.",
-    "Four authorized account authentication and fifth-account/anonymous/unregistered rejection passed against the isolated database; actual Valve pairing and full match entry remain separate checks."
+    "Four authorized account authentication and fifth-account/anonymous/unregistered rejection passed against the isolated database; actual Valve pairing and full match entry remain separate checks.",
+    "WS4-02 preserves bounded Valve Invalid_* states and distinguishes dedicated-server, credential API, credential format, routing, HTTP rejection and network failures. No authentication check is bypassed; Japan match entry is not yet verified."
   ],
   "workshop_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3824360109",
   "visibility_verified": "private",
   "package_layout": "external_archives",
   "previous_release": {
-    "release_sequence": 2026102202,
-    "runtime_content_sha256": "1c09e562ada4586ba4c046616e94317bf062c308a0c0c507e5af59d7b9024b6d",
-    "download_sha256": "1d3b7aba3c5d0b0015b4fd33027dac0c077ac41170367179cdb7aafc22110276",
-    "download_manifest": "3082359956653095025"
+    "release_sequence": 2026102301,
+    "runtime_content_sha256": "bbeb26362dbaab7af3d03db359ee8b0eb79b31a2f2eec19e021c63b7ef611db6",
+    "download_sha256": "66dbbb8013aabea6d1fd73ee86a17ab793da51d6f5356aca8442364cbf518262",
+    "download_manifest": "3692243563527546877"
   },
   "archive_environment": "isolated_ws4",
   "archive_base_url": "https://pay.xiaofengnet.com/ws4",
   "backend_four_account_gate_deployed": true,
   "valve_server_pairing": "OWNER_CONFIRMATION_REQUIRED",
-  "download_sha256": "66dbbb8013aabea6d1fd73ee86a17ab793da51d6f5356aca8442364cbf518262",
-  "download_manifest": "3692243563527546877",
-  "download_package_files": [
-    {
-      "name": "3824360109.vpk",
-      "bytes": 273012,
-      "sha256": "66dbbb8013aabea6d1fd73ee86a17ab793da51d6f5356aca8442364cbf518262"
-    },
-    {
-      "name": "3824360109_000.vpk",
-      "bytes": 1073319193,
-      "sha256": "2a0b41afac900bc2bb5a82bb5bc6d4f68453270086b8245a80160b95e6248c3a"
-    },
-    {
-      "name": "3824360109_001.vpk",
-      "bytes": 1068730788,
-      "sha256": "68cfc41f2c46f91ade8396ebe3f3597da03ab2d1f5bb06577feee49182cddff0"
-    },
-    {
-      "name": "3824360109_002.vpk",
-      "bytes": 1072379183,
-      "sha256": "94a2a3b26731ea2a15fe0fad8116eb9043cb8bf960139a26c95e810192d56141"
-    },
-    {
-      "name": "3824360109_003.vpk",
-      "bytes": 552122163,
-      "sha256": "b3d6591353c2f26fd14e25b171f60461a2069c4e99f3af8281154f4655199094"
-    }
-  ],
-  "download_verified_runtime_files": 6623,
-  "native_four_archive_reads_verified": true
+  "connection_diagnostics": "WS4-02",
+  "steam_manifest": "6071591969406802707"
 }
