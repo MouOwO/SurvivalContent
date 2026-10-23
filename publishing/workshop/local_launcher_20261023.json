@@ -28,6 +28,12 @@
   "local_python_checks_passed": 9,
   "installed_lua_bootstrap_checks_passed": true,
   "existing_game_preservation_verified": true,
-  "native_game_admission": "WAITING_FOR_EXISTING_DOTA_TO_EXIT",
+  "native_game_launch_verified": true,
+  "native_console_port_verified": 29003,
+  "native_map_loaded_verified": true,
+  "native_local_credential_applied_verified": true,
+  "native_temporary_credential_removed_verified": true,
+  "native_players_observed": 1,
+  "native_game_admission": "WAITING_FOR_NATIVE_TEAM_START",
   "multicomputer_play": "NOT_VERIFIED"
 }
