@@ -368,24 +368,24 @@
     }
     function renderProfileError(ui) {
         var code = setup() && setup().error;
-        var messages = {backend_authentication_failed: "服务端认证失败，请将此提示发给作者。（WS4-02/AUTH）",
-            workshop_dedicated_server_required: "当前为本地主机，请在房间中选择线上服务器后重新开局。（WS4-02）",
-            workshop_key_api_unavailable: "线上服务器未提供凭据接口，请将此提示发给作者。（WS4-02/API）",
-            workshop_key_call_failed: "线上服务器生成凭据失败，请将此提示发给作者。（WS4-02/CALL）",
-            workshop_key_empty: "线上服务器返回空凭据，请将此提示发给作者。（WS4-02/EMPTY）",
-            workshop_server_key_unavailable: "线上服务器返回的凭据格式无效，请将此提示发给作者。（WS4-02/FORMAT）",
-            workshop_connection_invalid: "测试连接配置无效，请联系作者更新游廊。（WS4-02/CONFIG）",
-            workshop_server_not_authorized: "测试服务未登记服务器凭据，请将此提示发给作者。（WS4-02/PIN）",
-            workshop_backend_unreachable: "游戏服务器未能连接测试服务，请将此提示发给作者。（WS4-02/NETWORK）",
-            workshop_backend_rejected: "测试入口拒绝连接，请将此提示发给作者。（WS4-02/HTTP）",
-            backend_token_missing: "当前对局未启用游廊测试连接，请重新开局并将此提示发给作者。（WS4-02/ROUTE）",
+        var messages = {backend_authentication_failed: "服务端认证失败，请将此提示发给作者。（WS4-03/AUTH）",
+            workshop_dedicated_server_required: "当前为本地主机，请在房间中选择线上服务器后重新开局。（WS4-03）",
+            workshop_key_api_unavailable: "线上服务器未提供凭据接口，请将此提示发给作者。（WS4-03/API）",
+            workshop_key_call_failed: "线上服务器生成凭据失败，请将此提示发给作者。（WS4-03/CALL）",
+            workshop_key_empty: "线上服务器返回空凭据，请将此提示发给作者。（WS4-03/EMPTY）",
+            workshop_server_key_unavailable: "线上服务器返回的凭据格式无效，请将此提示发给作者。（WS4-03/FORMAT）",
+            workshop_connection_invalid: "测试连接配置无效，请联系作者更新游廊。（WS4-03/CONFIG）",
+            workshop_server_not_authorized: "测试服务未登记服务器凭据，请将此提示发给作者。（WS4-03/PIN）",
+            workshop_backend_unreachable: "游戏服务器未能连接测试服务，请将此提示发给作者。（WS4-03/NETWORK）",
+            workshop_backend_rejected: "测试入口拒绝连接，请将此提示发给作者。（WS4-03/HTTP）",
+            backend_token_missing: "当前对局未启用游廊测试连接，请重新开局并将此提示发给作者。（WS4-03/ROUTE）",
             profile_load_failed: "玩家档案读取失败，请重试。", profile_load_timeout: "玩家档案读取超时，请重试。",
             player_disconnected: "等待其他玩家重新连接后完成准备。", player_identity_changed: "玩家身份发生变化，请重新加入本局。"};
         var text = !profilesReady() && code ? messages[code] || "玩家档案暂未准备完成，请重试。" : "";
         var pairing = typeof code === "string" && code.match(/^workshop_pairing_([0-9a-f]{16})$/);
         if (!profilesReady() && pairing) text = "测试服务器首次接入，认证指纹：" + pairing[1] + "，请联系作者完成配对。";
         var keyState = typeof code === "string" && code.match(/^workshop_key_state_(Invalid_[A-Za-z0-9_]{1,56})$/);
-        if (!profilesReady() && keyState) text = "Valve服务器凭据不可用，请将此状态发给作者。（WS4-02：" + keyState[1] + "）";
+        if (!profilesReady() && keyState) text = "Valve服务器凭据不可用，请将此状态发给作者。（WS4-03：" + keyState[1] + "）";
         var retryable = !!text && code !== "player_disconnected" && code !== "player_identity_changed";
         panel("MatchSetupRetryHost").visible = retryable;
         if (text) setText("DifficultySelectionError", text);
