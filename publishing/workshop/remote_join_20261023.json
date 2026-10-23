@@ -31,7 +31,7 @@
   "firewall_disabled": false,
   "restart_performed": false,
   "existing_single_player_game_preserved": true,
-  "python_checks_passed": 20,
+  "python_checks_passed": 21,
   "guest_install_resume_and_preserve_fixture_passed": true,
   "private_network_info_acl_verified": true,
   "windows_powershell_guest_package_check_passed": true,
@@ -48,7 +48,7 @@
     "archive_sha256": "d0b5c8bdd855d538183e432753604295d14062abdc198929fa006cd57a4f20b6"
   },
   "guest_repository_entrypoint": "join_ws4_game.cmd",
-  "guest_launcher_revision": 6,
+  "guest_launcher_revision": 7,
   "missing_host_release_error": "host_frozen_release_missing",
   "missing_host_release_diagnosis": "Guest PC launched the host-only entry without the fixed release manifest; Git checkout does not include the frozen runtime bundle.",
   "host_powershell_missing_release_check_passed": true,
@@ -86,7 +86,7 @@
     "archive_bytes": 3772237529,
     "archive_sha256": "4cb96704e172a09e134bff9adbaa6dda4fd34de89d98aa60abea77b04d63d9a8"
   },
-  "diagnostic_revision": "WS4-JOIN-06",
+  "diagnostic_revision": "WS4-JOIN-07",
   "diagnostic_log": "join_diagnostic.json",
   "diagnostic_includes": [
     "stage",
@@ -172,7 +172,7 @@
   "local_v6_audit_files": 6627,
   "local_v6_audit_issue_count": 0,
   "audit_multiple_missing_and_changed_files_fixture_passed": true,
-  "guest_checks_passed": 7,
+  "guest_checks_passed": 8,
   "confirmed_remote_failure": "frozen_runtime_contains_thousands_of_empty_files",
   "remote_resource_audit_summary": {
     "files": 6627,
@@ -204,5 +204,38 @@
   "bulk_patch_fixture_final_issues": 0,
   "latest_reported_zero_resource": "materials/survival_buildings/wall_lv10_color_png_25a4707e.vtex_c",
   "latest_reported_zero_resource_expected_bytes": 2798284,
-  "latest_reported_zero_resource_actual_bytes": 0
+  "latest_reported_zero_resource_actual_bytes": 0,
+  "long_path_installer_patch": {
+    "path": "output/ws4_long_path_installer_20261023_v7.zip",
+    "bytes": 7908,
+    "sha256": "55a2058f3387b0b39f1def4688bed0788176e3f6d6dfbaf734cc2162fa9d97b1",
+    "crc_verified": true
+  },
+  "required_installer_patch_after_resource_patch": true,
+  "remote_resources_passed_before_install_failure": true,
+  "remote_last_install_error": {
+    "stage": "install_runtime",
+    "error": "guest_file_missing",
+    "exception_type": "System.IO.DirectoryNotFoundException",
+    "revision": "WS4-JOIN-06",
+    "relative_path_chars": 186,
+    "actual_destination_chars": 260,
+    "old_reported_path_chars": 116
+  },
+  "extended_namespace_used_for_resource_copy_hash_metadata_and_enumeration": true,
+  "existing_modified_file_overwrite_allowed": false,
+  "system_long_path_or_execution_policy_changed": false,
+  "full_long_path_install_fixture": {
+    "ok": true,
+    "installed_files": 6627,
+    "installed_runtime_bytes": 3766563092,
+    "longest_destination_chars": 453,
+    "all_destination_md5_sha256_verified": true,
+    "process_launch_mocked": true,
+    "real_game_started_or_stopped": false
+  },
+  "windows_ps51_over_400_char_install_resume_and_changed_file_fixture_passed": true,
+  "windows_junction_rejected_before_enumeration_fixture_passed": true,
+  "independent_helper_review_passed": true,
+  "remote_v7_retry_confirmed": false
 }
