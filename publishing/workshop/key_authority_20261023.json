@@ -7,7 +7,7 @@
   "actual_valve_key_result": "Invalid_NotOnDedicatedServer",
   "diagnostic_version": "WS4-03",
   "release_sequence": 2026102303,
-  "status": "DOWNLOADED_VERIFIED_VALVE_KEY_INVALID_HOSTING_REVIEW_REQUIRED",
+  "status": "UNLISTED_VERIFIED_RETEST_STILL_NO_VALVE_CREDENTIAL",
   "save_environment": "isolated_ws4",
   "invalid_valve_keys_still_rejected": true,
   "backend_owner_pin_still_required": true,
@@ -57,5 +57,10 @@
   "native_download_four_archive_reads_verified": true,
   "owner_reported_server_region": "Japan",
   "observed_local_game_udp_port": 27015,
-  "visibility_still_private": true
+  "visibility_still_private": false,
+  "visibility": "unlisted",
+  "anonymous_item_page_visible": true,
+  "owner_approved_visibility_change": true,
+  "package_unchanged_by_visibility_update": true,
+  "hosting_retest_valve_key_state": "Invalid_NotOnDedicatedServer"
 }

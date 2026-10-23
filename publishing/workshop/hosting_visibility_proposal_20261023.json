@@ -1,15 +1,16 @@
 {
   "schema": 1,
-  "status": "PROPOSED_NOT_APPLIED_OWNER_APPROVAL_REQUIRED",
+  "status": "OWNER_APPROVED_APPLIED_UNLISTED_RETEST_STILL_NO_VALVE_CREDENTIAL",
   "workshop_id": "3824360109",
   "owner": "76561198845461206",
   "title": "孤城逐晓 · 封闭测试",
   "release_sequence": 2026102303,
   "runtime_content_sha256": "a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335",
   "current_visibility": {
-    "value": 2,
-    "name": "private",
-    "access": "creator_only"
+    "value": 3,
+    "name": "unlisted",
+    "access": "anyone_with_link_can_view_and_download",
+    "global_search_listing": false
   },
   "proposed_visibility": {
     "value": 3,
@@ -48,5 +49,17 @@
     "https://github.com/ValveSoftware/Dota2-Gameplay/issues/33945",
     "https://github.com/ValveSoftware/Dota2-Gameplay/issues/35497",
     "https://github.com/ValveSoftware/Dota2-Gameplay/issues/36176"
-  ]
+  ],
+  "previous_visibility": {
+    "value": 2,
+    "name": "private",
+    "access": "creator_only"
+  },
+  "owner_approved": true,
+  "visibility_query_verified": 3,
+  "anonymous_item_page_visible": true,
+  "package_total_bytes_unchanged": true,
+  "content_setter_called": false,
+  "actual_hosting_retest": "Invalid_NotOnDedicatedServer",
+  "legacy_anonymous_details_api_result": 9
 }
