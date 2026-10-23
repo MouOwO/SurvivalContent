@@ -25,7 +25,16 @@
   "fifth_account_rejected": true,
   "wrong_loopback_credential_rejected": true,
   "payment_route_rejected": true,
-  "local_python_checks_passed": 9,
+  "local_python_checks_passed": 10,
+  "tools_cache_relaunch_fix": true,
+  "cache_present_full_verifications_passed": 2,
+  "allowed_root_tools_cache_files": [
+    "tools_asset_info.bin",
+    "tools_thumbnail_cache.sqlite3",
+    "tools_thumbnail_cache.sqlite3-journal",
+    "tools_thumbnail_cache.sqlite3-wal",
+    "tools_thumbnail_cache.sqlite3-shm"
+  ],
   "installed_lua_bootstrap_checks_passed": true,
   "existing_game_preservation_verified": true,
   "native_game_launch_verified": true,
