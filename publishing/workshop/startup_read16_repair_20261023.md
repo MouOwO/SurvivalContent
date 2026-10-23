@@ -24,5 +24,16 @@
 - 完整 6,621 项签名清单、CRC和双哈希，以及目录VPK三个摘要通过。运行证据位于 Game 忽略目录 `output/arcade_read16_20261023/`。
 - 本机分卷安装后，以 `-tools -steam -addon survival -condebug` 实际启动 Workshop Tools，进程持续响应，资源扫描完成，未再出现该 fatal，也无新增崩溃 dump。启动日志与存活时间记录在 `tools_startup_console.log`、`tools_startup_result.json`；47项打包、修复和发布保护回归通过。
 - 编辑器会扫描插件内被Git忽略的诊断VPK；本次测试副本已移出插件扫描范围，后续大包诊断文件一律放在安装目录之外。
-- 远端隐藏工坊条目仍为旧单包；本轮本机修复和 Git 推送不会自动更新该条目。Steam重下载旧版本可能覆盖本机修复。
-- 资源读取通过不等于完整地图加载、四台电脑联机或工坊多文件分发验收；这些仍需分别验证。
+- 最初本机修复完成时远端仍为旧单包；随后收到用户明确“更新”授权，已按下节更新原条目。
+- 资源读取通过不等于完整地图加载或四台电脑联机验收；工坊分发结果见下节。
+
+## 原隐藏条目更新与正式下载验收
+
+- 用户明确授权后，于北京时间 2026-10-23 08:02 成功更新原条目 `3824360109`；没有创建新条目。本人 Steam SDK 查询仍为 `visibility=2`、`Custom Game`，标题与封面保持原样。
+- 新远端 manifest 为 `3082359956653095025`，替代原 `8755349131273026539`。Steam日志确认上传 `OK`，随后检测到远端 manifest 变更并正式完成更新下载。
+- 正式下载目录内恰好为目录VPK加四个资源卷，五文件大小与SHA256均与上传包一致；6,621项CRC32、固定签名清单MD5/SHA256及目录VPK三个摘要全部通过。
+- 对正式下载副本分别读取四个卷中的贴图，以及包末尾 `teal_png.vtex_c`，Valve原生 `resourceinfo.exe` 五次均为 `EXIT=0`。
+- 正式下载后再次启动 Survival Workshop Tools，资源依赖图已创建、进程持续响应，未出现相关fatal或新增崩溃dump；证据为 `remote_tools_result.json` 和 `remote_tools_console.log`。
+- 发布序号仍为 `2026102202`，全部运行内容字节与四账号名单保持原样，真实现金支付仍关闭。
+- 上传、正式下载和原生读取证据：Game忽略目录 `output/arcade_read16_20261023/steam_update.log`、`remote_download_verified.json`、`remote_native_result.json`。发布恢复journal仍使用原条目ID，没有另建条目。
+- 工坊多文件分发已通过本机正式下载验收；完整地图加载、四台电脑联机与远端存档连接仍不属于本次启动修复的验收结论。

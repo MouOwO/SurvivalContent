@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "workshop_id": "3824360109",
+  "workshop_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3824360109",
+  "visibility_verified": "private",
+  "remote_manifest": "3082359956653095025",
+  "upload_success": true,
+  "steam_download_verified": true,
+  "files": 6621,
+  "payload_changed": false,
+  "release_sequence": 2026102202,
+  "runtime_content_sha256": "1c09e562ada4586ba4c046616e94317bf062c308a0c0c507e5af59d7b9024b6d",
+  "package_files": [
+    {
+      "name": "3824360109.vpk",
+      "bytes": 272936,
+      "sha256": "1d3b7aba3c5d0b0015b4fd33027dac0c077ac41170367179cdb7aafc22110276"
+    },
+    {
+      "name": "3824360109_000.vpk",
+      "bytes": 1073317940,
+      "sha256": "b9058c240a42d587da23822523ad34ce3641e80c0471c309a3e2d148659c9b53"
+    },
+    {
+      "name": "3824360109_001.vpk",
+      "bytes": 1068730788,
+      "sha256": "68cfc41f2c46f91ade8396ebe3f3597da03ab2d1f5bb06577feee49182cddff0"
+    },
+    {
+      "name": "3824360109_002.vpk",
+      "bytes": 1072379183,
+      "sha256": "94a2a3b26731ea2a15fe0fad8116eb9043cb8bf960139a26c95e810192d56141"
+    },
+    {
+      "name": "3824360109_003.vpk",
+      "bytes": 552122163,
+      "sha256": "b3d6591353c2f26fd14e25b171f60461a2069c4e99f3af8281154f4655199094"
+    }
+  ],
+  "verification": {
+    "vpk_version": 2,
+    "files": 6621,
+    "payload_bytes": 3766550074,
+    "archive_count": 4,
+    "crc32_verified": true,
+    "manifest_dual_hashes_verified": true,
+    "section_md5s_verified": true,
+    "whole_vpk_md5_verified": true
+  },
+  "native_resource_reads": [
+    {
+      "archive": 0,
+      "path": "materials/ascension_arenas/bronze_color_png_7afed1ed.vtex_c",
+      "exit_code": 0
+    },
+    {
+      "archive": 1,
+      "path": "materials/survival_buildings/kingdom_arcane_r1_color_png_44a7b4ad.vtex_c",
+      "exit_code": 0
+    },
+    {
+      "archive": 2,
+      "path": "materials/survival_buildings/kingdom_wall_stage4_r2_normal_png_f2749443.vtex_c",
+      "exit_code": 0
+    },
+    {
+      "archive": 3,
+      "path": "panorama/images/custom_game/archive_items_v2/beast_03_png.vtex_c",
+      "exit_code": 0
+    },
+    {
+      "archive": 3,
+      "path": "panorama/images/ui/shared/texture/teal_png.vtex_c",
+      "exit_code": 0
+    }
+  ],
+  "full_map_and_four_machine_test": "NOT_RUN",
+  "workshop_tools_startup": {
+    "status": "TOOLS_STARTUP_NO_FATAL_OBSERVED",
+    "fatal_count": 0,
+    "new_dumps": 0
+  }
+}
