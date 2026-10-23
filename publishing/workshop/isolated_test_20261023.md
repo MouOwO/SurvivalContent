@@ -71,3 +71,15 @@ WS4-03移除这处提前返回，直接查询 `GetDedicatedServerKeyV3`。固定
 WS4-03冻结候选为 `20261023_ws4_auth_v03`，签名序号 `2026102303`，运行内容SHA256 `a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335`，仍为6,623运行文件、6个定向运行差异。源码回归、两个UI定向编译、签名与全部资源完整性以及四卷原生读取均通过。
 
 2026-10-23 09:55（北京时间）成功更新同一私密条目，Steam manifest `339511612929086093`。首次提交明确因上传manifest超时失败，保存恢复记录、核对条目仍保留旧包字节后重试成功。实际Steam下载校验与真实Valve凭据结果尚待完成，未将上传成功当作入场成功。
+
+## 已确认的 Valve 状态与可见性方案（未执行）
+
+WS4-03已通过Steam真实下载验签、6,623项资源完整校验和下载路径四卷原生读取，实际安装manifest为 `339511612929086093`。作者在选择日本后收到 `Invalid_NotOnDedicatedServer`；同时本机Dota进程监听UDP 27015。这证明当前没有可用于云端认证的Valve托管凭据，不能把该状态当作可登记密钥，也不能用无效状态生成pin。
+
+只读Steam查询确认原条目仍为Private（2，仅作者可见）。Steam官方文档明确：Unlisted（3）对所有人可见，但不在全局查询里列出；持链接者可以访问，因此不能把它描述成四账号下载白名单。现有四账号限制约束游戏入场及独立API，不限制其他人下载包。
+
+Valve官方问题仓库的开发者报告 #33945 记载私密/好友条目无法被专用服下载、调整可见性后开始加载；#35497、#36176另有近期托管和HTTP异常报告。这些是开发者报告，不是Valve官方确认，也不能证明调整可见性一定恢复托管。
+
+具体待批准方案见 `publishing/workshop/hosting_visibility_proposal_20261023.json`：仅将原条目2改为3，不新建条目、不换包、不迁移数据；保留四账号与云端pin检查。持链接者可查看并下载是本方案的实际可见性变化，必须经作者确认后才能调用提交接口。当前未执行该变更，条目继续保持私密。
+
+参考：[Steam可见性枚举](https://partner.steamgames.com/doc/api/ISteamRemoteStorage#ERemoteStoragePublishedFileVisibility)、[私密托管问题报告](https://github.com/ValveSoftware/Dota2-Gameplay/issues/33945)、[外部HTTP与本地承载报告](https://github.com/ValveSoftware/Dota2-Gameplay/issues/35497)、[近期托管维护报告](https://github.com/ValveSoftware/Dota2-Gameplay/issues/36176)。

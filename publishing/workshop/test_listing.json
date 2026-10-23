@@ -20,7 +20,7 @@
   "cover_width": 1024,
   "cover_height": 768,
   "real_money_payments": false,
-  "status": "UPLOADED_PRIVATE_WS4_03_STEAM_DOWNLOAD_PENDING",
+  "status": "WS4_03_DOWNLOADED_VERIFIED_VALVE_KEY_INVALID_HOSTING_REVIEW_REQUIRED",
   "test_addon": "frozen_ws4_key_authority_20261023",
   "release_sequence": 2026102303,
   "runtime_content_sha256": "a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335",
@@ -48,5 +48,37 @@
   "backend_four_account_gate_deployed": true,
   "valve_server_pairing": "OWNER_CONFIRMATION_REQUIRED",
   "connection_diagnostics": "WS4-03",
-  "steam_manifest": "339511612929086093"
+  "steam_manifest": "339511612929086093",
+  "download_manifest": "339511612929086093",
+  "download_sha256": "83557d57234197e4db30c4a34c9187130141ef34218009293774f42fcd29a99c",
+  "download_package_files": [
+    {
+      "name": "3824360109.vpk",
+      "bytes": 273012,
+      "sha256": "83557d57234197e4db30c4a34c9187130141ef34218009293774f42fcd29a99c"
+    },
+    {
+      "name": "3824360109_000.vpk",
+      "bytes": 1073323635,
+      "sha256": "1597f82f1e6e64eaf893270f53cd961f8ec894065a504f23555e4bc47a820469"
+    },
+    {
+      "name": "3824360109_001.vpk",
+      "bytes": 1068730788,
+      "sha256": "68cfc41f2c46f91ade8396ebe3f3597da03ab2d1f5bb06577feee49182cddff0"
+    },
+    {
+      "name": "3824360109_002.vpk",
+      "bytes": 1072379183,
+      "sha256": "94a2a3b26731ea2a15fe0fad8116eb9043cb8bf960139a26c95e810192d56141"
+    },
+    {
+      "name": "3824360109_003.vpk",
+      "bytes": 552122163,
+      "sha256": "b3d6591353c2f26fd14e25b171f60461a2069c4e99f3af8281154f4655199094"
+    }
+  ],
+  "download_verified_runtime_files": 6623,
+  "native_four_archive_reads_verified": true,
+  "observed_valve_key_state": "Invalid_NotOnDedicatedServer"
 }

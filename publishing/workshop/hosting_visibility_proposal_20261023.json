@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "status": "PROPOSED_NOT_APPLIED_OWNER_APPROVAL_REQUIRED",
+  "workshop_id": "3824360109",
+  "owner": "76561198845461206",
+  "title": "孤城逐晓 · 封闭测试",
+  "release_sequence": 2026102303,
+  "runtime_content_sha256": "a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335",
+  "current_visibility": {
+    "value": 2,
+    "name": "private",
+    "access": "creator_only"
+  },
+  "proposed_visibility": {
+    "value": 3,
+    "name": "unlisted",
+    "access": "anyone_with_link_can_view_and_download",
+    "global_search_listing": false
+  },
+  "game_entry_allowed_steamids64": [
+    "76561198424163156",
+    "76561198845461206",
+    "76561198104787442",
+    "76561198974301984"
+  ],
+  "save_environment": "isolated_ws4",
+  "real_money_payments": false,
+  "runtime_or_package_change": false,
+  "api_calls": [
+    "StartItemUpdate(app_id=570, published_file_id=3824360109)",
+    "SetItemVisibility(handle, visibility=3)",
+    "SubmitItemUpdate(handle, visibility-only change note)"
+  ],
+  "verification_after_approval": [
+    "Query same owner/item and verify visibility=3",
+    "Verify package total bytes and current manifest remain unchanged",
+    "Create a new online lobby and inspect actual Valve key result",
+    "Require owner fingerprint confirmation before any first pin"
+  ],
+  "rollback": "Set the same item visibility back to private (2); no package/database rollback required",
+  "limitations": [
+    "Unlisted allows everyone with a link to download the test package.",
+    "Visibility is an access prerequisite; successful Valve dedicated hosting is not guaranteed.",
+    "Current third-party developer issue reports also describe platform-wide hosting failures; these are not Valve confirmation."
+  ],
+  "sources": [
+    "https://partner.steamgames.com/doc/api/ISteamRemoteStorage#ERemoteStoragePublishedFileVisibility",
+    "https://github.com/ValveSoftware/Dota2-Gameplay/issues/33945",
+    "https://github.com/ValveSoftware/Dota2-Gameplay/issues/35497",
+    "https://github.com/ValveSoftware/Dota2-Gameplay/issues/36176"
+  ]
+}

@@ -4,15 +4,15 @@
   "reported_server_region": "Japan",
   "owner_observed_diagnostic": "workshop_dedicated_server_required (WS4-02)",
   "confirmed_failure_stage": "GENERIC_SERVER_FLAG_BEFORE_VALVE_KEY_QUERY",
-  "actual_valve_key_result": "NOT_YET_OBSERVED",
+  "actual_valve_key_result": "Invalid_NotOnDedicatedServer",
   "diagnostic_version": "WS4-03",
   "release_sequence": 2026102303,
-  "status": "UPLOADED_PRIVATE_WS4_03_STEAM_DOWNLOAD_PENDING",
+  "status": "DOWNLOADED_VERIFIED_VALVE_KEY_INVALID_HOSTING_REVIEW_REQUIRED",
   "save_environment": "isolated_ws4",
   "invalid_valve_keys_still_rejected": true,
   "backend_owner_pin_still_required": true,
   "shared_client_credential_added": false,
-  "actual_match_entry": "NOT_YET_VERIFIED",
+  "actual_match_entry": "BLOCKED_NO_VALVE_CREDENTIAL",
   "content_sha256": "a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335",
   "runtime_files": 6623,
   "package_files": [
@@ -51,5 +51,11 @@
   "steam_manifest": "339511612929086093",
   "native_package_four_archive_reads_verified": true,
   "initial_submit_failed_manifest_timeout": true,
-  "retry_succeeded": true
+  "retry_succeeded": true,
+  "steam_download": "FULLY_VERIFIED",
+  "steam_download_signature_valid": true,
+  "native_download_four_archive_reads_verified": true,
+  "owner_reported_server_region": "Japan",
+  "observed_local_game_udp_port": 27015,
+  "visibility_still_private": true
 }
