@@ -20,10 +20,10 @@
   "cover_width": 1024,
   "cover_height": 768,
   "real_money_payments": false,
-  "status": "UPLOADED_PRIVATE_WS4_02_STEAM_DOWNLOAD_PENDING",
-  "test_addon": "frozen_ws4_auth_diagnostics_20261023",
-  "release_sequence": 2026102302,
-  "runtime_content_sha256": "4583e7143dfa95b8686cfb458080b78624e97d4f359b6122e0d8190ee2136543",
+  "status": "UPLOADED_PRIVATE_WS4_03_STEAM_DOWNLOAD_PENDING",
+  "test_addon": "frozen_ws4_key_authority_20261023",
+  "release_sequence": 2026102303,
+  "runtime_content_sha256": "a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335",
   "uploaded": true,
   "notes": [
     "Updates the original private test item; visibility remains private and no new Workshop item is created.",
@@ -32,21 +32,21 @@
     "The dedicated Valve server obtains its credential at runtime. The backend stays closed until the owner confirms the displayed pairing fingerprint; no shared credential is included in downloadable code.",
     "Only six runtime files differ from the frozen v02 release, including two new transport modules; all gameplay/resources and 180 protected modules are preserved.",
     "Four authorized account authentication and fifth-account/anonymous/unregistered rejection passed against the isolated database; actual Valve pairing and full match entry remain separate checks.",
-    "WS4-02 preserves bounded Valve Invalid_* states and distinguishes dedicated-server, credential API, credential format, routing, HTTP rejection and network failures. No authentication check is bypassed; Japan match entry is not yet verified."
+    "WS4-02 preserves bounded Valve Invalid_* states and distinguishes dedicated-server, credential API, credential format, routing, HTTP rejection and network failures. No authentication check is bypassed; Japan match entry is not yet verified.",
+    "WS4-03 queries GetDedicatedServerKeyV3 independently of the generic IsDedicatedServer flag. All invalid-key, HTTPS, four-account and owner-confirmed pin requirements remain; actual Valve result and match entry are unverified."
   ],
   "workshop_url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3824360109",
   "visibility_verified": "private",
   "package_layout": "external_archives",
   "previous_release": {
-    "release_sequence": 2026102301,
-    "runtime_content_sha256": "bbeb26362dbaab7af3d03db359ee8b0eb79b31a2f2eec19e021c63b7ef611db6",
-    "download_sha256": "66dbbb8013aabea6d1fd73ee86a17ab793da51d6f5356aca8442364cbf518262",
-    "download_manifest": "3692243563527546877"
+    "release_sequence": 2026102302,
+    "runtime_content_sha256": "4583e7143dfa95b8686cfb458080b78624e97d4f359b6122e0d8190ee2136543",
+    "steam_manifest": "6071591969406802707"
   },
   "archive_environment": "isolated_ws4",
   "archive_base_url": "https://pay.xiaofengnet.com/ws4",
   "backend_four_account_gate_deployed": true,
   "valve_server_pairing": "OWNER_CONFIRMATION_REQUIRED",
-  "connection_diagnostics": "WS4-02",
-  "steam_manifest": "6071591969406802707"
+  "connection_diagnostics": "WS4-03",
+  "steam_manifest": "339511612929086093"
 }

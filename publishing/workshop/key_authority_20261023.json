@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "workshop_id": "3824360109",
+  "reported_server_region": "Japan",
+  "owner_observed_diagnostic": "workshop_dedicated_server_required (WS4-02)",
+  "confirmed_failure_stage": "GENERIC_SERVER_FLAG_BEFORE_VALVE_KEY_QUERY",
+  "actual_valve_key_result": "NOT_YET_OBSERVED",
+  "diagnostic_version": "WS4-03",
+  "release_sequence": 2026102303,
+  "status": "UPLOADED_PRIVATE_WS4_03_STEAM_DOWNLOAD_PENDING",
+  "save_environment": "isolated_ws4",
+  "invalid_valve_keys_still_rejected": true,
+  "backend_owner_pin_still_required": true,
+  "shared_client_credential_added": false,
+  "actual_match_entry": "NOT_YET_VERIFIED",
+  "content_sha256": "a8ad3b474799bbc07821b568120ec442a2c25a74826fe2e0e92696a09ca36335",
+  "runtime_files": 6623,
+  "package_files": [
+    {
+      "name": "3824360109.vpk",
+      "bytes": 273012,
+      "sha256": "83557d57234197e4db30c4a34c9187130141ef34218009293774f42fcd29a99c"
+    },
+    {
+      "name": "3824360109_000.vpk",
+      "bytes": 1073323635,
+      "sha256": "1597f82f1e6e64eaf893270f53cd961f8ec894065a504f23555e4bc47a820469"
+    },
+    {
+      "name": "3824360109_001.vpk",
+      "bytes": 1068730788,
+      "sha256": "68cfc41f2c46f91ade8396ebe3f3597da03ab2d1f5bb06577feee49182cddff0"
+    },
+    {
+      "name": "3824360109_002.vpk",
+      "bytes": 1072379183,
+      "sha256": "94a2a3b26731ea2a15fe0fad8116eb9043cb8bf960139a26c95e810192d56141"
+    },
+    {
+      "name": "3824360109_003.vpk",
+      "bytes": 552122163,
+      "sha256": "b3d6591353c2f26fd14e25b171f60461a2069c4e99f3af8281154f4655199094"
+    }
+  ],
+  "runtime_changes_from_frozen_v02": 6,
+  "protected_modules_preserved": 180,
+  "approved_server_keys": 0,
+  "independent_api_healthy": true,
+  "existing_services_unchanged": true,
+  "uploaded": true,
+  "steam_manifest": "339511612929086093",
+  "native_package_four_archive_reads_verified": true,
+  "initial_submit_failed_manifest_timeout": true,
+  "retry_succeeded": true
+}
