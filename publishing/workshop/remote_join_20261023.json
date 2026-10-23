@@ -6,7 +6,7 @@
   "host_direct_join_opt_in": true,
   "guest_entrypoint": "加入测试.cmd",
   "bundle_directory": "output/ws4_remote_client_20261023",
-  "bundle_archive": "output/ws4_remote_client_20261023_v3.zip",
+  "bundle_archive": "output/ws4_remote_client_20261023_v4.zip",
   "runtime_files": 6627,
   "runtime_bytes": 3766563092,
   "runtime_content_sha256": "a595d8a97222217de3800ba549264217837f86c559e573e1f5ad7226100ee6e8",
@@ -31,7 +31,7 @@
   "firewall_disabled": false,
   "restart_performed": false,
   "existing_single_player_game_preserved": true,
-  "python_checks_passed": 17,
+  "python_checks_passed": 18,
   "guest_install_resume_and_preserve_fixture_passed": true,
   "private_network_info_acl_verified": true,
   "windows_powershell_guest_package_check_passed": true,
@@ -39,8 +39,8 @@
   "native_remote_join_verified": false,
   "native_two_player_authentication_verified": false,
   "native_remote_reconnection_verified": false,
-  "archive_bytes": 3772237529,
-  "archive_sha256": "4cb96704e172a09e134bff9adbaa6dda4fd34de89d98aa60abea77b04d63d9a8",
+  "archive_bytes": 3772240659,
+  "archive_sha256": "832124ad57b20fe61894fe82816f85e48c57653fad09cbd14981d143192644f5",
   "archive_crc_verified": true,
   "previous_archive": {
     "bundle_archive": "output/ws4_remote_client_20261023.zip",
@@ -48,7 +48,7 @@
     "archive_sha256": "d0b5c8bdd855d538183e432753604295d14062abdc198929fa006cd57a4f20b6"
   },
   "guest_repository_entrypoint": "join_ws4_game.cmd",
-  "guest_launcher_revision": 3,
+  "guest_launcher_revision": 4,
   "missing_host_release_error": "host_frozen_release_missing",
   "missing_host_release_diagnosis": "Guest PC launched the host-only entry without the fixed release manifest; Git checkout does not include the frozen runtime bundle.",
   "host_powershell_missing_release_check_passed": true,
@@ -63,9 +63,9 @@
     "archive_sha256": "c661815e573c11db16fcb200b72776d7665c2447a2421cc20b24e0863d8aed9f"
   },
   "launcher_repair_archive": {
-    "path": "output/ws4_launcher_repair_20261023_v3.zip",
-    "bytes": 5130,
-    "sha256": "9ada75b75b59e0de625cafbe20610969ee4485d817fd4e043a7be78d0ce1886f",
+    "path": "output/ws4_launcher_diagnostic_20261023_v4.zip",
+    "bytes": 6200,
+    "sha256": "6abb835943fca8f2a8338258e683e6a559d2f40e2c12eed7630115c1607a5a92",
     "crc_verified": true
   },
   "launcher_bytes": 1265,
@@ -80,5 +80,32 @@
   "cmd_chinese_and_ascii_entry_fixture_checks_passed": true,
   "launcher_windows_crlf_verified": true,
   "v3_actual_english_cmd_full_package_check_passed": true,
-  "v3_full_package_check_files": 6627
+  "v3_full_package_check_files": 6627,
+  "previous_v3_archive": {
+    "bundle_archive": "output/ws4_remote_client_20261023_v3.zip",
+    "archive_bytes": 3772237529,
+    "archive_sha256": "4cb96704e172a09e134bff9adbaa6dda4fd34de89d98aa60abea77b04d63d9a8"
+  },
+  "diagnostic_revision": "WS4-JOIN-04",
+  "diagnostic_log": "join_diagnostic.json",
+  "diagnostic_includes": [
+    "stage",
+    "file_relative_if_safe",
+    "category",
+    "exception_type",
+    "line",
+    "powershell"
+  ],
+  "raw_exception_messages_or_parser_input_logged": false,
+  "diagnostic_missing_asset_and_parser_redaction_fixture_passed": true,
+  "reported_remote_error": "guest_join_failed",
+  "remote_complete_directory_confirmed_by_user": true,
+  "remote_failure_root_cause_confirmed": false,
+  "screenshot_vpn_online_but_no_joined_network_shown": true,
+  "host_vpn_service_running_at_check": true,
+  "host_vpn_ipv4_at_check": "26.34.7.221",
+  "host_game_udp_27015_listening_at_check": false,
+  "last_recorded_host_launcher_error": "local_map_or_party_wait_timeout",
+  "v4_actual_package_full_check_passed": true,
+  "v4_full_check_files": 6627
 }
