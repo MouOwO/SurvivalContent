@@ -6,7 +6,7 @@
   "host_direct_join_opt_in": true,
   "guest_entrypoint": "加入测试.cmd",
   "bundle_directory": "output/ws4_remote_client_20261023",
-  "bundle_archive": "output/ws4_remote_client_20261023_v5.zip",
+  "bundle_archive": "output/ws4_remote_client_20261023_v6.zip",
   "runtime_files": 6627,
   "runtime_bytes": 3766563092,
   "runtime_content_sha256": "a595d8a97222217de3800ba549264217837f86c559e573e1f5ad7226100ee6e8",
@@ -31,7 +31,7 @@
   "firewall_disabled": false,
   "restart_performed": false,
   "existing_single_player_game_preserved": true,
-  "python_checks_passed": 18,
+  "python_checks_passed": 20,
   "guest_install_resume_and_preserve_fixture_passed": true,
   "private_network_info_acl_verified": true,
   "windows_powershell_guest_package_check_passed": true,
@@ -39,8 +39,8 @@
   "native_remote_join_verified": false,
   "native_two_player_authentication_verified": false,
   "native_remote_reconnection_verified": false,
-  "archive_bytes": 3772241304,
-  "archive_sha256": "efb28e59b75fa331dcc966656077d5e4a69c7721d62889ac7a7295c29b10a023",
+  "archive_bytes": 3772244625,
+  "archive_sha256": "23ff869c54ba074d7b9211c7a0546df4cbb7a74838140c460544765b8261f145",
   "archive_crc_verified": true,
   "previous_archive": {
     "bundle_archive": "output/ws4_remote_client_20261023.zip",
@@ -48,7 +48,7 @@
     "archive_sha256": "d0b5c8bdd855d538183e432753604295d14062abdc198929fa006cd57a4f20b6"
   },
   "guest_repository_entrypoint": "join_ws4_game.cmd",
-  "guest_launcher_revision": 5,
+  "guest_launcher_revision": 6,
   "missing_host_release_error": "host_frozen_release_missing",
   "missing_host_release_diagnosis": "Guest PC launched the host-only entry without the fixed release manifest; Git checkout does not include the frozen runtime bundle.",
   "host_powershell_missing_release_check_passed": true,
@@ -63,9 +63,9 @@
     "archive_sha256": "c661815e573c11db16fcb200b72776d7665c2447a2421cc20b24e0863d8aed9f"
   },
   "launcher_repair_archive": {
-    "path": "output/ws4_layout_diagnostic_20261023_v5.zip",
-    "bytes": 6370,
-    "sha256": "a1a669ca615746baa97b931ae25a740bcb6c5360213e9e41080bffac77bd513d",
+    "path": "output/ws4_resource_check_repair_20261023_v6.zip",
+    "bytes": 238256,
+    "sha256": "417492febf7676e7f77fa6b6a22615e573219a2c20f667a22b912057cbc21677",
     "crc_verified": true
   },
   "launcher_bytes": 1265,
@@ -86,7 +86,7 @@
     "archive_bytes": 3772237529,
     "archive_sha256": "4cb96704e172a09e134bff9adbaa6dda4fd34de89d98aa60abea77b04d63d9a8"
   },
-  "diagnostic_revision": "WS4-JOIN-05",
+  "diagnostic_revision": "WS4-JOIN-06",
   "diagnostic_log": "join_diagnostic.json",
   "diagnostic_includes": [
     "stage",
@@ -98,7 +98,7 @@
   ],
   "raw_exception_messages_or_parser_input_logged": false,
   "diagnostic_missing_asset_and_parser_redaction_fixture_passed": true,
-  "reported_remote_error": "guest_join_failed",
+  "reported_remote_error": "client_runtime_bytes_changed",
   "remote_complete_directory_confirmed_by_user": true,
   "remote_failure_root_cause_confirmed": false,
   "screenshot_vpn_online_but_no_joined_network_shown": true,
@@ -135,5 +135,74 @@
   "suspected_remote_cause": "Legacy Windows path handling; reported package root creates a 287-character asset path.",
   "remote_short_path_retry_confirmed": false,
   "v5_actual_package_full_check_passed": true,
-  "v5_full_check_files": 6627
+  "v5_full_check_files": 6627,
+  "previous_v5_archive": {
+    "bundle_archive": "output/ws4_remote_client_20261023_v5.zip",
+    "archive_bytes": 3772241304,
+    "archive_sha256": "efb28e59b75fa331dcc966656077d5e4a69c7721d62889ac7a7295c29b10a023"
+  },
+  "resource_audit_entrypoint": "check_resources.cmd",
+  "resource_audit_report": "client_resource_audit.json",
+  "resource_audit_requires_game_or_vpn": false,
+  "resource_audit_collects_all_manifest_mismatches": true,
+  "resource_audit_mutates_runtime": false,
+  "resource_repair_rows": [
+    {
+      "path": "materials/survival_buildings/wall_lv09_reflectance_png_5a8fb3a5.vtex_c",
+      "bytes": 2798396,
+      "md5": "36104b333a89a96ae2c77f48f862110f",
+      "sha256": "20afa750728a4c4c58d367579bdf54d7bd42d7ad020d0b728a9050a1594d37b1"
+    },
+    {
+      "path": "materials/survival_buildings/wall_lv10.vmat_c",
+      "bytes": 3373,
+      "md5": "2bb9e0a0f47d2e02996eff15573b72e3",
+      "sha256": "78737dccd6ed4811e364b636ce46204126adb91d60ba17a9dfbe006f87f55c36"
+    }
+  ],
+  "local_and_v4_v5_archives_confirmed_first_resource_matches_manifest": true,
+  "remote_short_path_progressed_to_resource_checks": true,
+  "remote_reported_content_mismatches": [
+    "materials/survival_buildings/wall_lv09_reflectance_png_5a8fb3a5.vtex_c",
+    "materials/survival_buildings/wall_lv10.vmat_c"
+  ],
+  "remote_content_change_origin_confirmed": false,
+  "remote_resource_repair_complete": false,
+  "local_v6_full_package_check_passed": true,
+  "local_v6_audit_files": 6627,
+  "local_v6_audit_issue_count": 0,
+  "audit_multiple_missing_and_changed_files_fixture_passed": true,
+  "guest_checks_passed": 7,
+  "confirmed_remote_failure": "frozen_runtime_contains_thousands_of_empty_files",
+  "remote_resource_audit_summary": {
+    "files": 6627,
+    "issue_count": 5267,
+    "zero_byte_issues": 5267,
+    "expected_missing_bytes": 1619445335,
+    "first_empty": "materials/survival_buildings/wall_lv10_color_png_25a4707e.vtex_c",
+    "last_empty": "soundevents/survival_tower_feedback.vsndevts_c"
+  },
+  "suspected_archive_compatibility_boundary_bytes": 2147483648,
+  "first_original_empty_texture_archive_offset": 2147995611,
+  "local_full_archives_v1_to_v6_entry_sizes_match_pinned_manifest": true,
+  "remote_archive_hash_and_extractor_not_yet_verified": true,
+  "bulk_resource_repair": {
+    "ok": true,
+    "archive": "output\\ws4_bulk_resource_repair_20261023_v6.zip",
+    "archive_bytes": 1032004974,
+    "archive_sha256": "26436656d9147eee4e17e85f192c595ebfeb888d5df1f60592534ac930507d4b",
+    "resources": 5269,
+    "resource_bytes": 1622247104,
+    "all_entry_hashes_verified": true,
+    "legacy_zip_without_zip64": true
+  },
+  "bulk_resources_cover_audit_and_previous_two_fixes": true,
+  "resource_patch_builder_unknown_or_incomplete_audit_and_changed_source_checks_passed": true,
+  "bulk_patch_windows_expand_archive_restoration_verified": true,
+  "bulk_patch_fixture_initial_zero_files": 5269,
+  "bulk_patch_fixture_final_files": 6627,
+  "bulk_patch_fixture_final_issues": 0,
+  "latest_reported_zero_resource": "materials/survival_buildings/wall_lv10_color_png_25a4707e.vtex_c",
+  "latest_reported_zero_resource_expected_bytes": 2798284,
+  "latest_reported_zero_resource_actual_bytes": 0
 }
