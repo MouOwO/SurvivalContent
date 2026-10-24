@@ -1,9 +1,11 @@
 <root>
     <styles>
         <include src="file://{resources}/styles/custom_game/startup_loading.css" />
+        <include src="file://{resources}/styles/custom_game/player_web_auth.css" />
     </styles>
     <scripts>
         <include src="file://{resources}/scripts/custom_game/startup_loading.js" />
+        <include src="file://{resources}/scripts/custom_game/player_web_auth.js" />
     </scripts>
     <Panel class="SurvivalStartupLoading" visible="true" hittest="true" hittestchildren="true">
         <Panel id="StartupLoadingSurface" class="StartupLoadingSurface" visible="true" hittest="true" hittestchildren="true">
