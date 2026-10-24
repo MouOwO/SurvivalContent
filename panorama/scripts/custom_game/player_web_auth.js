@@ -29,6 +29,9 @@
     var retryButton = root.FindChildTraverse("PlayerWebAuthRetry");
     var loading = null, personal = null, session = "", requested = false, disposed = false;
     var tableSubscription = null, eventSubscription = null;
+    var diagnosticRevision = "WS4-WEB-04";
+    var diagnosticPhases = {start: true, poll: true};
+    var diagnosticStages = {API: true, create: true, send: true, http: true, json: true, fields: true, timeout: true};
     var messages = {
         requesting: "正在准备网页授权…",
         pending: "等待网页确认。完成后会自动继续加载。",
@@ -61,6 +64,17 @@
         var expected = "https://pay.xiaofengnet.com/ws4-web/authorize?code=" + value.user_code;
         return value.verification_uri === expected ? expected : "";
     }
+    function safeDiagnostic(value) {
+        if (value.status !== "failed" || value.diagnostic_revision !== diagnosticRevision
+            || typeof value.diagnostic_phase !== "string" || typeof value.diagnostic_stage !== "string"
+            || !Object.prototype.hasOwnProperty.call(diagnosticPhases, value.diagnostic_phase)
+            || !Object.prototype.hasOwnProperty.call(diagnosticStages, value.diagnostic_stage)
+            || typeof value.diagnostic_status !== "number" || !isFinite(value.diagnostic_status)
+            || value.diagnostic_status < 0 || value.diagnostic_status > 599
+            || value.diagnostic_status !== Math.floor(value.diagnostic_status)) return null;
+        return {diagnostic_revision: diagnosticRevision, diagnostic_phase: value.diagnostic_phase,
+            diagnostic_stage: value.diagnostic_stage, diagnostic_status: value.diagnostic_status};
+    }
     function request() {
         if (!valid() || !gated()) return;
         GameEvents.SendCustomGameEventToServer("survival_player_web_auth_request", {session_id: session});
@@ -74,6 +88,10 @@
         var uri = visible && personal.status === "pending" ? safeUri(personal) : "";
         codeLabel.text = uri ? personal.user_code : "";
         statusLabel.text = visible ? messages[personal.status] || messages.failed : "";
+        if (visible && personal.diagnostic_revision === diagnosticRevision) {
+            statusLabel.text += "\n(" + diagnosticRevision + " / " + personal.diagnostic_phase
+                + " / " + personal.diagnostic_stage + " / " + personal.diagnostic_status + ")";
+        }
         openButton.enabled = !!uri;
         retryButton.enabled = !!visible;
     }
@@ -96,6 +114,13 @@
         personal = {session_id: session, player_id: value.player_id, status: value.status,
             user_code: typeof value.user_code === "string" ? value.user_code : "",
             verification_uri: typeof value.verification_uri === "string" ? value.verification_uri : ""};
+        var diagnostic = safeDiagnostic(value);
+        if (diagnostic) {
+            personal.diagnostic_revision = diagnostic.diagnostic_revision;
+            personal.diagnostic_phase = diagnostic.diagnostic_phase;
+            personal.diagnostic_stage = diagnostic.diagnostic_stage;
+            personal.diagnostic_status = diagnostic.diagnostic_status;
+        }
         render();
     }
     function dispose() {
