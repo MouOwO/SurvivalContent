@@ -246,7 +246,7 @@
         $("#StartupLoadingErrorBox").SetHasClass("StartupLoadingHidden", !showError);
         root.SetHasClass("StartupLoadingHasError", showError);
         var errorMessages = {
-            backend_connection_pending: "测试后端连接尚未就绪。主机请运行 setup_hammer_backend.cmd，检查助手状态后等待重试。",
+            backend_connection_pending: "测试后端连接尚未就绪。请使用“联网登录测试”入口，或检查内部后端助手状态后重试。",
             backend_authentication_failed: "服务端认证失败，请将此提示发给作者。（WS4-03/AUTH）",
             workshop_dedicated_server_required: "当前为本地主机，请在房间中选择线上服务器后重新开局。（WS4-03）",
             workshop_key_api_unavailable: "线上服务器未提供凭据接口，请将此提示发给作者。（WS4-03/API）",
