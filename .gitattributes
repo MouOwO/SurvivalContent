@@ -17,3 +17,4 @@ maps/tilesets/survival_dire_journey_basic.vmap filter=lfs diff=lfs merge=lfs -te
 maps/tilesets/survival_dire_jungle_basic.vmap filter=lfs diff=lfs merge=lfs -text
 maps/tilesets/survival_radiant_snow_basic.vmap filter=lfs diff=lfs merge=lfs -text
 maps/tilesets/survival_radiant_ti10_basic.vmap filter=lfs diff=lfs merge=lfs -text
+maps/ws4_entry.vmap filter=lfs diff=lfs merge=lfs -text
