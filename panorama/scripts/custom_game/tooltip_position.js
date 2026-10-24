@@ -10,7 +10,7 @@
     var config = GameUI.CustomUIConfig();
     var previous = config.SurvivalTooltipPosition;
     if (previous && previous.DisposeTextLayer) previous.DisposeTextLayer();
-    var textOwner = null, textHost = null, textLease = [], textSerial = 0;
+    var textOwner = null, textHost = null, textLease = [], textSerial = 0, textHideEvent = null;
     var tooltipLayer = 2100000000;
     var errorOwner = null, errorHost = null, errorLease = [], errorSerial = 0, errorTask = null;
     // Large spacing remains distinct if native z-order passes through float32.
@@ -113,7 +113,8 @@
         if (!valid(root)) return null;
         // TextTooltip is defined by the installed engine's core tooltip layout.
         // Some HUD versions expose its manager instead of the text instance.
-        var ids = ["Tooltips", "TooltipManager", "TooltipContainer", "TextTooltip", "DOTA_TextTooltip", "DOTATextTooltip"];
+        var ids = ["Tooltips", "TooltipManager", "TooltipContainer", "TextTooltip", "DOTA_TextTooltip", "DOTATextTooltip",
+            "TitleTextTooltip", "DOTA_TitleTextTooltip", "DOTATitleTextTooltip"];
         for (var index = 0; index < ids.length; index++) {
             var candidate = root.FindChildTraverse && root.FindChildTraverse(ids[index]);
             if (valid(candidate)) return candidate;
@@ -124,7 +125,7 @@
         while (cursor < pending.length && cursor < 512) {
             var panel = pending[cursor++];
             var type = String(panel.paneltype || (panel.GetPanelType && panel.GetPanelType()) || "");
-            if (/^(?:DOTA_?)?(?:TextTooltip|Tooltip(?:Manager|_Text)?)$/i.test(type)) return panel;
+            if (/^(?:DOTA_?)?(?:(?:Title)?TextTooltip|Tooltip(?:Manager|_Text)?)$/i.test(type)) return panel;
             var children = panel.Children ? panel.Children() : [];
             for (var child = 0; child < children.length && pending.length < 512; child++)
                 if (valid(children[child])) pending.push(children[child]);
@@ -151,13 +152,25 @@
         });
         return true;
     }
-    function showText(source, content) {
+    function dispatchTextHide(event, source) {
+        if (event === "DOTAHideTitleTextTooltip") {
+            if (valid(source)) $.DispatchEvent(event, source);
+        }
+        else $.DispatchEvent(event);
+    }
+    function showNativeText(source, title, content, titled) {
         if (!valid(source)) return;
         restoreErrorLayer();
+        var hideEvent = titled ? "DOTAHideTitleTextTooltip" : "DOTAHideTextTooltip";
+        // Text and title tooltips can be separate native instances. Retire the
+        // old kind before transferring their shared foreground layer.
+        if (textOwner && textHideEvent && textHideEvent !== hideEvent)
+            dispatchTextHide(textHideEvent, textOwner);
         if (textOwner !== source) restoreTextLayer();
-        textOwner = source;
+        textOwner = source; textHideEvent = hideEvent;
         var serial = ++textSerial;
-        $.DispatchEvent("DOTAShowTextTooltip", source, content);
+        if (titled) $.DispatchEvent("DOTAShowTitleTextTooltip", source, title, content);
+        else $.DispatchEvent("DOTAShowTextTooltip", source, content);
         raiseTextLayer(source);
         raiseErrorLayer();
         // Native tooltip creation/attachment may finish on the next layout
@@ -168,14 +181,20 @@
             }
         });
     }
-    function hideText(source) {
+    function hideNativeText(source, hideEvent) {
         if (textOwner && source && textOwner !== source) return;
+        if (textHideEvent && textHideEvent !== hideEvent) return;
         restoreErrorLayer();
-        textSerial++; textOwner = null;
-        $.DispatchEvent("DOTAHideTextTooltip");
+        var owner = textOwner || source;
+        textSerial++; textOwner = null; textHideEvent = null;
+        dispatchTextHide(hideEvent, owner);
         restoreTextLayer();
         raiseErrorLayer();
     }
+    function showText(source, content) { showNativeText(source, null, content, false); }
+    function showTitleText(source, title, content) { showNativeText(source, title, content, true); }
+    function hideText(source) { hideNativeText(source, "DOTAHideTextTooltip"); }
+    function hideTitleText(source) { hideNativeText(source, "DOTAHideTitleTextTooltip"); }
 
     function numberOr(value, fallback) {
         return typeof value === "number" && isFinite(value) ? value : fallback;
@@ -301,11 +320,17 @@
     config.SurvivalTooltipPosition = {
         ShowText: showText,
         HideText: hideText,
+        ShowTitleText: showTitleText,
+        HideTitleText: hideTitleText,
         ShowNativeError: showNativeError,
         HideNativeError: hideNativeError,
         SuspendTextLayer: function () { restoreErrorLayer(); restoreTextLayer(); },
         ResumeTextLayer: function () { if (textOwner) raiseTextLayer(textOwner); raiseErrorLayer(); },
-        DisposeTextLayer: function () { hideNativeError(); textSerial++; textOwner = null; restoreTextLayer(); },
+        DisposeTextLayer: function () {
+            hideNativeError();
+            if (textOwner) hideNativeText(textOwner, textHideEvent);
+            else { textSerial++; textHideEvent = null; restoreTextLayer(); }
+        },
         InspectTextLayer: function () { return {source:textOwner && textOwner.id || "", host:textHost && textHost.id || "", raised:textLease.length, z:tooltipLayer}; },
         InspectNativeErrorLayer: function () { return {source:errorOwner && errorOwner.id || "", host:errorHost && errorHost.id || "", raised:errorLease.length, z:errorLayer, pending:errorTask !== null}; },
         PlaceRight: placeRight,

@@ -202,7 +202,10 @@
             if(!canAct()||ticketContentId(snapshot&&(snapshot.selected_pool||snapshot))!=="lottery_ticket")return;
             if(ticketHelpOpen){hideTicketHelp();return;}
             hideTooltip();ticketHelpOpen=true;
-            $.DispatchEvent("DOTAShowTitleTextTooltip",view.ticketHelp,"普通抽奖券 · 获取渠道","每日福利：累计游玩时长和胜场奖励。<br>每周福利：累计游玩时长奖励。<br>用于地图宝箱，不支持商城购买。");
+            var position=cfg.SurvivalTooltipPosition;
+            var title="普通抽奖券 · 获取渠道",content="每日福利：累计游玩时长和胜场奖励。<br>每周福利：累计游玩时长奖励。<br>用于地图宝箱，不支持商城购买。";
+            if(position&&position.ShowTitleText)position.ShowTitleText(view.ticketHelp,title,content);
+            else $.DispatchEvent("DOTAShowTitleTextTooltip",view.ticketHelp,title,content);
         });
         view.ticketHelp.SetPanelEvent("onmouseout",hideTicketHelp);
         ["LotteryHeroCopy","LotteryUnlockNotice","LotteryStatus"].forEach(function(id){move(id,content);});
@@ -253,7 +256,11 @@
         return id||(poolId==="cultivation"||poolId==="dragon_knight"||poolId==="summer"?"special_lottery_ticket":"lottery_ticket");
     }
     function hideTicketHelp() {
-        if(ticketHelpOpen&&view&&valid(view.ticketHelp))$.DispatchEvent("DOTAHideTitleTextTooltip",view.ticketHelp);
+        if(ticketHelpOpen&&view){
+            var position=cfg.SurvivalTooltipPosition;
+            if(position&&position.HideTitleText)position.HideTitleText(view.ticketHelp);
+            else if(valid(view.ticketHelp))$.DispatchEvent("DOTAHideTitleTextTooltip",view.ticketHelp);
+        }
         ticketHelpOpen=false;
     }
     function ticketIcon(node,pool) {
