@@ -1,0 +1,21 @@
+<root>
+    <styles><include src="file://{resources}/styles/custom_game/onboarding.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/onboarding.js" /></scripts>
+    <Panel class="SurvivalOnboardingContext" hittest="false" hittestchildren="true">
+      <Panel id="SurvivalOnboardingRoot" hittest="false" hittestchildren="true">
+        <Panel id="OnboardingTargets" hittest="false" hittestchildren="false" />
+        <Panel id="OnboardingMaskTop" class="OnboardingMask" hittest="true" />
+        <Panel id="OnboardingMaskBottom" class="OnboardingMask" hittest="true" />
+        <Panel id="OnboardingMaskLeft" class="OnboardingMask" hittest="true" />
+        <Panel id="OnboardingMaskRight" class="OnboardingMask" hittest="true" />
+        <Panel id="OnboardingFocus" hittest="false" hittestchildren="false" />
+        <Panel id="OnboardingCard" hittest="false" hittestchildren="false">
+            <Label id="OnboardingProgress" text="新手引导" />
+            <Label id="OnboardingTitle" />
+            <Label id="OnboardingDescription" />
+            <Label id="OnboardingStatus" />
+        </Panel>
+        <Button id="OnboardingSkip" hittest="true" hittestchildren="false"><Label id="OnboardingSkipText" text="跳过引导" /></Button>
+      </Panel>
+    </Panel>
+</root>
