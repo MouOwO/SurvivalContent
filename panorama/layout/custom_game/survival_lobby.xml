@@ -6,7 +6,8 @@
   <scripts>
     <include src="file://{resources}/scripts/custom_game/survival_lobby.js" />
   </scripts>
-  <Panel class="SurvivalLobbyRoot" visible="false" hittest="false" hittestchildren="false">
+  <Panel class="SurvivalLobbyContext" hittest="false" hittestchildren="false">
+    <Panel id="SurvivalLobbyOverlay" class="SurvivalLobbyRoot" hittest="false" hittestchildren="false" style="visibility: collapse;">
     <Panel id="LobbyCard">
       <Panel class="LobbyHeader">
         <Panel class="LobbyHeading">
@@ -71,6 +72,7 @@
         </Panel>
       </Panel>
       <Label class="LobbyFooter" text="这是不保存进度的联机试验。没有可用服务器时无法开始，单人正式存档入口保持独立。" />
+    </Panel>
     </Panel>
   </Panel>
 </root>

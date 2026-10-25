@@ -1,4 +1,6 @@
+.SurvivalLobbyContext { width: 100%; height: 100%; }
 .SurvivalLobbyRoot {
+    visibility: collapse;
     width: 100%;
     height: 100%;
     background-color: gradient(linear, 0% 0%, 100% 100%, from(#081019fc), to(#182735fc));

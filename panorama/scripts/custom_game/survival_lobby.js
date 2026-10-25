@@ -1,16 +1,19 @@
 (function () {
     "use strict";
     var root = $.GetContextPanel();
-    root.visible = false;
+    // The host owns the context panel's visibility. Only our inner panel paints
+    // or receives input, and XML/CSS keep it collapsed before this script runs.
     root.hittest = false;
     root.hittestchildren = false;
-    var map;
-    try { map = Game.GetMapInfo(); } catch (ignore) { return; }
-    var mapName = map && (map.map_name || map.map_display_name);
-    if (mapName !== "ws4_lobby") return;
-    root.visible = true;
-    root.hittest = true;
-    root.hittestchildren = true;
+    var mounted = false;
+    var generation = 0;
+    var subscriptions = [];
+    var renderTicks = 0;
+    var requiredPanels = ["SurvivalLobbyOverlay", "LobbyCard", "LobbyStatusTitle", "LobbyStatusDetail", "LobbyStatusStrip",
+        "LobbyAuthPanel", "LobbyAuthStatus", "LobbyAuthCode", "LobbyAuthOpen", "LobbyRoomNumber", "LobbyRoomHint",
+        "LobbyReadyText", "LobbyInviteBar", "LobbyInviteCode", "LobbyCreate", "LobbyJoin", "LobbyInvite", "LobbyLeave",
+        "LobbyReady", "LobbyStart", "LobbyReconnect", "LobbyRefresh", "LobbyInviteInput", "LobbyActionHint",
+        "LobbyPlayers", "LobbyRoomList", "LobbyRoomsEmpty"];
 
     var state = null;
     var lastReply = -1;
@@ -52,7 +55,57 @@
         room_not_open: "房间已经开始或关闭，无法加入。",
         no_ready_worker: "暂无通过验证的服务器，暂时无法开始。"
     };
-    function panel(id) { return root.FindChildTraverse(id); }
+    function panel(id) {
+        try { return root.FindChildTraverse(id); } catch (ignore) { return null; }
+    }
+    function lobbyMap() {
+        try {
+            var map = Game.GetMapInfo();
+            var name = map && (typeof map.map_name === "string" ? map.map_name : map.map_display_name);
+            return name === "ws4_lobby" || name === "maps/ws4_lobby.vpk";
+        } catch (ignore) { return false; }
+    }
+    function layoutReady() {
+        for (var i = 0; i < requiredPanels.length; i++) {
+            var item = panel(requiredPanels[i]);
+            if (!item || (item.IsValid && !item.IsValid())) return false;
+        }
+        return true;
+    }
+    function contentVisible(show) {
+        root.hittest = false;
+        root.hittestchildren = show;
+        var content = panel("SurvivalLobbyOverlay");
+        if (!content) return;
+        content.style.visibility = show ? "visible" : "collapse";
+        content.visible = show;
+        content.hittest = show;
+        content.hittestchildren = show;
+    }
+    function deactivate() {
+        contentVisible(false);
+        if (!mounted && !subscriptions.length) return;
+        mounted = false;
+        generation++;
+        subscriptions.forEach(function (id) {
+            try { if (typeof GameEvents.Unsubscribe === "function") GameEvents.Unsubscribe(id); } catch (ignore) {}
+        });
+        subscriptions = [];
+        state = null; auth = null; invite = null;
+        lastReply = -1; lastRequest = -Infinity; nextRefresh = -Infinity; pendingUntil = -Infinity;
+        localNotice = ""; renderTicks = 0;
+    }
+    function current() {
+        if (mounted && lobbyMap() && layoutReady()) return true;
+        deactivate();
+        return false;
+    }
+    function guarded(epoch, callback) {
+        return function (value) {
+            if (epoch !== generation || !current()) return;
+            try { callback(value); } catch (ignore) { deactivate(); }
+        };
+    }
     function flag(value) { return value === true || value === 1; }
     function now() { return Game.Time(); }
     function text(value, limit) {
@@ -78,6 +131,7 @@
         return result;
     }
     function receive(raw) {
+        if (!current()) return;
         if (!raw || typeof raw !== "object") return;
         var id = roomId(raw.room_id);
         var rev = revision(raw.revision);
@@ -108,6 +162,7 @@
         return true;
     }
     function permitted(action) {
+        if (!current()) return false;
         if (action === "refresh") return true;
         if (!available() || !state.authenticated || now() < pendingUntil) return false;
         if (action === "create" || action === "join") return !inRoom() && !busy();
@@ -140,6 +195,7 @@
         render();
     }
     function authUri() {
+        if (!current()) return "";
         if (!auth || auth.status !== "pending" || now() >= auth.expires || (state && state.authenticated)) return "";
         if (auth.user_code.length < 6 || auth.user_code.length > 16 || /[^A-Z0-9-]/.test(auth.user_code)) return "";
         var expected = "https://pay.xiaofengnet.com/ws4-web/authorize?code=" + auth.user_code;
@@ -154,6 +210,7 @@
         return " (WS4-WEB-04 / " + raw.diagnostic_phase + " / " + raw.diagnostic_stage + " / " + raw.diagnostic_status + ")";
     }
     function receiveAuth(raw) {
+        if (!current()) return;
         if (!raw || typeof raw !== "object" || !Object.prototype.hasOwnProperty.call(AUTH_TEXT, raw.status)) return;
         var localPlayer;
         try { localPlayer = Game.GetLocalPlayerID(); } catch (ignore) { return; }
@@ -193,6 +250,7 @@
         return canonical === value ? canonical : "";
     }
     function receiveConnect(raw) {
+        if (!current()) return;
         // A full idle pool is irrelevant to an already allocated room. The
         // native client VM independently checks its pinned endpoint/build.
         if (!state || !state.authenticated || !inRoom() || now() - lastReply >= 16
@@ -258,6 +316,7 @@
         }
     }
     function render() {
+        if (!current()) return;
         var live = available();
         var title = "正在查询大厅服务…";
         var detail = "收到服务端状态后才可操作。";
@@ -301,22 +360,40 @@
         renderPlayers();
         renderRooms();
     }
-    ["Create", "Invite", "Leave", "Ready", "Start", "Reconnect", "Refresh"].forEach(function (name) {
-        panel("Lobby" + name).SetPanelEvent("onactivate", function () { request(name.toLowerCase()); });
-    });
-    panel("LobbyJoin").SetPanelEvent("onactivate", function () { request("join", panel("LobbyInviteInput").text); });
-    panel("LobbyAuthOpen").SetPanelEvent("onactivate", function () {
-        var uri = authUri();
-        if (uri) $.DispatchEvent("ExternalBrowserGoToURL", uri);
-    });
-    GameEvents.Subscribe("survival_lobby_connect", receiveConnect);
-    GameEvents.Subscribe("survival_lobby_state", receive);
-    GameEvents.Subscribe("survival_player_web_auth_state", receiveAuth);
-    function tick() {
-        if (root.IsValid && !root.IsValid()) return;
-        if (now() >= nextRefresh) { nextRefresh = now() + 5; request("refresh"); }
+    function mount() {
+        // Layout creation can lag the script include. Never reveal partial XML.
+        if (!lobbyMap() || !layoutReady()) return;
+        mounted = true;
+        var epoch = ++generation;
+        ["Create", "Invite", "Leave", "Ready", "Start", "Reconnect", "Refresh"].forEach(function (name) {
+            panel("Lobby" + name).SetPanelEvent("onactivate", guarded(epoch, function () { request(name.toLowerCase()); }));
+        });
+        panel("LobbyJoin").SetPanelEvent("onactivate", guarded(epoch, function () { request("join", panel("LobbyInviteInput").text); }));
+        panel("LobbyAuthOpen").SetPanelEvent("onactivate", guarded(epoch, function () {
+            var uri = authUri();
+            if (uri) $.DispatchEvent("ExternalBrowserGoToURL", uri);
+        }));
+        subscriptions.push(GameEvents.Subscribe("survival_lobby_connect", guarded(epoch, receiveConnect)));
+        subscriptions.push(GameEvents.Subscribe("survival_lobby_state", guarded(epoch, receive)));
+        subscriptions.push(GameEvents.Subscribe("survival_player_web_auth_state", guarded(epoch, receiveAuth)));
         render();
-        $.Schedule(1, tick);
+        if (current()) contentVisible(true);
     }
+    function tick() {
+        try {
+            if (root.IsValid && !root.IsValid()) { deactivate(); return; }
+            if (!lobbyMap() || !layoutReady()) deactivate();
+            else {
+                if (!mounted) mount();
+                if (current()) {
+                    if (now() >= nextRefresh) { nextRefresh = now() + 5; request("refresh"); }
+                    if (++renderTicks >= 10) { renderTicks = 0; render(); }
+                }
+            }
+        } catch (ignore) { deactivate(); }
+        // The map guard uses scheduled callbacks, even when Game.Time is paused.
+        $.Schedule(0.1, tick);
+    }
+    contentVisible(false);
     tick();
 })();
