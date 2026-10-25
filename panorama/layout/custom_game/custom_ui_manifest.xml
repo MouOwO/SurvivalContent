@@ -17,5 +17,6 @@
     <CustomUIElement type="PregameStrategy" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_lobby.xml" />
+    <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/arcade_multiplayer_test.xml" />
   </Panel>
 </root>

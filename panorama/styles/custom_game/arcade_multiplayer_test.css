@@ -1,0 +1,27 @@
+.ArcadeTestContext { width: 100%; height: 100%; }
+.ArcadeTestCard { visibility: collapse; width: 248px; height: fit-children; horizontal-align: right; vertical-align: top; margin: 170px 16px 0px 0px; background-color: #17232df2; border: 1px solid #6e8798aa; z-index: 35; font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+.ArcadeTestHeader { width: 100%; height: 38px; padding: 9px 12px; flow-children: right; background-color: #263c4b; }
+.ArcadeTestHeading { width: fill-parent-flow(1); color: #e7eee8; font-size: 16px; }
+#ArcadeTestToggleText { color: #a6c5d0; font-size: 14px; }
+.ArcadeTestBody { width: 100%; padding: 10px 12px 12px; flow-children: down; }
+.ArcadeTestWarning { color: #efce90; font-size: 15px; margin-bottom: 6px; }
+.ArcadeTestStatus { color: #c0d0d9; font-size: 14px; margin-bottom: 5px; max-width: 222px; text-overflow: ellipsis; }
+.ArcadeTestButton { width: 100%; height: 32px; margin-top: 5px; background-color: #365567; border: 1px solid #7899a8; }
+.ArcadeTestButton Label { align: center center; color: #edf4ef; font-size: 15px; }
+.ArcadeTestButton:hover, .ArcadeTestHeader:hover { brightness: 1.2; }
+.ArcadeTestPurchase { visibility: collapse; width: 100%; height: 100%; z-index: 200; font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+.ArcadeTestScrim { width: 100%; height: 100%; background-color: #000000a9; }
+.ArcadeTestDialog { width: 680px; max-width: 90%; height: fit-children; align: center center; padding: 22px; background-color: #18232ffb; border: 1px solid #84969a; box-shadow: #000000aa 0px 8px 24px 0px; flow-children: down; }
+.ArcadeTestDialogHeader { width: 100%; height: 36px; flow-children: right; margin-bottom: 12px; }
+.ArcadeTestDialogTitle { width: fill-parent-flow(1); color: #eee8d5; font-size: 24px; vertical-align: center; }
+.ArcadeTestClose { width: 60px; height: 32px; background-color: #354856; }
+.ArcadeTestClose Label { align: center center; color: #e0e8ed; font-size: 16px; }
+.ArcadeTestPurchaseWarning { width: 100%; color: #f0cb8b; font-size: 19px; white-space: normal; margin-bottom: 9px; }
+.ArcadeTestNote { width: 100%; color: #a8bcc6; font-size: 15px; white-space: normal; margin-bottom: 10px; }
+.ArcadeTestProducts { width: 100%; flow-children: right; margin-top: 6px; margin-bottom: 16px; }
+.ArcadeTestProduct { width: fill-parent-flow(1); height: 64px; margin-right: 8px; padding: 8px; background-color: #263d4d; border: 1px solid #5c7483; }
+.ArcadeTestProduct Label { color: #d2dfe5; font-size: 16px; white-space: normal; }
+.ArcadeTestProduct.Selected { background-color: #5a4e35; border-color: #d1b67b; }
+.ArcadeTestProductTitle { color: #e5dfc9; font-size: 22px; margin-bottom: 9px; }
+.ArcadeTestPrice { color: #efce90; font-size: 24px; margin-bottom: 12px; }
+.ArcadeTestRewards { width: 100%; color: #c5d8df; font-size: 18px; white-space: normal; margin-bottom: 20px; }

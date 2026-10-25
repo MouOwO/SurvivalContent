@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <styles><include src="file://{resources}/styles/custom_game/arcade_multiplayer_test.css" /></styles>
+  <scripts><include src="file://{resources}/scripts/custom_game/arcade_multiplayer_test.js" /></scripts>
+  <Panel class="ArcadeTestContext" hittest="false" hittestchildren="false">
+    <Panel id="ArcadeTestCard" class="ArcadeTestCard" style="visibility: collapse;" hittest="false" hittestchildren="false">
+      <Button id="ArcadeTestToggle" class="ArcadeTestHeader"><Label class="ArcadeTestHeading" text="原生两人验证" /><Label id="ArcadeTestToggleText" text="收起" /></Button>
+      <Panel id="ArcadeTestBody" class="ArcadeTestBody">
+        <Label class="ArcadeTestWarning" text="本局不保存" />
+        <Label id="ArcadeTestPlayers" class="ArcadeTestStatus" />
+        <Label id="ArcadeTestHost" class="ArcadeTestStatus" />
+        <Label id="ArcadeTestHTTP" class="ArcadeTestStatus" />
+        <Button id="ArcadeTestPurchaseOpen" class="ArcadeTestButton"><Label text="购买窗口" /></Button>
+      </Panel>
+    </Panel>
+    <Panel id="ArcadeTestPurchase" class="ArcadeTestPurchase" style="visibility: collapse;" hittest="false" hittestchildren="false">
+      <Button id="ArcadeTestScrim" class="ArcadeTestScrim" />
+      <Panel id="ArcadeTestDialog" class="ArcadeTestDialog">
+        <Panel class="ArcadeTestDialogHeader"><Label class="ArcadeTestDialogTitle" text="商品购买窗口" /><Button id="ArcadeTestClose" class="ArcadeTestClose"><Label text="关闭" /></Button></Panel>
+        <Label class="ArcadeTestPurchaseWarning" text="商品配置预览；尚未连接支付后台，本局不可支付" />
+        <Label class="ArcadeTestNote" text="以下为随本测试版本发布的正式商品配置快照，并非实时云报价。" />
+        <Panel id="ArcadeTestProducts" class="ArcadeTestProducts" />
+        <Label id="ArcadeTestProductTitle" class="ArcadeTestProductTitle" />
+        <Label id="ArcadeTestPrice" class="ArcadeTestPrice" />
+        <Label id="ArcadeTestRewards" class="ArcadeTestRewards" />
+        <Label class="ArcadeTestNote" text="此窗口仅展示商品，不创建订单、不收款、不发放奖励。" />
+      </Panel>
+    </Panel>
+  </Panel>
+</root>
