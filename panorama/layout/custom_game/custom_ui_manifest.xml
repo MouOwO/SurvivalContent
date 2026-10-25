@@ -16,5 +16,6 @@
     <CustomUIElement type="HeroSelection" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
     <CustomUIElement type="PregameStrategy" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
     <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/startup_loading.xml" />
+    <CustomUIElement type="Hud" layoutfile="file://{resources}/layout/custom_game/survival_lobby.xml" />
   </Panel>
 </root>

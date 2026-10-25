@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <styles>
+    <include src="file://{resources}/styles/custom_game/survival_lobby.css" />
+  </styles>
+  <scripts>
+    <include src="file://{resources}/scripts/custom_game/survival_lobby.js" />
+  </scripts>
+  <Panel class="SurvivalLobbyRoot" visible="false" hittest="false" hittestchildren="false">
+    <Panel id="LobbyCard">
+      <Panel class="LobbyHeader">
+        <Panel class="LobbyHeading">
+          <Label class="LobbyEyebrow" text="孤城逐晓 · 联机试验" />
+          <Label class="LobbyTitle" text="并肩守城" />
+          <Label class="LobbySubtitle" text="创建或加入房间，所有人准备后进入同一局。" />
+        </Panel>
+        <Panel class="LobbyBadges">
+          <Label class="LobbyBadge" text="最多 4 人" />
+          <Label class="LobbyBadge LobbyBadgeWarning" text="本局不保存" />
+          <Label class="LobbyBadge LobbyBadgeWarning" text="云商店不可用" />
+        </Panel>
+      </Panel>
+      <Panel id="LobbyStatusStrip">
+        <Label id="LobbyStatusTitle" text="正在查询大厅服务…" />
+        <Label id="LobbyStatusDetail" text="收到服务端状态后才可操作。" />
+      </Panel>
+      <Panel id="LobbyAuthPanel">
+        <Panel class="LobbyAuthCopy">
+          <Label id="LobbyAuthTitle" text="授权当前 Steam 账号" />
+          <Label id="LobbyAuthStatus" text="正在等待网页授权短码…" />
+          <Label id="LobbyAuthCode" />
+          <Label class="LobbyAuthHint" text="请在官方 Steam 登录页使用同一账号；游戏内无需输入 Steam 密码。" />
+        </Panel>
+        <Button id="LobbyAuthOpen" class="LobbyButton"><Label text="打开网页登录" /></Button>
+      </Panel>
+      <Panel class="LobbyColumns">
+        <Panel class="LobbyRooms LobbySection">
+          <Panel class="LobbySectionHeader">
+            <Label class="LobbySectionTitle" text="我的房间" />
+            <Button id="LobbyRefresh" class="LobbyButton LobbyButtonSmall"><Label text="刷新" /></Button>
+          </Panel>
+          <Label id="LobbyRoomsEmpty" class="LobbyMuted" text="尚未收到房间列表。" />
+          <Panel id="LobbyRoomList" />
+          <Panel class="LobbyJoinRow">
+            <TextEntry id="LobbyInviteInput" maxchars="64" placeholder="输入房主发来的一次性邀请码" />
+            <Button id="LobbyJoin" class="LobbyButton LobbyButtonSmall"><Label text="凭码加入" /></Button>
+          </Panel>
+          <Button id="LobbyCreate" class="LobbyButton LobbyButtonPrimary LobbyWide"><Label text="创建房间" /></Button>
+        </Panel>
+        <Panel class="LobbyCurrent LobbySection">
+          <Panel class="LobbySectionHeader">
+            <Label class="LobbySectionTitle" text="当前房间" />
+            <Label id="LobbyRoomNumber" class="LobbyRoomNumber" text="尚未加入" />
+          </Panel>
+          <Label id="LobbyRoomHint" class="LobbyMuted" text="先加入一个房间，再准备开始。" />
+          <Panel id="LobbyPlayers" />
+          <Panel id="LobbyInviteBar">
+            <Button id="LobbyInvite" class="LobbyButton LobbyButtonSmall"><Label text="获取邀请码" /></Button>
+            <Panel class="LobbyInviteCopy">
+              <Label id="LobbyInviteCode" text="获取邀请码后发送给一位队友" />
+              <Label class="LobbyInviteHint" text="10 分钟内单次使用；每位队友需单独获取。" />
+            </Panel>
+          </Panel>
+          <Panel class="LobbyActions">
+            <Button id="LobbyLeave" class="LobbyButton"><Label text="离开房间" /></Button>
+            <Button id="LobbyReady" class="LobbyButton"><Label id="LobbyReadyText" text="准备" /></Button>
+            <Button id="LobbyStart" class="LobbyButton LobbyButtonPrimary"><Label text="开始本局" /></Button>
+          </Panel>
+          <Button id="LobbyReconnect" class="LobbyButton LobbyWide"><Label text="重新连接已分配的服务器" /></Button>
+          <Label id="LobbyActionHint" class="LobbyMuted LobbyActionHint" text="开始前请确认所有玩家已准备。" />
+        </Panel>
+      </Panel>
+      <Label class="LobbyFooter" text="这是不保存进度的联机试验。没有可用服务器时无法开始，单人正式存档入口保持独立。" />
+    </Panel>
+  </Panel>
+</root>

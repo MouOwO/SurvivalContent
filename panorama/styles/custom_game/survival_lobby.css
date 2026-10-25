@@ -1,0 +1,83 @@
+.SurvivalLobbyRoot {
+    width: 100%;
+    height: 100%;
+    background-color: gradient(linear, 0% 0%, 100% 100%, from(#081019fc), to(#182735fc));
+    padding: 5% 7%;
+    z-index: 1000;
+    font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+#LobbyCard {
+    width: 1180px;
+    max-width: 100%;
+    height: fit-children;
+    align: center center;
+    padding: 34px;
+    border: 1px solid #60778488;
+    background-color: #101c27f5;
+    box-shadow: #000000aa 0px 12px 40px 0px;
+    flow-children: down;
+}
+.LobbyHeader { width: 100%; flow-children: right; margin-bottom: 24px; }
+.LobbyHeading { width: fill-parent-flow(1); flow-children: down; }
+.LobbyEyebrow { color: #b6c9d0; font-size: 18px; letter-spacing: 2px; }
+.LobbyTitle { color: #f1e3c7; font-size: 44px; font-weight: bold; margin-top: 5px; }
+.LobbySubtitle { color: #bdccd5; font-size: 20px; margin-top: 8px; }
+.LobbyBadges { flow-children: down; horizontal-align: right; margin-left: 20px; }
+.LobbyBadge { color: #b9ddd7; background-color: #22413e; padding: 5px 12px; margin-bottom: 6px; font-size: 17px; horizontal-align: right; }
+.LobbyBadgeWarning { color: #e5c68e; background-color: #423725; }
+#LobbyStatusStrip { width: 100%; padding: 15px 18px; background-color: #203441; border-left: 3px solid #7da9b8; flow-children: down; margin-bottom: 24px; }
+#LobbyStatusStrip.Unavailable { background-color: #3b2b25; border-left-color: #d39c6d; }
+#LobbyStatusTitle { color: #e3edf1; font-size: 22px; font-weight: bold; }
+#LobbyStatusDetail { color: #b7c7cf; font-size: 18px; margin-top: 4px; white-space: normal; }
+.LobbyColumns { width: 100%; flow-children: right; }
+.LobbySection { height: 500px; padding: 20px; background-color: #0a151f; border: 1px solid #40556366; flow-children: down; }
+.LobbyRooms { width: 42%; margin-right: 18px; }
+.LobbyCurrent { width: fill-parent-flow(1); }
+.LobbySectionHeader { width: 100%; height: 42px; flow-children: right; margin-bottom: 12px; }
+.LobbySectionTitle { color: #e0dccf; font-size: 24px; vertical-align: center; width: fill-parent-flow(1); }
+.LobbyRoomNumber { color: #b5c6d2; font-size: 16px; vertical-align: center; max-width: 240px; text-overflow: shrink; }
+.LobbyMuted { color: #9aafbe; font-size: 18px; white-space: normal; }
+#LobbyRoomsEmpty { margin-top: 8px; }
+#LobbyRoomList { width: 100%; height: fill-parent-flow(1); flow-children: down; overflow: squish scroll; margin-bottom: 10px; }
+.LobbyRoomRow { width: 100%; min-height: 50px; margin-bottom: 7px; background-color: #1b2d3b; border: 1px solid #48617166; padding: 8px 10px; flow-children: right; }
+.LobbyRoomRow:hover { background-color: #294253; }
+.LobbyRoomRow:disabled { opacity: 0.45; }
+.LobbyRoomName { width: fill-parent-flow(1); color: #d3e2e9; font-size: 18px; vertical-align: center; text-overflow: ellipsis; }
+.LobbyRoomCount { color: #b5c9d3; font-size: 18px; margin-left: 12px; vertical-align: center; }
+.LobbyJoinRow { width: 100%; flow-children: right; margin-bottom: 10px; }
+#LobbyInviteInput { width: fill-parent-flow(1); height: 40px; margin-right: 8px; color: #e3edf4; background-color: #172a37; border: 1px solid #546d7e; font-size: 18px; padding: 7px 10px; }
+.LobbyButton { min-width: 110px; height: 42px; padding: 0px 14px; background-color: #263d4d; border: 1px solid #607c8d; }
+.LobbyButton Label { align: center center; color: #e0e9ed; font-size: 18px; }
+.LobbyButton:hover { brightness: 1.35; }
+.LobbyButton:disabled { opacity: 0.35; saturation: 0.25; }
+.LobbyButtonPrimary { background-color: #93713a; border-color: #d2b478; }
+.LobbyButtonPrimary Label { color: #fff0d5; font-weight: bold; }
+.LobbyButtonSmall { min-width: 74px; height: 38px; }
+.LobbyWide { width: 100%; }
+#LobbyRoomHint { height: 28px; margin-bottom: 8px; }
+#LobbyPlayers { width: 100%; flow-children: down; }
+.LobbyPlayerRow { width: 100%; height: 43px; margin-bottom: 6px; padding: 8px 12px; background-color: #182a38; flow-children: right; }
+.LobbyPlayerSeat { color: #819cab; font-size: 18px; width: 32px; }
+.LobbyPlayerName { color: #e0e8ec; font-size: 18px; width: fill-parent-flow(1); text-overflow: ellipsis; }
+.LobbyPlayerHost { color: #d5b87c; font-size: 16px; margin-right: 14px; }
+.LobbyPlayerReady { color: #d4ac80; font-size: 17px; }
+.LobbyPlayerReady.IsReady { color: #91d4b0; }
+.LobbyPlayerEmpty { color: #65818f; }
+.LobbyActions { width: 100%; flow-children: right; margin-top: 8px; margin-bottom: 9px; }
+.LobbyActions .LobbyButton { width: fill-parent-flow(1); margin-right: 8px; min-width: 0px; }
+.LobbyActions #LobbyStart { margin-right: 0px; }
+#LobbyReconnect { visibility: collapse; }
+#LobbyReconnect.ReconnectAvailable { visibility: visible; }
+.LobbyActionHint { margin-top: 7px; font-size: 16px; }
+.LobbyFooter { width: 100%; color: #9aadb9; font-size: 17px; white-space: normal; margin-top: 22px; }
+#LobbyAuthPanel { width: 100%; padding: 14px 18px; margin-bottom: 18px; background-color: #21363b; border: 1px solid #658d8655; flow-children: right; }
+.LobbyAuthCopy { width: fill-parent-flow(1); flow-children: down; }
+#LobbyAuthTitle { color: #d9e8de; font-size: 20px; font-weight: bold; }
+#LobbyAuthStatus { color: #c0d1cc; font-size: 17px; white-space: normal; margin-top: 3px; }
+#LobbyAuthCode { color: #f2d79e; font-size: 25px; letter-spacing: 2px; margin-top: 3px; }
+.LobbyAuthHint { color: #94aba6; font-size: 15px; margin-top: 3px; }
+#LobbyAuthOpen { vertical-align: center; margin-left: 16px; }
+#LobbyInviteBar { width: 100%; flow-children: right; margin-top: 7px; margin-bottom: 5px; }
+.LobbyInviteCopy { width: fill-parent-flow(1); flow-children: down; margin-left: 12px; vertical-align: center; }
+#LobbyInviteCode { color: #ead2a7; font-size: 18px; }
+.LobbyInviteHint { color: #91a7b5; font-size: 14px; margin-top: 3px; }
