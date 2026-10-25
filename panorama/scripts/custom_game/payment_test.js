@@ -360,7 +360,10 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
         if(action==="create"){body.provider=channel;body.quantity=quantity;}
         if(action==="catalog")catalogRequests++;
         GameEvents.SendCustomGameEventToServer("survival_payment_request", body);
-        $.Schedule(32, function() {
+        // An order response can wait for both the 32s transport deadline and
+        // the server's 35s authoritative profile refresh. Keep one stable
+        // request ID throughout; superseded/timed-out replies remain rejected.
+        $.Schedule(action==="catalog"?32:70, function() {
             if (alive() && ticket === generation && busy) {
                 busy=false;activeRequest=null;render();setStatus("请求超时，请查询结果后重试。");
                 if(action==="catalog")catalogFailed("商品同步超时，稍后自动重试。");
@@ -393,7 +396,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
             // A catalogue already in flight must not publish the pre-payment balance.
             invalidateWallet();
             if(api && api.Refresh && api.Refresh()!==false){job.finished=true;return;}
-            // The wallet can already have a 95s catalogue/exchange request in flight.
+            // The wallet can already have a 105s catalogue/exchange request in flight.
             // Retry only this local busy gate, with one accepted read per reward.
             if(job.attempts<delays.length)$.Schedule(delays[job.attempts++],attempt);
         }
@@ -543,7 +546,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
             // Ownership and repeatability come from the authoritative refreshed catalogue.
             $.Schedule(1.1,refreshCatalog);
         }
-        if (data.action==="create") {selected=data.sku;setOpen(true);}
+        if (data.action==="create") {selected=data.sku;if(opened)setOpen(true);}
         render();
         if(data.warning)setStatus(messages[data.warning]||"已恢复未完成订单，请核对数量和支付方式。");
     }));

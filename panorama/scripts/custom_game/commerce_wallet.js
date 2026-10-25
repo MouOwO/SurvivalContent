@@ -72,11 +72,18 @@
         var id=token||epoch+"_"+(++serial);inflight={action:action,request_id:id,walletVersion:invalidationVersion};
         if(action==="catalog")draft=null;
         GameEvents.SendCustomGameEventToServer("survival_commerce_request",{action:action,sku:sku||"",request_id:id});render(action==="catalog"&&reconfirmPrice?errors.commerce_price_changed+" 正在刷新目录…":"正在同步…");
-        $.Schedule(95,function(){if(!disposed && valid(root) && inflight && inflight.request_id===id){inflight=null;draft=null;
+        // Three 32s provider attempts and two 1s gaps retain one purchase ID.
+        $.Schedule(105,function(){if(!disposed && valid(root) && inflight && inflight.request_id===id){inflight=null;draft=null;
             if(action==="catalog"){catalog.error="商城兑换目录暂未连接，请稍后重试。";publish();}
             render("请求超时，请重试；同一笔兑换不会重复扣款。");queueInvalidation();}});return true;
     }
-    function refresh(){return request("catalog");}
+    function refresh(){
+        // A storefront reopen during an older request still needs a fresh
+        // catalog afterwards. Keep the public busy return value while the
+        // existing invalidation generation coalesces and rejects old replies.
+        if(inflight){invalidate();return false;}
+        return request("catalog");
+    }
     function queueInvalidation(){
         if(disposed||!valid(root)||invalidationTask||syncedVersion>=invalidationVersion||invalidationAttempts>=3)return;
         var task=invalidationTask={},delay=invalidationAttempts<2?1.1:3;

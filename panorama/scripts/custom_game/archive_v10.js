@@ -131,12 +131,16 @@
         card.Children().forEach(function(child){if(child!==cell.host)child.visible=false;});
         card.AddClass("ArchiveV10Cell");card.AddClass("ArchiveCommerceCell");card.RemoveClass("ArchiveParchmentRowAlternate");
         pos(card,Math.floor(slot%7)*106,Math.floor(slot/7)*pitch,104,height);style(card,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderRadius:"0px",boxShadow:"none",flowChildren:"none",overflow:"clip",transform:"none"});
-        var state=S.State(item,current),quantity=points?"":S.Quantity(item,current),known=state!==null;
+        var unlockItem=points&&S.IsUnlockItem(item,current);
+        var state=S.State(item,current),quantity=unlockItem?"":S.Quantity(item,current),known=state!==null;
         card.SetHasClass("ArchiveCommerceOwned",state===true);card.SetHasClass("ArchiveCommerceUnowned",state===false);card.SetHasClass("ArchiveCommerceUnknown",!known);
         style(cell.art,{brightness:state===false?".38":known?"1":".62",saturation:state===false?"0":known?"1":".3",opacity:state===false?".82":known?"1":".9"});
         style(cell.name,{color:state===false?"#a5a396":"#f6edd4"});
-        // Points use icon brightness alone; existing stack badges remain for goods.
-        cell.countHost.visible=!points&&(!known||Number(item.count)>1||Number(item.target)>1||Number(item.max_owned)>1);
+        // Unique points use icon brightness; stackable points retain quantity.
+        cell.countHost.SetHasClass("ArchivePointsState",unlockItem);
+        cell.countHost.SetHasClass("ArchiveCommerceQuantityBadge",!unlockItem);
+        cell.countHost.visible=points?!unlockItem:(!known||Number(item.count)>1||Number(item.target)>1||Number(item.max_owned)>1);
+        if(points&&!unlockItem){pos(cell.countHost,18,5,74,23);pos(cell.count,2,1,70,21);cell.count.style.fontSize=quantity.length>8?"11px":"15px";}
         var compactName=String(item.name||"").replace(/\s*[（(]功能版[）)]\s*$/,"").replace(/[·・]\s*永久\s*$/,"");
         if(cell.count.text!==quantity)cell.count.text=quantity;if(cell.name.text!==compactName)cell.name.text=compactName;
     }
@@ -194,7 +198,7 @@
     function updateMonthlyFooter(data){
         var status=p("ArchiveStatus");if(!valid(status))return;
         var base=status.text||"",note=monthlyNotes[current];
-        if(current==="points"&&base==="效果自动生效")status.text="抽取、签到或兑换后自动解锁 · 悬停查看效果与重复转化积分";
+        if(current==="points"&&base==="效果自动生效")status.text="抽取、签到或兑换后自动生效 · 悬停查看数量与持有规则";
         if(note&&base.indexOf(note)<0)status.text=base?base+"　·　"+note:note;
         if(current==="titles"&&!(data&&Number(data.pending)===1))status.text="";
         if(cfg.SurvivalArchiveFontV36)cfg.SurvivalArchiveFontV36.Render(status);
@@ -233,8 +237,8 @@
         if(current==="starjoy_points"&&data&&data.starjoy)details="累计星悦积分 "+data.starjoy.earned+" · 仅累计，不可兑换";
         if(current==="commerce_goods")details="购买或兑换后自动点亮 · 悬停查看效果与解锁条件";
         if(current==="commerce_goods")p("ArchiveStatus").text="购买或兑换成功后点亮 · 效果沿用已有商品与存档记录";
-        if(current==="points")details="每种道具仅可解锁一次 · 重复获得转为商城积分";
-        if(current==="points")p("ArchiveStatus").text="抽取、签到或兑换后自动解锁 · 悬停查看效果与重复转化积分";
+        if(current==="points")details="唯一道具重复转为商城积分 · 可叠加道具按各自规则累计";
+        if(current==="points")p("ArchiveStatus").text="抽取、签到或兑换后自动生效 · 悬停查看数量与持有规则";
         context.text=details;context.visible=!!details;
         var empty=p("ArchiveEmpty");pos(empty,contentX(399),280,731,50);style(empty,{fontSize:"21px",color:"#d0c4aa",textAlign:"center"});empty.SetHasClass("ArchiveHidden",slot>0);empty.text=data&&Number(data.unavailable)===1?"该分类尚未启用，暂无已获得条目":!data?"正在读取存档…":slot===0?(mode!=="all"?"当前筛选下暂无存档":"当前分类暂无存档"):"";
         var grid=p("ArchiveGrid");pos(grid,0,0,767,draw?511:577);style(grid,{flowChildren:"none"});pos(gridHost,contentX(385),235,767,draw?511:577);

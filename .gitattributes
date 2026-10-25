@@ -18,3 +18,15 @@ maps/tilesets/survival_dire_jungle_basic.vmap filter=lfs diff=lfs merge=lfs -tex
 maps/tilesets/survival_radiant_snow_basic.vmap filter=lfs diff=lfs merge=lfs -text
 maps/tilesets/survival_radiant_ti10_basic.vmap filter=lfs diff=lfs merge=lfs -text
 maps/ws4_entry.vmap filter=lfs diff=lfs merge=lfs -text
+
+# UI QA source bytes are paired with signed runtime DATA; keep current authored EOL.
+panorama/scripts/custom_game/archive_v10.js text eol=crlf
+panorama/scripts/custom_game/archive_v10_semantics.js text eol=crlf
+panorama/scripts/custom_game/commerce_wallet.js text eol=crlf
+panorama/scripts/custom_game/common/archive_font_v36.js text eol=crlf
+panorama/scripts/custom_game/common/archive_tooltip.js -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+panorama/scripts/custom_game/common/ui_components.js text eol=crlf
+panorama/scripts/custom_game/daily_remaining_5d5c1152eb.js text eol=crlf
+panorama/scripts/custom_game/payment_test.js text eol=crlf
+panorama/scripts/custom_game/topnav_remaining_5d5c1152eb.js text eol=crlf
+panorama/scripts/custom_game/ui_layers.js text eol=crlf

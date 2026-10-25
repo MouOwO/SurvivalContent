@@ -206,7 +206,7 @@
             var state=S.State(item,category), name=options.categoryName ? options.categoryName(category) : category;
             elements.Title.text=String(item.name||"");
             var unlockItem=S.IsUnlockItem&&S.IsUnlockItem(item,category);
-            elements.State.text=onlyEffect ? "" : category==="points" ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
+            elements.State.text=onlyEffect ? "" : category==="points"&&unlockItem ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
             var rarityColor=colors.caption, titleColor=colors.title;
             if (rarityLine) {
                 var rarityParts=[],quality=String(item.quality||"").trim().toUpperCase();
@@ -243,11 +243,14 @@
                 var duplicatePoints=Number(item.duplicate_points),duplicateCurrency=({shop_points:"商城积分",starjoy_points:"星悦积分"})[item.duplicate_currency||item.converted_currency];
                 details+=(details?"\n":"")+"唯一持有";
                 if(item.duplicate_points!==undefined&&item.duplicate_points!==null&&isFinite(duplicatePoints)&&duplicatePoints>=0&&duplicateCurrency)details+=" · 重复获得转化为 "+duplicatePoints+" "+duplicateCurrency;
+            }else if(category==="points"){
+                var holdingLimit=S.Progress(item,category).target;
+                details+=(details?"\n":"")+"可叠加持有 · "+(holdingLimit===null?"无持有上限":"上限 "+holdingLimit);
             }
             elements.Condition.text=details; elements.Condition.visible=!!details;
-            metric.visible=!onlyEffect&&category!=="points";
-            caption.text=category==="points" ? "" : S.Metric(item,category);
-            quantity.text=category==="points" ? "" : S.Quantity(item,category);
+            metric.visible=!onlyEffect&&!unlockItem;
+            caption.text=unlockItem ? "" : S.Metric(item,category);
+            quantity.text=unlockItem ? "" : S.Quantity(item,category);
             var textRoles=["Title","State","EffectCaption","Effect","Condition"]; if(rarityLine)textRoles.push("Rarity");
             textRoles.forEach(function (role) {
                 var gap=compact ? (role==="State"||role==="Rarity"?6:role==="EffectCaption"?3:4) : (role==="Title"?6:role==="State"||role==="Rarity"?8:role==="Effect"?8:4);

@@ -21,11 +21,23 @@
         return number(item[field]) !== null;
     }
     function count(item) { return known(item) ? String(item.count) : "—"; }
-    function cap(item) {
-        var value = item.max_owned !== undefined ? item.max_owned : item.target;
+    function pointsStackLimit(item) {
+        item = item || {};
+        var id = String(item.id || "");
+        // These existing business definitions also identify older snapshots
+        // that omit holding metadata. A legacy large daily cap is not a stack.
+        if (["lottery_ember_of_legacy", "P103", "P089", "video_p103", "video_p089"].indexOf(id) >= 0) return 0;
+        if (id === "welfare_zongzi") return 150;
+        var limit = number(item.max_owned !== undefined ? item.max_owned : item.target);
+        return item.source_kind === "benefit" && limit !== null && limit === Math.floor(limit)
+            && (limit === 0 || limit > 1) ? limit : null;
+    }
+    function cap(item, category) {
+        var stackLimit = category === "points" ? pointsStackLimit(item) : null;
+        var value = stackLimit !== null ? stackLimit : item.max_owned !== undefined ? item.max_owned : item.target;
         return number(value) !== null && Number(value) > 0 ? String(value) : null;
     }
-    function isUnlockItem(item, category) { return category === "points"; }
+    function isUnlockItem(item, category) { return category === "points" && pointsStackLimit(item) === null; }
     function level(item) {
         if (item.level !== undefined) return number(item.level);
         return known(item) ? number(item.count) : null;
@@ -70,7 +82,7 @@
             return prefix + (currentLevel === null ? "—" : currentLevel)
                 + (maximum !== null && maximum > 0 ? "/" + maximum : "");
         }
-        var denominator = cap(item);
+        var denominator = cap(item, category);
         return count(item) + (denominator === null ? "" : "/" + denominator);
     }
     function progress(item, category) {
@@ -92,7 +104,7 @@
             target = number(item.target);
         } else {
             current = known(item) ? number(item.count) : null;
-            target = category === "fragment" ? number(item.target) : number(cap(item));
+            target = category === "fragment" ? number(item.target) : number(cap(item, category));
             if (category === "fragment") text = count(item) + (target !== null && target > 0 ? "/" + target : "");
         }
         // A known current value need not have a cap. Only a real positive target
@@ -139,9 +151,19 @@
         }
         if (category === "points") {
             rows.forEach(function (item) {
+                var stackLimit = pointsStackLimit(item);
+                if (stackLimit !== null) {
+                    item.max_owned = stackLimit;
+                    if (stackLimit > 0) item.target = stackLimit;
+                    else delete item.target;
+                    item.count_known = known(item) ? 1 : 0;
+                    if (item.count_known === 1) { item.count = Number(item.count); item.unlocked = item.count > 0 ? 1 : 0; }
+                    else { delete item.count; delete item.unlocked; delete item.completed; }
+                    return;
+                }
                 var unlocked = state(item, category);
-                // Every points entry, including older daily reward snapshots,
-                // is one unlock. Normalize a view copy without editing the save.
+                // Ordinary points, including older daily snapshots, remain
+                // unique entitlements. Normalize only a view copy.
                 item.max_owned = 1; item.target = 1;
                 item.count_known = unlocked === null ? 0 : 1;
                 if (unlocked !== null) { item.count = unlocked ? 1 : 0; item.unlocked = unlocked ? 1 : 0; }

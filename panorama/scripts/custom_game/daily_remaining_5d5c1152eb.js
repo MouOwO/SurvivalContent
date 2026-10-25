@@ -393,7 +393,13 @@ life.Subscribe("survival_daily_snapshot",function(next){
  if(!active)return;fetching=false;fetchSerial++;if(!(next.ok===true||Number(next.ok)===1)){errorText=next.error||"正在读取档案";render();return;}
  if(Number(next.sequence)>0&&Number(next.sequence)<=sequence)return;if(data&&Number(next.today)<Number(data.today))return;sequence=Number(next.sequence)||sequence;
  acceptBenefitSnapshot(next);var result=next.claim_result,claimed=null;if(waiting){if(Number(next.today)!==waiting.day||String(next.period_id)!==waiting.period){waiting=null;errorText="";}else if(confirmedClaim(next,waiting)){claimed=waiting;waiting=null;errorText="";}else if(result&&Number(result.target_day)===waiting.target&&Number(next.pending)!==1&&!(result.pending===true||Number(result.pending)===1)){waiting=null;errorText=result.error||"领取失败，请重试";}}
- data=next;if(!waiting&&!(result&&!(result.ok===true||Number(result.ok)===1)))errorText="";render();if(claimed)showClaim(claimed);
+ data=next;if(!waiting&&!(result&&!(result.ok===true||Number(result.ok)===1)))errorText="";render();
+ if(claimed){
+  // Only the saved, consumed intent invalidates the wallet. Pending/failure
+  // snapshots and repeated ACKs never create another refresh or a purchase.
+  var wallet=cfg.SurvivalCommerceWallet;if(wallet&&typeof wallet.Invalidate==="function")wallet.Invalidate();
+  showClaim(claimed);
+ }
 });
 function poll(){if(stopIfInvalid()||!shell.IsOpen())return;request();viewLife.Later(3,poll);}
 cfg.SurvivalDaily={Open:function(pass){

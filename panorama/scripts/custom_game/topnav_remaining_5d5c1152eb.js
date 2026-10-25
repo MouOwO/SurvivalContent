@@ -297,7 +297,7 @@
         ?cfg.SurvivalVIPStatus.UnlockRules():"VIP 状态以存档为准，测试版未开放付费开通。";});
     // One open window at a time, so the highlight is a single owner, not a list.
     var navWindowIds={treasure:"treasure",archive:"archive",lottery:"lottery",benefit:"daily_rewards",
-        shop:"shop",survival_shop:"survival_shop"};
+        shop:"commerce",survival_shop:"survival_shop"};
     var activeNavId;
     function markActiveNav(id) {
         if(activeNavId===id)return;
@@ -308,6 +308,7 @@
         var top=cfg.SurvivalUILayers&&cfg.SurvivalUILayers.Top?cfg.SurvivalUILayers.Top():null;
         var matched=null;
         if(top)Object.keys(navWindowIds).forEach(function(key){if(navWindowIds[key]===top)matched=key;});
+        if(top==="commerce_exchange"||top==="payment_shop")matched="shop";
         // Windows opened outside SurvivalUILayers fall back to their own visibility.
         if(!matched){
             var probes=[["survival_shop","CustomShopWindow"],["treasure","TreasureWindow"],["archive","ArchiveWindow"],["lottery","LotteryWindow"],["benefit","DailyWindow"]];
