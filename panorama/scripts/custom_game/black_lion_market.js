@@ -34,7 +34,7 @@
     function relativeArt(parent,id,wash,cls){var r=layer(id);return art(parent,id,cls,r.x-wash.x,r.y-wash.y);}
     function windowHeight(){return layer("footer_base").y+52;}
     M.Window=function(root,onClose){
-        var d=design(),w=d.width,h=windowHeight(),footerY=layer("footer_base").y,fittedScale=null;
+        var d=design(),w=d.width,h=windowHeight(),footerY=layer("footer_base").y,fittedScale=null,readonlyView=false,recharge=null;
         var scrim=make("Button",root,"","BLMarketBackdrop"),p=make("Panel",root,"BlackLionMarketWindow","BLMarketWindow BLMarketV10");
         var canvas=box(make("Panel",p,"","BLMarketCanvas"),0,0,w,h);canvas.hittestchildren=true;
         art(canvas,"window_substrate","BLMarketTexture",0,0,w,h);art(canvas,"header_base","BLMarketHeaderTexture");art(canvas,"footer_base","BLMarketFooterTexture",1,footerY,w-2,h-footerY,5);
@@ -48,11 +48,11 @@
             var line=make("Panel",group,"","BLMarketBalanceLine"+(i===0?" BLMarketRechargeLine":""));
             balanceLabels.push(label(line,name+" —","BLMarketBalanceText"+(i===0?" BLMarketRechargeBalance":"")));
             if(i===0){
-                var recharge=make("Button",line,"BlackLionMarketRecharge","BLMarketRecharge");recharge.hittestchildren=false;
+                recharge=make("Button",line,"BlackLionMarketRecharge","BLMarketRecharge");recharge.hittestchildren=false;
                 recharge.visible=cfg.SurvivalDevelopmentPayments===true;recharge.enabled=recharge.visible;recharge.hittest=recharge.visible;
                 var rechargeIcon=make("Image",recharge,"","BLMarketRechargeIcon");
                 rechargeIcon.SetImage("file://{images}/control_icons/24px/plus.svg");rechargeIcon.hittest=false;rechargeIcon.hittestchildren=false;
-                recharge.SetPanelEvent("onactivate",function(){var view=cfg.SurvivalCommerceView;if(cfg.SurvivalDevelopmentPayments===true&&view&&view.OpenRecharge)view.OpenRecharge();return true;});
+                recharge.SetPanelEvent("onactivate",function(){var view=cfg.SurvivalCommerceView;if(!readonlyView&&cfg.SurvivalDevelopmentPayments===true&&view&&view.OpenRecharge)view.OpenRecharge();return true;});
             }
         });
         var c=layer("close_button"),close=box(make("Button",canvas,"","BLMarketClose"),c.x,c.y,c.width,c.height);close.hittestchildren=false;
@@ -81,6 +81,7 @@
         art(canvas,"window_brush_edge","BLMarketFrameTexture",0,0,w,h,5);
         var menu={panel:p,shell:shell,canvas:canvas,content:content,actions:actions,detailLayer:details,sidebar:tabs,listWidth:1357,width:w,height:h,skinVersion:10,layout:"black_lion_list",
             Open:function(){shell.Open();},Close:function(){shell.Close();},Dispose:function(){shell.Dispose();},IsOpen:function(){return shell.IsOpen();},
+            SetReadonly:function(value){readonlyView=value===true;if(valid(recharge)){var allowed=!readonlyView&&cfg.SurvivalDevelopmentPayments===true;recharge.visible=allowed;recharge.enabled=allowed;recharge.hittest=allowed;}},
             SetPurchaseType:function(value,select){typeCallback=select;typeOptions.forEach(function(option){typeButtons[option.id].SetHasClass("UISelected",option.id===value);});},
             Scale:function(){if(fittedScale!==null)return fittedScale;var rw=(root.actuallayoutwidth||1672)/(root.actualuiscale_x||1),rh=(root.actuallayoutheight||941)/(root.actualuiscale_y||1);return Math.min(rw*.94/w,rh*.90/d.height);},
             SetSidebar:function(groups,selected,select){tabs.RemoveAndDeleteChildren();groups.forEach(function(group,i){
@@ -110,7 +111,7 @@
         var icon=J.ItemIcon(well,item,"BLMarketItemIcon",{width:frameSize,height:frameSize});
         icon.style.position="0px 0px 0px";icon.style.width="100%";icon.style.height="100%";icon.style.margin="0px";icon.style.padding="0px";
         var column=priceColumn(),n=layer(t.prefix+"_name"),nameWidth=column.x-(n.x-r.x)-20,names=centeredStack(row,n.x-r.x,nameWidth,r.height,"BLMarketNameColumn"),name=flowText(names,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"BLMarketName");
-        var owned=flowText(names,Number(item.owned)>0?"已拥有 "+item.owned:"","BLMarketOwned");owned.visible=Number(item.owned)>0;owned.style.marginTop="2px";
+        var owned=flowText(names,props.readOnly?"持有 —":Number(item.owned)>0?"已拥有 "+item.owned:"","BLMarketOwned");owned.visible=props.readOnly||Number(item.owned)>0;owned.style.marginTop="2px";
         var primary="价格待同步",cost=item.price;
         var isU=item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined;
         if(item.purchase_method==="wallet"&&typeof cost==="number"&&isFinite(cost)&&cost>=0)primary=cost+" "+(item.currency_name||"");
@@ -130,11 +131,11 @@
             var original=label(priceLine,referenceText,"BLMarketPriceReference");original.style.width="fit-children";original.style.height="fit-children";original.style.verticalAlign="center";
         }
 
-        var available=K.IsActionable?K.IsActionable(item):item.enabled===true||item.enabled===1,reason=K.DisabledMessage?K.DisabledMessage(item):String(item.disabled_message||"");
+        var available=!props.readOnly&&(K.IsActionable?K.IsActionable(item):item.enabled===true||item.enabled===1),reason=props.readOnly?"账号权益未知":K.DisabledMessage?K.DisabledMessage(item):String(item.disabled_message||"");
         if(item.purchase_method==="wallet"&&item.currency==="shop_points"&&(item.disabled_reason==="commerce_balance_insufficient"||item.disabled_reason==="insufficient_balance"))reason="";
         if(!available&&!reason)reason="未满足购买条件";row.SetHasClass("BLMarketHasReason",!!reason);
         var b=layer(t.prefix+"_button_base"),buy=box(make("Button",row,"","BLMarketBuy ButtonPrimary Large"),b.x-r.x,0,b.width,b.height);buy.style.verticalAlign="center";buy.hittestchildren=false;
-        var buyText=label(buy,available?(item.purchase_method==="wallet"?"兑换":"购买"):"暂不可购","BLMarketBuyText");buyText.style.width="fit-children";buyText.style.maxWidth=(b.width-16)+"px";buyText.style.height="fit-children";buyText.style.position="0px 0px 0px";buyText.style.horizontalAlign="center";buyText.style.verticalAlign="center";buyText.style.margin="-1px 0px 1px";buyText.style.padding="0px";buyText.style.textAlign="center";
+        var buyText=label(buy,props.readOnly?(item.purchase_method==="wallet"?"兑换未开放":"收款未开放"):available?(item.purchase_method==="wallet"?"兑换":"购买"):"暂不可购","BLMarketBuyText");buyText.style.width="fit-children";buyText.style.maxWidth=(b.width-16)+"px";buyText.style.height="fit-children";buyText.style.position="0px 0px 0px";buyText.style.horizontalAlign="center";buyText.style.verticalAlign="center";buyText.style.margin="-1px 0px 1px";buyText.style.padding="0px";buyText.style.textAlign="center";
         var reasonText=box(label(row,reason,"BLMarketDisabledReason"),b.x-r.x,r.height-20,b.width,20);reasonText.style.fontSize="18px";reasonText.style.lineHeight="20px";reasonText.visible=!!reason;
         buy.enabled=available;buy.SetHasClass("UIDisabled",!available);buy.SetPanelEvent("onactivate",function(){if(valid(row)&&buy.enabled&&props.action){props.action();return true;}});
         row.__menuCell={iconPanel:well,namePanel:name,countPanel:owned};props.market=true;props.hoverPanel=well;props.sourcePanel=well;props.sourceWidth=frameSize;props.windowWidth=design().width;props.windowHeight=windowHeight();

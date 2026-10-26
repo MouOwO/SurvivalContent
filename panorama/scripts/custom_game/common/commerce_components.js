@@ -113,6 +113,9 @@
             return reward.description?(reward.label?reward.label+"\n":"")+displayDescription(reward,reward.description)
                 :String(reward.label||reward.id||"")+" ×"+String(reward.quantity===undefined?1:reward.quantity);
         }).join(props.rewards.some(function(reward){return !!reward.description;})?"\n\n":"\n");
+        // A public quote shows configuration and explicitly unknown account
+        // limits, rather than inheriting a live ownership/eligibility receipt.
+        if(props.readOnly===true)summary=String(props.effect||"");
         // VIP descriptions use semicolons in the formal catalog. Display each
         // effect on its own line, as the shared VIP tooltip already does.
         summary=String(summary).replace(/\r\n?/g,"\n").replace(/[；;][ \t]*/g,"\n");

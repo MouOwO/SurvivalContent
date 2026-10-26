@@ -2,16 +2,15 @@
     "use strict";
     var cfg = GameUI.CustomUIConfig(), previous = cfg.SurvivalArcadeReadOnlyShop;
     if (previous && typeof previous.Dispose === "function") previous.Dispose();
-    var root = $.GetContextPanel(), state = null, opened = false, collapsed = false, listener = null;
-    var disposed = false, timer = null, api = null, bound = false, hook = null, modal = null;
-    var catalog = null, catalogSource = null, selected = "", category = "*", listRevision = "", detailRevision = "";
-    var table = "survival_arcade_multiplayer_test", modalId = "arcade_readonly_shop";
-    var SHOP_URL = "https://pay.xiaofengnet.com/ws4-shop/";
+    var root = $.GetContextPanel(), state = null, collapsed = false, listener = null;
+    var disposed = false, timer = null, api = null, bound = false, hook = null, leaseView = null;
+    var catalog = null, catalogSource = null;
+    var table = "survival_arcade_multiplayer_test";
     var diagnostics = Object.create(null), mapName = "<not_read>", mapType = "undefined";
     var phases = {not_run:"未验证", probing:"检测中", available:"已收到响应", unavailable:"当前不可用"};
     var currencies = {CNY:"人民币", u_coin:"G币", shop_points:"商城积分", shop_gold:"商城金币"};
     var keys = ["schema_version", "enabled", "session_only", "online_players", "capacity", "host_player_id", "http_phase", "sequence"];
-    var required = ["ArcadeTestCard", "ArcadeTestBody", "ArcadeTestToggle", "ArcadeTestToggleText", "ArcadeTestPlayers", "ArcadeTestHost", "ArcadeTestHTTP", "ArcadeTestPurchaseOpen", "ArcadeTestPurchase", "ArcadeTestScrim", "ArcadeTestDialog", "ArcadeTestClose", "ArcadeTestCategories", "ArcadeTestProducts", "ArcadeTestProductTitle", "ArcadeTestPrice", "ArcadeTestRewards", "ArcadeTestDescription", "ArcadeTestLimits", "ArcadeTestCatalogStatus", "ArcadeTestWebShop"];
+    var required = ["ArcadeTestCard", "ArcadeTestBody", "ArcadeTestToggle", "ArcadeTestToggleText", "ArcadeTestPlayers", "ArcadeTestHost", "ArcadeTestHTTP", "ArcadeTestPurchaseOpen", "ArcadeTestCatalogStatus"];
     function p(id) { try { return root.FindChildTraverse(id); } catch (ignore) { return null; } }
     function valid(item) { try { return !!item && (!item.IsValid || item.IsValid()); } catch (ignore) { return false; } }
     function current() { return !disposed && cfg.SurvivalArcadeReadOnlyShop === api && valid(root); }
@@ -60,13 +59,11 @@
         if (old && old.target.Open === old.wrapper) old.target.Open = old.original;
     }
     function closeModal() {
-        var old = modal; modal = null;
-        if (old) { try { old.layers.Close(modalId); } catch (ignore) {} }
-        show("ArcadeTestPurchase", false);
+        var old = leaseView; leaseView = null;
+        if (old) { try { old.CloseReadonly(api); } catch (ignore) {} }
     }
     function hide() {
-        state = null; opened = false;
-        closeModal(); releaseHook();
+        state = null; closeModal(); releaseHook();
         if (valid(root)) { root.hittest = false; root.hittestchildren = false; }
         show("ArcadeTestCard", false);
     }
@@ -121,73 +118,25 @@
         var featured = {archive_pass_monthly:0, special_lottery_ticket_single:1, u_coin_recharge:2};
         function rank(item) { return Object.prototype.hasOwnProperty.call(featured, item.sku) ? featured[item.sku] : 3; }
         products.sort(function (a, b) { return rank(a) - rank(b) || a.source_index - b.source_index; });
-        return {catalog_sha256:raw.catalog_sha256, products:products, categories:categories};
+        return {schema_version:1, checkout_enabled:false, catalog_sha256:raw.catalog_sha256, products:products, categories:categories};
     }
-    function price(item) { return item.currency === "CNY" ? "¥" + (item.price / 100).toFixed(2) : item.price + " " + currencies[item.currency]; }
-    function quoteKind(item) { return item.currency === "CNY" ? "现金配置 · 收款未开放" : currencies[item.currency] + "兑换配置"; }
+    function shopView() {
+        var view = cfg.SurvivalCommerceView;
+        return view && typeof view.OpenReadonly === "function" && typeof view.CloseReadonly === "function"
+            && typeof view.IsReadonlyOpen === "function" ? view : null;
+    }
     function readCatalog() {
         var raw = cfg.SurvivalArcadeShopCatalog;
         if (catalog && raw === catalogSource && raw.checkout_enabled === false && raw.schema_version === 1 && raw.catalog_sha256 === catalog.catalog_sha256) return true;
-        var value = validateCatalog(raw);
-        catalogSource = raw; catalog = value; listRevision = "";
-        if (!value) { opened = false; closeModal(); return false; }
-        if (!value.categories.some(function (row) { return row.id === category; })) category = "*";
-        if (!value.products.some(function (row) { return row.offer_id === selected; })) selected = value.products[0].offer_id;
-        buildCategories(); return true;
-    }
-    function label(parent, value, className) {
-        var node = $.CreatePanel("Label", parent, ""); node.html = false; node.text = value;
-        if (className) node.AddClass(className); return node;
+        catalogSource = raw; catalog = validateCatalog(raw);
+        if (!catalog) { closeModal(); return false; }
+        return true;
     }
     function action(callback) { return function () {
         if (!enabled()) return true;
         try { callback(); render(); } catch (ignore) { diagnostic("action_error", state); hide(); }
         return true;
     }; }
-    function buildCategories() {
-        var container = p("ArcadeTestCategories"); container.RemoveAndDeleteChildren();
-        [{id:"*", label:"全部"}].concat(catalog.categories).forEach(function (row) {
-            var button = $.CreatePanel("Button", container, ""); button.AddClass("ArcadeTestCategory");
-            button.__shopCategory = row.id; label(button, row.label);
-            button.SetPanelEvent("onactivate", action(function () { category = row.id; listRevision = ""; }));
-        });
-    }
-    function renderProducts() {
-        var visible = catalog.products.filter(function (row) { return category === "*" || row.category_id === category; });
-        if (!visible.some(function (row) { return row.offer_id === selected; })) selected = visible.length ? visible[0].offer_id : "";
-        var revision = category + "|" + catalog.catalog_sha256;
-        if (revision !== listRevision) {
-            // A new category/catalog starts at its first offer. Native panels
-            // retain their previous scroll offset when children are replaced.
-            selected = visible.length ? visible[0].offer_id : "";
-            var container = p("ArcadeTestProducts"); container.RemoveAndDeleteChildren();
-            visible.forEach(function (item) {
-                var button = $.CreatePanel("Button", container, ""); button.AddClass("ArcadeTestProduct");
-                button.__shopOffer = item.offer_id;
-                label(button, item.title, "ArcadeTestProductName");
-                label(button, price(item) + " · " + quoteKind(item), "ArcadeTestProductQuote");
-                button.SetPanelEvent("onactivate", action(function () { selected = item.offer_id; }));
-            });
-            container.ScrollToTop();
-            listRevision = revision;
-        }
-        p("ArcadeTestProducts").Children().forEach(function (button) { button.SetHasClass("Selected", button.__shopOffer === selected); });
-        p("ArcadeTestCategories").Children().forEach(function (button) { button.SetHasClass("Selected", button.__shopCategory === category); });
-        var product = visible.filter(function (row) { return row.offer_id === selected; })[0];
-        p("ArcadeTestProductTitle").text = product ? product.title : "本分类暂无商品";
-        p("ArcadeTestDescription").text = product ? product.description : "";
-        p("ArcadeTestPrice").text = product ? "配置" + (product.currency === "CNY" ? "售价 " : "兑换价 ") + price(product) + " · " + quoteKind(product) : "";
-        p("ArcadeTestLimits").text = product ? "配置限购：" + (product.purchase_limit ? product.purchase_limit + " 次" : "不限次数")
-            + "；VIP门槛：" + (product.required_vip_level || "无") + "。不代表本账号剩余次数或资格。" : "";
-        p("ArcadeTestRewards").text = product ? "配置奖励（本局不发放）：\n" + product.reward_lines.map(function (row) {
-            return row.label + " ×" + row.quantity + (row.duration_days ? "（" + row.duration_days + "天）" : "");
-        }).join("\n") : "";
-        var nextDetail = catalog.catalog_sha256 + "|" + (product ? product.offer_id : "");
-        if (nextDetail !== detailRevision) {
-            p("ArcadeTestProductTitle").GetParent().ScrollToTop();
-            detailRevision = nextDetail;
-        }
-    }
     function syncHook() {
         var target = cfg.SurvivalPayments;
         if (hook && hook.target === target && target.Open === hook.wrapper) return;
@@ -202,17 +151,6 @@
         };
         hook = {target:target, original:original, wrapper:wrapper}; target.Open = wrapper;
     }
-    function syncModal() {
-        var activeLayers = layers();
-        if (!opened) { closeModal(); return; }
-        if (!activeLayers) { opened = false; closeModal(); p("ArcadeTestCatalogStatus").text = "窗口正在准备，请稍后重试。"; return; }
-        if (modal && modal.layers !== activeLayers) closeModal();
-        if (!modal) {
-            modal = {layers:activeLayers};
-            activeLayers.Open(modalId, p("ArcadeTestDialog"), function () { if (!current()) return; opened = false; closeModal(); render(); }, {scrim:p("ArcadeTestScrim")});
-        }
-        show("ArcadeTestPurchase", true);
-    }
     function render() {
         if (!enabled()) return;
         root.hittest = false; root.hittestchildren = true;
@@ -226,29 +164,26 @@
         p("ArcadeTestHTTP").text = "HTTP：" + phases[state.http_phase];
         p("ArcadeTestToggleText").text = collapsed ? "展开" : "收起";
         show("ArcadeTestBody", !collapsed); show("ArcadeTestCard", true);
-        var available = readCatalog(), layerReady = !!layers();
+        var available = readCatalog(), view = shopView(), layerReady = !!layers() && !!view;
         p("ArcadeTestPurchaseOpen").enabled = available && layerReady;
-        p("ArcadeTestCatalogStatus").text = !available ? "正式商品目录正在准备，暂不可打开。" : !layerReady ? "窗口正在准备，请稍后重试。" : "正式商品配置 · " + catalog.products.length + " 项，只读。";
-        if (available) renderProducts();
-        syncHook(); syncModal(); diagnostic("enabled", state);
+        p("ArcadeTestCatalogStatus").text = !available ? "正式商品目录正在准备，暂不可打开。" : !layerReady ? "商城正在准备，请稍后重试。" : "自有商城 · " + catalog.products.length + " 项配置，只读。";
+        if (leaseView && (leaseView !== view || !leaseView.IsReadonlyOpen(api))) closeModal();
+        syncHook(); diagnostic("enabled", state);
     }
     function openShop() {
         if (!enabled()) return false;
         try {
-            if (!readCatalog() || !layers()) { render(); return false; }
-            if (!opened) { listRevision = ""; detailRevision = ""; }
-            opened = true; render(); return opened;
+            var view = shopView();
+            if (!readCatalog() || !view || !layers()) { render(); return false; }
+            closeModal(); leaseView = view;
+            if (view.OpenReadonly(catalog, api) !== true) { closeModal(); return false; }
+            return view.IsReadonlyOpen(api);
         } catch (ignore) { diagnostic("open_error", state); hide(); return false; }
     }
     function bind() {
         if (bound || !ready()) return;
         p("ArcadeTestToggle").SetPanelEvent("onactivate", action(function () { collapsed = !collapsed; }));
         p("ArcadeTestPurchaseOpen").SetPanelEvent("onactivate", action(openShop));
-        ["ArcadeTestClose", "ArcadeTestScrim"].forEach(function (id) { p(id).SetPanelEvent("onactivate", action(function () { opened = false; })); });
-        p("ArcadeTestDialog").SetPanelEvent("onactivate", function () { return true; });
-        p("ArcadeTestWebShop").SetPanelEvent("onactivate", action(function () {
-            if (opened && readCatalog() && modal && modal.layers === layers()) $.DispatchEvent("ExternalBrowserGoToURL", SHOP_URL);
-        }));
         bound = true;
     }
     function receive(name, key, raw) {
@@ -276,7 +211,7 @@
         } catch (ignore) { diagnostic("monitor_error", state); hide(); }
         if (current()) timer = $.Schedule(0.1, monitor);
     }
-    api = {Open:openShop, Close:function () { if (!current()) return; opened = false; closeModal(); }, IsAvailable:function () { return enabled() && readCatalog() && !!layers(); }, Dispose:dispose};
+    api = {Open:openShop, Close:function () { if (!current()) return; closeModal(); }, IsAvailable:function () { return enabled() && readCatalog() && !!layers() && !!shopView(); }, Dispose:dispose};
     cfg.SurvivalArcadeReadOnlyShop = api;
     hide(); exactMap(); diagnostic("script_loaded", null);
     // Cached table values cannot activate this layout. The catalog is a signed

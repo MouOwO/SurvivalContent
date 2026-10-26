@@ -14,28 +14,8 @@
         <Label id="ArcadeTestPlayers" class="ArcadeTestStatus" />
         <Label id="ArcadeTestHost" class="ArcadeTestStatus" />
         <Label id="ArcadeTestHTTP" class="ArcadeTestStatus" />
-        <Button id="ArcadeTestPurchaseOpen" class="ArcadeTestButton"><Label text="查看完整商城" /></Button>
+        <Button id="ArcadeTestPurchaseOpen" class="ArcadeTestButton"><Label text="打开商城" /></Button>
         <Label id="ArcadeTestCatalogStatus" class="ArcadeTestStatus" />
-      </Panel>
-    </Panel>
-    <Panel id="ArcadeTestPurchase" class="ArcadeTestPurchase" style="visibility: collapse;" hittest="false" hittestchildren="false">
-      <Button id="ArcadeTestScrim" class="ArcadeTestScrim" />
-      <Panel id="ArcadeTestDialog" class="ArcadeTestDialog">
-        <Panel class="ArcadeTestDialogHeader"><Label class="ArcadeTestDialogTitle" text="完整商城 · 只读目录" /><Button id="ArcadeTestClose" class="ArcadeTestClose"><Label text="关闭" /></Button></Panel>
-        <Label class="ArcadeTestPurchaseWarning" text="收款未开放；当前仅本局多人版，云端权益暂不能同步本局。" />
-        <Label class="ArcadeTestNote" text="正式商品配置快照，并非实时云报价。不读取账号余额、持有量或剩余限购次数。" />
-        <Panel id="ArcadeTestCategories" class="ArcadeTestCategories" />
-        <Panel class="ArcadeTestCatalogueBody">
-          <Panel id="ArcadeTestProducts" class="ArcadeTestProducts" />
-          <Panel class="ArcadeTestDetails">
-            <Label id="ArcadeTestProductTitle" class="ArcadeTestProductTitle" />
-            <Label id="ArcadeTestDescription" class="ArcadeTestDescription" />
-            <Label id="ArcadeTestPrice" class="ArcadeTestPrice" />
-            <Label id="ArcadeTestLimits" class="ArcadeTestNote" />
-            <Label id="ArcadeTestRewards" class="ArcadeTestRewards" />
-          </Panel>
-        </Panel>
-        <Panel class="ArcadeTestFooter"><Button id="ArcadeTestWebShop" class="ArcadeTestButton"><Label text="打开网页商城（只读）" /></Button><Label class="ArcadeTestNote" text="仅浏览目录；不创建订单、不收款、不发放奖励。" /></Panel>
       </Panel>
     </Panel>
   </Panel>
