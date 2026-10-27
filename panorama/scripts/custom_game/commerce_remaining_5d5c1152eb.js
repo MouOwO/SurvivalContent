@@ -19,7 +19,7 @@
     // Public build quotes have their own presentation state. They never replace
     // authenticated balances, ownership, eligibility or payment catalogues.
     var readonlyCatalog=null, readonlyOwner=null;
-    function realMoneyEnabled(){var payments=cfg.SurvivalPayments;return cfg.SurvivalDevelopmentPayments===true&&paidCatalog.real_money_enabled!==false&&!!payments&&typeof payments.IsRealMoneyEnabled==="function"&&payments.IsRealMoneyEnabled()===true;}
+    function realMoneyEnabled(){var payments=cfg.SurvivalPayments;return paidCatalog.real_money_enabled!==false&&!!payments&&typeof payments.IsRealMoneyEnabled==="function"&&payments.IsRealMoneyEnabled()===true;}
     function rows(value) { return Array.isArray(value)?value:Object.keys(value||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return value[k];}); }
     function panel(type,parent,cls) { var n=$.CreatePanel(type,parent,""); if(cls)n.AddClass(cls); return n; }
     function text(parent,value,cls) { var n=panel("Label",parent,cls);n.text=J.RewardNameText(value);n.hittest=false;return n; }
@@ -280,6 +280,7 @@
         CloseReadonly:function(owner){if(!disposed&&readonlyCatalog&&readonlyOwner===owner){close();return true;}return false;},
         IsReadonlyOpen:function(owner){return live()&&opened&&!!readonlyCatalog&&readonlyOwner===owner;},
         SelectCategory:function(id){if(!live())return false;var choices=groups();if(!choices.some(function(c){return c.id===id;}))return false;category=id;page=0;render();return true;},
+        RefreshPaymentCapability:function(){if(!live())return;if(store.menu.SetReadonly)store.menu.SetReadonly(!!readonlyCatalog);mergeCatalogs();},
         SelectPurchaseType:selectPurchaseType,
         Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},IsOpen:function(){return opened;},
         OpenRecharge:function(){

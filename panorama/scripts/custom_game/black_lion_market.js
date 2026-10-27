@@ -1,6 +1,7 @@
 (function () {
     "use strict";
     var cfg=GameUI.CustomUIConfig(),U=cfg.SurvivalUI,M={},lastWindow=null;
+    function cashReady(){var payments=cfg.SurvivalPayments;return cfg.SurvivalDevelopmentPayments===true||!!payments&&typeof payments.IsRealMoneyEnabled==="function"&&payments.IsRealMoneyEnabled()===true;}
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function make(type,parent,id,cls){var p=$.CreatePanel(type,parent,id||"");(cls||"").split(/\s+/).filter(Boolean).forEach(function(c){p.AddClass(c);});return p;}
     function box(p,x,y,w,h){p.style.position=x+"px "+y+"px 0px";p.style.width=w+"px";p.style.height=h+"px";return p;}
@@ -49,10 +50,10 @@
             balanceLabels.push(label(line,name+" —","BLMarketBalanceText"+(i===0?" BLMarketRechargeBalance":"")));
             if(i===0){
                 recharge=make("Button",line,"BlackLionMarketRecharge","BLMarketRecharge");recharge.hittestchildren=false;
-                recharge.visible=cfg.SurvivalDevelopmentPayments===true;recharge.enabled=recharge.visible;recharge.hittest=recharge.visible;
+                recharge.visible=cashReady();recharge.enabled=recharge.visible;recharge.hittest=recharge.visible;
                 var rechargeIcon=make("Image",recharge,"","BLMarketRechargeIcon");
                 rechargeIcon.SetImage("file://{images}/control_icons/24px/plus.svg");rechargeIcon.hittest=false;rechargeIcon.hittestchildren=false;
-                recharge.SetPanelEvent("onactivate",function(){var view=cfg.SurvivalCommerceView;if(!readonlyView&&cfg.SurvivalDevelopmentPayments===true&&view&&view.OpenRecharge)view.OpenRecharge();return true;});
+                recharge.SetPanelEvent("onactivate",function(){var view=cfg.SurvivalCommerceView;if(!readonlyView&&cashReady()&&view&&view.OpenRecharge)view.OpenRecharge();return true;});
             }
         });
         var c=layer("close_button"),close=box(make("Button",canvas,"","BLMarketClose"),c.x,c.y,c.width,c.height);close.hittestchildren=false;
@@ -81,7 +82,7 @@
         art(canvas,"window_brush_edge","BLMarketFrameTexture",0,0,w,h,5);
         var menu={panel:p,shell:shell,canvas:canvas,content:content,actions:actions,detailLayer:details,sidebar:tabs,listWidth:1357,width:w,height:h,skinVersion:10,layout:"black_lion_list",
             Open:function(){shell.Open();},Close:function(){shell.Close();},Dispose:function(){shell.Dispose();},IsOpen:function(){return shell.IsOpen();},
-            SetReadonly:function(value){readonlyView=value===true;if(valid(recharge)){var allowed=!readonlyView&&cfg.SurvivalDevelopmentPayments===true;recharge.visible=allowed;recharge.enabled=allowed;recharge.hittest=allowed;}},
+            SetReadonly:function(value){readonlyView=value===true;if(valid(recharge)){var allowed=!readonlyView&&cashReady();recharge.visible=allowed;recharge.enabled=allowed;recharge.hittest=allowed;}},
             SetPurchaseType:function(value,select){typeCallback=select;typeOptions.forEach(function(option){typeButtons[option.id].SetHasClass("UISelected",option.id===value);});},
             Scale:function(){if(fittedScale!==null)return fittedScale;var rw=(root.actuallayoutwidth||1672)/(root.actualuiscale_x||1),rh=(root.actuallayoutheight||941)/(root.actualuiscale_y||1);return Math.min(rw*.94/w,rh*.90/d.height);},
             SetSidebar:function(groups,selected,select){tabs.RemoveAndDeleteChildren();groups.forEach(function(group,i){
