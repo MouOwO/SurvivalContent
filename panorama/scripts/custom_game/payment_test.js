@@ -36,7 +36,7 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     }
     function initializeCash(){
     var disposed=false,subscriptions=[],api=null;
-    var products = [], selected = "", orders = {}, busy = false, opened = false, generation = 0, lastMatrix = "", ticks = 0;
+    var products = [], selected = "", orders = {}, busy = false, opened = false, generation = 0, lastMatrix = "", qrCache = null, ticks = 0;
     var gameValues={}, gameEntitlements={}, wallet={}, matchFrozen=false, catalog={products:[],categories:[]};
     // Cache only this HUD/session's authoritative snapshot, never another account's data.
     var catalogReady=false, catalogCheckedAt=0, catalogRetryAt=0, catalogDirty=false, listRevision="";
@@ -263,23 +263,47 @@ var PaymentToggle, PaymentBuy, PaymentOpen, PaymentRefresh, PaymentShop, Payment
     function terminal(state) { return ["delivered", "paid_review", "closed"].indexOf(state) >= 0; }
     function drawQR(matrix) {
         var parent = $("#PaymentQR");
-        if (typeof matrix !== "string" || !/^[01|]+$/.test(matrix)) { parent.style.visibility = "collapse"; return false; }
-        var qr = matrix.split("|"), size = qr.length;
-        if (size < 29 || size > 65 || qr.some(function(row){return row.length !== size;})) { parent.style.visibility = "collapse"; return false; }
-        parent.style.visibility = "visible";
-        if (lastMatrix === matrix) return true;
-        lastMatrix = matrix; parent.RemoveAndDeleteChildren();
-        var cell = Math.max(3, Math.floor(216 / size));
-        parent.style.width = (size * cell) + "px"; parent.style.height = (size * cell) + "px";
-        qr.forEach(function(bits) {
-            var row = $.CreatePanel("Panel", parent, ""); row.AddClass("PaymentQRRow"); row.style.height = cell + "px";
-            for (var start=0; start<size;) {
-                var end=start+1; while (end<size && bits[end]===bits[start]) end++;
-                var run=$.CreatePanel("Panel",row,""); run.style.width=((end-start)*cell)+"px"; run.style.height=cell+"px";
-                run.style.backgroundColor=bits[start]==="1"?"#000000":"#ffffff"; start=end;
+        function clear() {
+            lastMatrix = ""; qrCache = null;
+            if (valid(parent)) {
+                parent.style.visibility = "collapse";
+                try { parent.RemoveAndDeleteChildren(); } catch (ignore) { return false; }
             }
-        });
-        return true;
+            return true;
+        }
+        if (!valid(parent)) { clear(); return false; }
+        if (typeof matrix !== "string" || !/^[01|]+$/.test(matrix)) { clear(); return false; }
+        var qr = matrix.split("|"), size = qr.length;
+        if (size < 29 || size > 65 || qr.some(function(row){return row.length !== size;})) { clear(); return false; }
+        var children = parent.Children ? parent.Children() : [];
+        if (lastMatrix === matrix && qrCache && qrCache.parent === parent && qrCache.panels.length > 0
+            && children.length === qrCache.panels.length && qrCache.panels.every(function(panel) {
+                return valid(panel) && panel.GetParent && panel.GetParent() === parent && children.indexOf(panel) >= 0;
+            })) { parent.style.visibility = "visible"; return true; }
+        if (!clear()) return false;
+        var cell = Math.max(3, Math.floor(216 / size)), pixels = size * cell, panels = [];
+        try {
+            // Flow rounds each run independently at fractional UI scales, distorting finder squares.
+            // Anchor every black run to the same canvas; the matrix already includes its quiet zone.
+            paint(parent,{width:pixels+"px",height:pixels+"px",flowChildren:"none",backgroundColor:"#ffffff",
+                margin:"0px",padding:"0px",border:"0px",overflow:"clip"});
+            qr.forEach(function(bits,y) {
+                for (var start=0; start<size;) {
+                    var end=start+1; while (end<size && bits[end]===bits[start]) end++;
+                    if (bits[start] === "1") {
+                        var run=$.CreatePanel("Panel",parent,"");
+                        if (!valid(run) || !run.GetParent || run.GetParent() !== parent) throw new Error("qr_panel_unavailable");
+                        rect(run,start*cell,y*cell,(end-start)*cell,cell);
+                        paint(run,{ignoreParentFlow:"true",backgroundColor:"#000000",border:"0px"});
+                        run.hittest=false; run.hittestchildren=false; panels.push(run);
+                    }
+                    start=end;
+                }
+            });
+            lastMatrix=matrix; qrCache={parent:parent,panels:panels};
+            parent.style.visibility="visible";
+            return true;
+        } catch (ignore) { clear(); return false; }
     }
     function render() {
         if (!alive()) return;
