@@ -2,13 +2,8 @@
     <scripts>
         <include src="file://{resources}/scripts/custom_game/native_team_setup.js" />
     </scripts>
-    <Panel hittest="false" hittestchildren="true" style="width: 100%; height: 100%;">
-        <Panel id="NativeTeamSetupHost" hittest="false" hittestchildren="true" style="width: 100%; height: 100%;" />
-        <Panel id="NativeTeamSetupFallback" visible="false" hittest="false" hittestchildren="true" style="width: 480px; height: fit-children; align: center center; flow-children: down; padding: 20px; background-color: #101923f5; border: 1px solid #aa8c56;">
-            <Label id="NativeTeamSetupError" text="官方选队界面加载失败，请点击重试。" style="width: 100%; color: #e0b9a0; font-size: 22px; text-align: center; white-space: normal;" />
-            <Button id="NativeTeamSetupRetry" style="width: 140px; height: 44px; horizontal-align: center; margin-top: 16px; background-color: #22251e; border: 1px solid #bca06b;">
-                <Label text="重试" style="align: center center; font-size: 22px; color: #ead9b5;" />
-            </Button>
-        </Panel>
+    <!-- Native roster assignment and auto-launch remain active on the server. -->
+    <Panel visible="false" hittest="false" hittestchildren="false" style="visibility: collapse;">
+        <Panel id="NativeTeamSetupHost" visible="false" hittest="false" hittestchildren="false" />
     </Panel>
 </root>

@@ -1,0 +1,17 @@
+.CommerceResult { flow-children:none; padding:0px; margin:0px; }
+.CommerceResult Label { font-family:"Source Han Sans SC"; text-shadow:none; white-space:normal; }
+.CommerceResultHeader { position:0px 0px 0px; width:560px; height:56px; background-color:#191c18; border-bottom:1px solid #9b8c6266; }
+.CommerceResultTitle { position:24px 12px 0px; width:450px; height:36px; color:#eddbb7; font-size:25px; }
+.CommerceResultBody { position:24px 74px 0px; width:512px; height:190px; }
+.CommerceResultStatus { position:0px 0px 0px; width:512px; height:70px; color:#d7c99d; font-size:20px; line-height:26px; overflow:squish scroll; }
+.CommerceResultCopy { position:0px 80px 0px; width:512px; height:106px; color:#d0cbb9; font-size:18px; line-height:27px; overflow:squish scroll; }
+.CommerceResultSuccess .CommerceResultStatus { color:#b7d5ac; }
+.CommerceResultFailure .CommerceResultStatus { color:#efbd92; }
+.CommerceResultActions { position:24px 282px 0px; width:512px; height:42px; flow-children:right; }
+.CommerceResultButton { width:244px; height:42px; padding:0px; background-image:none; background-color:gradient(linear,0% 0%,0% 100%,from(#484632),to(#292c23)); border:1px solid #9b8c62; }
+.CommerceResultButton Label { width:100%; align:center center; text-align:center; font-size:19px; color:#eddbb7; }
+.CommerceResultPrimary { margin-right:12px; }
+.CommerceResultButton:hover { brightness:1.2; }
+.CommerceResultButton:disabled { opacity:.5; }
+.CommerceResultClose { position:506px 10px 0px; width:32px; height:32px; border:0px; background-color:transparent; }
+.CommerceResultClose Label { font-size:28px; }

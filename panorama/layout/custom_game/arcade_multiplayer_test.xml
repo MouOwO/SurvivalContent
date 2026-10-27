@@ -10,7 +10,7 @@
     <Panel id="ArcadeTestCard" class="ArcadeTestCard" style="visibility: collapse;" hittest="false" hittestchildren="false">
       <Button id="ArcadeTestToggle" class="ArcadeTestHeader"><Label class="ArcadeTestHeading" text="原生多人验证" /><Label id="ArcadeTestToggleText" text="收起" /></Button>
       <Panel id="ArcadeTestBody" class="ArcadeTestBody">
-        <Label class="ArcadeTestWarning" text="本局不保存 · 收款未开放" />
+        <Label class="ArcadeTestWarning" text="游廊联机 · 仅本局数据" /><Label class="ArcadeTestStatus" text="云存档与支付：使用联网登录测试入口" />
         <Label id="ArcadeTestPlayers" class="ArcadeTestStatus" />
         <Label id="ArcadeTestHost" class="ArcadeTestStatus" />
         <Label id="ArcadeTestHTTP" class="ArcadeTestStatus" />

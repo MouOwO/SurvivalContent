@@ -36,6 +36,14 @@
         }
         return {button: button, label: label};
     }
+    var stageCaption = $("#StartupLoadingStage");
+    if (!stageCaption || !stageCaption.IsValid()) {
+        stageCaption = $.CreatePanel("Label", $("#StartupLoadingFooter") || surface, "StartupLoadingStage");
+        stageCaption.AddClass("StartupLoadingStage"); stageCaption.hittest = false;
+    }
+    function preparingTeams() {
+        return nativeTeamSetupContext && !state || !!state && (yes(state.native_team_setup) || state.phase === "team_setup");
+    }
     var retryControl = ensureButton("StartupLoadingRetry", $("#StartupLoadingErrorBox"),
         "StartupLoadingRetry", null, "重试");
 
@@ -224,12 +232,10 @@
         // or tears down its client rules object. A JS catch cannot intercept a
         // native access violation. The authoritative snapshot and completion
         // memo already cover phase gaps without querying engine rule state.
-        // Only the GameSetup layout yields to Valve's team selection. A later
-        // HeroSelection/Strategy/HUD instance may initially receive no snapshot
-        // or the previous team_setup snapshot; neither can release its cover.
-        var nativeTeamSetup = nativeTeamSetupContext && (!state
-            || yes(state.native_team_setup) || state.phase === "team_setup");
-        var hidden = released() || awaitingSnapshot || nativeTeamSetup;
+        // The server assigns the team and owns native auto-launch. Keep our
+        // opaque loading surface through setup and every later admission gate.
+        var nativeTeamSetup = preparingTeams();
+        var hidden = released() || awaitingSnapshot;
         if (hidden && released()) lastHiddenRepair = clock;
         if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
@@ -239,10 +245,13 @@
         // Apply image visibility directly as well as through the theme class.
         background.style.opacity = !hidden && !artworkRetired && imageReady && !imageError ? "1" : "0";
         // Neither timers nor image events assert authenticated / server-ready.
+        stageCaption.text = nativeTeamSetup ? "正在准备队伍…" : "";
+        stageCaption.visible = nativeTeamSetup && !hidden;
+        stageCaption.SetHasClass("StartupLoadingHidden", !nativeTeamSetup || hidden);
         var progress = nativeTeamSetup ? 0 : personalProgress(local);
         $("#StartupLoadingProgressFill").style.width = progress.toFixed(1) + "%";
         $("#StartupLoadingPercent").text = Math.floor(progress) + "%";
-        var showError = late || reload || imageError || failed || stateTimeout;
+        var showError = late || reload || imageError || failed || stateTimeout && !nativeTeamSetup;
         $("#StartupLoadingErrorBox").SetHasClass("StartupLoadingHidden", !showError);
         root.SetHasClass("StartupLoadingHasError", showError);
         var errorMessages = {
@@ -270,8 +279,8 @@
             (reload ? "部分初始资源加载失败，请重新启动测试地图。" :
                 (imageError ? "画面加载失败，请重试。" :
                     (stateTimeout && !failed ? "仍在等待游戏准备，请检查连接后重试。" : preparationError)));
-        retryControl.button.SetHasClass("StartupLoadingHidden", late || reload);
-        retryControl.button.enabled = !late && !reload && clock - lastRetry >= 2;
+        retryControl.button.SetHasClass("StartupLoadingHidden", nativeTeamSetup || late || reload);
+        retryControl.button.enabled = !nativeTeamSetup && !late && !reload && clock - lastRetry >= 2;
         maybeHandshake(local);
     }
     function accept(next) {
@@ -321,7 +330,7 @@
         imageReady = false; imageError = true; render();
     }
     function retry() {
-        if (!valid() || released() || lateJoin() || reloadRequired() || clock - lastRetry < 2) return;
+        if (!valid() || preparingTeams() || released() || lateJoin() || reloadRequired() || clock - lastRetry < 2) return;
         lastRetry = clock; lastHandshake = -100; stateTimeout = false;
         if (imageError || !imageReady) loadImage();
         send("survival_loading_retry");

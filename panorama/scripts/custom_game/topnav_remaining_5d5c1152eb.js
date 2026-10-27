@@ -308,7 +308,7 @@
         var top=cfg.SurvivalUILayers&&cfg.SurvivalUILayers.Top?cfg.SurvivalUILayers.Top():null;
         var matched=null;
         if(top)Object.keys(navWindowIds).forEach(function(key){if(navWindowIds[key]===top)matched=key;});
-        if(top==="commerce_exchange"||top==="payment_shop")matched="shop";
+        if(top==="commerce_result"||top==="payment_shop")matched="shop";
         // Windows opened outside SurvivalUILayers fall back to their own visibility.
         if(!matched){
             var probes=[["survival_shop","CustomShopWindow"],["treasure","TreasureWindow"],["archive","ArchiveWindow"],["lottery","LotteryWindow"],["benefit","DailyWindow"]];

@@ -4,7 +4,7 @@
     <include src="file://{resources}/styles/custom_game/common/ui_typography.css" />
     <include src="file://{resources}/styles/custom_game/remaining_5d5c1152eb.css" />
     <include src="file://{resources}/styles/custom_game/payment_test.css" />
-    <include src="file://{resources}/styles/custom_game/commerce_wallet.css" />
+    <include src="file://{resources}/styles/custom_game/commerce_result.css" />
 
   <include src="file://{resources}/styles/custom_game/common/menu_v10.css" /><include src="file://{resources}/styles/custom_game/menus_v10_commerce.css" /><include src="file://{resources}/styles/custom_game/payment_checkout.css" /></styles>
   <scripts><include src="file://{resources}/scripts/custom_game/common/item_resources.js" /><include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/common/vip_badges.js" /><include src="file://{resources}/scripts/custom_game/common/ui_registry.js" /><include src="file://{resources}/scripts/custom_game/common/ui_components.js" /><include src="file://{resources}/scripts/custom_game/common/tooltip_dismiss.js" /><include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/archive_v10_data.js" /><include src="file://{resources}/scripts/custom_game/common/menu_v10.js" /><include src="file://{resources}/scripts/custom_game/common/commerce_components.js" /><include src="file://{resources}/scripts/custom_game/payment_capability.js" /><include src="file://{resources}/scripts/custom_game/payment_test.js" /><include src="file://{resources}/scripts/custom_game/commerce_wallet.js" /><include src="file://{resources}/scripts/custom_game/commerce_actions.js" /></scripts>

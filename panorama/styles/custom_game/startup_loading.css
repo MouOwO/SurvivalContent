@@ -31,6 +31,10 @@
     width: 760px; max-width: 80%; horizontal-align: center;
     vertical-align: bottom; margin-bottom: 7.5%; flow-children: down;
 }
+.StartupLoadingStage {
+    width: 100%; height: 34px; margin-bottom: 10px; text-align: center;
+    color: #ead9b5; font-size: 22px; white-space: normal;
+}
 .StartupLoadingProgressTrack {
     width: 100%; height: 48px; flow-children: none;
     background-color: transparent;
