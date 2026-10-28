@@ -34,8 +34,10 @@
                 + "), color-stop(0.55, " + shade(.55) + "), to(" + shade(.20) + "))";
         }
         var builder = identity.model_asset_id === "builder_io_benevolent_companion";
+        var nativeRebirth = /^npc_survival_named_rebirth_boss_(0[1-9]|10)$/.test(unitName)
+            || /^monster_boss_rebirth_(0[1-9]|10)_/.test(identity.model_asset_id || "");
         return {color:color, fill:builder ? "#071321" : backdropCache[color],
-            image:builder ? BUILDER_IO_BACKDROP : "none", entity:entity, unit:unitName,
+            image:builder ? BUILDER_IO_BACKDROP : "none", nativeRebirth:nativeRebirth, entity:entity, unit:unitName,
             portrait:identity.portrait_unit_name || "", asset:identity.model_asset_id || "", model:identity.portrait_model_name || ""};
     }
     function opacityCSS(value) {
@@ -156,8 +158,14 @@
         }
         var backdrop = currentBackdrop();
         var container = group.FindChildTraverse("PortraitContainer");
-        style(container, {backgroundColor:backdrop.fill, backgroundImage:backdrop.image,
-            backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat",
+        // Remove our fill for the ten rebirth bosses so Valve's portrait owns
+        // both the live model and its backdrop. Empty inline values restore
+        // the native stylesheet and also clear a previously selected builder.
+        style(container, {backgroundColor:backdrop.nativeRebirth ? "" : backdrop.fill,
+            backgroundImage:backdrop.nativeRebirth ? "" : backdrop.image,
+            backgroundSize:backdrop.nativeRebirth ? "" : "100% 100%",
+            backgroundPosition:backdrop.nativeRebirth ? "" : "50% 50%",
+            backgroundRepeat:backdrop.nativeRebirth ? "" : "no-repeat",
             border:"0px", boxShadow:"none"});
         var nativePortrait = group.FindChildTraverse("portraitHUD");
         // The staging modifier must still prevent spells/items; only its giant
@@ -172,7 +180,7 @@
         style(custom, {backgroundColor:backdrop.fill, backgroundImage:backdrop.image,
             backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat"});
         var multi=cfg.SurvivalMultiSelectionPortraits;
-        var effectsEnabled=backdrop.entity>=0 && !(multi && multi.IsActive && multi.IsActive());
+        var effectsEnabled=backdrop.entity>=0 && !backdrop.nativeRebirth && !(multi && multi.IsActive && multi.IsActive());
         var customActive=valid(custom) && String(custom.style.visibility)==="visible";
         updateBackdropMotes(container,nativePortrait,backdrop,effectsEnabled && !customActive);
         updateBackdropMotes(custom,valid(custom)&&custom.FindChildTraverse("SurvivalTowerPortraitScene"),backdrop,effectsEnabled && customActive);

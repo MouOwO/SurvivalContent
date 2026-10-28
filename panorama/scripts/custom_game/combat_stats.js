@@ -716,9 +716,21 @@
         scene.style.transformOrigin = "50% 50%";
     }
 
+    function usesNativeRebirthPortrait(unit, snapshot) {
+        // Trial only the ten rebirth bosses on Valve's entity-bound portrait.
+        // Other bosses, towers and the player's Arcana Juggernaut stay split.
+        if (!isFinite(unit) || unit < 0) return false;
+        var unitName = "";
+        try { unitName = String(Entities.GetUnitName(unit) || ""); } catch (error) {}
+        if (/^npc_survival_named_rebirth_boss_(0[1-9]|10)$/.test(unitName)) return true;
+        return snapshot && Number(snapshot.entindex) === Number(unit)
+            && /^monster_boss_rebirth_(0[1-9]|10)_/.test(String(snapshot.model_asset_id || ""));
+    }
+
     function unitUsesTowerPortrait(unit) {
         unit = Number(unit);
         if (!isFinite(unit) || unit < 0) return false;
+        if (usesNativeRebirthPortrait(unit, selectedUnitSnapshot)) return false;
         try {
         var unitName = String(Entities.GetUnitName(unit) || "");
         if (unitName === "npc_survival_builder_proxy") return true;
@@ -882,6 +894,10 @@
     function updateCosmeticPortrait(snapshot) {
         if (multiSelectionPortraitActive()) {
             hideCosmeticPortrait("multi_selection");
+            return false;
+        }
+        if (usesNativeRebirthPortrait(Number(displayUnit()), snapshot)) {
+            hideCosmeticPortrait("native_rebirth_portrait");
             return false;
         }
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
