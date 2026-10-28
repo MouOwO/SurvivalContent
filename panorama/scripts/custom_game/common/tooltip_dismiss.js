@@ -1,6 +1,6 @@
 (function () {
     "use strict";
-    var cfg = GameUI.CustomUIConfig(), version = "1.0.2";
+    var cfg = GameUI.CustomUIConfig(), version = "1.0.3";
     if (cfg.SurvivalTooltipDismiss && cfg.SurvivalTooltipDismiss.version === version) return;
     var owners = [], blocked = null, job = null, epoch = 0;
     function valid(panel) { return panel && (!panel.IsValid || panel.IsValid()); }
@@ -50,7 +50,7 @@
             release(at);
             owners.slice().forEach(function (owner) {
                 if (!owner.alive()) { owner.Dispose(); return; }
-                if (owner.shown && owner.visible() && !owner.allowTooltipHover() && inside(at,rect(owner.surface,owner.readRect))) owner.Dismiss();
+                if (owner.shown && owner.visible() && !owner.allowTooltipHover() && !owner.ContainsSource(at) && inside(at,rect(owner.surface,owner.readRect))) owner.Dismiss();
             });
             if (blocked || owners.some(function (owner) { return owner.shown && owner.alive() && owner.visible(); })) watch();
             else cancelIdle();
@@ -62,6 +62,7 @@
         owner.alive=function () { return !dead && valid(panel) && valid(surface) && (!options.isAlive || options.isAlive()); };
         owner.visible=function () { return owner.alive() && (options.isVisible ? options.isVisible() : panel.visible!==false); };
         owner.allowTooltipHover=function () { return !!(options.allowTooltipHover && options.allowTooltipHover()); };
+        owner.ContainsSource=function (at) { return inside(at,rect(anchor,owner.readRect)); };
         owner.CanShow=function (source) {
             if (!owner.alive()) return false;
             var at=cursor();

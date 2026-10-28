@@ -13,6 +13,7 @@ var fitOptions={widthFraction:.94,heightFraction:.9};
 var data=null,waiting=null,errorText="",buying=false,sequence=0,active=true,life=U.Lifecycle(),viewLife=U.Lifecycle(),fetching=false,fetchSerial=0;
 var dailyRoot=$.GetContextPanel(),view=null,shell=null,canvas=null,dailyTooltip=null,moved=[];
 var cardSignature="",specialSignature="",statusText="",scale=1;
+var tooltipSources=[];
 var rewardFX=null,activePage="login",benefitWaiting=null,benefitSignature="",benefitErrorText="",loginNodes=[];
 var columnLabels=["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ"];
 function valid(node){return node&&(!node.IsValid||node.IsValid());}
@@ -50,12 +51,13 @@ function tip(anchor,title,body){
  if(/^DailyGW2Weekday_[0-6]$/.test(anchor.id||"")){anchor.hittest=false;return;}
  body=effectLines(body);
  anchor.__dailyGW2Tooltip={title:String(title||"奖励说明"),body:String(body||"奖励说明待同步")};
- anchor.hittest=true;anchor.SetPanelEvent("onmouseover",function(){
+ if(tooltipSources.indexOf(anchor)<0)tooltipSources.push(anchor);
+ anchor.hittest=true;anchor.__dailyGW2ShowTooltip=function(){
   if(!active||!viewValid()||!shell.IsOpen()||!p("DailyRulesText").BHasClass("ArchiveHidden")){hideTooltip();return;}
   if(dailyTooltip.Show({name:String(title||"奖励说明"),description:String(body||"奖励说明待同步")},"daily",anchor,true)){
    p("DailyTooltipName").text=String(title||"奖励说明");p("DailyTooltipEffect").text=String(body||"奖励说明待同步");
   }
- });anchor.SetPanelEvent("onmouseout",function(){if(dailyTooltip)dailyTooltip.QueueHide(anchor);});
+ };anchor.SetPanelEvent("onmouseover",anchor.__dailyGW2ShowTooltip);anchor.SetPanelEvent("onmouseout",function(){if(dailyTooltip)dailyTooltip.QueueHide(anchor);});
 }
 function close(){
  if(!active)return;
@@ -119,6 +121,7 @@ function build(){
  dailyTooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:dailyRoot,idPrefix:"DailyGW2Tooltip",allowSourceSwitch:true,
   getBounds:function(){return size;},getScale:function(){return scale;},maxHeight:function(bounds){return Math.min(570,bounds.height-40);},watchAnchor:true,
   isAlive:function(){return active&&viewValid();},isActive:function(){return shell.IsOpen()&&p("DailyRulesText").BHasClass("ArchiveHidden");},
+  getHoverSources:function(){tooltipSources=tooltipSources.filter(valid);return tooltipSources.slice().reverse();},onHoverSource:function(anchor){if(anchor.__dailyGW2ShowTooltip)anchor.__dailyGW2ShowTooltip();},
   position:function(info){var x=info.anchor.x+cellWidth+12-info.padding;if(x+info.width>info.bounds.width)x=info.anchor.x-info.surfaceWidth-12-info.padding;return {x:Math.max(0,Math.min(info.bounds.width-info.width,x)),y:Math.max(0,Math.min(info.bounds.height-info.height,info.anchor.y-info.padding))};}
  });
  // Scope the opaque R5 tooltip to this instance; keep shared archive behavior.

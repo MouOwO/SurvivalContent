@@ -11,6 +11,7 @@
         var parent = options.parent, root = options.root || parent, prefix = options.idPrefix || "ArchiveSharedTooltip";
         var life = U.Lifecycle(), disposed = false, showEpoch = 0, hideEpoch = 0, anchor = null;
         var currentItem = null, currentCategory = "", elements = {}, pieces = {}, panel, dismiss;
+        var followJob = null, followedSource = null, hideQueued = false;
         var compact = options.compact === true;
         var rarityColors = {UR:"#ef5350",SSR:"#f5c65e",SR:"#b680ee",R:"#74c8f2",N:"#8fc47b"};
         var surfaceWidth = compact ? 260 : 320, insetX = compact ? 8 : 22;
@@ -103,7 +104,7 @@
         }
 
         function hide() {
-            showEpoch++; hideEpoch++; life.Cancel();
+            showEpoch++; hideEpoch++; hideQueued=false;life.Cancel();
             if (valid(anchor)) anchor.RemoveClass("ArchiveHovered");
             anchor=null;
             if (valid(panel)) panel.visible=false;
@@ -111,18 +112,21 @@
             if (options.onHide) options.onHide();
         }
         function queueHide(source) {
-            if (options.allowSourceSwitch && dismiss && dismiss.SourceLeft) dismiss.SourceLeft(source);
+            if (dismiss && dismiss.SourceLeft) dismiss.SourceLeft(source);
             // Native events from a retired card can arrive after the next Show.
             if (source && source!==anchor) return;
-            if (!active() || !panel.visible) return;
+            if (!active() || !panel.visible || hideQueued) return;
+            hideQueued=true;
             var epoch=++hideEpoch;
             life.Later(.15,function () {
                 if (!active() || epoch!==hideEpoch) return;
+                hideQueued=false;
                 if (cursorInside(anchor) || (tooltipOverflows() && cursorInside(surface))) return;
                 hide();
             });
         }
         function reset() {
+            stopFollowing();
             hide();
             // Recreate only this policy owner. This also accepts owners retained
             // from an older script version during a native HUD reload.
@@ -136,9 +140,55 @@
             var at=GameUI.GetCursorPosition(), box=tooltipRect(node);
             return at && at[0]>=box.x && at[0]<box.x+box.width && at[1]>=box.y && at[1]<box.y+box.height;
         }
+        function stopFollowing() {
+            if (followJob!==null && $.CancelScheduled) $.CancelScheduled(followJob);
+            followJob=null;followedSource=null;
+        }
+        function sourceVisible(source) {
+            for (var node=source,depth=0;valid(node)&&depth<32;depth++) {
+                if (node.visible===false || node.BHasClass && node.BHasClass("ArchiveHidden")) return false;
+                if (node===parent) return true;
+                node=node.GetParent && node.GetParent();
+            }
+            return false;
+        }
+        function followCursor() {
+            if (followJob!==null || !options.getHoverSources || !GameUI.GetCursorPosition) return;
+            followJob=$.Schedule(.03,function () {
+                followJob=null;
+                if (!active()) { stopFollowing();return; }
+                var at=GameUI.GetCursorPosition();
+                if (!at || !isFinite(at[0]) || !isFinite(at[1])) { stopFollowing();return; }
+                // Keep scrollable descriptions reachable without allowing a
+                // short, transparent description to swallow the next icon.
+                if (tooltipOverflows() && panel.visible && cursorInside(surface)) { followCursor();return; }
+                var bounds=options.getHoverBounds && options.getHoverBounds();
+                if (panel.visible && sourceVisible(anchor) && (!bounds || cursorInside(bounds)) && cursorInside(anchor)) { followCursor();return; }
+                var source=null;
+                if (!bounds || cursorInside(bounds)) {
+                    var sources=options.getHoverSources() || [];
+                    for (var index=0;index<sources.length;index++) {
+                        var candidate=sources[index];
+                        if (sourceVisible(candidate) && cursorInside(candidate)) { source=candidate;break; }
+                    }
+                }
+                if (source) {
+                    followedSource=source;
+                    if ((source!==anchor || !panel.visible) && dismiss.CanShow(source) && options.onHoverSource) options.onHoverSource(source);
+                    followCursor();
+                } else {
+                    if (followedSource) queueHide(followedSource);
+                    followedSource=null;
+                    // A source event starts the watcher again. No hidden-window
+                    // or idle HUD scan remains after leaving the item region.
+                    if (panel.visible && cursorInside(surface)) followCursor();
+                }
+            });
+        }
         function surfaceEnter() {
             if (!active() || !panel.visible || (GameUI.GetCursorPosition && !cursorInside(surface))) return;
-            if (tooltipOverflows()) hideEpoch++; else dismiss.Dismiss();
+            if (GameUI.GetCursorPosition && cursorInside(anchor)) return;
+            if (tooltipOverflows()) { hideEpoch++;hideQueued=false; } else dismiss.Dismiss();
         }
         function createDismiss() {
             var owner=cfg.SurvivalTooltipDismiss.Create({panel:panel,surface:surface,getRect:tooltipRect,hide:hide,isAlive:alive,allowSourceSwitch:options.allowSourceSwitch===true,allowTooltipHover:tooltipOverflows,isVisible:function () { return active() && panel.visible; }});
@@ -261,6 +311,7 @@
             if (cfg.SurvivalArchiveFontV36 && cfg.SurvivalArchiveFontV36.Scope) cfg.SurvivalArchiveFontV36.Scope(body);
             body.style.height="fit-children"; panel.visible=true;
             var epoch=showEpoch; position(epoch); dismiss.Shown(card);
+            followedSource=card;followCursor();
             [0,.05,.1,.2,.4,.8].forEach(function (delay) { life.Later(delay,function () { position(epoch); }); });
             if (options.watchAnchor) trackAnchor(epoch,card.GetPositionWithinWindow());
             return true;
@@ -268,7 +319,7 @@
         return {
             Show:show, Hide:reset, QueueHide:queueHide, IsVisible:function () { return alive() && panel.visible; }, panel:panel, elements:elements,
             Inspect:function () { return {visible:alive()&&panel.visible,category:currentCategory,itemId:currentItem&&currentItem.id,anchorId:anchor&&anchor.id,prefix:prefix,surfaceHeight:measuredHeight,coordinateSpace:alive()?{fit:fitScale,parentX:parent.actualuiscale_x,parentY:parent.actualuiscale_y,rootX:root.actualuiscale_x,rootY:root.actualuiscale_y,parentPosition:parent.GetPositionWithinWindow(),hostPosition:panel.GetPositionWithinWindow(),hostStyle:panel.style.position,anchorWidth:valid(anchor)?anchor.actuallayoutwidth:0,anchorHeight:valid(anchor)?anchor.actuallayoutheight:0}:null,surfaceRect:alive()?tooltipRect(surface):null,anchorRect:valid(anchor)?tooltipRect(anchor):null,nineSlices:{Backing:{count:pieces.Backing.length,asset:backing.__v10Slice.asset,insets:backing.__v10Slice.insets.slice()},Frame:{count:pieces.Frame.length,asset:frame.__v10Slice.asset,insets:frame.__v10Slice.insets.slice()}}}; },
-            Dispose:function () { if (disposed) return; hide(); if (dismiss) dismiss.Dispose(); disposed=true; life.Dispose(); if (valid(panel)) panel.DeleteAsync(0); }
+            Dispose:function () { if (disposed) return; stopFollowing();hide(); if (dismiss) dismiss.Dispose(); disposed=true; life.Dispose(); if (valid(panel)) panel.DeleteAsync(0); }
         };
     }
     cfg.SurvivalArchiveTooltip = {Create:create};

@@ -238,7 +238,7 @@
                 status.hittest=false;
             }
             card.SetPanelEvent("onmouseover", function () { tooltip(item, card); });
-            card.SetPanelEvent("onmouseout",function(){if(voidView&&voidView.RequestTooltipHide)voidView.RequestTooltipHide();else hideTooltip();});
+            card.SetPanelEvent("onmouseout",function(){if(voidView&&voidView.RequestTooltipHide)voidView.RequestTooltipHide(card);else hideTooltip();});
             if (current === "titles") {
                 var equipped=Number(item.equipped)===1;
                 var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 恢复自动":Number(item.preview_only)===1?"点击试穿":"点击穿戴","ArchiveTitleAction");

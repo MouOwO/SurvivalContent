@@ -122,13 +122,14 @@ tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"Col
  skin:{backing:{file:"s2r://panorama/images/hud/reborn/bg_tooltip_psd.vtex",size:[500,452],nine_slice_ltrb:[12,12,12,12],edge_ltrb:[6,6,6,6]},frame:{file:goldArt.frame.uri,size:goldArt.frame.size,nine_slice_ltrb:goldArt.frame.cut,edge_ltrb:[8,8,8,8],fill:false}},
  getScale:function(){scale=Number(U.Fit(win,root,size[0],size[1],fitOptions))||1;return scale;},
  getBounds:function(){return {width:size[0],height:size[1]};},categoryName:function(id){return names[id]||id;},maxHeight:size[1]-72,watchAnchor:true,
+ getHoverSources:function(){return slots;},getHoverBounds:function(){return grid;},onHoverSource:function(card){if(card.__collectionItem)showTooltip(card,card.__collectionItem);},
  position:function(info){var x=info.anchor.x+slotSize+8;if(x+info.width>info.bounds.width-8)x=info.anchor.x-info.width-8;return {x:Math.max(8,Math.min(info.bounds.width-info.width-8,x)),y:Math.max(48,Math.min(info.bounds.height-info.height-8,info.anchor.y))};}
 });
 tipPanel=tooltip.panel;tipPanel.AddClass("CollectionGW2Tooltip");
 function hideFilterMenu(){filterOpen=false;if(valid(filterMenu))filterMenu.visible=false;if(valid(filterDismiss))filterDismiss.visible=false;if(valid(filter))filter.RemoveClass("CollectionGW2FilterExpanded");if(valid(nodes.CollectionGW2FilterArrow))nodes.CollectionGW2FilterArrow.text="▾";}
 function showFilterMenu(){hideTooltip();$.DispatchEvent("DOTAHideTextTooltip");filterOpen=true;filterMenu.visible=true;filterDismiss.visible=true;filter.AddClass("CollectionGW2FilterExpanded");nodes.CollectionGW2FilterArrow.text="▴";}
 function hideTooltip(){if(tooltip)tooltip.Hide();}
-function leaveTooltip(){if(tooltip)tooltip.QueueHide();}
+function leaveTooltip(card){if(tooltip)tooltip.QueueHide(card);}
 function showTooltip(card,item){if(alive()&&opened&&valid(card))tooltip.Show(item,current,card,false);}
 function rewardIcon(card,item){
  var host=make("Panel",card,"","CollectionGW2Portrait");rect(host,1,1,portraitSize,portraitSize);host.hittest=false;host.hittestchildren=false;
@@ -190,7 +191,7 @@ function renderCards(rows){
   slots.push(card);
  }
 }
-function bindCard(card,item){card.SetPanelEvent("onmouseover",function(){showTooltip(card,item);});card.SetPanelEvent("onmouseout",leaveTooltip);card.SetPanelEvent("onactivate",function(){if(!alive()||!opened)return;showTooltip(card,item);});}
+function bindCard(card,item){card.__collectionItem=item;card.SetPanelEvent("onmouseover",function(){showTooltip(card,item);});card.SetPanelEvent("onmouseout",function(){leaveTooltip(card);});card.SetPanelEvent("onactivate",function(){if(!alive()||!opened)return;showTooltip(card,item);});}
 function canDraw(){var data=shared.pages[current],s=data&&data.social;return opened&&!shared.pending&&s&&Number(data.pending)!==1&&known(s.tickets)&&known(s.draw_cost)&&Number(s.draw_cost)>0&&Number(s.tickets)>=Number(s.draw_cost)&&known(s.remaining)&&Number(s.remaining)>0;}
 function render(){
  if(!alive()||!opened)return;var data=shared.pages[current],s=data&&data.social,rows=array(data&&data.rows);

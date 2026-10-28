@@ -252,11 +252,13 @@
         return true;
     }
     function buildTooltip(){
-        tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"ArchiveV10Tooltip",isAlive:alive,isActive:function(){return active;},getScale:function(){return viewScale;},getBounds:function(){return size.slice();},maxHeight:778,categoryName:categoryName,currencySourceText:function(){var source=p("ArchiveCurrencySource");return source&&source.__archivePlainText||"";},onHide:function(){hover=null;}});
+        tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"ArchiveV10Tooltip",isAlive:alive,isActive:function(){return active;},getScale:function(){return viewScale;},getBounds:function(){return size.slice();},maxHeight:778,categoryName:categoryName,currencySourceText:function(){var source=p("ArchiveCurrencySource");return source&&source.__archivePlainText||"";},onHide:function(){hover=null;},
+            getHoverSources:function(){return p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__archiveCategory===current&&card.__archiveItem;});},
+            getHoverBounds:function(){return p("ArchiveGrid");},onHoverSource:function(card){showTooltip(card.__archiveItem,current,card);}});
         tip=tooltip.panel;
     }
     function hideTooltip(){if(tooltip)tooltip.Hide();hover=null;}
-    function queueTooltipHide(){if(tooltip)tooltip.QueueHide();}
+    function queueTooltipHide(source){if(tooltip)tooltip.QueueHide(source);}
     function showTooltip(item,category,card,onlyEffect){
         if(!active||!valid(canvas)){originalShow(item,category,card,onlyEffect);return;}
         originalHide();if(tooltip.Show(item,category,card,onlyEffect))hover=card;

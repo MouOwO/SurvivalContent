@@ -167,7 +167,7 @@
         view.sidebarNote=label(shell,"LotteryGW2SidebarNote","每一次相遇 · 皆是惊喜",35,837,299,20,10,"#7f908d");style(view.sidebarNote,{textAlign:"center"});
         [view.sidebarHeading,view.sidebarNote,p("LotteryGW2SidebarEmblem")].forEach(function(n){style(n,{zIndex:"4"});});
         tooltipGuard();
-        tooltip.SetPanelEvent("onmouseover",function(){if(tooltipOverflows())cancelTooltipHide();else if(tipDismiss)tipDismiss.Dismiss();});
+        tooltip.SetPanelEvent("onmouseover",function(){if(GameUI.GetCursorPosition&&(!cursorInsideTooltipRegion(view.tipSkin.surface)||cursorInsideTooltipRegion(tipAnchor)))return;if(tooltipOverflows())cancelTooltipHide();else if(tipDismiss)tipDismiss.Dismiss();});
         tooltip.SetPanelEvent("onmouseout",function(){if(!requestTooltipHide(false))hideTooltip();});
         surface(header,"LotteryGW2HeaderDivider",[110,20,1,34],"#a7c9a344");
         // Natural glyph boxes share the header's 37px center line. Fixed label
