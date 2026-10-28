@@ -35,6 +35,9 @@
         var width = anchored ? g.productionQueueWidth
             : Math.max(600, Math.min(800, (g.centerWidth - 20) * g.scale / scale));
         var height = training ? 278 : 270;
+        // Choose the dock using the training panel's final displayed width.
+        // Applying this only inside a dock branch moved a fitting city queue above.
+        if (training) scale *= TRAINING_PANEL_SCALE;
         // Prefer the action bar's left side with matching bottom edges. The
         // shared anchored layout keeps readable text by using the space above
         // on narrow viewports; legacy callers retain bounded left-column fit.
@@ -49,7 +52,6 @@
             if (!(viewportWidth > 16)) return null;
             scale = Math.min(scale, (viewportWidth - 16) / width);
             if (!(scale > 0)) return null;
-            if (training) scale *= TRAINING_PANEL_SCALE;
             // Preserve the existing title, buff and debuff rows. Debuffs are
             // the highest attachment at -126px in the shared building canvas.
             var bottom = g.y - 126 * g.scale - 14;
@@ -65,7 +67,6 @@
         }
         scale = Math.min(scale, (actionLeft - left - 14) / width);
         if (!(scale > 0)) return null;
-        if (training) scale *= TRAINING_PANEL_SCALE;
         var physicalHeight = height * scale;
         var x = Math.max(left, actionLeft - width * scale - 14);
         var y = g.y + g.height * g.scale - physicalHeight;
