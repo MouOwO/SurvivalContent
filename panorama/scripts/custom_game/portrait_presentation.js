@@ -177,7 +177,8 @@
             });
         }
         var custom = group.FindChildTraverse("SurvivalTowerPortraitOverlay");
-        style(custom, {backgroundColor:backdrop.fill, backgroundImage:backdrop.image,
+        style(custom, {backgroundColor:backdrop.nativeRebirth ? "transparent" : backdrop.fill,
+            backgroundImage:backdrop.nativeRebirth ? "none" : backdrop.image,
             backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat"});
         var multi=cfg.SurvivalMultiSelectionPortraits;
         var effectsEnabled=backdrop.entity>=0 && !backdrop.nativeRebirth && !(multi && multi.IsActive && multi.IsActive());

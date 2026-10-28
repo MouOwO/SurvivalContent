@@ -111,6 +111,8 @@
     // loaded unit. Hiding it must not reload that unit on the next selection.
     var loadedPortraitKey = "";
     var loadedPortraitScene = null;
+    var failedRebirthPortraitKey = "";
+    var failedRebirthPortraitScene = null;
     var portraitSceneProbe = null;
     var portraitAnchorDiagnostic = "";
     var portraitGeometrySignature = "";
@@ -120,6 +122,7 @@
     var towerPortraitOverlay = null;
     var towerPortraitScene = null;
     var builderPortraitScene = null;
+    var rebirthPortraitScene = null;
     var towerPortraitHome = null;
     var towerPortraitLayerAnchor = null;
     var TOWER_PORTRAIT_CONTENT_SCALE = 0.90;
@@ -449,8 +452,40 @@
         return builderPortraitScene;
     }
 
+    function rebirthPortraitScenePanel(create) {
+        if (validPortraitPanel(rebirthPortraitScene)) return rebirthPortraitScene;
+        if (loadedPortraitScene === rebirthPortraitScene) {
+            loadedPortraitKey = "";
+            loadedPortraitScene = null;
+        }
+        var overlay = towerPortraitOverlayPanel();
+        if (!validPortraitPanel(overlay)) return null;
+        var candidate = overlay.FindChildTraverse("SurvivalRebirthOutfitPortraitSceneV1");
+        if (!validPortraitPanel(candidate) && create) {
+            try {
+                // A separate native Scene keeps outfit state away from towers
+                // and draws the authored opaque portrait background, covering
+                // the live portrait beneath without disabling its mouse input.
+                candidate = $.CreatePanel("DOTAScenePanel", overlay, "SurvivalRebirthOutfitPortraitSceneV1", {
+                    drawbackground: "true", particleonly: "false", antialias: "true",
+                    renderdeferred: "true", deferredalpha: "false", "animate-during-pause": "true"
+                });
+            } catch (error) { return null; }
+            if (!validPortraitPanel(candidate)) return null;
+            candidate.hittest = false;
+            candidate.hittestchildren = false;
+            candidate.style.visibility = "collapse";
+            candidate.style.width = "100%";
+            candidate.style.height = "100%";
+            candidate.style.position = "0px 0px 0px";
+            candidate.style.overflow = "clip";
+        }
+        rebirthPortraitScene = validPortraitPanel(candidate) ? candidate : null;
+        return rebirthPortraitScene;
+    }
+
     function hidePortraitScenesExcept(activeScene) {
-        [towerPortraitScenePanel(), builderPortraitScenePanel(false)].forEach(function (scene) {
+        [towerPortraitScenePanel(), builderPortraitScenePanel(false), rebirthPortraitScenePanel(false)].forEach(function (scene) {
             if (!validPortraitPanel(scene) || scene === activeScene) return;
             if (String(scene.style.visibility) !== "collapse") {
                 resetTowerPortraitContentScale(scene);
@@ -717,8 +752,8 @@
     }
 
     function usesNativeRebirthPortrait(unit, snapshot) {
-        // Trial only the ten rebirth bosses on Valve's entity-bound portrait.
-        // Other bosses, towers and the player's Arcana Juggernaut stay split.
+        // Leave Valve's live portrait visible while the outfit snapshot is
+        // pending, and as the fallback if native slot replacement fails.
         if (!isFinite(unit) || unit < 0) return false;
         var unitName = "";
         try { unitName = String(Entities.GetUnitName(unit) || ""); } catch (error) {}
@@ -896,12 +931,18 @@
             hideCosmeticPortrait("multi_selection");
             return false;
         }
-        if (usesNativeRebirthPortrait(Number(displayUnit()), snapshot)) {
+        var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
+        var sourcePortraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
+        var outfits = GameUI.CustomUIConfig().SurvivalRebirthPortraitOutfits || {};
+        var rebirthOutfit = Object.prototype.hasOwnProperty.call(outfits, modelAssetId)
+            ? outfits[modelAssetId] : null;
+        if (rebirthOutfit && sourcePortraitUnit !== rebirthOutfit.source_unit
+            && sourcePortraitUnit !== rebirthOutfit.unit) rebirthOutfit = null;
+        if (usesNativeRebirthPortrait(Number(displayUnit()), snapshot) && !rebirthOutfit) {
             hideCosmeticPortrait("native_rebirth_portrait");
             return false;
         }
-        var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
-        var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
+        var portraitUnit = rebirthOutfit ? rebirthOutfit.unit : sourcePortraitUnit;
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
         var isBuilderPortrait = modelAssetId === "builder_io_benevolent_companion"
             && portraitUnit === "npc_dota_hero_wisp"
@@ -916,7 +957,8 @@
             return false;
         }
         var overlay = towerPortraitOverlayPanel();
-        var scene = isBuilderPortrait ? builderPortraitScenePanel(true) : towerPortraitScenePanel();
+        var scene = rebirthOutfit ? rebirthPortraitScenePanel(true)
+            : isBuilderPortrait ? builderPortraitScenePanel(true) : towerPortraitScenePanel();
         var anchor = officialPortraitPanel();
         var portraitMode = "tower_scene";
         if (!overlay || !anchor || !scene) {
@@ -925,13 +967,21 @@
             hideCosmeticPortrait("anchor_unavailable");
             return false;
         }
+        var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
+        if (rebirthOutfit) portraitKey += ":" + JSON.stringify(rebirthOutfit.items);
+        if (rebirthOutfit && failedRebirthPortraitKey === portraitKey
+            && failedRebirthPortraitScene === scene) {
+            hideCosmeticPortrait("rebirth_outfit_unavailable");
+            return false;
+        }
         if (!mountTowerPortraitAtNativeLayer(overlay, anchor)) {
             setPortraitAnchorDiagnostic("native_layer_unavailable");
             hideCosmeticPortrait("native_layer_unavailable");
             return false;
         }
         hidePortraitScenesExcept(scene);
-        applyTowerPortraitContentScale(scene);
+        if (rebirthOutfit) resetTowerPortraitContentScale(scene);
+        else applyTowerPortraitContentScale(scene);
         scene.style.visibility = "visible";
         if (!positionCosmeticPortrait(overlay, anchor, scene)) {
             setPortraitAnchorDiagnostic("invalid_geometry");
@@ -939,17 +989,34 @@
             return false;
         }
         setPortraitAnchorDiagnostic("ready:" + String(anchor.id || "anonymous"));
-        var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
         if (loadedPortraitKey !== portraitKey || loadedPortraitScene !== scene) {
             try {
                 if (!isBuilderPortrait) {
+                    if (rebirthOutfit && typeof scene.ReplaceEconItemSlot !== "function") {
+                        throw new Error("native item-slot preview unavailable");
+                    }
                     if (portraitSceneProbe && portraitSceneProbe.enabled) portraitSceneProbe.setUnitCalls += 1;
                     var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
                     if (setUnitResult === false) throw new Error("SetUnit returned false");
+                    if (rebirthOutfit) {
+                        // Same slot/itemdef/style call used by Valve's Arcana
+                        // preview. Start from SetUnit's defaults, never the
+                        // current account's loadout or a bundle ID as one item.
+                        rebirthOutfit.items.forEach(function (item) {
+                            if (scene.ReplaceEconItemSlot(item[0], item[1], item[2]) === false) {
+                                throw new Error("native item-slot preview rejected");
+                            }
+                        });
+                    }
                 }
             } catch (error) {
                 loadedPortraitKey = "";
                 loadedPortraitScene = null;
+                if (rebirthOutfit) {
+                    failedRebirthPortraitKey = portraitKey;
+                    failedRebirthPortraitScene = scene;
+                    try { if (scene.ClearScene) scene.ClearScene(); } catch (clearError) {}
+                }
                 $.Warning("[SURVIVAL_PORTRAIT] SCENE_FAILED unit=" + portraitUnit
                     + " asset=" + modelAssetId + " reason=" + String(error && error.message || error));
                 hideCosmeticPortrait("scene_failed");
