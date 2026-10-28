@@ -203,7 +203,7 @@
             if(ticketHelpOpen){hideTicketHelp();return;}
             hideTooltip();ticketHelpOpen=true;
             var position=cfg.SurvivalTooltipPosition;
-            var title="普通抽奖券 · 获取渠道",content="每日福利：累计游玩时长和胜场奖励。<br>每周福利：累计游玩时长奖励。<br>用于地图宝箱，不支持商城购买。";
+            var title="普通抽奖券 · 获取渠道",content="每日福利：累计游玩时长和胜场奖励。<br>每周福利：累计游玩时长奖励。<br>商城：3元/张。用于地图宝箱。";
             if(position&&position.ShowTitleText)position.ShowTitleText(view.ticketHelp,title,content);
             else $.DispatchEvent("DOTAShowTitleTextTooltip",view.ticketHelp,title,content);
         });
@@ -449,7 +449,7 @@
         if(!mode)view.title.text="抽奖";
         var ticketText=number(pool&&pool.tickets),ticketWidth=Math.min(180,Math.max(28,ticketText.length*16)),ticketX=278-ticketWidth;
         view.ticket.text=ticketText;place(view.ticket,ticketX,12,ticketWidth,38);style(view.ticket,{fontSize:"27px",textOverflow:"clip"});place(view.ticketIcon,ticketX-74,6,62,47);ticketIcon(view.ticketIcon,pool);
-        var purchase=p("LotteryTicketPurchase"),canPurchase=ticketContentId(pool)==="special_lottery_ticket";
+        var purchase=p("LotteryTicketPurchase"),ticketId=ticketContentId(pool),canPurchase=ticketId==="special_lottery_ticket"||ticketId==="lottery_ticket";
         purchase.visible=canPurchase;purchase.enabled=canPurchase;purchase.hittest=canPurchase;
         view.ticketHelp.visible=ticketContentId(pool)==="lottery_ticket";view.ticketHelp.enabled=view.ticketHelp.visible;view.ticketHelp.hittest=view.ticketHelp.visible;
         if(!view.ticketHelp.visible)hideTicketHelp();

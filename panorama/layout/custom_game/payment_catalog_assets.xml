@@ -75,6 +75,16 @@
     <Image src="file://{images}/custom_game/archive_items_v2/lottery_windspeed_bowstring.png" />
     <Image src="file://{images}/custom_game/archive_items_v2/lottery_woodcraft_grandmaster.png" />
     <Image src="file://{images}/custom_game/archive_items_v2/lottery_woodforged_thousand_arrows.png" />
+    <Image src="file://{images}/custom_game/archive_items_v2/welfare_zongzi.png" />
+    <Image src="file://{images}/custom_game/commerce_jade_v1/coin.png" />
+    <Image src="file://{images}/custom_game/commerce_jade_v1/gift_light.png" />
     <Image src="file://{images}/custom_game/lottery_handoff_v1/ticket_illustrated.png" />
+    <Image src="file://{images}/custom_game/lottery_ticket_user_v1/normal.png" />
+    <Image src="file://{images}/custom_game/reward_art_v5/daily_wealth_talisman.png" />
+    <Image src="file://{images}/custom_game/reward_art_v5/lottery_dimensional_barrier.png" />
+    <Image src="file://{images}/custom_game/reward_art_v5/lottery_monkey_king.png" />
+    <Image src="file://{images}/custom_game/reward_art_v5/lottery_muramasa.png" />
+    <Image src="file://{images}/custom_game/reward_art_v5/lottery_nature_spirit.png" />
+    <Image src="file://{images}/custom_game/reward_art_v5/lottery_seed_of_all_wood.png" />
   </Panel>
 </root>

@@ -98,12 +98,12 @@
         if(readonlyCatalog)return readonlyCatalog.products.length+" 项配置 · 收款/兑换未开放 · 余额/持有/剩余限购未知";
         return walletCatalog.error||"";
     }
-    function singleTicket() {
+    function singleTicket(ticketId) {
         // A bundle containing tickets is not a single-ticket purchase.
         return rows(catalog.products).filter(function(p){
             var rewards=rows(p.reward_lines);
             return p.product_type==="single" && rewards.length===1 && rewards[0].kind==="item"
-                && rewards[0].id==="special_lottery_ticket" && Number(rewards[0].quantity)===1;
+                && rewards[0].id===(ticketId||"special_lottery_ticket") && Number(rewards[0].quantity)===1;
         })[0];
     }
     function isGoldenProduct(item){var r=rows(item.reward_lines);return item.product_type==="single"&&r.length===1&&r[0].id==="special_lottery_ticket";}
@@ -142,7 +142,7 @@
         store.menu.SetSidebar(categories.map(function(c){return {id:c.id,label:c.label,count:c.count};}),category,function(id){category=id;page=0;render();});
         refreshResources();
         var items=readonlyCatalog?products.filter(function(item){return readonlyGroup(item,category);}):M&&category==="home"?(K.HomeProducts?K.HomeProducts(products):[]):products.filter(function(p){return M?K.InGroup(p,category):p.category_id===category;});
-        if(M&&category!=="home"&&!readonlyCatalog)items=K.SortProducts(items,category);
+        if(K&&K.SortProducts)items=K.SortProducts(items,category);
         items=items.filter(matchesPurchaseType);
         if(store.menu.SetPurchaseType)store.menu.SetPurchaseType(purchaseType,selectPurchaseType);
         var bundles=items.length>0 && items.every(function(p){return p.product_type==="bundle";});grid.SetHasClass("RCBundles",bundles);
@@ -168,9 +168,10 @@
         // Updating a connection notice must not destroy hovered cards or clear products.
         notice.text=noticeText();refreshResources();
         if(ticketRequest){
+            var requestedTicket=ticketRequest;
             ticketRequest=false;
-            var item=singleTicket();
-            if(!item || !checkout(item))notice.text=catalog.error || "金色抽奖券暂未上架，请稍后重试。";
+            var item=singleTicket(requestedTicket);
+            if(!item || !checkout(item))notice.text=catalog.error || "抽奖券暂未上架，请稍后重试。";
         }
     }
     // Video records only decorate known bundle display and supply disabled fallbacks.
@@ -291,17 +292,19 @@
         },
         SetNotice:function(message){if(live())notice.text=message;},
         OpenTicketPurchase:function(pool){
-            if(pool && typeof pool==="object"){if(pool.ticket_content_id&&pool.ticket_content_id!=="special_lottery_ticket")return false;pool=pool.id;}
+            var ticketId=pool==="map"?"lottery_ticket":"special_lottery_ticket";
+            if(pool && typeof pool==="object"){ticketId=pool.ticket_content_id||(pool.id==="map"?"lottery_ticket":"special_lottery_ticket");pool=pool.id;}
+            if(ticketId!=="lottery_ticket"&&ticketId!=="special_lottery_ticket")return false;
             var payments=cfg.SurvivalPayments;
-            if(!live() || readonlyCatalog || arcadeReadonly() || !pool || pool==="map" || !payments || !payments.Checkout)return false;
+            if(!live() || readonlyCatalog || arcadeReadonly() || !pool || !payments || !payments.Checkout)return false;
             if(payments.GetCatalog)updatePaid(payments.GetCatalog());
-            var item=singleTicket();
+            var item=singleTicket(ticketId);
             if(item)return checkout(item);
             if(!payments.RefreshCatalog)return false;
             // Opening directly from lottery can precede the first shop snapshot.
             // Show progress and continue to checkout when that catalog arrives.
-            category="all";opened=true;render();store.menu.Open();ticketRequest=true;
-            notice.text="正在加载金色抽奖券商品…";payments.RefreshCatalog();return true;
+            category="all";opened=true;render();store.menu.Open();ticketRequest=ticketId;
+            notice.text="正在加载抽奖券商品…";payments.RefreshCatalog();return true;
         },
         Inspect:function(){var path=[],p=store&&store.panel,hasPanel=valid(p);while(valid(p) && path.length<10){path.push({id:p.id,classes:p.GetClasses?p.GetClasses():[],visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,visibility:p.style.visibility,opacity:p.style.opacity,z:p.style.zIndex,clip:p.style.clip});p=p.GetParent();}
             return {category:category,purchaseType:purchaseType,page:page,opened:opened,readOnly:!!readonlyCatalog,valid:hasPanel,visible:hasPanel?store.panel.visible:false,

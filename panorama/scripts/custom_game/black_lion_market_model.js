@@ -107,9 +107,12 @@
         return rows(items).map(function(item,index){
             var rank=order.indexOf(item.sku),globalRank=all.indexOf(item.sku),fallback=number(item.sort_order);
             if(fallback===null&&/^P\d+$/.test(item.source_id||""))fallback=Number(item.source_id.slice(1));
-            return {item:item,index:index,section:rank>=0?0:globalRank>=0?1:2,
+            var cash=item.purchase_method==="cash"||item.currency==="CNY";
+            var price=number(cash?(item.currency==="u_coin"?item.u_coin_price:item.amount_fen===undefined?item.price:item.amount_fen):item.price);
+            if(cash&&item.currency!=="u_coin"&&price!==null)price=price/100;
+            return {item:item,index:index,price:price===null?Infinity:price,section:rank>=0?0:globalRank>=0?1:2,
                 rank:rank>=0?rank:globalRank>=0?globalRank:fallback===null?index:fallback};
-        }).sort(function(a,b){return a.section-b.section||a.rank-b.rank||a.index-b.index;}).map(function(entry){return entry.item;});
+        }).sort(function(a,b){return a.price-b.price||a.section-b.section||a.rank-b.rank||a.index-b.index;}).map(function(entry){return entry.item;});
     }
     function homeProducts(items){
         var home=config&&config.SurvivalShopHomeCatalog;
