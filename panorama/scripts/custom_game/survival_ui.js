@@ -104,7 +104,7 @@
     var difficultyDismissed = false, difficultyPhase = "", difficultyResume = null;
     var startupState = null, setupSession = "", modeChoice = "", modeAcknowledged = "";
     var modePending = false, modeError = "", modeRequestSerial = 0, modeSignature = "", modeRows = {};
-    var modeOrder = ["standard", "rich", "cold", "scourge", "fishing", "pure"];
+    var modeOrder = ["standard", "rich", "cold", "scourge", "ruins", "celestial", "fishing", "pure"];
     var profileRetry = null, profileRetryPending = false, profileRetrySerial = 0, profileErrorShown = false, profileRetryNotice = null;
     var initialBuilderSelectionFinished = false;
     var initialBuilderSelectionSerial = 0;
@@ -293,7 +293,7 @@
                 var button = $.CreatePanel("Button", panel("MatchModeOptions"), ""); button.AddClass("MatchModeOption"); button.hittestchildren = false;
                 button.SetHasClass("MatchModeOptionLocked", !modeSelectable(option));
                 var name = $.CreatePanel("Label", button, ""); name.AddClass("MatchModeOptionName"); name.html = false;
-                name.text = option.display_name || ({pure:"纯净模式",standard:"常规模式",fishing:"摸鱼模式",rich:"丰饶模式",cold:"极寒模式",scourge:"天灾模式"}[option.mode_id] || "常规模式");
+                name.text = option.display_name || ({pure:"纯净模式",standard:"常规模式",fishing:"摸鱼模式",rich:"丰饶模式",cold:"极寒模式",scourge:"天灾模式",ruins:"归墟模式",celestial:"天域模式"}[option.mode_id] || "常规模式");
                 button.SetPanelEvent("onmouseover", function () {
                     if (syncActive() && !modeSelectable(option)) $.DispatchEvent("DOTAShowTextTooltip", button, modeUnlockHint(option));
                 });
@@ -536,7 +536,7 @@
         options.forEach(function (option) {if (difficultyUnlocked(option) && Number(String(option.difficulty_id).slice(1)) > Number(highest.slice(1) || 0)) highest = String(option.difficulty_id);});
         var accessPolicy = difficultyAccessPolicy(), acceptance = readOnlyAcceptance();
         var allConfigured = accessPolicy === "all_configured" || accessPolicy === "read_only_acceptance";
-        var modeNames = {pure:"纯净模式",standard:"常规模式",rich:"丰饶模式",cold:"极寒模式",scourge:"天灾模式"};
+        var modeNames = {pure:"纯净模式",standard:"常规模式",rich:"丰饶模式",cold:"极寒模式",scourge:"天灾模式",ruins:"归墟模式",celestial:"天域模式"};
         var hint = !difficultySelector() ? "等待房主选择难度" : !canConfirmDifficulty() ? "正在读取队伍通关进度……" : "";
         if (highest) hint = (modeNames[confirmedMode()] || "本局模式")
             + (allConfigured ? " · 全难度开放至 " : " · 队伍上限 ") + highest + (hint ? "\n" + hint : "");
