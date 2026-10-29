@@ -326,6 +326,15 @@
         return true;
     }, 120);
 
+    // Consume skill keys before both our caster and Valve's native ability
+    // commands. Mouse clicks/hover and F1/Space selection keep their handlers.
+    registerHandler(keyHandlers,keyHandlerOrder,"archive_mouse_only",function(key,down){
+        if(shortcutsBlocked()||!/^[QWERTYUSDFGH]$/.test(String(key).toUpperCase()))return false;
+        var resolver=inputConfig.SurvivalSelectionResolver;
+        var unit=resolver&&resolver.ResolveDisplayUnit?resolver.ResolveDisplayUnit():resolver&&resolver.Resolve?resolver.Resolve():Players.GetLocalPlayerPortraitUnit();
+        return validUnit(unit)&&/^npc_archive_challenge_[1-4]$/.test(String(Entities.GetUnitName(unit)||""));
+    },140);
+
     // BEGIN shared box-selection filter
 ﻿    function installBoxSelectionFilter() {
     "use strict";

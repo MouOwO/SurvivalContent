@@ -344,11 +344,6 @@
         if(cfg.HandoffGeneration!==generation||!finishArchive.visible)return;
         GameEvents.SendCustomGameEventToServer("survival_archive_finish",{});
     });
-    GameEvents.Subscribe("survival_archive_return",function(payload){
-        if(cfg.HandoffGeneration!==generation||!payload)return;
-        var unit=Number(payload.entindex);
-        if(isFinite(unit)&&unit>0&&Entities.IsValidEntity(unit))GameUI.SelectUnit(unit,false);
-    });
     [["gold",1194,1234],["wood",1339,1379],["population",1484,1524]].forEach(function(a){topMetric("HandoffResource_"+a[0],"top_"+a[0],a[1],a[2],105);});
     var fxButton=create("Button",top,"HandoffCombatEffects",true);
     place(fxButton,effectsNavX,6,96,86);
@@ -582,22 +577,10 @@
                 style(p,{width:"0px",marginRight:"0px"});return;
             }
             skillPanels.push(p);square(p,force);
-            if(g.archiveChallenge){
-                // The engine list omits empty slots. Keep the video's absolute
-                // 1..12 positions instead of shifting later challenges left.
-                var slot=Number(entry.slot),runtime=CustomNetTables.GetTableValue("survival_ability_runtime",String(entry.ability))||{};
-                var order=Number(runtime.slot_order);
-                if(Number(runtime.ability_entindex)===Number(entry.ability)
-                    &&Number(runtime.owner_entindex)===Number(selectedUnit())
-                    &&order>=1&&order<=12&&Math.floor(order)===order)slot=order-1;
-                if(!isFinite(slot)||slot<0||slot>11||Math.floor(slot)!==slot)slot=index;
-                p.__handoffArchiveSlot=slot;
-                place(p,(slot%4)*120,Math.floor(slot/4)*120,116,116);
-                style(p,{marginRight:"0px"});
-            }else{
-                if(p.__handoffArchiveSlot!==undefined){delete p.__handoffArchiveSlot;style(p,{position:"0px 0px 0px"});}
-                style(p,{marginRight:"4px"});
-            }
+            // Archive abilities use the same compact one-row native flow as
+            // other units. Retire offsets retained by an older 4x3 HUD context.
+            if(p.__handoffArchiveSlot!==undefined){delete p.__handoffArchiveSlot;style(p,{position:"0px 0px 0px"});}
+            style(p,{marginRight:"4px"});
         });
         skillPanels.forEach(function(p){
             [p,p.FindChildTraverse("AbilityButton"),p.FindChildTraverse("ButtonWell")].forEach(function(anchor){
@@ -613,11 +596,16 @@
         // The label stays in its engine-owned hierarchy for binding checks. Only its
         // pixels are suppressed; the uncropped independent label lives in our HUD.
         style(p,{opacity:"0"});
+        if(/^npc_archive_challenge_[1-4]$/.test(String(Entities.GetUnitName(unit)||""))){
+            if(slot)delete keyBindings[slot.id];
+            return;
+        }
         if(slot)keyBindings[slot.id]={text:String(p.text||""),unit:Number(unit),ability:Number(ability)};
     };
     cfg.HandoffClearHotkey=function(slot){if(slot)delete keyBindings[slot.id];};
     function recoverReadyHotkeyMirror(){
         if(hotkeyMirrorRecovery.finished||!ready||!currentEntries.length)return;
+        if(geometry&&geometry.archiveChallenge)return;
         var unit=Number(selectedUnit());
         function hasBinding(){
             return skillPanels.some(function(slot,index){
@@ -654,14 +642,11 @@
         if(mirrorKeys.signature===keySignature&&now-mirrorKeys.checkedAt<1000)return;
         for(var i=0;i<32;i++){
             var id="HandoffKey_"+i,bounds=nodes[id+"Bounds"],slot=skillPanels[i],binding=slot&&keyBindings[slot.id];
-            var matching=binding&&binding.unit===unit&&currentEntries[i]&&Number(currentEntries[i].ability)===binding.ability;
+            var matching=!geometry.archiveChallenge&&binding&&binding.unit===unit&&currentEntries[i]&&Number(currentEntries[i].ability)===binding.ability;
             if(!bounds&&matching){bounds=create("Panel",bottom,id+"Bounds",false);label(bounds,id,"HandoffNumber");}
             if(!bounds)continue;bounds.visible=!!matching&&!!binding.text;
             if(bounds.visible){
-                var gridSlot=geometry.archiveChallenge?Number(slot.__handoffArchiveSlot):i;
-                if(!isFinite(gridSlot))gridSlot=i;
-                centered(bottom,id,actionOffset(geometry)+3+(geometry.archiveChallenge?gridSlot%4:gridSlot)*120,
-                    138+(geometry.archiveChallenge?Math.floor(gridSlot/4)*120:0),43,33,25);
+                centered(bottom,id,actionOffset(geometry)+3+i*120,138,43,33,25);
                 style(bounds,{backgroundImage:'url("file://{images}/'+assets.key_plate.file+'")',backgroundSize:"100% 100%",zIndex:"100"});text(id,binding.text);
             }
         }
@@ -1009,7 +994,7 @@
         // End legacy corner cleanup.
         place(native("portraitHUD"),0,0,g.portraitSize,g.portraitSize);style(native("portraitHUD"),{transform:"none"});
         ["stats_container","unitname","health_mana","center_bg","left_flare","right_flare","PortraitBacker","PortraitBackerColor"].forEach(function(id){var n=block.FindChildTraverse(id);style(n,{opacity:"0"});if(valid(n)){n.hittest=false;n.hittestchildren=false;}});
-        var abilityHeight=g.archiveChallenge?356:116;
+        var abilityHeight=116;
         place(branch,actionOffset(g),61,g.centerWidth-20,abilityHeight);style(branch,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
         // Valve inserts an anonymous talent/ability wrapper; clear its stock left gutter.
         wrappers.forEach(function(wrapper){
@@ -1022,7 +1007,7 @@
         for(var innate=native("InnateIcon");valid(innate)&&innate!==branch;innate=innate.GetParent()){
             if(innate.paneltype==="DOTAInnateDisplay"){style(innate,{visibility:"collapse"});break;}
         }
-        place(list,0,0,g.centerWidth-20,abilityHeight);style(list,{flowChildren:g.archiveChallenge?"none":"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
+        place(list,0,0,g.centerWidth-20,abilityHeight);style(list,{flowChildren:"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
         // Slot-local geometry stays 116px when this outer canvas reflows.
         // New native children and actual resets already invalidate square().
         fitNativeSkills(g,false,readContext);
@@ -1067,10 +1052,10 @@
         place(native("PortraitGroup"),29,g.portraitY===undefined?49:g.portraitY,g.portraitSize,g.portraitHeight||g.portraitSize,{overflow:"clip",transform:"none",transitionProperty:"none",animationName:"none"});
         place(native("PortraitContainer"),0,0,g.portraitSize,g.portraitSize);
         place(native("portraitHUD"),0,0,g.portraitSize,g.portraitSize,{transform:"none"});
-        var abilityHeight=g.archiveChallenge?356:116;
+        var abilityHeight=116;
         place(branch,actionOffset(g),61,g.centerWidth-20,abilityHeight,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
         wrappers.forEach(function(wrapper){place(wrapper,0,0,g.centerWidth-20,abilityHeight,{flowChildren:"none",transform:"none",overflow:"noclip"});});
-        place(list,0,0,g.centerWidth-20,abilityHeight,{flowChildren:g.archiveChallenge?"none":"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
+        place(list,0,0,g.centerWidth-20,abilityHeight,{flowChildren:"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
         place(native("StatBranch"),actionOffset(g),-85,74,74);
         style(native("InnateIcon"),{visibility:"collapse"});
         for(var innate=native("InnateIcon");valid(innate)&&innate!==branch;innate=innate.GetParent()){
@@ -1143,9 +1128,9 @@
         presentation.multi=!!(cfg.SurvivalMultiSelectionPortraits&&cfg.SurvivalMultiSelectionPortraits.IsActive());
         var count=presentation.tree?0:abilityCount(readContext),g=cfg.HandoffGeometry(w,h,count,presentation.building,presentation.tree,presentation);
         if(presentation.archive_challenge){
-            // Archive hubs use the reference's four columns and three rows.
-            // Retain the normal action anchor and native buttons/hit handlers.
-            g.archiveChallenge=true;g.centerWidth=500;g.height=438;g.count=12;
+            // Show only the hub's actual abilities, in their native order.
+            // Runtime readiness changes never change this one-row geometry.
+            g.archiveChallenge=true;g.centerWidth=Math.max(140,count*120+20);g.height=205;g.count=count;
             var reserve=Math.min(280*h/941,w*.22),baseScale=Math.min(.5*h/941,(w-2*(reserve+14))/1352);
             g.scale=Math.min(baseScale,(w-14-g.actionX)/(g.centerWidth-10));
             g.actionOffset=10;g.x=g.actionX-10*g.scale;g.y=h-g.height*g.scale-6;
@@ -1224,9 +1209,9 @@
                 centered(center,value.id,24,y+4,g.barWidth-16,44,30);
             });
             for(var i=0;i<32;i++){
-                var key="HandoffSkillFrame_"+i,frame=nodes[key],frameCount=g.archiveChallenge?12:count;
+                var key="HandoffSkillFrame_"+i,frame=nodes[key],frameCount=count;
                 if(i<frameCount&&!frame)frame=art(center,key,"slot_frame");
-                if(frame){frame.visible=i<frameCount;place(frame,10+120*(g.archiveChallenge?i%4:i),38+(g.archiveChallenge?Math.floor(i/4)*120:0),116,116);}
+                if(frame){frame.visible=i<frameCount;place(frame,10+120*i,38,116,116);}
             }
             slotFrames.forEach(function(p,i){place(p,g.inventoryX+15+(i%3)*121,55+Math.floor(i/3)*126,116,116);});
             bottom.visible=true;ctx.AddClass("HandoffReady");

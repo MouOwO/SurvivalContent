@@ -800,10 +800,11 @@
             var mark = $.CreatePanel("Label", item, "");
             mark.AddClass("NotificationMark"); mark.text = payload.level === "error" ? "!" : "★";
         }
-        function text(value, className) {
+        function text(value, className, rich) {
             var label = $.CreatePanel("Label", item, "");
             label.AddClass("NotificationText");
             if (className) label.AddClass(className);
+            label.html = rich === true;
             label.text = value;
         }
         if (payload.kind === "research_success" && payload.subject) {
@@ -816,7 +817,7 @@
                 text(actor + " ", "NotificationActor");
                 message = message.slice(actor.length).replace(/^\s+/, "");
             }
-            text(message);
+            text(message, "", payload.kind === "archive_reward" && payload.rich_text === true);
         }
         notificationItems.push(item);
         scheduleHUD(broadcast ? 5.0 : 3.5, function () {

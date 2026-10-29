@@ -14,6 +14,7 @@
         var followJob = null, followedSource = null, hideQueued = false;
         var compact = options.compact === true;
         var rarityColors = {UR:"#ef5350",SSR:"#f5c65e",SR:"#b680ee",R:"#74c8f2",N:"#8fc47b"};
+        var inventoryColors={white:"#d7dee4",gray:"#aeb8c2",green:"#8fc47b",blue:"#74c8f2",purple:"#b680ee",gold:"#f5c65e",red:"#ef5350"};
         var surfaceWidth = compact ? 260 : 320, insetX = compact ? 8 : 22;
         var insetTop = compact ? 6 : 19, verticalGutter = compact ? 12 : 41;
         var bodyWidth = surfaceWidth - insetX * 2, padding = 24;
@@ -254,10 +255,12 @@
             hide(); anchor=card; currentItem=item; currentCategory=category; card.AddClass("ArchiveHovered");
             if (viewport.ScrollToTop) viewport.ScrollToTop();
             var state=S.State(item,category), name=options.categoryName ? options.categoryName(category) : category;
-            elements.Title.text=String(item.name||"");
+            var archiveText=cfg.SurvivalArchiveText;
+            elements.Title.text=archiveText?archiveText.Plain(item.name):String(item.name||"");
             var unlockItem=S.IsUnlockItem&&S.IsUnlockItem(item,category);
             elements.State.text=onlyEffect ? "" : category==="points"&&unlockItem ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","concubine","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
-            var rarityColor=colors.caption, titleColor=colors.title;
+            var rarityColor=colors.caption, titleColor=rarityColors[String(item.quality||"").toUpperCase()]
+                ||inventoryColors[String(item.quality||"").toLowerCase()]||colors.title;
             if (rarityLine) {
                 var rarityParts=[],quality=String(item.quality||"").trim().toUpperCase();
                 if (!onlyEffect && ["ex","friend","wife","concubine","beast"].indexOf(category)>=0) {
@@ -270,6 +273,7 @@
             elements.EffectCaption.text="道具效果";
             var description=String(item.description||"服务端未提供效果说明"), effect=elements.Effect;
             if(cfg.SurvivalItemResources&&cfg.SurvivalItemResources.DisplayDescription)description=cfg.SurvivalItemResources.DisplayDescription(item,description);
+            if(archiveText)description=archiveText.Plain(description);
             var details=item.unlock_condition||item.condition_text||"";
             if (category==="map_level") {
                 var onlineRequirement=description.match(/^累计有效在线时长[：:][^\r\n]+(?:\r?\n|$)/);
@@ -279,8 +283,9 @@
                 }
                 if (details) details="解锁条件：\n"+details;
             }
-            effect.html=!!A.FormatEffects;
-            effect.text=A.FormatEffects ? A.FormatEffects(description,category==="fragment" ? (item.level===undefined ? 0 : item.level) : undefined,item.id ? state : undefined) : description;
+            effect.html=!!A.FormatEffects||!!archiveText;
+            var formatted=A.FormatEffects ? A.FormatEffects(description,category==="fragment" ? (item.level===undefined ? 0 : item.level) : undefined,item.id ? state : undefined) : description;
+            effect.text=archiveText?archiveText.Rich(formatted):formatted;
             if(/^vip_privilege_/.test(String(item.id||"")))details=String(details).replace("手动免费领取一次","达标自动赠送一次");
             if (category==="work" || category==="building") details+=(details?"\n":"")+(Number(item.completed)===1 ? "已达到最高等级" : "点击"+(category==="building"?"升级":"激活")+" · 消耗 "+item.cost+(category==="building"?" 信仰值":" 软妹币"));
             if (category==="titles") details+=(details?"\n":"")+(Number(item.equipped)===1 ? "当前已穿戴 · 点击恢复最高档自动选择" : state ? "点击穿戴称号" : "达成条件后解锁称号");
@@ -297,7 +302,7 @@
                 var holdingLimit=S.Progress(item,category).target;
                 details+=(details?"\n":"")+"可叠加持有 · "+(holdingLimit===null?"无持有上限":"上限 "+holdingLimit);
             }
-            elements.Condition.text=details; elements.Condition.visible=!!details;
+            elements.Condition.text=archiveText?archiveText.Plain(details):details; elements.Condition.visible=!!details;
             metric.visible=!onlyEffect&&!unlockItem;
             caption.text=unlockItem ? "" : S.Metric(item,category);
             quantity.text=unlockItem ? "" : S.Quantity(item,category);

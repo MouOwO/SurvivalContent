@@ -243,10 +243,15 @@
         }).map(function (key) { return value[key]; });
     }
 
-    function setText(id, value) {
+    function setText(id, value, archiveRich) {
         var target = byId(id);
         var typography = GameUI.CustomUIConfig().SurvivalTypography;
-        if (target) target.text = typography ? typography.ReadableText(value) : String(value === undefined ? "" : value);
+        var archiveText = GameUI.CustomUIConfig().SurvivalArchiveText;
+        if (target) {
+            target.html = archiveRich === true;
+            target.text = archiveRich && archiveText ? archiveText.Rich(value)
+                : typography ? typography.ReadableText(value) : String(value === undefined ? "" : value);
+        }
     }
 
     function localize(key, fallback) {
@@ -799,7 +804,7 @@
                 ? "该技能由项目服务器管理，具体效果和消耗以当前实时数据为准。"
                 : "该技能由生存模式管理。";
         }
-        setText("CustomAbilityDescription", description);
+        setText("CustomAbilityDescription", description, archiveChallengeMode);
 
         var goldCost = runtime.cost_gold !== undefined
             ? runtime.cost_gold : Number(tooltipDefinition.needgold || 0);
@@ -840,6 +845,7 @@
                 if (archiveChallengeMode && field.label === "解锁条件") return;
                 var presentation=presentRuntimeField(field, upgradeMode);
                 if (!presentation) return;
+                if (archiveChallengeMode && customConfig.SurvivalArchiveText) presentation.value=customConfig.SurvivalArchiveText.Plain(presentation.value);
                 // Older runtime snapshots can still contain upgrade details.
                 // Keep controls and requirements, while the footer names the target.
                 var fieldLabel = String(field.label || "");

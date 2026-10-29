@@ -231,9 +231,13 @@
         }).map(function (key) { return value[key]; });
     }
 
-    function setText(id, value) {
+    function setText(id, value, archiveRich) {
         var target = byId(id);
-        if (target) target.text = String(value === undefined ? "" : value);
+        if (target) {
+            target.html=archiveRich===true;
+            var archiveText=GameUI.CustomUIConfig().SurvivalArchiveText;
+            target.text=archiveRich&&archiveText?archiveText.Rich(value):String(value===undefined?"":value);
+        }
     }
 
     function localize(key, fallback) {
@@ -1164,7 +1168,8 @@
         var description = runtime.upgrade_description || tooltipDefinition.desc
             || definition.abilitydesc || localizedDescription(entry.name)
             || "该技能由项目控制，具体效果与消耗以当前实时状态为准。";
-        setText("CustomAbilityDescription", description);
+        if(archiveChallengeMode)description=localizedDescription(entry.name)||description;
+        setText("CustomAbilityDescription", description, archiveChallengeMode);
         var goldCost = runtime.cost_gold !== undefined
             ? runtime.cost_gold : Number(tooltipDefinition.needgold || 0);
         var woodCost = runtime.cost_wood !== undefined
@@ -1184,7 +1189,8 @@
             if (!field) return;
             if (populationTrainingMode
                 && /^(当前阶段|阶段进度|本次条件)$/.test(String(field.label || "").trim())) return;
-            if (!(archiveChallengeMode && field.label === "解锁条件")) addField(fields, field.label, field.value);
+            if (!(archiveChallengeMode && field.label === "解锁条件")) addField(fields, field.label,
+                archiveChallengeMode&&config.SurvivalArchiveText?config.SurvivalArchiveText.Plain(field.value):field.value);
         });
         var unavailable = runtime.removed === 1 || (runtime.prerequisite_met !== undefined
             ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);

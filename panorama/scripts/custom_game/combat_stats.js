@@ -2061,7 +2061,7 @@
             panel.hittestchildren = panel.__survivalCompletedHitChildren;
         }
         panel.__survivalCompleted = completed;
-        panel.hittest = !completed;
+        if(panel.hittest!==!completed)panel.hittest = !completed;
         panel.__survivalRuntimeStatus = runtime.status_text || "";
         panel.__survivalRuntime = runtime;
         // Keep the native button and its input handlers. Only overlay its image.
@@ -2142,6 +2142,25 @@
     function resolveOfficialAbilityMappings(visibleAbilities) {
         var abilities = officialPanel("abilities")
             || officialPanel("AbilitiesAndStatBranch");
+        var unit=selectedUnit(),unitName="";
+        try{unitName=String(Entities.GetUnitName(unit)||"");}catch(error){}
+        if(/^npc_archive_challenge_[1-4]$/.test(unitName)){
+            // The old 4x3 layout was row-major while screen-coordinate sorting
+            // below was column-major. Two painters then applied different
+            // abilities' runtime tints to the same native button after a cast.
+            // Archive hubs have contiguous engine slots; bind by that identity.
+            if(!abilities||!abilities.FindChildTraverse)return null;
+            var archiveMappings=[];
+            for(var i=0;i<visibleAbilities.length;i++){
+                var entry=visibleAbilities[i],slot=Number(entry.slot);
+                if(!isFinite(slot)||slot<0||Math.floor(slot)!==slot
+                    ||Number(abilityIndexForSlot(unit,slot))!==Number(entry.ability))return null;
+                var panel=abilities.FindChildTraverse("Ability"+slot),anchor=officialAbilityButtonAnchor(panel);
+                if(!validPortraitPanel(panel)||!validPortraitPanel(anchor)||belongsToLegacyHud(panel))return null;
+                archiveMappings.push({entry:entry,panel:panel,anchor:anchor,nodeIndex:slot});
+            }
+            return archiveMappings;
+        }
         var panels = collectVisibleOfficialAbilityPanels(abilities);
         if (panels.length !== visibleAbilities.length) return null;
         return visibleAbilities.map(function (entry, displayIndex) {
@@ -2201,9 +2220,10 @@
             hotkey.__survivalOriginalHittestChildren = hotkey.hittestchildren;
             hotkey.__survivalHotkeySuppressed = true;
         }
-        hotkey.style.opacity = "0";
-        hotkey.hittest = false;
-        hotkey.hittestchildren = false;
+        var opacity=abilityPanelStyleValue(hotkey,"opacity").trim();
+        if(!opacity||!isFinite(Number(opacity))||Number(opacity)!==0)hotkey.style.opacity = "0";
+        if(hotkey.hittest!==false)hotkey.hittest = false;
+        if(hotkey.hittestchildren!==false)hotkey.hittestchildren = false;
         return true;
     }
 
@@ -2232,7 +2252,7 @@
             if (!key) {
                 if ((label && String(label.text || "")
                     && abilityPanelStyleValue(label, "visibility") !== "collapse")
-                    || (isPassiveAbility(mapping.entry.ability)
+                    || ((/^npc_archive_challenge_[1-4]$/.test(unitName)||isPassiveAbility(mapping.entry.ability))
                         ? !nativeAbilityHotkeySuppressed(mapping.panel)
                         : nativeAbilityHotkeySuppressed(mapping.panel))) return false;
                 continue;
@@ -2307,21 +2327,22 @@
         }
         return false;
     }
-    function clearOfficialAbilityHotkeys(abilities) {
+    function clearOfficialAbilityHotkeys(abilities, keepNativeSuppressed) {
         officialAbilityMappings = [];
         if (!validPortraitPanel(abilities) || !abilities.FindChildTraverse) return;
         for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
             var abilityPanel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
             if (!validPortraitPanel(abilityPanel) || belongsToLegacyHud(abilityPanel)) continue;
-            restoreNativeAbilityHotkey(abilityPanel);
+            if(keepNativeSuppressed)suppressNativeAbilityHotkey(abilityPanel);
+            else restoreNativeAbilityHotkey(abilityPanel);
             var clearMirror = customConfig.HandoffClearHotkey;
             if (clearMirror) clearMirror(abilityPanel);
             ["SurvivalAbilityHotkey", "SurvivalUtilityHotkey"].forEach(function (labelId) {
                 var label = abilityPanel.FindChildTraverse
                     ? abilityPanel.FindChildTraverse(labelId) : null;
                 if (!validPortraitPanel(label)) return;
-                label.text = "";
-                label.style.visibility = "collapse";
+                if(String(label.text||""))label.text = "";
+                if(abilityPanelStyleValue(label,"visibility")!=="collapse")label.style.visibility = "collapse";
             });
         }
     }
@@ -2385,6 +2406,7 @@
         return Number(abilityRuntime(abilityIndex).passive) === 1;
     }
     function hotkeyForAbilityEntry(entry, unitName) {
+        if(/^npc_archive_challenge_[1-4]$/.test(String(unitName||"")))return "";
         if (isPassiveAbility(entry.ability)) return "";
         var key = utilityHotkeys[entry.name] || "";
         if (!key && unitName === "npc_survival_builder_proxy") {
@@ -2415,17 +2437,19 @@
         if (!abilities || !abilities.FindChildTraverse) return false;
         visibleAbilities = visibleAbilities || [];
 
-        clearOfficialAbilityHotkeys(abilities);
-
         var unit = selectedUnit();
-        if (unit === undefined || unit < 0) return true;
-        if (visibleAbilities.length === 0) return true;
+        if (unit === undefined || unit < 0 || visibleAbilities.length === 0) {
+            clearOfficialAbilityHotkeys(abilities);
+            return true;
+        }
         var unitName = "";
         try { unitName = Entities.GetUnitName(unit) || ""; } catch (error) {}
         // A null mapping means the caller already checked an incomplete native
         // HUD. Do not rescan it until the next scheduled recovery attempt.
         if (mappings === undefined) mappings = resolveOfficialAbilityMappings(visibleAbilities);
         if (!mappings || mappings.length !== visibleAbilities.length) return false;
+        var archiveMouseOnly=/^npc_archive_challenge_[1-4]$/.test(unitName);
+        clearOfficialAbilityHotkeys(abilities,archiveMouseOnly);
 
         var complete = true;
         for (var index = 0; index < mappings.length; index++) {
@@ -2445,7 +2469,7 @@
 
             var key = hotkeyForAbilityEntry(entry, unitName);
             if (!key) {
-                if (isPassiveAbility(entry.ability)) suppressNativeAbilityHotkey(abilityPanel);
+                if (archiveMouseOnly||isPassiveAbility(entry.ability)) suppressNativeAbilityHotkey(abilityPanel);
                 continue;
             }
             if (!suppressNativeAbilityHotkey(abilityPanel)) {
@@ -2963,6 +2987,7 @@
     };
 
     function castDisplaySlot(slot, source) {
+        if(/^npc_archive_challenge_[1-4]$/.test(String(Entities.GetUnitName(selectedUnit())||"")))return false;
         var now = Game.GetGameTime ? Number(Game.GetGameTime()) : 0;
         var previous = Number(lastHotkeyCastTime[slot] || -100);
         if (now - previous < 0.08) return false;
@@ -3066,6 +3091,8 @@
             $.Msg("[SURVIVAL_INPUT] KEY generation=", inputGeneration,
                 " key=", normalized, " down=", String(down));
             if (!down) return false;
+            if(/^[QWERTYUSDFGH]$/.test(normalized)
+                &&/^npc_archive_challenge_[1-4]$/.test(String(Entities.GetUnitName(selectedUnit())||"")))return true;
             if (normalized === "C") {
                 var buildGuard = GameUI.CustomUIConfig().SurvivalShortcutGuard;
                 if (buildGuard && buildGuard.IsBlocked && buildGuard.IsBlocked()) return false;
