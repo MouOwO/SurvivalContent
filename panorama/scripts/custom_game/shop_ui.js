@@ -111,7 +111,7 @@
                     ? "ARS-01 至 ARS-10 · 团队研究"
                     : "普通研究所科技 · 研究耗时2秒")
                 : (challenge ? "11个普通挑战 · 10个转职挑战"
-                    : "武器装备 · 道具材料 · 提前通关")
+                    : "武器装备 · 道具材料 · 提前终战")
         );
         var shopToggle = byId("ShopModeShop");
         var challengeToggle = byId("ShopModeChallenge");
@@ -518,7 +518,7 @@
                 sectionText = sectionKey === "rebirth" ? "转职挑战" : "普通挑战";
             } else if (entry.content_id === "service_early_final_boss") {
                 sectionKey = "early_final";
-                sectionText = "提前通关";
+                sectionText = "提前终战";
             } else {
                 sectionKey = entry.content_type === "weapon" ? "weapon" : "item";
                 sectionText = sectionKey === "weapon" ? "武器装备" : "道具材料";

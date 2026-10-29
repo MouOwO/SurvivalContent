@@ -90,7 +90,7 @@
         if (pending() && Number(currentChoice.rerolls || 0) > 0) {
             var reroll = $.CreatePanel("Button", list, "");
             reroll.AddClass("HeroSkillChoiceCard");
-            addLabel(reroll, "HeroSkillChoiceName", "焕天印：重抽（剩余 " + currentChoice.rerolls + " 次）");
+            addLabel(reroll, "HeroSkillChoiceName", "裂空印章：重抽（剩余 " + currentChoice.rerolls + " 次）");
             reroll.SetPanelEvent("onactivate", function () {
                 if (!opened || !pending()) return;
                 GameEvents.SendCustomGameEventToServer("ui_hero_skill_choice_select", {choice_token: currentChoice.choice_token, reroll: 1});

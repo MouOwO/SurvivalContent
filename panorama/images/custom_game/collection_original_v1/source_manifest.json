@@ -1,0 +1,3518 @@
+{
+  "schema_version": 1,
+  "asset_set": "collection_original_v1",
+  "usage": "user_approved_collection_portraits",
+  "approval": "用户批准最终v3审阅稿，80张ex/wife原创肖像接入；未开放状态保持。",
+  "source_boards": [
+    {
+      "key": "ex1",
+      "approved_board": "portraits_ex1.png",
+      "approved_review_path": "审阅稿v3/art/portraits_ex1.png",
+      "sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "grid_x": [
+        0,
+        273,
+        560,
+        849,
+        1122
+      ],
+      "grid_y": [
+        0,
+        273,
+        547,
+        825,
+        1098,
+        1402
+      ],
+      "approved_preview": "portraits_ex1.html"
+    },
+    {
+      "key": "ex2",
+      "approved_board": "portraits_ex2.png",
+      "approved_review_path": "审阅稿v3/art/portraits_ex2.png",
+      "sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "grid_x": [
+        0,
+        274,
+        548,
+        833,
+        1122
+      ],
+      "grid_y": [
+        0,
+        264,
+        542,
+        821,
+        1096,
+        1402
+      ],
+      "approved_preview": "portraits_ex2.html"
+    },
+    {
+      "key": "wife1",
+      "approved_board": "portraits_wife1.png",
+      "approved_review_path": "审阅稿v3/art/portraits_wife1.png",
+      "sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "grid_x": [
+        0,
+        278,
+        557,
+        838,
+        1122
+      ],
+      "grid_y": [
+        0,
+        277,
+        543,
+        826,
+        1097,
+        1402
+      ],
+      "approved_preview": "portraits_wife1.html"
+    },
+    {
+      "key": "wife2",
+      "approved_board": "portraits_wife2.png",
+      "approved_review_path": "审阅稿v3/art/portraits_wife2.png",
+      "sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "dimensions": [
+        1122,
+        1402
+      ],
+      "grid_x": [
+        0,
+        277,
+        560,
+        847,
+        1122
+      ],
+      "grid_y": [
+        0,
+        275,
+        557,
+        832,
+        1093,
+        1402
+      ],
+      "approved_preview": "portraits_wife2.html"
+    }
+  ],
+  "count": 80,
+  "dimensions": [
+    128,
+    128
+  ],
+  "crop_policy": "批准预览同一栅格坐标，四边各内缩3px；wife1第二分界按已批准可见缝557修正。",
+  "fit_policy": "完整裁片按原宽高比以Lanczos预乘alpha缩放，居中放入128px透明画布；不创作性改图、不裁额外脸部。",
+  "texture_policy": {
+    "format": "BGRA8888",
+    "flags": 8,
+    "mip_levels": 1,
+    "no_lod": true,
+    "payload_bytes_each": 65536
+  },
+  "sources_retained": "最终80张PNG及recipe双仓保存；原板名称/hash/批准编号可追溯，不重复把四原板加入发布包。",
+  "items": [
+    {
+      "id": "ex_01",
+      "pool_id": "ex",
+      "order": 1,
+      "approved_audit_number": "R001",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        3,
+        3,
+        270,
+        270
+      ],
+      "grid_cell": [
+        0,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_01.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_01.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_01.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_01.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_01.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_01.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a8136380eef3c6ac91a080b0df629ec5b62e465ab719dca632885fdef96686d8",
+      "recipe_sha256": "88671091e5b37ec79d06c1792a28c1180d1b74379789353bac5997dbdd10a8e3",
+      "rgba_sha256": "d5b24393f29871631488891f170b84f21bdfd6d38e8700f9f56e9465161f6c7c",
+      "png_bytes": 38014
+    },
+    {
+      "id": "ex_02",
+      "pool_id": "ex",
+      "order": 2,
+      "approved_audit_number": "R002",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        276,
+        3,
+        557,
+        270
+      ],
+      "grid_cell": [
+        1,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_02.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_02.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_02.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_02.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_02.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_02.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "9a170977f5c50d69d23fcd1017be2a87b38a5e4498dcd2347d206db8d76d06d8",
+      "recipe_sha256": "3cee0475cc62396bf82d57d5f88e2ec29c09f33dbd875252249984fa525da77b",
+      "rgba_sha256": "fdbfc8652110688035c9af3f0404d894167bdcb0e317b734a9914a36714aa671",
+      "png_bytes": 34648
+    },
+    {
+      "id": "ex_03",
+      "pool_id": "ex",
+      "order": 3,
+      "approved_audit_number": "R003",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        563,
+        3,
+        846,
+        270
+      ],
+      "grid_cell": [
+        2,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_03.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_03.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_03.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_03.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_03.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_03.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        121
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "bb3135d69f3f6f4175919439285c73f061bf2da373f3b74851e697b73d15929f",
+      "recipe_sha256": "8b9c2f1f0017a39306c061b98dae78b60047c632eb8c75f54ce498fc925de1b0",
+      "rgba_sha256": "dc47e0da6489e7deceea76c2cfdf7a0c1357b19d91a08f40ee6c3892d2afe9d1",
+      "png_bytes": 36903
+    },
+    {
+      "id": "ex_04",
+      "pool_id": "ex",
+      "order": 4,
+      "approved_audit_number": "R004",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        852,
+        3,
+        1119,
+        270
+      ],
+      "grid_cell": [
+        3,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_04.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_04.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_04.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_04.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_04.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_04.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f81a3b62c1eb6a5e14af2ddce5c7798d65c882878db63a7ba08f06d681ed3ac0",
+      "recipe_sha256": "bd2f7a55fa4a0370eb64568a3e24261c598092520072fee9db99fd5433f14797",
+      "rgba_sha256": "7df13c6a4f1bf76ffd790188d7f15a193c208b984ce53a74b1cba4b8204d4705",
+      "png_bytes": 36555
+    },
+    {
+      "id": "ex_05",
+      "pool_id": "ex",
+      "order": 5,
+      "approved_audit_number": "R005",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        3,
+        276,
+        270,
+        544
+      ],
+      "grid_cell": [
+        0,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_05.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_05.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_05.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_05.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_05.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_05.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "c8b92dc1e8a4c252c514a38a46180d8f6593d36200e0c1e4c8fc28efc2350061",
+      "recipe_sha256": "cb3900057ac775d0951f2d49b945dca5644ffa7a19b8a571fc9f0609b59c9fec",
+      "rgba_sha256": "c8abd369042cc10c1429f0316314462e40b1eaf2e2a8f161195a1468d377378b",
+      "png_bytes": 38688
+    },
+    {
+      "id": "ex_06",
+      "pool_id": "ex",
+      "order": 6,
+      "approved_audit_number": "R006",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        276,
+        276,
+        557,
+        544
+      ],
+      "grid_cell": [
+        1,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_06.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_06.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_06.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_06.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_06.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_06.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "588475563185bcb4c64b385f0ebf94379b3dd86ae7b198b0858754d9e46fd251",
+      "recipe_sha256": "b8002f5f7f342a1380ee946d2b82f1fc6dad45a26f915f8bc1013140b8431648",
+      "rgba_sha256": "f7932385c5da68a2570fbcbe9629f98af8b344e5e3a19ab5bdd962c8165725d6",
+      "png_bytes": 35326
+    },
+    {
+      "id": "ex_07",
+      "pool_id": "ex",
+      "order": 7,
+      "approved_audit_number": "R007",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        563,
+        276,
+        846,
+        544
+      ],
+      "grid_cell": [
+        2,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_07.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_07.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_07.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_07.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_07.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_07.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        121
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f538cb024cee03de49e70d7fbb091e2164c054f41e7dba25674551bf19b1657e",
+      "recipe_sha256": "6f5e135a51691f8ccc6e289301be1096a188015bded0848c6089591fd784bf84",
+      "rgba_sha256": "6617543e89807c2957c48551097c980dec781677ca8f087a5dde354419e54654",
+      "png_bytes": 35833
+    },
+    {
+      "id": "ex_08",
+      "pool_id": "ex",
+      "order": 8,
+      "approved_audit_number": "R008",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        852,
+        276,
+        1119,
+        544
+      ],
+      "grid_cell": [
+        3,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_08.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_08.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_08.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_08.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_08.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_08.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "b5318f5d3143405ab8aaedb3f7babdb446e6bcbaf4bc9503da216e3baaafbde8",
+      "recipe_sha256": "029d1b38de25ff84d230a3dce7ad45fb8ac23dd2d330777bbed900db70b1a5e3",
+      "rgba_sha256": "d8a431492295444cc62aed9e84354a6d39fb245d52b77b130cb458e49f29387e",
+      "png_bytes": 34475
+    },
+    {
+      "id": "ex_09",
+      "pool_id": "ex",
+      "order": 9,
+      "approved_audit_number": "R009",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        3,
+        550,
+        270,
+        822
+      ],
+      "grid_cell": [
+        0,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_09.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_09.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_09.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_09.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_09.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_09.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "3c14254b3124d1f5e3ad7b105e34d15aff3269a3aab4d99517d326d198ae5dd2",
+      "recipe_sha256": "99505b9795aa0929089bc908cff9b6020039e615298846923349564492f85f82",
+      "rgba_sha256": "11c0147a691f1812bdd2e6478899c515dd3bd0e39dd8aac70603c4097f3ed936",
+      "png_bytes": 38161
+    },
+    {
+      "id": "ex_10",
+      "pool_id": "ex",
+      "order": 10,
+      "approved_audit_number": "R010",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        276,
+        550,
+        557,
+        822
+      ],
+      "grid_cell": [
+        1,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_10.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_10.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_10.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_10.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_10.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_10.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        124
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "2fc72f367a5cc22f01f0cde895550c7b2d418e1ff11249055fbae5f8b9e35cdd",
+      "recipe_sha256": "7f4929723e1328268dd1efd7420c1eb688abd694e1b3cfde1397eb7e5d1c9d8d",
+      "rgba_sha256": "cb5d71da132b879e46936c6b91ad42c90103c43673819331bb605f011fb6d3d3",
+      "png_bytes": 37154
+    },
+    {
+      "id": "ex_11",
+      "pool_id": "ex",
+      "order": 11,
+      "approved_audit_number": "R011",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        563,
+        550,
+        846,
+        822
+      ],
+      "grid_cell": [
+        2,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_11.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_11.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_11.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_11.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_11.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_11.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "b44993d7e5eaf71cb16696736014f0bffe310efd891caa0fc1bb3ea701ddfacb",
+      "recipe_sha256": "2edc2946638f6d9461f3fa2b78c853b3388018762d8d4f4d856d10b86bc5c4ba",
+      "rgba_sha256": "e5905c478dd75274e4a8694b09df0d3c265008c0180014b02751bf62a8f3dcce",
+      "png_bytes": 36535
+    },
+    {
+      "id": "ex_12",
+      "pool_id": "ex",
+      "order": 12,
+      "approved_audit_number": "R012",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        852,
+        550,
+        1119,
+        822
+      ],
+      "grid_cell": [
+        3,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_12.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_12.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_12.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_12.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_12.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_12.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a0870aac0351de744274145254f32ee6623ed1502bc3a9fab62acb203529c0d1",
+      "recipe_sha256": "cbcd69ebad4d7e5929aceb37a4785e92c4eb849925d70e21dc7837840bcc1461",
+      "rgba_sha256": "33f268e36b0effee2760debf3b9f4184cdf9587fd974f4f257e08b531b6e29ab",
+      "png_bytes": 37081
+    },
+    {
+      "id": "ex_13",
+      "pool_id": "ex",
+      "order": 13,
+      "approved_audit_number": "R013",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        3,
+        828,
+        270,
+        1095
+      ],
+      "grid_cell": [
+        0,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_13.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_13.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_13.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_13.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_13.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_13.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "515168434a715d35d0d400eaf9d13dd2962de153c9bbecbd9b68c377a47a1ac7",
+      "recipe_sha256": "95a486aaa43ca7dc8f8f2bc280d998aa4d232339ef7f9d18277e89d1b388a838",
+      "rgba_sha256": "dc89ad7e835cd2d62554dbf66fccce35ce2d230923bf39aceabef05a871a9eaf",
+      "png_bytes": 38041
+    },
+    {
+      "id": "ex_14",
+      "pool_id": "ex",
+      "order": 14,
+      "approved_audit_number": "R014",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        276,
+        828,
+        557,
+        1095
+      ],
+      "grid_cell": [
+        1,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_14.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_14.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_14.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_14.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_14.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_14.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "e9f0b7f19fb87287c4c1dc02edebed5151089f0f99ec430fb0279f0fb2fa3ef5",
+      "recipe_sha256": "31335487af65c4f1b36248cde6dcc2614a74942e378940d7dc2accd9d85abbc0",
+      "rgba_sha256": "0257bd15aa96d801925363cb6756ee004c66051295bf889b0ddd7e9496ea16e1",
+      "png_bytes": 37104
+    },
+    {
+      "id": "ex_15",
+      "pool_id": "ex",
+      "order": 15,
+      "approved_audit_number": "R015",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        563,
+        828,
+        846,
+        1095
+      ],
+      "grid_cell": [
+        2,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_15.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_15.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_15.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_15.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_15.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_15.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        121
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "8feb0ccb8bfe45619cf12d3bb664af591cece1eca1d6b8a13e2ac9925c6ec1c1",
+      "recipe_sha256": "bd6fea6826181513e626a124fe71befbc028904b9f281b0b45c94b20a0e88fc4",
+      "rgba_sha256": "89ddff00fe4862cebb4892e7362bb7880d304a9fb7f3c5a27c2084414a1bae08",
+      "png_bytes": 35012
+    },
+    {
+      "id": "ex_16",
+      "pool_id": "ex",
+      "order": 16,
+      "approved_audit_number": "R016",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        852,
+        828,
+        1119,
+        1095
+      ],
+      "grid_cell": [
+        3,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_16.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_16.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_16.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_16.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_16.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_16.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "4bc6bdeebe7cc7e34270cd7caa99e16364cdc8dac01622ea737292251c0ded44",
+      "recipe_sha256": "7a91529d6eee333bd260d443aef5bfbe48efa1cfc65c485596f7c4a789d94d2c",
+      "rgba_sha256": "5c2d7394a20def12533cbba63f468f9b02e92433a529227ad40bf92288de8827",
+      "png_bytes": 38717
+    },
+    {
+      "id": "ex_17",
+      "pool_id": "ex",
+      "order": 17,
+      "approved_audit_number": "R017",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        3,
+        1101,
+        270,
+        1399
+      ],
+      "grid_cell": [
+        0,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_17.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_17.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_17.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_17.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_17.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_17.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        115,
+        128
+      ],
+      "placement_xy": [
+        6,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "2b98cd89eaaf8bd72fdd44c99dd9dba83f557a865f07f4db4d614a71d4b0e569",
+      "recipe_sha256": "a3d2700951377e3d7927806d19fa2f177ce42fb1aa31a1d57fe9bd1e699cd200",
+      "rgba_sha256": "f813dbf5985b7e17292f10f36dde78984a3d6a87f1b39023c388b2fb35245889",
+      "png_bytes": 34952
+    },
+    {
+      "id": "ex_18",
+      "pool_id": "ex",
+      "order": 18,
+      "approved_audit_number": "R018",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        276,
+        1101,
+        557,
+        1399
+      ],
+      "grid_cell": [
+        1,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_18.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_18.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_18.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_18.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_18.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_18.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        121,
+        128
+      ],
+      "placement_xy": [
+        3,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f959d09e9faf1c1aeacf96deb3f5fd738d886f058eb2c98438914d6c0eb106da",
+      "recipe_sha256": "2b3e0b8df78ab8c5ff66f8de6ff1c9ae9438378e901e56f0e1bb11768c9d430c",
+      "rgba_sha256": "eaddfc64e562da6f7c5e074d21007a4c59b2a8899c0351694c8d6799ecaee6e9",
+      "png_bytes": 35713
+    },
+    {
+      "id": "ex_19",
+      "pool_id": "ex",
+      "order": 19,
+      "approved_audit_number": "R019",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        563,
+        1101,
+        846,
+        1399
+      ],
+      "grid_cell": [
+        2,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_19.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_19.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_19.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_19.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_19.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_19.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        122,
+        128
+      ],
+      "placement_xy": [
+        3,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "dec811770b2f8940e9c3cb136e106cadacf0d5d7ea21718800bc1a1b6e7a3ff2",
+      "recipe_sha256": "883d0dd277f9dd689fd6299b200569e5e5671cc29aaf0712e50570f14c4c0eec",
+      "rgba_sha256": "00824baf78d096c82f8827d5e6c61c8a412a793cab63813f703869e22854e8cf",
+      "png_bytes": 36235
+    },
+    {
+      "id": "ex_20",
+      "pool_id": "ex",
+      "order": 20,
+      "approved_audit_number": "R020",
+      "approved_board": "portraits_ex1.png",
+      "approved_board_sha256": "d1d0811eb730937b423c5ca0cdd93f5e4a45a497c06fd9e7047a12c0c8e10199",
+      "crop_rectangle_ltrb": [
+        852,
+        1101,
+        1119,
+        1399
+      ],
+      "grid_cell": [
+        3,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_20.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_20.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_20.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_20.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_20.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_20.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        115,
+        128
+      ],
+      "placement_xy": [
+        6,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "7fbde6bdedfd46f8b759d7afcb4c40c96bc491b9ed05c2b050b7020d799a1579",
+      "recipe_sha256": "11c8c5f8faa2f74cfd0d3dd490ba8c9c0432b080d568b3ab537c468c7c983dda",
+      "rgba_sha256": "d96805d67b02eb73d08b04bd3b786214117144ba7b7402806c30695038c91175",
+      "png_bytes": 36157
+    },
+    {
+      "id": "ex_21",
+      "pool_id": "ex",
+      "order": 21,
+      "approved_audit_number": "R021",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        3,
+        3,
+        271,
+        261
+      ],
+      "grid_cell": [
+        0,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_21.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_21.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_21.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_21.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_21.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_21.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a9221890c77022c424c7a17ee7e2839090e86a6001112e0f553d741414e738cf",
+      "recipe_sha256": "dbda429355c22809c4911cc2cc3f2110bd674fe8d7eea5369feff6fb6c28e80b",
+      "rgba_sha256": "1879014160ef10749c2a74d8d0492fa05f1e12fd67456c1d4c43b66a9d757c8b",
+      "png_bytes": 39622
+    },
+    {
+      "id": "ex_22",
+      "pool_id": "ex",
+      "order": 22,
+      "approved_audit_number": "R022",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        277,
+        3,
+        545,
+        261
+      ],
+      "grid_cell": [
+        1,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_22.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_22.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_22.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_22.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_22.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_22.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "1eee6d9203beef055c836348cec5afec28ffad182cac3e2c5fd970f8a2ca91bb",
+      "recipe_sha256": "a3dea702b26252e645123ca0d1bb9d69298d649290667996d1d56d80c01884e1",
+      "rgba_sha256": "64e64ea3bcf35a2613fc712c0d4958417c7b29b3bd99998bf48d4b78b8228a7b",
+      "png_bytes": 37599
+    },
+    {
+      "id": "ex_23",
+      "pool_id": "ex",
+      "order": 23,
+      "approved_audit_number": "R023",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        551,
+        3,
+        830,
+        261
+      ],
+      "grid_cell": [
+        2,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_23.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_23.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_23.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_23.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_23.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_23.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        118
+      ],
+      "placement_xy": [
+        0,
+        5
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "c1e26f4ea504c13b3d1baee0a3bb4b806227b98b9d3cc1e9698726d384b1d388",
+      "recipe_sha256": "4229074b9519d92aa9b42f8aa2eb6877da3cd025ff7c006e2f3999e909f9b623",
+      "rgba_sha256": "0402e45dbe13056257f75f6833db964ac0e6e036dbf85d35084d4067dd1214bc",
+      "png_bytes": 34916
+    },
+    {
+      "id": "ex_24",
+      "pool_id": "ex",
+      "order": 24,
+      "approved_audit_number": "R024",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        836,
+        3,
+        1119,
+        261
+      ],
+      "grid_cell": [
+        3,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_24.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_24.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_24.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_24.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_24.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_24.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        117
+      ],
+      "placement_xy": [
+        0,
+        5
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "fd6a7affa3117d8f0d7b7d5c5b21237f99ab0d5924150f2066711225dcfd0689",
+      "recipe_sha256": "8ad936db059b0d37fe81c6e823238d22b0be92bfe85b8fa043e633118456a111",
+      "rgba_sha256": "42a06eff43d509332981a5ae21755955579de349b482b394da85a1e3493d137b",
+      "png_bytes": 36091
+    },
+    {
+      "id": "ex_25",
+      "pool_id": "ex",
+      "order": 25,
+      "approved_audit_number": "R025",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        3,
+        267,
+        271,
+        539
+      ],
+      "grid_cell": [
+        0,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_25.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_25.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_25.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_25.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_25.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_25.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "8537b08725947cf404533a629922f1844afc7ce8a82afda6bc9fd7c8abbb4afd",
+      "recipe_sha256": "b893a5320c04fa40c7a8f904b09a74e96929a96205d070d1026c5977e887ae9a",
+      "rgba_sha256": "ae6a2aa572c063bce3a9e05cd7e3232778a4d02bb256dcc7d225c236071a18b0",
+      "png_bytes": 39648
+    },
+    {
+      "id": "ex_26",
+      "pool_id": "ex",
+      "order": 26,
+      "approved_audit_number": "R026",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        277,
+        267,
+        545,
+        539
+      ],
+      "grid_cell": [
+        1,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_26.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_26.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_26.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_26.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_26.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_26.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "2976988a4cbe1f90e41af6b9873f2546c95dc6e6befb55d3b302a9e7f5c0e212",
+      "recipe_sha256": "9ab8a6db4036b86397b95339de48fef7fc1e2e6e6383a16c7060ce7d66e80ebb",
+      "rgba_sha256": "87e9114b90461f14bdc3272fd6747d61423c445dd60a2130fc5f24eeae1288d5",
+      "png_bytes": 40391
+    },
+    {
+      "id": "ex_27",
+      "pool_id": "ex",
+      "order": 27,
+      "approved_audit_number": "R027",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        551,
+        267,
+        830,
+        539
+      ],
+      "grid_cell": [
+        2,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_27.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_27.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_27.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_27.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_27.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_27.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        125
+      ],
+      "placement_xy": [
+        0,
+        1
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a6e4a08d9289a06f2d56cdf587ba724f988a50bd8ddb66e29678e1468972d449",
+      "recipe_sha256": "8e93297aa9a44377cfe60e88b0bc53497bf22631d7c307d3839d86b9ecae0234",
+      "rgba_sha256": "5ed4082f0c9607c11c9b7fd861e466d8e74d496f7a14f563a4f48b69750966ce",
+      "png_bytes": 37327
+    },
+    {
+      "id": "ex_28",
+      "pool_id": "ex",
+      "order": 28,
+      "approved_audit_number": "R028",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        836,
+        267,
+        1119,
+        539
+      ],
+      "grid_cell": [
+        3,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_28.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_28.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_28.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_28.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_28.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_28.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f7ed225575d34e016ae20aea89e6e7f7a44cd4452454bba11cd95b1186746856",
+      "recipe_sha256": "0c1e91062b330c8295559b748dd539e9de8a2c53814698e8bfe3a8fe5f961d6f",
+      "rgba_sha256": "17812f30539de57935a3cd55dba57d7ebad89f296e609ca4410b88840ea6f092",
+      "png_bytes": 35659
+    },
+    {
+      "id": "ex_29",
+      "pool_id": "ex",
+      "order": 29,
+      "approved_audit_number": "R029",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        3,
+        545,
+        271,
+        818
+      ],
+      "grid_cell": [
+        0,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_29.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_29.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_29.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_29.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_29.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_29.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "21423b12f7384a5007d71140ab5ac7cbb83e8d9c0c4df6aa73ea900a37cf26aa",
+      "recipe_sha256": "2dd6f9875eac906d793d0ca6f4f4f884b7ab3f04cdeeef72118a00e14bf8a19d",
+      "rgba_sha256": "3402456649b9eb20328d8cc254ef79df7d115e615d5e7bf737d634c38918b7c2",
+      "png_bytes": 37662
+    },
+    {
+      "id": "ex_30",
+      "pool_id": "ex",
+      "order": 30,
+      "approved_audit_number": "R030",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        277,
+        545,
+        545,
+        818
+      ],
+      "grid_cell": [
+        1,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_30.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_30.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_30.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_30.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_30.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_30.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "07b1c78545231e77f3711cacbda79bed22de0c202efa7b232a3aaa3f651f7538",
+      "recipe_sha256": "7a2beddbd44daf805e1ba931bfb3e723317b454fdcd4a31992b8f719fcffa130",
+      "rgba_sha256": "b16e0abec8d098d3b24dd6a1a82567437ce6cbc8914fca95d05aa2b06301baed",
+      "png_bytes": 39577
+    },
+    {
+      "id": "ex_31",
+      "pool_id": "ex",
+      "order": 31,
+      "approved_audit_number": "R031",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        551,
+        545,
+        830,
+        818
+      ],
+      "grid_cell": [
+        2,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_31.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_31.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_31.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_31.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_31.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_31.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        125
+      ],
+      "placement_xy": [
+        0,
+        1
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "cb4249ccba023428e16c265c2e24c2080ccc314cf4299e73f813711a4f6fb4e0",
+      "recipe_sha256": "66296ff26321b216d260d6697ce72c9914348807a43a85a6b86b475aa035be9d",
+      "rgba_sha256": "916a06b5a23dcdd862d6b01b1c3f1a8fbfab3c586fd7a151e2cdc414abdcbc07",
+      "png_bytes": 38049
+    },
+    {
+      "id": "ex_32",
+      "pool_id": "ex",
+      "order": 32,
+      "approved_audit_number": "R032",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        836,
+        545,
+        1119,
+        818
+      ],
+      "grid_cell": [
+        3,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_32.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_32.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_32.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_32.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_32.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_32.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "be401c68d3418f68bd0693166efc8cadccf08d0b6ae94cab76a365a98183295c",
+      "recipe_sha256": "a0941b8f166f37301a4cf7e555252100b36a604ed26ca33d4c6d42776c2b1ae5",
+      "rgba_sha256": "3f8d5b3fc85ab97b6d19a109526f1f3d8c835a3fac07e016a749afb878d7345f",
+      "png_bytes": 36372
+    },
+    {
+      "id": "ex_33",
+      "pool_id": "ex",
+      "order": 33,
+      "approved_audit_number": "R033",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        3,
+        824,
+        271,
+        1093
+      ],
+      "grid_cell": [
+        0,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_33.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_33.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_33.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_33.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_33.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_33.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "9eb9e7e6ab284ca2799476838e605f0c644273828e5bc6b6d44deb93c082d850",
+      "recipe_sha256": "37edb4f0b821740308ecea988ff79d3e7417da0e6062db79da8e34008d7d0945",
+      "rgba_sha256": "f9c21e6075db0cb58207647c063f5bddf6a774dca4bb9bc0823c1c853f470ded",
+      "png_bytes": 39708
+    },
+    {
+      "id": "ex_34",
+      "pool_id": "ex",
+      "order": 34,
+      "approved_audit_number": "R034",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        277,
+        824,
+        545,
+        1093
+      ],
+      "grid_cell": [
+        1,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_34.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_34.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_34.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_34.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_34.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_34.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "9c0f4e8c0bae92ff4e89493be535e283a44c1744b94c1b9f71e04417d59baee6",
+      "recipe_sha256": "18e1c7a274371a7af43e59396b9ba322cb18b0355eab5e0e5a5840d7d3ddf6d4",
+      "rgba_sha256": "b9599139af9339094fcbca7ab8c6e6e81628ad4eb8d947918f213611eb9d15f7",
+      "png_bytes": 39496
+    },
+    {
+      "id": "ex_35",
+      "pool_id": "ex",
+      "order": 35,
+      "approved_audit_number": "R035",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        551,
+        824,
+        830,
+        1093
+      ],
+      "grid_cell": [
+        2,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_35.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_35.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_35.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_35.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_35.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_35.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f6736594c3679cbcef1e0d6415883ce0dc2ec8fe05358f213506cca7966e4135",
+      "recipe_sha256": "f3e7b211d6f7ae19f31d9c1f6b36d4fdd5c9479e923e2eafef438d9598046119",
+      "rgba_sha256": "8d834545c88f4d29bcba9c1532b9df2914060352003928780d0c891fa6060d83",
+      "png_bytes": 36649
+    },
+    {
+      "id": "ex_36",
+      "pool_id": "ex",
+      "order": 36,
+      "approved_audit_number": "R036",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        836,
+        824,
+        1119,
+        1093
+      ],
+      "grid_cell": [
+        3,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_36.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_36.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_36.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_36.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_36.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_36.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f3399492a33eacd15cac494a2fa05b76af8fcf6715b9a43ea948df8b9854983a",
+      "recipe_sha256": "cf1dc9b7f0b68c0968fba2f72572b1e0d635e392273061c658a92497c0429b16",
+      "rgba_sha256": "4000573ac5c82efc14ac627b219ef0981cdf782cfcd770d4770766e8951ca65c",
+      "png_bytes": 37660
+    },
+    {
+      "id": "ex_37",
+      "pool_id": "ex",
+      "order": 37,
+      "approved_audit_number": "R037",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        3,
+        1099,
+        271,
+        1399
+      ],
+      "grid_cell": [
+        0,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_37.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_37.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_37.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_37.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_37.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_37.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        114,
+        128
+      ],
+      "placement_xy": [
+        7,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "e762b12f863407beee16ecc6fcbeb7d55f935a6a5bdb75b469f8bbd004baf18d",
+      "recipe_sha256": "411b26f70f1e511d39aebd2dc24620d36f707997cfc228fddbbc61764227fd8e",
+      "rgba_sha256": "efd10a9b3ff6d1ebd8d684388f86a9664c4dfb3bc03d2589258cf3c6f9e68fc6",
+      "png_bytes": 33820
+    },
+    {
+      "id": "ex_38",
+      "pool_id": "ex",
+      "order": 38,
+      "approved_audit_number": "R038",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        277,
+        1099,
+        545,
+        1399
+      ],
+      "grid_cell": [
+        1,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_38.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_38.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_38.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_38.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_38.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_38.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        114,
+        128
+      ],
+      "placement_xy": [
+        7,
+        0
+      ],
+      "quality_unchanged": "UR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a42c657503fcdee4ea69dfb4852ec2b46da07e82e3dbeb38ebb38e8b5fad1fe3",
+      "recipe_sha256": "42670420679acd101c32075106f49be9683fcc078170a4ebd4128c53959941d4",
+      "rgba_sha256": "ba212419c4d26607a883ad4afd5ccfbc40743b7ce67bb34dd3f896b6579dcacd",
+      "png_bytes": 36682
+    },
+    {
+      "id": "ex_39",
+      "pool_id": "ex",
+      "order": 39,
+      "approved_audit_number": "R039",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        551,
+        1099,
+        830,
+        1399
+      ],
+      "grid_cell": [
+        2,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_39.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_39.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_39.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_39.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_39.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_39.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        119,
+        128
+      ],
+      "placement_xy": [
+        4,
+        0
+      ],
+      "quality_unchanged": "UR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "73b235e424964ccd2c9c58619afc1544e35926a534e3169c5939367b6c123adc",
+      "recipe_sha256": "4ccc2bc8e6750257effff8750698440dc66b13baa018fbe7a478ca6006da5fdc",
+      "rgba_sha256": "599526951c40ab76b901e4ac830ba8df1d0f1f3810a8e2bae9a45db7c05d1c92",
+      "png_bytes": 37451
+    },
+    {
+      "id": "ex_40",
+      "pool_id": "ex",
+      "order": 40,
+      "approved_audit_number": "R040",
+      "approved_board": "portraits_ex2.png",
+      "approved_board_sha256": "ea51aa07c07cb3e49dd1da7a5bc2e8702d63af5a9cf92e24aaa74b099fd79aec",
+      "crop_rectangle_ltrb": [
+        836,
+        1099,
+        1119,
+        1399
+      ],
+      "grid_cell": [
+        3,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/ex_40.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/ex_40.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/ex_40.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/ex_40.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/ex_40.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/ex_40.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        121,
+        128
+      ],
+      "placement_xy": [
+        3,
+        0
+      ],
+      "quality_unchanged": "UR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "634e16a1a686ad81ac4f7400564ccdd8b802a989b8ce4c2b6bd051a07662c7fe",
+      "recipe_sha256": "9d667f35abb8abfee5c0f4fe272c00327ca05a0ec2630eb49c9f412fbf64f544",
+      "rgba_sha256": "e4b7f2247f6c7a9a769fe2ea27e0be6acd10e3ecd28c145c1641ff7e3384fa75",
+      "png_bytes": 34373
+    },
+    {
+      "id": "wife_01",
+      "pool_id": "wife",
+      "order": 1,
+      "approved_audit_number": "R041",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        3,
+        3,
+        275,
+        274
+      ],
+      "grid_cell": [
+        0,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_01.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_01.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_01.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_01.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_01.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_01.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "4f08cb3e54fd78df0b5a0dd61946093e30ac7396869172c107804ca6d3b5c630",
+      "recipe_sha256": "ecf97f3fadaecd00fadbb6c3227dcf6fede29d3fa0dc8918f4a653a686f4a9b3",
+      "rgba_sha256": "7892e9b5bf3990f676d4ed040a2f05eee7753dfbb0f842708ad656349dd20bae",
+      "png_bytes": 38279
+    },
+    {
+      "id": "wife_02",
+      "pool_id": "wife",
+      "order": 2,
+      "approved_audit_number": "R042",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        281,
+        3,
+        554,
+        274
+      ],
+      "grid_cell": [
+        1,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_02.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_02.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_02.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_02.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_02.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_02.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        127
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "b5e7f3fecf7906ebb4cd9e5a34ef6021e92e27ba1bd25b785bbe176a13868cfc",
+      "recipe_sha256": "51b6085a68acf69cfeee2ada58d0d56f4258a242f254c6089fd79a615499bd2f",
+      "rgba_sha256": "593cf60869f537d2fce569b210d5f2823253353b3f6bd1f57a70ce7bfa6ae5e2",
+      "png_bytes": 37643
+    },
+    {
+      "id": "wife_03",
+      "pool_id": "wife",
+      "order": 3,
+      "approved_audit_number": "R043",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        560,
+        3,
+        835,
+        274
+      ],
+      "grid_cell": [
+        2,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_03.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_03.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_03.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_03.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_03.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_03.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        126
+      ],
+      "placement_xy": [
+        0,
+        1
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "24b594c3a97eedc00a2612ade04cc423dfc21d840cbdbde8cef2b1318d09343d",
+      "recipe_sha256": "2ca6f0deb0e11f9bd5fd9578062259d7ce0bf11b4d82c24bc437304c7933fd00",
+      "rgba_sha256": "5c0f296ea7d876820303e25f90ba5a0c911633450eb8582d3ee9ccb3e49d223a",
+      "png_bytes": 38326
+    },
+    {
+      "id": "wife_04",
+      "pool_id": "wife",
+      "order": 4,
+      "approved_audit_number": "R044",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        841,
+        3,
+        1119,
+        274
+      ],
+      "grid_cell": [
+        3,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_04.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_04.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_04.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_04.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_04.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_04.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        125
+      ],
+      "placement_xy": [
+        0,
+        1
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "3f80f9b20a44468a9082437811d8bb2c341f9ff9103d3c522da0bf1e33ba25fd",
+      "recipe_sha256": "48761e8e16fb070aff1b057b4820c21c0a370c80b75108344d62ddbf2765ff16",
+      "rgba_sha256": "da3b3b10307f6e43967480a34c7037e9d0a7a9ef06793131f42dda0eee05f94d",
+      "png_bytes": 37980
+    },
+    {
+      "id": "wife_05",
+      "pool_id": "wife",
+      "order": 5,
+      "approved_audit_number": "R045",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        3,
+        280,
+        275,
+        540
+      ],
+      "grid_cell": [
+        0,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_05.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_05.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_05.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_05.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_05.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_05.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "N",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "e914a624260f2a05dbf04bf6b23ca15984fea37c63e71d955673d5f391e485bf",
+      "recipe_sha256": "ab32907dd88643170e4c3d82a404afb0f1d071c491c780a26e56eb2c1a0ab995",
+      "rgba_sha256": "e029704cf3677e89fa0ce430a686d847351da21917a7ed3f643b0ef8f551c99f",
+      "png_bytes": 39737
+    },
+    {
+      "id": "wife_06",
+      "pool_id": "wife",
+      "order": 6,
+      "approved_audit_number": "R046",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        281,
+        280,
+        554,
+        540
+      ],
+      "grid_cell": [
+        1,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_06.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_06.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_06.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_06.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_06.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_06.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "f7813e7665d1306af191d3b04fd9fd3f3b4587f0f2076c0d0ce8d4fa0f7ce7a5",
+      "recipe_sha256": "dfec9d4b705ff955f0758450aefd8c2c6d6e67d7434335ab7f9aa958af7bad1b",
+      "rgba_sha256": "25fd4b4f6634c3b40420792ed3f0367af9e4738c0b9ae5caa8ad549ef79e1660",
+      "png_bytes": 38053
+    },
+    {
+      "id": "wife_07",
+      "pool_id": "wife",
+      "order": 7,
+      "approved_audit_number": "R047",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        560,
+        280,
+        835,
+        540
+      ],
+      "grid_cell": [
+        2,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_07.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_07.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_07.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_07.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_07.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_07.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        121
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "e5a1a31b6badd1fd40ec0b1d0bccc65b5a7e0539eaae815fd180d5f4cb549c64",
+      "recipe_sha256": "a50f4e30e8b531684ba246ffd3e765d4297e7fd6a91ca82e9fc494fc208cd581",
+      "rgba_sha256": "b264f32697481faec36fddc91e62527b1eb5390064bdcd07c659b3d1206df7b0",
+      "png_bytes": 36671
+    },
+    {
+      "id": "wife_08",
+      "pool_id": "wife",
+      "order": 8,
+      "approved_audit_number": "R048",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        841,
+        280,
+        1119,
+        540
+      ],
+      "grid_cell": [
+        3,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_08.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_08.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_08.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_08.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_08.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_08.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        120
+      ],
+      "placement_xy": [
+        0,
+        4
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "11a1ac2fa8dee955b9602f1bfd21b903336879d350e01c17570a484a1235c3b6",
+      "recipe_sha256": "278cbb8788f409f1299a4b69f5ea21be850ed202fa8cbcab38cc9e3702843656",
+      "rgba_sha256": "3140174011246660acbdbbba9231d6ff7ba9913999d1d66ae69438ece0763c8d",
+      "png_bytes": 36942
+    },
+    {
+      "id": "wife_09",
+      "pool_id": "wife",
+      "order": 9,
+      "approved_audit_number": "R049",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        3,
+        546,
+        275,
+        823
+      ],
+      "grid_cell": [
+        0,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_09.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_09.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_09.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_09.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_09.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_09.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "80cd3023aa11217acf5e22a69be18eba8366be606758b298e41d0d8e5fcbfff2",
+      "recipe_sha256": "32b308320b400707251dd00a5848087999846495d7d37ac68f84a498dbc474f0",
+      "rgba_sha256": "633b861d955328e022e580d01d310d7ea1ee8166c911b247adaafdca78e5d53f",
+      "png_bytes": 40079
+    },
+    {
+      "id": "wife_10",
+      "pool_id": "wife",
+      "order": 10,
+      "approved_audit_number": "R050",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        281,
+        546,
+        554,
+        823
+      ],
+      "grid_cell": [
+        1,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_10.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_10.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_10.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_10.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_10.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_10.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "2130df25ffc6dcfb02e0ffab5b0d9c0ee25d87c7c8132ff327318f7b5d49a483",
+      "recipe_sha256": "4365496c9bdefe980e6184b4c827e8380d979ba38fad4cdd9456a9e795e4c59f",
+      "rgba_sha256": "7d8eb7c3d5a9b0e60cd4af8ba86cd5d8423554c0c65913bd1ce64299483dc783",
+      "png_bytes": 38999
+    },
+    {
+      "id": "wife_11",
+      "pool_id": "wife",
+      "order": 11,
+      "approved_audit_number": "R051",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        560,
+        546,
+        835,
+        823
+      ],
+      "grid_cell": [
+        2,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_11.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_11.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_11.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_11.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_11.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_11.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        127,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "2f4ee174c9a7d26b72f902d82b22ed00cdf9ddd0e63b7472cc9f67d3d721a355",
+      "recipe_sha256": "6f5dc06c87ad030a2a1e3d23f964949d544bc07946dbccf2cb8c38dbb40c67dc",
+      "rgba_sha256": "552198f6598238b6bf8e695cc685976d8a91c05baa9cc3b7d7f5ad0c880fb057",
+      "png_bytes": 37017
+    },
+    {
+      "id": "wife_12",
+      "pool_id": "wife",
+      "order": 12,
+      "approved_audit_number": "R052",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        841,
+        546,
+        1119,
+        823
+      ],
+      "grid_cell": [
+        3,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_12.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_12.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_12.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_12.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_12.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_12.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "b6c01eda14147f18568128c9d1761185244702b261f3b9fb39c1568c86bed8f4",
+      "recipe_sha256": "1dbac6f02c576939a6da1d23d915e9e84dd7d68dbacce9527c1c924c28a0b04f",
+      "rgba_sha256": "67a3e7388592000d0ec65911e6fa6828c153dad123d449f21a72e03fe4566c58",
+      "png_bytes": 40533
+    },
+    {
+      "id": "wife_13",
+      "pool_id": "wife",
+      "order": 13,
+      "approved_audit_number": "R053",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        3,
+        829,
+        275,
+        1094
+      ],
+      "grid_cell": [
+        0,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_13.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_13.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_13.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_13.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_13.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_13.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        125
+      ],
+      "placement_xy": [
+        0,
+        1
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "4702fb2326ec8d73c40f24776690a154d1e32f6459c67b38c73afc8064a8acba",
+      "recipe_sha256": "54ad4e17e173fe862d7cdee559b884b6cd098156ddf9c7adb09c063601165cb2",
+      "rgba_sha256": "aeb538dd73c5c0ade0c5bdad5e535a2f3b2c1d63f6a5a6491415b5f24a15c759",
+      "png_bytes": 39506
+    },
+    {
+      "id": "wife_14",
+      "pool_id": "wife",
+      "order": 14,
+      "approved_audit_number": "R054",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        281,
+        829,
+        554,
+        1094
+      ],
+      "grid_cell": [
+        1,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_14.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_14.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_14.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_14.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_14.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_14.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        124
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "54342a4dcbb3a3ff60b78025c7fc115e9d78e10dbf587489f4f3132dca83088d",
+      "recipe_sha256": "f5f9080d06102bc74e7a99f226857b064fc83e195feb8408c716b74ecc5856d9",
+      "rgba_sha256": "f376b6cdd86e389c7f1ff0c6cb49e30df2349ec2431e2cef8a7c410168546fde",
+      "png_bytes": 36252
+    },
+    {
+      "id": "wife_15",
+      "pool_id": "wife",
+      "order": 15,
+      "approved_audit_number": "R055",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        560,
+        829,
+        835,
+        1094
+      ],
+      "grid_cell": [
+        2,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_15.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_15.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_15.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_15.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_15.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_15.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "R",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "83e8763b40056db7e2352e2a4b95877aa5965a512d919c7dbbcfcca4f78398ed",
+      "recipe_sha256": "6284bc598a3e5b369ed19f4815315747a1490749ed93b6f24e53c5bab9f7b1d9",
+      "rgba_sha256": "331c6d5e46c619afbaa4fa00d3106fdc1be3b222b1b52424b44c5741f81b77be",
+      "png_bytes": 37997
+    },
+    {
+      "id": "wife_16",
+      "pool_id": "wife",
+      "order": 16,
+      "approved_audit_number": "R056",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        841,
+        829,
+        1119,
+        1094
+      ],
+      "grid_cell": [
+        3,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_16.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_16.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_16.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_16.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_16.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_16.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        122
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "68918bc18eacce678c413c6399b6f43f1d0346e81ff28993b61a0032d8d4cdad",
+      "recipe_sha256": "abe327927927dcad1be1b5824055825cfe4df2bdbe8c5aaf89d88c106b861040",
+      "rgba_sha256": "5500a4f676996c4e3d12c4bbcd63b5b74d56df623fe524a6bf066fd5e98da74c",
+      "png_bytes": 37867
+    },
+    {
+      "id": "wife_17",
+      "pool_id": "wife",
+      "order": 17,
+      "approved_audit_number": "R057",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        3,
+        1100,
+        275,
+        1399
+      ],
+      "grid_cell": [
+        0,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_17.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_17.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_17.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_17.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_17.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_17.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        116,
+        128
+      ],
+      "placement_xy": [
+        6,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "896c89b9444284a6d51ae98c379cc99ccd77aad315976543e29b796def622319",
+      "recipe_sha256": "70ac41d24dd66fa5f5bc2d1099d7340de017bf28eaf2cb35ada71760d3fb9c16",
+      "rgba_sha256": "5b2978e3c305e23b0c0b5b91eab4baabf6226c9f272ba04c8b037c487554834b",
+      "png_bytes": 37106
+    },
+    {
+      "id": "wife_18",
+      "pool_id": "wife",
+      "order": 18,
+      "approved_audit_number": "R058",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        281,
+        1100,
+        554,
+        1399
+      ],
+      "grid_cell": [
+        1,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_18.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_18.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_18.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_18.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_18.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_18.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        117,
+        128
+      ],
+      "placement_xy": [
+        5,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "1dfcefb2e393aef6305323cb41535d5541aebae13ee15512b3890b8ceb8ddbee",
+      "recipe_sha256": "2d20d839307f51e0bde7a3b4c12513e9b0faa7d63e5bfd3e69a3b471d6267c15",
+      "rgba_sha256": "6ea7eac51507a733df39f726f4a682a0e193a731c71ab311c17d97e81b67a267",
+      "png_bytes": 37454
+    },
+    {
+      "id": "wife_19",
+      "pool_id": "wife",
+      "order": 19,
+      "approved_audit_number": "R059",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        560,
+        1100,
+        835,
+        1399
+      ],
+      "grid_cell": [
+        2,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_19.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_19.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_19.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_19.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_19.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_19.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        118,
+        128
+      ],
+      "placement_xy": [
+        5,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "bb92a3a283506244af4bbe2817764d9973a027d545902bf45a99e2e45aaf49d6",
+      "recipe_sha256": "534267170fd1eca11f0a26d5285d97b0261289f19c0b2758cca28be5f69e9a19",
+      "rgba_sha256": "62502068a817873b978d77cf33439c2c783fc86622c51c12280530a34ffe6789",
+      "png_bytes": 36856
+    },
+    {
+      "id": "wife_20",
+      "pool_id": "wife",
+      "order": 20,
+      "approved_audit_number": "R060",
+      "approved_board": "portraits_wife1.png",
+      "approved_board_sha256": "18e1254d1ab0c6bce3cba6766f6f92bbe4d4af839ea5c0ed1b7419584aff2204",
+      "crop_rectangle_ltrb": [
+        841,
+        1100,
+        1119,
+        1399
+      ],
+      "grid_cell": [
+        3,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_20.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_20.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_20.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_20.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_20.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_20.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        119,
+        128
+      ],
+      "placement_xy": [
+        4,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "384085d0c31730bacdd398f3166e6b815ab36328070951ed1bb68507933fab74",
+      "recipe_sha256": "2529e7312798433720b4489c97e712b31c941c8c25d33498405753f0c580a6f7",
+      "rgba_sha256": "72e208e82e4ab33e175fccc2fa185166ceac8b6323fba4d6f3e831f739dd851e",
+      "png_bytes": 38227
+    },
+    {
+      "id": "wife_21",
+      "pool_id": "wife",
+      "order": 21,
+      "approved_audit_number": "R061",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        3,
+        3,
+        274,
+        272
+      ],
+      "grid_cell": [
+        0,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_21.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_21.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_21.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_21.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_21.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_21.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        127
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "ff1ab2560cbbecd122211097e13dad710f27ca662d8a8983df4a2350c053c06a",
+      "recipe_sha256": "fe51345c82ac536396211b1009da578ff787a15a2652e216770bb425f60a2d73",
+      "rgba_sha256": "e483b8c4437d6e8490696128fe585026fb9bae4aca00034306c117694685e152",
+      "png_bytes": 36896
+    },
+    {
+      "id": "wife_22",
+      "pool_id": "wife",
+      "order": 22,
+      "approved_audit_number": "R062",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        280,
+        3,
+        557,
+        272
+      ],
+      "grid_cell": [
+        1,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_22.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_22.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_22.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_22.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_22.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_22.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        124
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "3aed8a0c3b54c14f181115ff9649c657bb34c244a2fe8666d67d8b4eff94e5f1",
+      "recipe_sha256": "9404185c9a0362aedde4a119205b3deefb0eb2a8bae42dd9bc58ecbd502dd42b",
+      "rgba_sha256": "c742f2fb9eb2bdb078144ff329249b3eee4a5e0d25018d2f9cfe421c4fba8da2",
+      "png_bytes": 38675
+    },
+    {
+      "id": "wife_23",
+      "pool_id": "wife",
+      "order": 23,
+      "approved_audit_number": "R063",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        563,
+        3,
+        844,
+        272
+      ],
+      "grid_cell": [
+        2,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_23.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_23.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_23.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_23.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_23.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_23.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "b52169e93abfadb7d717b89bc1ba73f3d4523a59af6ac5163769ffac4eece26f",
+      "recipe_sha256": "54dae820fb152246ac6ffa1882635c6343671cbec74b8686fb93d49e50243744",
+      "rgba_sha256": "6e0f326ce212e892ea17eb0e10859d1ebce9e18e279c23d3f154464c870538ef",
+      "png_bytes": 37130
+    },
+    {
+      "id": "wife_24",
+      "pool_id": "wife",
+      "order": 24,
+      "approved_audit_number": "R064",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        850,
+        3,
+        1119,
+        272
+      ],
+      "grid_cell": [
+        3,
+        0
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_24.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_24.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_24.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_24.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_24.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_24.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "952bde7d109c53dfd541285996f3edcc3ba62b4a578a12212105718f226e7feb",
+      "recipe_sha256": "5084a39e12aed80f8616a4a013d113a44f83f99ab54e79786abca0442e63a43e",
+      "rgba_sha256": "9049ece3efb64e669b4595f32411ac315546b88e78d13102a0fc375ce1f56eb0",
+      "png_bytes": 38810
+    },
+    {
+      "id": "wife_25",
+      "pool_id": "wife",
+      "order": 25,
+      "approved_audit_number": "R065",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        3,
+        278,
+        274,
+        554
+      ],
+      "grid_cell": [
+        0,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_25.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_25.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_25.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_25.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_25.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_25.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        126,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "8178acab1d5f295461950cdf64fe038286100a2dd8e800ef844a9dbf818d23bd",
+      "recipe_sha256": "701585fb8e35f13cb5d3576da023453ef71724f487a20e8451649fee265a0270",
+      "rgba_sha256": "c6831d3cd91e025c38bf75bb891fc9116e2ffe3c1e2acd6ebc9d937902491d0e",
+      "png_bytes": 40002
+    },
+    {
+      "id": "wife_26",
+      "pool_id": "wife",
+      "order": 26,
+      "approved_audit_number": "R066",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        280,
+        278,
+        557,
+        554
+      ],
+      "grid_cell": [
+        1,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_26.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_26.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_26.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_26.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_26.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_26.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a1853196e9976135a5459c81735abe4c65d237bd163f6bd0c1db66e4e6fdba4b",
+      "recipe_sha256": "54fa88994963ba91adaf221a7dd8c394b8f80ebdec026284b50ed474b2ce3e54",
+      "rgba_sha256": "41b400f18299880fe12e9fa7b78333459bfebb530c1fe0771c77c3fffa185413",
+      "png_bytes": 39917
+    },
+    {
+      "id": "wife_27",
+      "pool_id": "wife",
+      "order": 27,
+      "approved_audit_number": "R067",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        563,
+        278,
+        844,
+        554
+      ],
+      "grid_cell": [
+        2,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_27.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_27.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_27.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_27.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_27.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_27.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        126
+      ],
+      "placement_xy": [
+        0,
+        1
+      ],
+      "quality_unchanged": "SR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "7f6d0d4e7fa950192539025ce765e5350eae02aef596a0a3206a8601bcba0150",
+      "recipe_sha256": "e3921454c81dc4451d8ebec9e282035d752fc99ffcb9f6b3f837bf49e5afbb88",
+      "rgba_sha256": "b5420859ce09e0d3d263fbb3745e181d123cdfea9c235a1448cd2eb378a9cb85",
+      "png_bytes": 37594
+    },
+    {
+      "id": "wife_28",
+      "pool_id": "wife",
+      "order": 28,
+      "approved_audit_number": "R068",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        850,
+        278,
+        1119,
+        554
+      ],
+      "grid_cell": [
+        3,
+        1
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_28.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_28.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_28.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_28.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_28.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_28.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        125,
+        128
+      ],
+      "placement_xy": [
+        1,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "d4b66fe79cbca66a54fe3950b998246c19b294a94f2dcd381a43a2d3348c7cf7",
+      "recipe_sha256": "db05e425a790ec0b2b9e34fb28c5b9450ada8fa93a2fd4c0e06c40da1ec74863",
+      "rgba_sha256": "fc9bcad87243437840c3363a1758dd2d7c53a66b0d47d08b85ec04030a9e4f54",
+      "png_bytes": 37213
+    },
+    {
+      "id": "wife_29",
+      "pool_id": "wife",
+      "order": 29,
+      "approved_audit_number": "R069",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        3,
+        560,
+        274,
+        829
+      ],
+      "grid_cell": [
+        0,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_29.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_29.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_29.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_29.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_29.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_29.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        127
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "26a9dae7c7031461e3ac27336d9f4642bb26ac5c5a9056035fc1cd8ca24db12a",
+      "recipe_sha256": "5e934f1bd4b2219d6ee5343a481da112c732ad7ce11f047603ff85d0c306379f",
+      "rgba_sha256": "58bc2b5a5ba183bfd4bfde06472bc1af1bfba65eccef836fe431633a0cccc8be",
+      "png_bytes": 39872
+    },
+    {
+      "id": "wife_30",
+      "pool_id": "wife",
+      "order": 30,
+      "approved_audit_number": "R070",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        280,
+        560,
+        557,
+        829
+      ],
+      "grid_cell": [
+        1,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_30.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_30.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_30.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_30.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_30.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_30.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        124
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "a0cbe4fc0cdf02fec9b36a01baef59b006812d650c43a5adfd94ccf82355abc5",
+      "recipe_sha256": "bff3b18c2e04df7cfd4183560a73ff307c8a641b33160a0dd4c5c6956d077774",
+      "rgba_sha256": "54aeef7cbf1c6d35f1b51bce9cb37e31a0e1a25aa3045174e42ba3964cb2a886",
+      "png_bytes": 38149
+    },
+    {
+      "id": "wife_31",
+      "pool_id": "wife",
+      "order": 31,
+      "approved_audit_number": "R071",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        563,
+        560,
+        844,
+        829
+      ],
+      "grid_cell": [
+        2,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_31.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_31.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_31.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_31.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_31.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_31.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        123
+      ],
+      "placement_xy": [
+        0,
+        2
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": false,
+      "png_sha256": "eb82a6448692180e45cf6cbdcfee226862580a2b7fcaa92a1b4f5cca9e6efc0d",
+      "recipe_sha256": "261b968bb774c9cb62c4c3279d9f42260e6afa154282c245e774701fa266d15a",
+      "rgba_sha256": "78f15518138b0b75178bb117999500f6ea3d607444ec7d984576f07c3c3273db",
+      "png_bytes": 36376
+    },
+    {
+      "id": "wife_32",
+      "pool_id": "wife",
+      "order": 32,
+      "approved_audit_number": "R072",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        850,
+        560,
+        1119,
+        829
+      ],
+      "grid_cell": [
+        3,
+        2
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_32.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_32.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_32.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_32.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_32.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_32.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        128
+      ],
+      "placement_xy": [
+        0,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "68546fe2804b5d4b4146dd508bb26625e0cccd6ceb89f4f1a71c956b1d283069",
+      "recipe_sha256": "6a378e1a06ed5fd6f177eb2d7e3dedb027aa9eddd0d57696626a47f2199b8154",
+      "rgba_sha256": "21beadb2d49897b01eb9def7e0461cd4fda1faf609977497b7a24efa36da602f",
+      "png_bytes": 39147
+    },
+    {
+      "id": "wife_33",
+      "pool_id": "wife",
+      "order": 33,
+      "approved_audit_number": "R073",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        3,
+        835,
+        274,
+        1090
+      ],
+      "grid_cell": [
+        0,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_33.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_33.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_33.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_33.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_33.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_33.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        120
+      ],
+      "placement_xy": [
+        0,
+        4
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "bff96ae5598ca3730eb50e7616926dc169e3a51341978518fc44d4f592f23641",
+      "recipe_sha256": "f8226ca867d4000b74e3db964a0b30cfcc5095a521080beaa78c60641163faea",
+      "rgba_sha256": "1717404253cb16e8d7bb34d95a87d574740d311556983b68705669eb88a7613b",
+      "png_bytes": 37085
+    },
+    {
+      "id": "wife_34",
+      "pool_id": "wife",
+      "order": 34,
+      "approved_audit_number": "R074",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        280,
+        835,
+        557,
+        1090
+      ],
+      "grid_cell": [
+        1,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_34.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_34.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_34.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_34.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_34.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_34.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        118
+      ],
+      "placement_xy": [
+        0,
+        5
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "aa5b46da8c73172b3749fc6b5147c96c0e85afded2674eac650f4611c4d5bd81",
+      "recipe_sha256": "44a2f059bf565419fa8cf04e31b0abe780f0f5206f3460b4f4fdce5f1ee5f30c",
+      "rgba_sha256": "9864634e095b1c784358b1625aaf892f444549711dd86e4d6b8fd9cb4d75595b",
+      "png_bytes": 37099
+    },
+    {
+      "id": "wife_35",
+      "pool_id": "wife",
+      "order": 35,
+      "approved_audit_number": "R075",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        563,
+        835,
+        844,
+        1090
+      ],
+      "grid_cell": [
+        2,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_35.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_35.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_35.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_35.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_35.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_35.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        116
+      ],
+      "placement_xy": [
+        0,
+        6
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "732eddc650b4d4e9b0d83e10f8d862d3d87677a6b85f71b4994101eac6f004c6",
+      "recipe_sha256": "868788e509e0aa81f2f0451d64f375821ac685d8bdea741a637322f77957284a",
+      "rgba_sha256": "fe6da7aae4bc2591644d1869ab8f84a5745e9e6f023b3a2acf301696bd980e2f",
+      "png_bytes": 34859
+    },
+    {
+      "id": "wife_36",
+      "pool_id": "wife",
+      "order": 36,
+      "approved_audit_number": "R076",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        850,
+        835,
+        1119,
+        1090
+      ],
+      "grid_cell": [
+        3,
+        3
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_36.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_36.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_36.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_36.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_36.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_36.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        128,
+        121
+      ],
+      "placement_xy": [
+        0,
+        3
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "b34ec33018b960ecc9c531c83081177aefcbabff6a3ecdd1a58c846c6068034c",
+      "recipe_sha256": "84c7d17ebab2e7c739a6fe44ec1627c27ca786bf5118faf23a77296591e7ffd6",
+      "rgba_sha256": "39760a8972213fe4cb34b5c8a47b7a58906f48e9fa541a0a0e22d3f778fba67b",
+      "png_bytes": 38466
+    },
+    {
+      "id": "wife_37",
+      "pool_id": "wife",
+      "order": 37,
+      "approved_audit_number": "R077",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        3,
+        1096,
+        274,
+        1399
+      ],
+      "grid_cell": [
+        0,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_37.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_37.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_37.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_37.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_37.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_37.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        114,
+        128
+      ],
+      "placement_xy": [
+        7,
+        0
+      ],
+      "quality_unchanged": "SSR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "edc95e84e841c7304ea8ee10914d09112f64b9fa1e51189f40086d2502e58c4c",
+      "recipe_sha256": "bfb3b95ad6ab63ff522b1128fca8668ff3f8614a37209385df48b5613d0d2ee6",
+      "rgba_sha256": "db76251fee5f452ca2dd039c7b4824a8a1cf6b3bf06161e7703bad125a9adf2b",
+      "png_bytes": 36782
+    },
+    {
+      "id": "wife_38",
+      "pool_id": "wife",
+      "order": 38,
+      "approved_audit_number": "R078",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        280,
+        1096,
+        557,
+        1399
+      ],
+      "grid_cell": [
+        1,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_38.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_38.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_38.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_38.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_38.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_38.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        117,
+        128
+      ],
+      "placement_xy": [
+        5,
+        0
+      ],
+      "quality_unchanged": "UR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "ba712acacba2f26e7a0639016526f7be99b676483ef152c7b323f9d81d4baf91",
+      "recipe_sha256": "d57b82459566589445ab566630296f46bdd6a31151df1b707bf65f79a43416b9",
+      "rgba_sha256": "21ae327e625352affb0e2e9fc70f92eb46200d1d1590255814f002ac83f39af1",
+      "png_bytes": 38419
+    },
+    {
+      "id": "wife_39",
+      "pool_id": "wife",
+      "order": 39,
+      "approved_audit_number": "R079",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        563,
+        1096,
+        844,
+        1399
+      ],
+      "grid_cell": [
+        2,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_39.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_39.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_39.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_39.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_39.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_39.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        119,
+        128
+      ],
+      "placement_xy": [
+        4,
+        0
+      ],
+      "quality_unchanged": "UR",
+      "draw_enabled_unchanged": false,
+      "png_sha256": "1d732726a7a25aea18003a712a609ea27dcdb684e426f6d12bf00807a3885a69",
+      "recipe_sha256": "7d7ecd9993eb13212f8276f90c487219d3538a8ee003547585e38093dbda5821",
+      "rgba_sha256": "7d7968faf4999c0debe6a543a85ccaa1c0de17081cd3cda0a23237ec02860216",
+      "png_bytes": 34766
+    },
+    {
+      "id": "wife_40",
+      "pool_id": "wife",
+      "order": 40,
+      "approved_audit_number": "R080",
+      "approved_board": "portraits_wife2.png",
+      "approved_board_sha256": "223d61456041eea68ef4c3d0ad2be664079a46760cb05d138a76fe61f0041dbd",
+      "crop_rectangle_ltrb": [
+        850,
+        1096,
+        1119,
+        1399
+      ],
+      "grid_cell": [
+        3,
+        4
+      ],
+      "png": "panorama/src/images/custom_game/collection_original_v1/wife_40.png",
+      "texture": "panorama/src/images/custom_game/collection_original_v1/wife_40.vtex",
+      "content_png": "panorama/images/custom_game/collection_original_v1/wife_40.png",
+      "content_texture": "panorama/images/custom_game/collection_original_v1/wife_40.vtex",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_40.vtex",
+      "compiled": "panorama/images/custom_game/collection_original_v1/wife_40.vtex_c",
+      "source_size": [
+        128,
+        128
+      ],
+      "fitted_dimensions": [
+        114,
+        128
+      ],
+      "placement_xy": [
+        7,
+        0
+      ],
+      "quality_unchanged": "UR",
+      "draw_enabled_unchanged": true,
+      "png_sha256": "8945aca98e2d246c36d31692e3fb1cee49aea77ea250f59523d33099dc5cc32e",
+      "recipe_sha256": "ba2e8a24ac8e7cd1f754ff58018c6789cb9ac93a22233bc51325acc030f0ac17",
+      "rgba_sha256": "b9d8533d106b58a29f4d3a9085ae4608a204c827aa1c09b0a16ea53d5a112153",
+      "png_bytes": 37196
+    }
+  ],
+  "aliases": [
+    {
+      "id": "concubine_01",
+      "portrait_source": "wife_01",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_01.vtex"
+    },
+    {
+      "id": "concubine_02",
+      "portrait_source": "wife_02",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_02.vtex"
+    },
+    {
+      "id": "concubine_03",
+      "portrait_source": "wife_03",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_03.vtex"
+    },
+    {
+      "id": "concubine_04",
+      "portrait_source": "wife_04",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_04.vtex"
+    },
+    {
+      "id": "concubine_05",
+      "portrait_source": "wife_05",
+      "runtime_uri": "s2r://panorama/images/custom_game/collection_original_v1/wife_05.vtex"
+    }
+  ],
+  "new_texture_payload_bytes": 5242880,
+  "total_source_png_bytes": 2996033
+}

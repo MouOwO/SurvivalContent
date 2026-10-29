@@ -16,8 +16,11 @@
     // Older catalog snapshots and saved receipts retain the original medal names.
     // Normalize display text only; stable reward IDs and settlement data stay intact.
     J.RewardNameText=function(value){
-        return String(value===undefined||value===null?"":value).replace(/(?:僵尸岛V|VIP)(10|[1-9])勋章/g,"孤城V$1勋章").replace(/U币/g,"G币");
+        var resources=cfg.SurvivalItemResources;
+        var text=resources&&resources.DisplayText?resources.DisplayText(value):String(value===undefined||value===null?"":value);
+        return text.replace(/(?:僵尸岛V|VIP)(10|[1-9])勋章/g,"孤城V$1勋章").replace(/U币/g,"G币");
     };
+    J.DisplayName=function(item,fallback){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):J.RewardNameText(fallback);};
     J.RewardAmount=function(value){
         var amount=Number(value);
         if(!isFinite(amount))return "—";
@@ -104,14 +107,14 @@
         var content=panel("Panel",body,"MenuV10CommerceDetailContent"),scrollable=false;
         tip.__purpleSource=hoverPanel;
         tip.style.position="202px 0px 0px";tip.style.width="312px";
-        label(content,item.title,"RCPurpleDetailTitle");
+        label(content,J.DisplayName(item,item.title),"RCPurpleDetailTitle");
         var grade=detailQuality(item,props.rewards),gradeLabel=label(content,grade?"品级："+grade:"","RCPurpleDetailQuality");
         gradeLabel.visible=!!grade;
         var summary=displayDescription(item,props.effect||item.description||"");
         if(inspectBundle)summary=String(item.description||"").split(/\r?\n/).slice(0,2).join("\n");
         else if(bundle&&(props.rewards||[]).length)summary=props.rewards.map(function(reward){
-            return reward.description?(reward.label?reward.label+"\n":"")+displayDescription(reward,reward.description)
-                :String(reward.label||reward.id||"")+" ×"+String(reward.quantity===undefined?1:reward.quantity);
+            return reward.description?(reward.label?J.DisplayName(reward,reward.label)+"\n":"")+displayDescription(reward,reward.description)
+                :J.DisplayName(reward,reward.label||reward.id||"")+" ×"+String(reward.quantity===undefined?1:reward.quantity);
         }).join(props.rewards.some(function(reward){return !!reward.description;})?"\n\n":"\n");
         // A public quote shows configuration and explicitly unknown account
         // limits, rather than inheriting a live ownership/eligibility receipt.
@@ -133,7 +136,7 @@
             members.hittest=false;members.hittestchildren=true;
             props.rewards.forEach(function(reward,index){
                 var button=panel("Button",members,"RCBundleItem BLMarketBundleMember");button.hittestchildren=false;
-                label(button,reward.label,"BLMarketBundleMemberName");memberButtons.push(button);
+                label(button,J.DisplayName(reward,reward.label),"BLMarketBundleMemberName");memberButtons.push(button);
                 button.SetPanelEvent("onmouseover",function(){cancelBundleLeave();selectMember(index);});
                 button.SetPanelEvent("onactivate",function(){cancelBundleLeave();selectMember(index);return true;});
                 button.SetPanelEvent("onmouseout",bundleLeave);
@@ -261,7 +264,7 @@
         card.AddClass("RCProduct");card.AddClass(bundle?"CJBundle":"CJProduct");card.AddClass("CommercePurpleProduct");
         var well=box(panel("Panel",card,"CommercePurpleArtWell"),12,9,120,120);
         box(J.ItemIcon(well,item,"RCProductArt",{width:120,height:120,rewards:props.rewards}),0,0,120,120);
-        var caption=box(label(card,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"RCProductName"),7,134,130,35);
+        var caption=box(label(card,J.DisplayName(item,item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"RCProductName"),7,134,130,35);
         var owned=Number(item.owned)>0?label(card,String(item.owned),"RCStockState"):null;
         card.__menuCell={iconPanel:well,namePanel:caption,countPanel:owned};
         detail(card,item,props,bundle);return card;
@@ -273,30 +276,30 @@
 })();
 
 // BEGIN GENERATED SHOP HOME CATALOG 20261016
-// Source: data/ui/shop_home_catalog_20261016.json; SHA256 c5386377021231c0579ddfcf6f969fa8094e6126cb0c8ddd695a5ba781469cda
+// Source: data/ui/shop_home_catalog_20261016.json; SHA256 bc1efb983f87a2303e6983fb6c6d2a88f165a6f124b2def41f007ede661e3bed
 (function(){
     "use strict";
     var cfg=GameUI.CustomUIConfig(),entries=[
-        {"kind":"product","source_id":"P033","name":"伐木斧","sku":"video_p033"},
-        {"kind":"unavailable","source_id":"P008","name":"焚天曜轮"},
-        {"kind":"product","source_id":"P029","name":"工作效率","sku":"video_p029"},
-        {"kind":"product","source_id":"P012","name":"剑圣","sku":"video_p012"},
-        {"kind":"product","source_id":"P032","name":"快速建造","sku":"video_p032"},
-        {"kind":"product","source_id":"P005","name":"双倍通关卡","sku":"video_p005"},
-        {"kind":"product","source_id":"P018","name":"时间科技","sku":"video_p018"},
-        {"kind":"unavailable","source_id":"P006","name":"兔女郎城墙"},
-        {"kind":"unavailable","source_id":"P007","name":"昭穹羽君"},
-        {"kind":"product","source_id":"P004","name":"清暑符","sku":"video_p004"},
-        {"kind":"product","source_id":"P066","name":"陨落天矿","sku":"video_p066"},
-        {"kind":"product","source_id":"P067","name":"山海鲲鹏","sku":"video_p067"},
-        {"kind":"product","source_id":"P068","name":"轮回仙碑","sku":"video_p068"},
-        {"kind":"product","source_id":"P072","name":"苍松固城","sku":"video_p072"},
-        {"kind":"product","source_id":"P071","name":"斫木宗师","sku":"video_p071"},
-        {"kind":"product","source_id":"P070","name":"林铸千矢","sku":"video_p070"},
-        {"kind":"product","source_id":"P069","name":"翠木归元","sku":"video_p069"},
-        {"kind":"unavailable","source_id":"P073","name":"天道傀儡"},
-        {"kind":"unavailable","source_id":"P074","name":"封神榜"},
-        {"kind":"product","source_id":"P075","name":"诛仙剑阵","sku":"video_p075"}
+        {"kind":"product","source_id":"P033","name":"开拓伐斧·永久","sku":"video_p033"},
+        {"kind":"unavailable","source_id":"P008","name":"曜焰翼轮"},
+        {"kind":"product","source_id":"P029","name":"勤作工契·永久","sku":"video_p029"},
+        {"kind":"product","source_id":"P012","name":"锋刃宗师·永久","sku":"video_p012"},
+        {"kind":"product","source_id":"P032","name":"疾筑工契·永久","sku":"video_p032"},
+        {"kind":"product","source_id":"P005","name":"双誉通关契·永久","sku":"video_p005"},
+        {"kind":"product","source_id":"P018","name":"流时工艺·永久","sku":"video_p018"},
+        {"kind":"unavailable","source_id":"P006","name":"绒月主题护墙"},
+        {"kind":"unavailable","source_id":"P007","name":"曦羽行者"},
+        {"kind":"product","source_id":"P004","name":"清风灵符·永久","sku":"video_p004"},
+        {"kind":"product","source_id":"P066","name":"坠星矿核·永久","sku":"video_p066"},
+        {"kind":"product","source_id":"P067","name":"云海巨翼·永久","sku":"video_p067"},
+        {"kind":"product","source_id":"P068","name":"复生古碑·永久","sku":"video_p068"},
+        {"kind":"product","source_id":"P072","name":"松根固垒·永久","sku":"video_p072"},
+        {"kind":"product","source_id":"P071","name":"百木宗匠·永久","sku":"video_p071"},
+        {"kind":"product","source_id":"P070","name":"森铸连矢·永久","sku":"video_p070"},
+        {"kind":"product","source_id":"P069","name":"翠林归源·永久","sku":"video_p069"},
+        {"kind":"unavailable","source_id":"P073","name":"苍穹机关偶"},
+        {"kind":"unavailable","source_id":"P074","name":"英灵录卷"},
+        {"kind":"product","source_id":"P075","name":"裂穹剑阵·永久","sku":"video_p075"}
     ];
     function identity(entry){return entry.kind==="product"?entry.sku:"home_unavailable_"+entry.source_id;}
     function compose(products,isListed){
@@ -314,7 +317,7 @@
         return result;
     }
     cfg.SurvivalShopHomeCatalog={
-        sourceHash:"c5386377021231c0579ddfcf6f969fa8094e6126cb0c8ddd695a5ba781469cda",
+        sourceHash:"bc1efb983f87a2303e6983fb6c6d2a88f165a6f124b2def41f007ede661e3bed",
         List:function(){return entries.map(identity);},
         Compose:compose
     };

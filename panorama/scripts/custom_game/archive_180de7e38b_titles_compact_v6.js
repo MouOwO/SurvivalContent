@@ -313,11 +313,11 @@
         panel("ArchivePageTitle").text = current === "building" ? "存档神器" : title ? title.name : "存档";
         panel("ArchiveSummary").text = current === "endless" ? "累计积分 " + (rows.length ? Number(rows[0].count) || 0 : 0) + " · 已完成 " + done + " / " + rows.length : current === "clear" ? "已完成 " + done + " / " + rows.length : "已拥有 " + ownedTypes + " 种";
         panel("ArchiveHint").text = current === "endless" ? "存档挑战2开启 · 每波5只 / 60秒 · 累计积分自动解锁奖励，下局生效" : current === "clear" ? "清空对应难度最后一波，累计达标自动获得永久效果" :
-            current === "shadow" ? "虚空之影1～3按对应N级物品池独立随机2次 · 允许重复" :
+            current === "shadow" ? "破碎之影1～3按对应N级物品池独立随机2次 · 允许重复" :
             current === "fragment" ? "神兽狩猎获得碎片 · 每20片晋升1级 · 每种每日20片，通行证40片" :
             current === "pet" ? "秘法牢笼挑战掉落材料 · 每日30件，通行证90件" : "展示已拥有的积分道具";
         panel("ArchiveEmpty").SetHasClass("ArchiveHidden", visibleCount > 0);
-        panel("ArchiveEmpty").text = filterMode !== "all" ? "当前筛选下暂无存档" : current === "shadow" ? "尚未获得虚空之影道具" :
+        panel("ArchiveEmpty").text = filterMode !== "all" ? "当前筛选下暂无存档" : current === "shadow" ? "尚未获得破碎之影道具" :
             current === "pet" ? "尚未获得秘法牢笼材料" : current === "points" ? "尚未拥有积分道具" : "当前分类暂无存档";
         panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" :
             current === "shadow" ? (Number(data.has_pass) === 1 ? "通行证生效 · 每次掉落 3 件" : "每次掉落 2 件") : "效果自动生效";
@@ -379,7 +379,7 @@
         var unlockedTotal = rows.filter(function(item){return A.Unlocked(item,current) === true;}).length;
         panel("ArchiveFilterAllLabel").text = "全部（" + unlockedTotal + "/" + rows.length + "）";
         var cooperationRows = current === "gift" ? rows.filter(function(item){return item.progress_kind === "cooperative";}) : [];
-        var contextText = current === "starjoy_points" && data.starjoy ? "累计星悦积分 " + data.starjoy.earned
+        var contextText = current === "starjoy_points" && data.starjoy ? "累计曙光积分 " + data.starjoy.earned
             : current === "gift" ? "累计胜利 " + (rows.length ? Number(rows[0].count) || 0 : 0) + " 次 · 合作 " + (cooperationRows.length ? Number(cooperationRows[0].count) || 0 : 0) + " 次"
             : current === "building" && data.buildings ? "信仰值 " + data.buildings.faith
             : current === "work" && data.online ? "软妹币 " + data.online.coins
@@ -402,7 +402,7 @@
                 + "\n每日上限 " + data.buildings.daily_cap + " · 今日已获 " + data.buildings.earned_today
                 + "\n余额永久累积 · 通行证不加成";
         } else if (current === "starjoy_points" && data.starjoy) {
-            sourceText = "累计星悦积分 " + data.starjoy.earned + " · 仅累计，不可兑换"
+            sourceText = "累计曙光积分 " + data.starjoy.earned + " · 仅累计，不可兑换"
                 + "\n图标右上数字为解锁门槛 · 达标后自动点亮"
                 + "\n不消耗积分 · 各等级奖励永久叠加";
         } else if (current === "work") {

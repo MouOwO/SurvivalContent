@@ -6,6 +6,7 @@
     function make(type,parent,id,cls){var p=$.CreatePanel(type,parent,id||"");(cls||"").split(/\s+/).filter(Boolean).forEach(function(c){p.AddClass(c);});return p;}
     function box(p,x,y,w,h){p.style.position=x+"px "+y+"px 0px";p.style.width=w+"px";p.style.height=h+"px";return p;}
     function displayText(value){var text=String(value===undefined?"":value),J=cfg.SurvivalCommerceComponents;return J&&J.RewardNameText?J.RewardNameText(text):text.replace(/U币/g,"G币");}
+    function displayName(item,fallback){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):displayText(fallback);}
     function label(parent,value,cls){var p=make("Label",parent,"",cls);p.text=displayText(value);p.hittest=false;return p;}
     function design(){var d=cfg.SurvivalShopV10;if(!d)throw new Error("Shop V10 asset manifest must load before the market");return d;}
     function layer(id){var row=design().layers[id];if(!row)throw new Error("Missing Shop V10 component: "+id);return row;}
@@ -145,7 +146,7 @@
     M.SkinTooltip=function(tip){tip.AddClass("BLMarketDetail");var surface=make("Panel",tip,"","BLMarketDetailSurface");surface.hittest=false;return {surface:surface,Resize:function(w,h){box(surface,0,0,w,h);}};};
     function unavailableRow(parent,item,index){
         var t=template(index||0),r=t.wash,row=box(make("Panel",parent,"","BLMarketRow BLMarketHomeUnavailable"),0,0,r.width,r.height);art(row,t.prefix+"_row_wash","BLMarketRowWash"+(t.bright?" BLMarketBrightRowWash":""),0,0,r.width,r.height);relativeArt(row,t.prefix+"_gift_frame",r,"BLMarketArtFrame");
-        var names=centeredStack(row,103,priceColumn().x-123,r.height,"BLMarketNameColumn"),name=flowText(names,item.title,"BLMarketName");box(label(row,"未开放","BLMarketUnavailableState"),1160,25,176,32);row.__menuCell={iconPanel:row,namePanel:name,countPanel:null};return row;
+        var names=centeredStack(row,103,priceColumn().x-123,r.height,"BLMarketNameColumn"),name=flowText(names,displayName(item,item.title),"BLMarketName");box(label(row,"未开放","BLMarketUnavailableState"),1160,25,176,32);row.__menuCell={iconPanel:row,namePanel:name,countPanel:null};return row;
     }
     M.Row=function(parent,item,props){
         if(item&&item.home_unavailable===true)return unavailableRow(parent,item,props.index);
@@ -159,7 +160,7 @@
         well.hittest=true;well.hittestchildren=false;
         var icon=J.ItemIcon(well,item,"BLMarketItemIcon",{width:frameSize,height:frameSize});
         icon.style.position="0px 0px 0px";icon.style.width="100%";icon.style.height="100%";icon.style.margin="0px";icon.style.padding="0px";
-        var column=priceColumn(),n=layer(t.prefix+"_name"),nameWidth=column.x-(n.x-r.x)-20,names=centeredStack(row,n.x-r.x,nameWidth,r.height,"BLMarketNameColumn"),name=flowText(names,String(item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"BLMarketName");
+        var column=priceColumn(),n=layer(t.prefix+"_name"),nameWidth=column.x-(n.x-r.x)-20,names=centeredStack(row,n.x-r.x,nameWidth,r.height,"BLMarketNameColumn"),name=flowText(names,displayName(item,item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"BLMarketName");
         var owned=flowText(names,props.readOnly?"持有 —":Number(item.owned)>0?"已拥有 "+item.owned:"","BLMarketOwned");owned.visible=props.readOnly||Number(item.owned)>0;owned.style.marginTop="2px";
         var primary="价格待同步",cost=item.price;
         var isU=item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined;

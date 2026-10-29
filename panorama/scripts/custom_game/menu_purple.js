@@ -82,7 +82,7 @@
         place(p("LotteryRevealStage"),0,0,1113,669);place(p("LotterySkipReveal"),940,12,155,42);compactCards(p("LotteryItemList"));
         var film=p("LotteryCinematicSurface");if(valid(film)){view.Move(film,view.content);place(film,0,0,1113,669);}
         if(!mode)view.SetTitle(p("LotteryTitle")&&p("LotteryTitle").text||"抽奖");
-        if(snapshot&&view.SetResources){var pool=snapshot.selected_pool||snapshot;view.SetResources([{name:pool.ticket_name||"抽奖券",value:pool.tickets,icon:"ticket"},{name:"星悦积分",value:snapshot.starjoy_points,icon:"purple_gem"}]);}
+        if(snapshot&&view.SetResources){var pool=snapshot.selected_pool||snapshot;view.SetResources([{name:pool.ticket_name||"抽奖券",value:pool.tickets,icon:"ticket"},{name:"曙光积分",value:snapshot.starjoy_points,icon:"purple_gem"}]);}
         view.Fit();
         style(p("LotteryMainCanvas"),{opacity:"1"});
     }

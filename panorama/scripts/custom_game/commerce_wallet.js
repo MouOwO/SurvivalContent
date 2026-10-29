@@ -10,7 +10,7 @@
         component_already_owned:"道具已达到持有上限。",attribute_limit_reached:"属性已达到上限。",commerce_busy:"操作处理中，请稍后重试。",
         profile_not_ready:"请先完成对局登录。",archive_config_mismatch:"商城正在更新，请稍后重新进入对局。",
         product_unavailable:"商品暂不可兑换。",archive_id_conflict:"兑换请求不一致，请重新打开商城。",
-        commerce_price_changed:"商品价格已更新，请重新确认。",starjoy_exchange_disabled:"星悦积分仅累计，不能兑换。"};
+        commerce_price_changed:"商品价格已更新，请重新确认。",starjoy_exchange_disabled:"曙光积分仅累计，不能兑换。"};
     function pointsInsufficient(item){
         if(!item || item.currency!=="shop_points")return false;
         var reason=item.disabled_reason;

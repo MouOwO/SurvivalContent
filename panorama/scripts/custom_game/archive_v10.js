@@ -12,11 +12,12 @@
     size[0]-=sidebarReduction;
     function narrow(width){return width-sidebarReduction;}
     function contentX(x){return x-sidebarReduction;}
+    function displayName(item,fallback){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):String(fallback===undefined?item.name||"":fallback);}
     var canvas=null,gridHost=null,sidebar=null,filterMenu=null,headerIcon=null,tip=null,tooltip=null,viewScale=1;
     var active=false,disposed=false,current="",rows=[],categoryRows=[],filters={},balances=[],moved=[],subscriptions=[],sidebarKey="",hover=null,displayKey="";
     var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="",panelCache={};
     var order=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","commerce_goods","shop","endless","fishing","building","starjoy_points","titles"];
-    var names={clear:"通关存档",shadow:"虚空之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"我的好基友",ex:"我的前女友",wife:"我的老婆",concubine:"我的侍妾",beast:"瑞兽赐福",starjoy_points:"星悦积分",titles:"称号"};
+    var names={clear:"通关存档",shadow:"破碎之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"动漫挑战",ex:"二次元挑战",wife:"二次元挑战2",concubine:"我的侍妾",beast:"祥瑞挑战",starjoy_points:"曙光积分",titles:"称号"};
     var layers=D.layers;layers.forEach(function(layer){if(layer.kind==="text")textSpecs[layer.id]=layer;});
     var marker=$.CreatePanel("Panel",root,"");marker.visible=false;marker.hittest=false;
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
@@ -141,7 +142,7 @@
         cell.countHost.SetHasClass("ArchiveCommerceQuantityBadge",!unlockItem);
         cell.countHost.visible=points?!unlockItem:(!known||Number(item.count)>1||Number(item.target)>1||Number(item.max_owned)>1);
         if(points&&!unlockItem){pos(cell.countHost,18,5,74,23);pos(cell.count,2,1,70,21);cell.count.style.fontSize=quantity.length>8?"11px":"15px";}
-        var compactName=String(item.name||"").replace(/\s*[（(]功能版[）)]\s*$/,"").replace(/[·・]\s*永久\s*$/,"");
+        var compactName=displayName(item,item.name||"").replace(/\s*[（(]功能版[）)]\s*$/,"").replace(/[·・]\s*永久\s*$/,"");
         if(cell.count.text!==quantity)cell.count.text=quantity;if(cell.name.text!==compactName)cell.name.text=compactName;
     }
     function decorate(card,item,slot){
@@ -185,7 +186,7 @@
         if(current!=="titles")fillItemIcon(cell.art,item);
         card.Children().forEach(function(child){if(child!==cell.host&&!child.BHasClass("ArchivePromote"))child.visible=false;});
         card.AddClass("ArchiveV10Cell");card.SetHasClass("ArchiveParchmentRowAlternate",slot%2===1);pos(card,0,slot*82,745,80);style(card,{backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderRadius:"0px",boxShadow:"none",overflow:"clip",flowChildren:"none",transform:"none"});
-        var progress=S.Progress(item,current),countText=progress.text,nameText=String(item.name||"");
+        var progress=S.Progress(item,current),countText=progress.text,nameText=displayName(item,item.name||"");
         if(cell.count.text!==countText)cell.count.text=countText;if(cell.name.text!==nameText)cell.name.text=nameText;
         cell.track.visible=progress.ratio!==null;cell.fill.visible=cell.track.visible&&progress.ratio>0;cell.fill.style.width=(302*(progress.ratio||0))+"px";
         cell.glint.visible=cell.fill.visible;pos(cell.glint,Math.max(2,302*(progress.ratio||0)-7),2,Math.min(9,302*(progress.ratio||0)),16);
@@ -234,7 +235,7 @@
         if(current==="work"&&data&&data.online)details="软妹币："+data.online.coins;
         if(current==="building"&&data&&data.buildings)details="信仰值："+data.buildings.faith;
         if(current==="fishing"&&data&&data.fishing&&data.fishing.faith!==undefined)details="信仰值："+data.fishing.faith;
-        if(current==="starjoy_points"&&data&&data.starjoy)details="累计星悦积分 "+data.starjoy.earned+" · 仅累计，不可兑换";
+        if(current==="starjoy_points"&&data&&data.starjoy)details="累计曙光积分 "+data.starjoy.earned+" · 仅累计，不可兑换";
         if(current==="commerce_goods")details="购买或兑换后自动点亮 · 悬停查看效果与解锁条件";
         if(current==="commerce_goods")p("ArchiveStatus").text="购买或兑换成功后点亮 · 效果沿用已有商品与存档记录";
         if(current==="points")details="唯一道具重复转为商城积分 · 可叠加道具按各自规则累计";

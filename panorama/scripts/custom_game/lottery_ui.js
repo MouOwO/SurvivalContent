@@ -367,10 +367,10 @@
         renderPoolTabs(snapshot.pools);
         setText("LotteryTitle", selectedPoolId === "map" ? "地图宝箱" : (selected.display_name || "星悦抽奖"));
         setText("LotterySubtitle", selected.description
-            || "重复物品自动兑换为星悦积分");
+            || "重复物品自动兑换为曙光积分");
         setText("LotteryTicketValue", String(selected.ticket_name || "抽奖券")
             + "  " + Number(selected.tickets || 0));
-        setText("LotteryPointValue", "星悦积分  "
+        setText("LotteryPointValue", "曙光积分  "
             + Number(snapshot.starjoy_points || 0));
         renderGuarantee(selected.pity || snapshot.pity);
         setText("LotteryTierValue", selected.pool_group === "special"
@@ -551,7 +551,7 @@
             setText("LotteryInfoNote", "当前奖池规则");
             label(host, selected ? selected.description : "奖池数据尚未就绪", "LotteryDetailDescription");
             rows(selected && selected.pity).forEach(function (rule) { label(host, rule.label || "", "LotteryHistoryHeading"); });
-            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按服务端配置转为星悦积分。", "LotteryDetailDescription");
+            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按服务端配置转为曙光积分。", "LotteryDetailDescription");
             label(host, "活动公告内容暂未接入。", "LotteryDetailMeta");
         } else {
             label(host, "此入口暂未开放，后续补充。", "LotteryHistoryHeading");

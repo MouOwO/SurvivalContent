@@ -125,7 +125,7 @@
         } else send(action);
     }
     [["blink", "D · 侏儒瞬移"], ["copper", "铜斧：传送到资源树（一次）"],
-        ["bomb", "油锯：清除附近普通怪（一次）"], ["ultimate", "通天塔印：建造终极塔"],
+        ["bomb", "油锯：清除附近普通怪（一次）"], ["ultimate", "凌霄塔纹：建造终极塔"],
         ["immortal", "仙人：融合附近超级伐木工"]].forEach(function (row) {
         var button = $.CreatePanel("Button", root, "");
         button.style.padding = "6px"; button.style.marginTop = "3px";

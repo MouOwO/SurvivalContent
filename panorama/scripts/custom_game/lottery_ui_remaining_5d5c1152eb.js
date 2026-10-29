@@ -10,6 +10,8 @@
     var lifetime=$.CreatePanel("Panel",owner,""),disposed=false,subscriptions=[];lifetime.visible=false;
     function alive(){return !disposed&&(!lifetime.IsValid||lifetime.IsValid());}
     function displayDescription(item,value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayDescription?resources.DisplayDescription(item,value):value;}
+    function displayName(item,fallback){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):String(fallback||"");}
+    function displayText(value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayText?resources.DisplayText(value):String(value===undefined?"":value);}
     function active(fn){return function(){if(alive())return fn.apply(null,arguments);};}
     var presentationVersion="lottery_current_20261018",openRequested=false,activePresenter=null,openIntentSerial=0;
     var cache=cfg.SurvivalLotteryCache,cacheSubscription=null;
@@ -51,7 +53,7 @@
 
     function label(parent, text, className) {
         var node = $.CreatePanel("Label", parent, "");
-        node.text = String(text || "");
+        node.text = displayText(text || "");
         if (className) node.AddClass(className);
         node.hittest = false;
         return node;
@@ -99,7 +101,7 @@
             rewardFX = U.RewardFX.Create(host, {channel:"lottery"}); rewardFXRoot = host;
         }
         rewardFX.Play({key:receipt.key,anchor:resultCards.length === 1 ? resultCards[0] : panel("LotteryItemList"),
-            title:"抽奖成功",text:visibleResults.length === 1 ? String(visibleResults[0].name || "获得奖励") : "获得 " + visibleResults.length + " 件奖励"});
+            title:"抽奖成功",text:visibleResults.length === 1 ? displayName(visibleResults[0],visibleResults[0].name || "获得奖励") : "获得 " + visibleResults.length + " 件奖励"});
     }
     function completeReveal() { finishReveal(); playRewardFeedback(); }
     function revealResults() {
@@ -123,8 +125,9 @@
     function panel(id) { if(!alive())return null;var n=panelRefs[id];if(n&&(!n.IsValid||n.IsValid()))return n;n=owner.FindChildTraverse(id);if(n&&(!n.IsValid||n.IsValid())){panelRefs[id]=n;return n;}return null; }
     function setText(id, value) {
         var target = panel(id);
-        if (target) { target.text = String(value === undefined ? "" : value); if(id === "LotteryInfoRules"){target.html=true;target.text=RH.QualityText(value);} }
-        if (id === "LotteryStatus") LH.Status(String(value || ""));
+        var shown=displayText(value);
+        if (target) { target.text = shown; if(id === "LotteryInfoRules"){target.html=true;target.text=RH.QualityText(shown);} }
+        if (id === "LotteryStatus") LH.Status(shown);
         if (id === "LotteryGuaranteeValue") LH.Guarantee([]);
     }
     function rows(value) {
@@ -138,7 +141,7 @@
         return value === true || Number(value) === 1;
     }
     function duplicateCurrency(item) {
-        return item&&(item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分";
+        return item&&(item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"曙光积分";
     }
     function pointsBalance(value) {
         if(value===undefined||value===null||value==="")return "—";
@@ -180,7 +183,7 @@
         var messages = {
             archive_config_mismatch: "游戏与服务器配置版本不一致，请同步配置后重新进入游戏",
             lottery_config_refresh_required: "抽奖规则已更新，请重新进入游戏后再试",
-            starjoy_exchange_disabled: "星悦积分仅累计，不能兑换",
+            starjoy_exchange_disabled: "曙光积分仅累计，不能兑换",
             mode_not_selected: "请先选择游戏模式，再打开抽奖",
             http_profile_required: "服务器存档尚未连接，请稍后重新打开抽奖",
             lottery_ticket_insufficient: "抽奖券不足",
@@ -263,7 +266,7 @@
         var iconFrame = createIconFrame(card, item, "LotteryRewardIconFrame");
         var name = $.CreatePanel("Label", card, "");
         name.AddClass("LotteryRewardName");
-        name.text = item.name || item.id || "物品";
+        name.text = displayName(item,item.name || item.id || "物品");
         label(card, displayDescription(item,item.description || "暂无效果说明"), "LotteryRewardDescription");
         label(card, item.duration_text || "永久", "LotteryRewardDuration");
         var back = $.CreatePanel("Panel", card, "");
@@ -538,7 +541,7 @@
         renderPoolTabs(snapshot.pools); updateDots();
         setText("LotteryTitle", LH.Name(selectedPoolId,selected.display_name || "星悦抽奖"));
         setText("LotterySubtitle", selected.description
-            || "重复物品自动兑换为"+(snapshot.shop_points!==undefined?"商城积分":"星悦积分"));
+            || "重复物品自动兑换为"+(snapshot.shop_points!==undefined?"商城积分":"曙光积分"));
         setText("LotteryTicketValue", String(selected.ticket_name || "抽奖券")
             + "  " + Number(selected.tickets || 0));
         setText("LotteryPointValue", "商城积分  "+pointsBalance(snapshot.shop_points));
@@ -650,7 +653,7 @@
 
     function rewardDetails(item) {
         feature("reward");
-        setText("LotteryInfoTitle", item.name || item.id);
+        setText("LotteryInfoTitle", displayName(item,item.name || item.id));
         setText("LotteryInfoNote", qualityText(item.quality) + (item.duration_text ? " · " + item.duration_text : ""));
         var host = panel("LotteryInfoList"); host.RemoveAndDeleteChildren();
         createIconFrame(host, item, "LotteryDetailIcon");
@@ -662,7 +665,7 @@
         selectedRewardId = item ? item.id : null;
         poolCards.forEach(function (entry) { entry.panel.SetHasClass("Selected", !!item && entry.id === item.id); });
         var host = panel("LotterySelectedIcon"); if (host) host.RemoveAndDeleteChildren();
-        setText("LotterySelectedName", item ? (item.name || item.id) : "暂无奖励");
+        setText("LotterySelectedName", item ? displayName(item,item.name || item.id) : "暂无奖励");
         setText("LotterySelectedMeta", item ? qualityText(item.quality) + " · 已拥有 " + Number(item.owned_count || 0) + (item.max_owned ? "/" + item.max_owned : "") + " · " + (item.duration_text || "永久") : "");
         setText("LotterySelectedDescription", item ? displayDescription(item,item.description || "暂无效果说明") : "");
         if (item && host) createIconFrame(host, item, "LotteryDetailIcon");
@@ -740,7 +743,7 @@
                 row.SetPanelEvent("onmouseout", requestTooltipHide);
                 createIconFrame(row, item, "LotteryDetailIcon");
                 var copy = $.CreatePanel("Panel", row, ""); copy.AddClass("LotteryDetailCopy");
-                label(copy, qualityText(item.quality) + " · " + (item.name || item.id), "LotteryDetailName");
+                label(copy, qualityText(item.quality) + " · " + displayName(item,item.name || item.id), "LotteryDetailName");
                 label(copy, displayDescription(item,item.description || "暂无效果说明"), "LotteryDetailDescription");
                 RH.RewardCard(row,item);
                 var outline = $.CreatePanel("Panel",row,"");outline.AddClass("LotteryCardState");outline.hittest=false;
@@ -765,7 +768,7 @@
             }
             label(host, selected ? selected.description : "奖池数据尚未就绪", "LotteryAnnouncementBody");
             rows(selected && selected.pity).forEach(function (rule) { label(host, rule.label || "", "LotteryHistoryHeading"); });
-            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按配置转为"+(state&&state.shop_points!==undefined?"商城积分":"星悦积分")+"。", "LotteryAnnouncementBody");
+            label(host, "仅直接十连触发批量保底，连续十次单抽不触发。重复道具按配置转为"+(state&&state.shop_points!==undefined?"商城积分":"曙光积分")+"。", "LotteryAnnouncementBody");
         } else {
             label(host, "此入口暂未开放，后续补充。", "LotteryHistoryHeading");
             label(host, name === "privilege" ? "免费单抽权益尚未接入；当前单抽按页面显示的抽奖券数量消耗。" : "当前不会扣款、扣券或发放礼包。", "LotteryDetailDescription");

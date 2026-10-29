@@ -215,11 +215,11 @@
         panel("ArchivePageTitle").text = title ? title.name : "存档";
         panel("ArchiveSummary").text = current === "endless" ? "累计积分 " + (rows.length ? Number(rows[0].count) || 0 : 0) + " · 已完成 " + done + " / " + rows.length : current === "clear" ? "已完成 " + done + " / " + rows.length : "已拥有 " + ownedTypes + " 种";
         panel("ArchiveHint").text = current === "endless" ? "存档挑战2开启 · 每波5只 / 60秒 · 累计积分自动解锁奖励，下局生效" : current === "clear" ? "清空对应难度最后一波，累计达标自动获得永久效果" :
-            current === "shadow" ? "虚空之影1～3按对应N级物品池独立随机2次 · 允许重复" :
+            current === "shadow" ? "破碎之影1～3按对应N级物品池独立随机2次 · 允许重复" :
             current === "fragment" ? "神兽狩猎获得碎片 · 每20片晋升1级 · 每种每日20片，通行证40片" :
             current === "pet" ? "秘法牢笼挑战掉落材料 · 每日30件，通行证90件" : "展示已拥有的积分道具";
         panel("ArchiveEmpty").SetHasClass("ArchiveHidden", visibleCount > 0);
-        panel("ArchiveEmpty").text = filterMode !== "all" ? "当前筛选下暂无存档" : current === "shadow" ? "尚未获得虚空之影道具" :
+        panel("ArchiveEmpty").text = filterMode !== "all" ? "当前筛选下暂无存档" : current === "shadow" ? "尚未获得破碎之影道具" :
             current === "pet" ? "尚未获得秘法牢笼材料" : "尚未拥有积分道具";
         panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" :
             current === "shadow" ? (Number(data.has_pass) === 1 ? "通行证生效 · 每次掉落 3 件" : "每次掉落 2 件") : "效果自动生效";

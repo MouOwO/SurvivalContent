@@ -5,7 +5,7 @@
             runtime_uri:row.uri,display_width:84,display_height:84};
     });
     var originalIcon=view.Icon,originalInit=view.Init,originalObserve=view.Observe,index={},trial,caption,trialCategory;
-    var names={shadow:'虚空之影',points:'积分道具',fragment:'神兵碎片',pet:'秘法牢笼',friend:'我的好基友',ex:'我的前女友',wife:'我的老婆',concubine:'我的侍妾',beast:'瑞兽赐福',fishing:'钓鱼存档',building:'存档神器',shop:'商店道具'};
+    var names={shadow:'破碎之影',points:'积分道具',fragment:'神兵碎片',pet:'秘法牢笼',friend:'动漫挑战',ex:'二次元挑战',wife:'二次元挑战2',concubine:'我的侍妾',beast:'祥瑞挑战',fishing:'钓鱼存档',building:'存档神器',shop:'商店道具'};
     var categories=[],category='shadow',page=0,grid,heading,pageText,previousPage,nextPage;
     entries.forEach(function(row){index[row.category_id+':'+row.item_id]=row;});
     entries.forEach(function(row){if(categories.indexOf(row.category_id)<0)categories.push(row.category_id);});

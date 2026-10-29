@@ -1,0 +1,40 @@
+<root>
+    <styles><include src="file://{resources}/styles/custom_game/public_beta_gift.css" /></styles>
+    <scripts><include src="file://{resources}/scripts/custom_game/public_beta_gift.js" /></scripts>
+    <Panel class="PublicBetaGiftContext" hittest="false" hittestchildren="true">
+        <Button id="PublicBetaGiftScrim" visible="false" hittest="false" hittestchildren="false" />
+        <Panel id="PublicBetaGiftWindow" visible="false" hittest="false" hittestchildren="false">
+            <Panel class="PublicBetaGiftSurface" hittest="false" hittestchildren="false" />
+            <Panel class="PublicBetaGiftInnerFrame" hittest="false" hittestchildren="false" />
+            <Panel class="PublicBetaGiftCorner TopLeft" hittest="false" />
+            <Panel class="PublicBetaGiftCorner TopRight" hittest="false" />
+            <Panel class="PublicBetaGiftCorner BottomLeft" hittest="false" />
+            <Panel class="PublicBetaGiftCorner BottomRight" hittest="false" />
+            <Panel class="PublicBetaGiftMark" hittest="false" />
+            <Panel class="PublicBetaGiftHalo" hittest="false" />
+            <Label class="PublicBetaGiftEyebrow" text="公测纪念 · 每日好礼" hittest="false" />
+            <Label class="PublicBetaGiftTitle" text="庆公测" hittest="false" />
+            <Label class="PublicBetaGiftSubtitle" text="金色抽奖券免费送" hittest="false" />
+            <Label class="PublicBetaGiftDayline" text="每日首次登录，即可领取" hittest="false" />
+            <Image id="PublicBetaGiftTicketArt" src="file://{images}/custom_game/public_beta_gift/ticket.svg" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
+            <Panel class="PublicBetaGiftSpark SparkOne" hittest="false" />
+            <Panel class="PublicBetaGiftSpark SparkTwo" hittest="false" />
+            <Panel class="PublicBetaGiftSpark SparkThree" hittest="false" />
+            <Panel class="PublicBetaGiftSpark SparkFour" hittest="false" />
+            <Panel id="PublicBetaGiftReceipt" visible="false" hittest="false"><Label text="✓" hittest="false" /></Panel>
+            <Panel class="PublicBetaGiftRewardLine" hittest="false" hittestchildren="false">
+                <Label id="PublicBetaGiftReward" text="金色抽奖券" />
+                <Label id="PublicBetaGiftQuantity" text="×2" />
+            </Panel>
+            <Label id="PublicBetaGiftRewardCaption" text="今日登录好礼" hittest="false" />
+            <Button id="PublicBetaGiftClaim" hittestchildren="false">
+                <Panel class="PublicBetaGiftButtonFrame" hittest="false" />
+                <Label class="PublicBetaGiftButtonGem LeftGem" text="◆" hittest="false" />
+                <Label id="PublicBetaGiftClaimText" text="立即领取" hittest="false" />
+                <Label class="PublicBetaGiftButtonGem RightGem" text="◆" hittest="false" />
+            </Button>
+            <Label id="PublicBetaGiftNotice" text="好运相伴，共赴新程" hittest="false" />
+            <Button id="PublicBetaGiftClose" hittestchildren="false"><Label text="×" hittest="false" /></Button>
+        </Panel>
+    </Panel>
+</root>

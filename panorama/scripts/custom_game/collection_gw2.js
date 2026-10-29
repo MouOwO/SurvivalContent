@@ -17,7 +17,7 @@ var canvas,grid,gridBody,empty,draw,drawText,drawCost,tickets,currencyName,summa
 var filterOpen=false,filterDismiss,filterMenu,filterItems=[];
 var rewardHighlight=null;
 var scale=1,cardsKey="",visibleRows=[],slots=[],tabs={},nodes={},api,createdRoots=[];
-var names={beast:"瑞兽赐福",ex:"我的前女友",friend:"我的前男友",wife:"我的老婆",concubine:"我的侍妾"};
+var names={beast:"祥瑞挑战",ex:"二次元挑战",friend:"动漫挑战",wife:"二次元挑战2",concubine:"我的侍妾"};
 var filterNames=["全部收藏","已拥有","未拥有"];
 var rarityColors={UR:"#ef5350",SSR:"#f5c65e",SR:"#b680ee",R:"#74c8f2",N:"#8fc47b"};
 function rarity(item){var quality=String(item.quality||"").trim().toUpperCase(),recognized=Object.prototype.hasOwnProperty.call(rarityColors,quality);return {quality:recognized?quality:"",color:recognized?rarityColors[quality]:"#88939b"};}
@@ -140,7 +140,8 @@ function rewardIcon(card,item){
   portrait=cfg.SurvivalRewardPresentation.CreateRegisteredIcon(host,item,"");
  }else if(/^(ex|friend|wife|beast)_(0[1-9]|[1-3][0-9]|40)$/.test(portraitId)){
   portrait=make("Image",host,"","");
-  portrait.SetImage("s2r://panorama/images/custom_game/collection_portraits_compact_v1/"+portraitId+".vtex");
+  var portraitSet=/^(ex|wife)_/.test(portraitId)?"collection_original_v1":"collection_portraits_compact_v1";
+  portrait.SetImage("s2r://panorama/images/custom_game/"+portraitSet+"/"+portraitId+".vtex");
  }else A.Icon(host,item,current,{});
  function find(n){if(portrait)return;if(n.paneltype==="Image"){portrait=n;return;}array(n.Children()).forEach(find);}
  if(!portrait)array(host.Children()).forEach(find);

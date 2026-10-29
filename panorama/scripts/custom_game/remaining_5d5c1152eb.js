@@ -41,7 +41,8 @@
     function fillIcon(icon,item){var shared=cfg.SurvivalRewardPresentation||cfg.SurvivalItemResources;if(shared&&shared.FillIcon)return shared.FillIcon(icon,item);if(icon&&icon.SetScaling)icon.SetScaling("stretch-to-cover-preserve-aspect");return icon;}
     function panel(parent,cls){var p=$.CreatePanel("Panel",parent,"");p.AddClass(cls);p.hittest=false;p.hittestchildren=false;return p;}
     function image(parent,key,cls){var p=$.CreatePanel("Image",parent,"");p.SetImage(A[key]);cls.split(/\s+/).forEach(function(c){p.AddClass(c);});p.hittest=false;p.hittestchildren=false;return p;}
-    function label(parent,text,cls){var p=$.CreatePanel("Label",parent,"");p.text=String(text);cls.split(/\s+/).forEach(function(c){p.AddClass(c);});p.hittest=false;return p;}
+    function displayName(item,fallback){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):String(fallback||"");}
+    function label(parent,text,cls){var p=$.CreatePanel("Label",parent,"");var resources=cfg.SurvivalItemResources;p.text=resources&&resources.DisplayText?resources.DisplayText(text):String(text);cls.split(/\s+/).forEach(function(c){p.AddClass(c);});p.hittest=false;return p;}
     function box(p,x,y,w,h){p.style.position=x+"px "+y+"px 0px";p.style.width=w+"px";p.style.height=h+"px";}
     R.Window=function(p,header,close){
         if(valid(p._rhFrame)){p._rhFrame.DeleteAsync(0);p._rhFrame=null;}
@@ -64,7 +65,7 @@
         // The old detail-copy class carries inherited text offsets from the retired side panel.
         // A clean label keeps the same authoritative name/quality and has one centered baseline.
         var caption=label(b,name,"RHRewardName");caption.style.position="0px 126px 0px";caption.style.width="fit-children";caption.style.maxWidth="159px";caption.style.height="30px";caption.style.horizontalAlign="center";caption.style.textAlign="center";
-        caption.text=String(item.name||item.id||"");caption.style.fontSize="21px";caption.style.textOverflow="ellipsis";
+        caption.text=displayName(item,item.name||item.id||"");caption.style.fontSize="21px";caption.style.textOverflow="ellipsis";
         var badge=label(b,q.toUpperCase(),"RewardV5Quality");badge.style.color=colors[q]||colors.n;
     };
     R.LotteryDialog=function(name,options){
@@ -96,7 +97,7 @@
             var row=$.CreatePanel("Panel",host,"");row.AddClass("RHHistoryRow");row.SetHasClass("RHAlternate",index++%2===0);row.hittestchildren=false;
             label(row,entry.time,"RHHistoryTime");var icon=createIcon(row,item,"RHHistoryRewardIcon");
             fillIcon(icon,item);
-            label(row,(item.name||item.id)+(item.duplicate===true||Number(item.duplicate)===1?" · 已转化 "+compact(Number(item.converted_points||0))+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"):""),"RHHistoryName");
+            label(row,displayName(item,item.name||item.id)+(item.duplicate===true||Number(item.duplicate)===1?" · 已转化 "+compact(Number(item.converted_points||0))+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"曙光积分"):""),"RHHistoryName");
             var q=String(item.quality||"n").toUpperCase(),quality=label(row,q,"RHHistoryQuality");quality.AddClass("RHQuality"+q);
             label(row,"×"+compact(Number(item.count||item.quantity||1)),"RHHistoryQuantity");
             row.SetPanelEvent("onmouseover",function(){showTooltip(item,row,true);});row.SetPanelEvent("onmouseout",hideTooltip);

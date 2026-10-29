@@ -256,7 +256,8 @@
             if (viewport.ScrollToTop) viewport.ScrollToTop();
             var state=S.State(item,category), name=options.categoryName ? options.categoryName(category) : category;
             var archiveText=cfg.SurvivalArchiveText;
-            elements.Title.text=archiveText?archiveText.Plain(item.name):String(item.name||"");
+            var resources=cfg.SurvivalItemResources,itemDisplayName=resources&&resources.DisplayName?resources.DisplayName(item,item.name):String(item.name||"");
+            elements.Title.text=archiveText?archiveText.Plain(itemDisplayName):itemDisplayName;
             var unlockItem=S.IsUnlockItem&&S.IsUnlockItem(item,category);
             elements.State.text=onlyEffect ? "" : category==="points"&&unlockItem ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","concubine","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
             var rarityColor=colors.caption, titleColor=rarityColors[String(item.quality||"").toUpperCase()]
@@ -295,7 +296,7 @@
             if (category==="map_level" && item.count!==undefined) details+=(details?"\n":"")+"累计有效在线 "+item.count+" 分钟";
             if(item.availability_note)details+=(details?"\n":"")+String(item.availability_note);
             if(unlockItem){
-                var duplicatePoints=Number(item.duplicate_points),duplicateCurrency=({shop_points:"商城积分",starjoy_points:"星悦积分"})[item.duplicate_currency||item.converted_currency];
+                var duplicatePoints=Number(item.duplicate_points),duplicateCurrency=({shop_points:"商城积分",starjoy_points:"曙光积分"})[item.duplicate_currency||item.converted_currency];
                 details+=(details?"\n":"")+"唯一持有";
                 if(item.duplicate_points!==undefined&&item.duplicate_points!==null&&isFinite(duplicatePoints)&&duplicatePoints>=0&&duplicateCurrency)details+=" · 重复获得转化为 "+duplicatePoints+" "+duplicateCurrency;
             }else if(category==="points"){

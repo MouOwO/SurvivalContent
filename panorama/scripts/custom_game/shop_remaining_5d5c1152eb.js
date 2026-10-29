@@ -2,6 +2,7 @@
     "use strict";
     // UI_REUSE_V1
     var U=GameUI.CustomUIConfig().SurvivalUI;
+    function displayName(item,fallback){var resources=GameUI.CustomUIConfig().SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):String(fallback||"");}
 
     var snapshot = null;
     var latestSequence = 0;
@@ -170,7 +171,7 @@
                     ? "ARS-01 至 ARS-10 · 团队研究"
                     : "普通研究所科技 · 研究耗时2秒")
                 : (challenge ? "11个普通挑战 · 10个转职挑战"
-                    : "武器装备 · 道具材料 · 提前通关")
+                    : "武器装备 · 道具材料 · 提前终战")
         );
         var shopToggle = byId("ShopModeShop");
         var challengeToggle = byId("ShopModeChallenge");
@@ -398,8 +399,8 @@
             pendingTechnologyPurchases[entry.entry_id] = true;
         }
         setStatus(entry.content_type === "technology"
-            ? ("正在开始研究 " + entry.name + "……")
-            : ("正在购买 " + entry.name + "……"), false);
+            ? ("正在开始研究 " + displayName(entry,entry.name) + "……")
+            : ("正在购买 " + displayName(entry,entry.name) + "……"), false);
         GameEvents.SendCustomGameEventToServer("ui_shop_purchase_request", {
             request_id: requestId("shop_buy"),
             entry_id: entry.purchase_entry_id || entry.entry_id,
@@ -536,7 +537,7 @@
             && entry.content_type === "technology" && !queuedTechnology(entry));
         setProperty(card, "visible", !entryCompleted(entry));
         setProperty(card, "hittest", true);
-        setProperty(card.__survivalNameLabel, "text", entry.name || entry.content_id || "");
+        setProperty(card.__survivalNameLabel, "text", displayName(entry,entry.name || entry.content_id || ""));
         setProperty(card.__survivalLevelLabel, "text", entry.level_text || ("Lv." + Number(entry.technology_level || 0)));
         if (card.__survivalLockBadge) {
             setProperty(card.__survivalLockBadge, "text", lockBadgeText(entry));
@@ -663,7 +664,7 @@
                 sectionText = sectionKey === "rebirth" ? "转职挑战" : "普通挑战";
             } else if (entry.content_id === "service_early_final_boss") {
                 sectionKey = "early_final";
-                sectionText = "提前通关";
+                sectionText = "提前终战";
             } else {
                 sectionKey = entry.content_type === "weapon" ? "weapon" : "item";
                 sectionText = sectionKey === "weapon" ? "武器装备" : "道具材料";
@@ -719,7 +720,7 @@
             var name = $.CreatePanel("Label", card, "");
             name.AddClass("ShopCardName");
             card.__survivalNameLabel = name;
-            name.text = entry.name || entry.content_id || "";
+            name.text = displayName(entry,entry.name || entry.content_id || "");
             name.hittest = false;
             name.visible = false; // Icon-only reference; names remain in the detail tooltip.
             if (GameUI.CustomUIConfig().RemainingHandoff.ShopStock(entry)) {

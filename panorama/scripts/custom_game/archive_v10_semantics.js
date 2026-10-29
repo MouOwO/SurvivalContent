@@ -122,7 +122,7 @@
         if (category === "endless") return item.progress_kind === "wave" ? "历史最高通关层数" : "累计无尽积分";
         if (category === "map_level") return "地图等级";
         if (category === "gift") return item.progress_kind === "cooperative" ? "组队累计胜利次数" : "累计胜利次数";
-        if (category === "starjoy_points") return "累计获得星悦积分";
+        if (category === "starjoy_points") return "累计获得曙光积分";
         if (category === "building") return "建筑等级";
         if (category === "work") return "福利等级";
         if (category === "fragment") return "持有碎片";

@@ -155,7 +155,7 @@
             currentFilter=mode||"all";enter(options);
             var sidebarKey=JSON.stringify(categories||[]);if(sidebarKey!==sidebarSignature){renderSidebar(categories);sidebarSignature=sidebarKey;}
             latestRows=join(data);var rowsKey=JSON.stringify([currentFilter,latestRows]);if(rowsKey!==rowsSignature){renderItems(latestRows);rowsSignature=rowsKey;}
-            var hint=p("ArchiveHint"),hintText="挑战虚空之影独立随机"+(data&&Number(data.has_pass)===1?"3":"2")+"次 · 允许重复";if(valid(hint)&&hint.text!==hintText)hint.text=hintText;
+            var hint=p("ArchiveHint"),hintText="挑战破碎之影独立随机"+(data&&Number(data.has_pass)===1?"3":"2")+"次 · 允许重复";if(valid(hint)&&hint.text!==hintText)hint.text=hintText;
             if(filterSignature!==currentFilter){Object.keys(filterButtons).forEach(function(key){var button=filterButtons[key];button.image.SetImage(D.assets[key===currentFilter?"filter_selected":"filter_default"].file);button.panel.SetHasClass("VoidShadowSelected",key===currentFilter);});filterSignature=currentFilter;}
             wallet();return true;
     }

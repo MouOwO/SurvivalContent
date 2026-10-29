@@ -2,6 +2,8 @@
     "use strict";
     // Presentation only. The existing controller owns requests, balances and layers.
     var cfg = GameUI.CustomUIConfig(), root = $.GetContextPanel(), U = cfg.SurvivalUI, R = cfg.RemainingHandoff;
+    function displayName(item,fallback){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayName?resources.DisplayName(item,fallback):String(fallback||"");}
+    function displayText(value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayText?resources.DisplayText(value):String(value===undefined?"":value);}
     if (cfg.SurvivalPurpleLottery && cfg.SurvivalPurpleLottery.Dispose) cfg.SurvivalPurpleLottery.Dispose();
     var disposed = false, life = $.CreatePanel("Panel", root, ""), view = null, nodes = {}, moved = [], owned = [], tipDismiss = null;
     var mode = "", pools = [], selected = "map", snapshot = null, opened = false, scale = 1, tabKey = "", previewKey = "", prizeFolded = {}, prizeGroups = [];
@@ -37,7 +39,7 @@
     }
     function walk(n, fn) { if (!valid(n)) return; fn(n); n.Children().forEach(function (c) { walk(c, fn); }); }
     function make(type, parent, id, cls) { var n = $.CreatePanel(type, parent, id || ""); if (id) nodes[id] = n; if (cls) n.AddClass(cls); owned.push(n); return n; }
-    function label(parent, id, text, x, y, w, h, size, color) { var n = make("Label", parent, id, "LotteryGW2Label"); n.text = text; n.hittest = false; place(n,x,y,w,h); style(n,{fontSize:size + "px",color:color || "#eaddc4",textShadow:"#000000 0px 0px 2px 4.0"}); return n; }
+    function label(parent, id, text, x, y, w, h, size, color) { var n = make("Label", parent, id, "LotteryGW2Label"); n.text = displayText(text); n.hittest = false; place(n,x,y,w,h); style(n,{fontSize:size + "px",color:color || "#eaddc4",textShadow:"#000000 0px 0px 2px 4.0"}); return n; }
     function asset(key) { var data=cfg.LotteryGW2Data,row=data&&data.assets&&data.assets[key];return row&&row.file||""; }
     function skin(n,key) { style(n,{backgroundImage:'url("' + asset(key) + '")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",backgroundColor:"transparent",border:"0px"}); }
     function art(parent,id,key,x,y,w,h) { var n=make("Panel",parent,id,"LotteryGW2Art"); n.hittest=false; n.hittestchildren=false; place(n,x,y,w,h); skin(n,key); return n; }
@@ -285,7 +287,7 @@
             var resources=cfg.SurvivalItemResources;if(resources&&resources.ApplyBackground)resources.ApplyBackground(well,item);
             style(well,{border:"0px",boxShadow:"none"});
             var icon=presentation&&presentation.CreateIcon(b,item,"LotteryGW2PreviewIcon");if(icon){place(icon,20.5,10,91,91);fillItemIcon(icon,item);}
-            var itemName=label(b,"",String(item.name||item.id||""),0,120,132,30,19.5,"#dddccf");style(itemName,{whiteSpace:"nowrap",textOverflow:"ellipsis",textShadow:"#000000 0px 0px 2px 2.0"});
+            var itemName=label(b,"",displayName(item,item.name||item.id||""),0,120,132,30,19.5,"#dddccf");style(itemName,{whiteSpace:"nowrap",textOverflow:"ellipsis",textShadow:"#000000 0px 0px 2px 2.0"});
             var cardWidth=132;
             var nameAt=String(itemName.style.position).split(" "),nameHeight=parseFloat(itemName.style.height),nameHost=make("Panel",b,"","LotteryGW2PreviewNameHost");
             place(nameHost,0,parseFloat(nameAt[1]),cardWidth,nameHeight);nameHost.hittest=false;nameHost.hittestchildren=false;
@@ -393,7 +395,7 @@
             }
             qualityWell(cell.well,item);
             style(card,{flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",overflow:"noclip",transform:"none"});
-            cell.name.text=String(item.name||item.id||cell.name.text||"道具");cell.count.text=result?"×"+number(item.count===undefined?(item.quantity===undefined?1:item.quantity):item.count):quantity(item);
+            cell.name.text=displayName(item,item.name||item.id||cell.name.text||"道具");cell.count.text=result?"×"+number(item.count===undefined?(item.quantity===undefined?1:item.quantity):item.count):quantity(item);
             if(result)bindTooltipIcon(card,cell.stage,item);
             if(cover){place(cover,0,0,cardWidth,cardHeight);wellStyle(cover);style(cover,{zIndex:"20"});}
         });
@@ -565,7 +567,7 @@
     }
     function effectLines(value) {
         var source=String(value||"").replace(/\r\n?/g,"\n"),out="",depth=0;
-        var attribute=/^(?:英雄|箭塔|城墙|墙|伐木工?|金矿|地图等级|星悦积分|攻击|生命|护甲|金币|木材)[\u3400-\u9fffA-Za-z]{0,18}[+＋-]\s*\d/;
+        var attribute=/^(?:英雄|箭塔|城墙|墙|伐木工?|金矿|地图等级|曙光积分|攻击|生命|护甲|金币|木材)[\u3400-\u9fffA-Za-z]{0,18}[+＋-]\s*\d/;
         for(var i=0;i<source.length;i++){
             var c=source.charAt(i),tail=source.slice(i),line=out.split("\n").pop();
             if(!depth){
@@ -600,12 +602,12 @@
         anchor.SetPanelEvent("onmouseout",function(){if(!requestTooltipHide(anchor))hideTooltip();});
         cancelTooltipHide();tipAnchor=anchor;if(view.tipScroll.ScrollToTop)view.tipScroll.ScrollToTop();
         var description=item.description||"暂无效果说明";if(cfg.SurvivalItemResources&&cfg.SurvivalItemResources.DisplayDescription)description=cfg.SurvivalItemResources.DisplayDescription(item,description);
-        var lines=[effectLines(description)];if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
+        var lines=[effectLines(description)];if(item.duration_text)lines.push("期限："+item.duration_text);if(item.duplicate_points!==undefined&&item.duplicate_points!==null)lines.push("重复转化："+item.duplicate_points+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"曙光积分"));
         if(item.count!==undefined||item.quantity!==undefined)lines.push("本次获得："+number(item.count===undefined?item.quantity:item.count));
-        if(item.duplicate===true||Number(item.duplicate)===1)lines.push("本次已转化 "+number(item.converted_points)+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"星悦积分"));
+        if(item.duplicate===true||Number(item.duplicate)===1)lines.push("本次已转化 "+number(item.converted_points)+" "+((item.converted_currency||item.duplicate_currency)==="shop_points"?"商城积分":"曙光积分"));
         qualityWell(view.tipIconStage,item);
         view.tipIconStage.RemoveAndDeleteChildren();var tipIcon=cfg.SurvivalRewardPresentation.CreateIcon(view.tipIconStage,item,"LotteryGW2TooltipIcon");if(tipIcon){place(tipIcon,0,0,46,46);fillItemIcon(tipIcon,item);}prune();
-        view.tipName.text=String(item.name||item.id||"道具");view.tipState.text=String(item.quality||"").toUpperCase()+(item.duration_text?" · "+item.duration_text:"");
+        view.tipName.text=displayName(item,item.name||item.id||"道具");view.tipState.text=String(item.quality||"").toUpperCase()+(item.duration_text?" · "+item.duration_text:"");
         style(view.tipName,{color:cfg.SurvivalRewardPresentation.NameColor(item.quality)});view.tipDescription.text=lines.join("\n");view.tipCount.text="拥有 "+quantity(item);
         var lineCount=0;lines.join("\n").split("\n").forEach(function(line){lineCount+=Math.max(1,Math.ceil(line.length/17));});
         var h=Math.max(176,Math.min(704,145+lineCount*24));

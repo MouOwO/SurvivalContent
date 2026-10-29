@@ -24,7 +24,7 @@
     }
     function byId(id) { return $("#" + id); }
     function valid(p) { return p && (!p.IsValid || p.IsValid()); }
-    function setText(id, value) { var p = byId(id); if (p) p.text = String(value === undefined ? "" : value); }
+    function setText(id, value) { var p = byId(id),resources=cfg.SurvivalItemResources; if (p) p.text = resources&&resources.DisplayText?resources.DisplayText(value):String(value === undefined ? "" : value); }
     function formatNumber(value) {
         var formatter = cfg.SurvivalNumberFormatter;
         return formatter && formatter.Format ? formatter.Format(value) : String(value || 0);
@@ -144,7 +144,8 @@
         tooltip.style.zIndex = String(Math.max(100000, Number(owner && owner.style.zIndex) || 0) + 1);
         var definition = CustomNetTables.GetTableValue("survival_tooltips", entry.tooltip_id || ("shop_item:" + entry.entry_id)) || {};
         iconHost.RemoveAndDeleteChildren(); fields.RemoveAndDeleteChildren(); createIcon(iconHost, entry);
-        setText("ShopTooltipTitle", entry.name || definition.name || entry.content_id);
+        var resources=cfg.SurvivalItemResources,fallbackName=entry.name || definition.name || entry.content_id;
+        setText("ShopTooltipTitle", resources&&resources.DisplayName?resources.DisplayName(entry,fallbackName):fallbackName);
         setText("ShopTooltipType", "");
         byId("ShopTooltipType").visible = false;
         var description = entry.content_type === "technology" ? (entry.description || definition.desc || "") : (definition.desc || entry.description || "");
