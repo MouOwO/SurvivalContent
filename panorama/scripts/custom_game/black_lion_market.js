@@ -40,6 +40,11 @@
         var canvas=box(make("Panel",p,"","BLMarketCanvas"),0,0,w,h);canvas.hittestchildren=true;
         art(canvas,"window_substrate","BLMarketTexture",0,0,w,h);art(canvas,"header_base","BLMarketHeaderTexture");art(canvas,"footer_base","BLMarketFooterTexture",1,footerY,w-2,h-footerY,5);
         var title=layer("title");box(label(canvas,"商城","BLMarketTitle"),title.x,title.y,430,title.height);
+        var redeemEntry=box(make("Button",canvas,"BlackLionMarketRedeem","BLMarketBuy ButtonPrimary Large BLMarketRedeemEntry"),260,18,156,44);
+        redeemEntry.hittestchildren=false;
+        var redeemEntryText=label(redeemEntry,"兑换码","BLMarketBuyText");
+        redeemEntryText.style.horizontalAlign="center";redeemEntryText.style.verticalAlign="center";
+        redeemEntryText.style.fontSize="24px";redeemEntryText.style.color="white";
         var balance=box(make("Panel",canvas,"","BLMarketBalance"),w-760,18,665,48),balanceLabels=[];
         ["G币","积分"].forEach(function(name,i){
             // Native flow keeps recharge attached to the measured text without a layout poller.
@@ -80,8 +85,51 @@
         var actions=box(make("Panel",canvas,"","BLMarketFooter"),14,898,1357,44);
         var details=box(make("Panel",canvas,"","BLMarketDetailLayer"),0,0,w,h);details.style.overflow="noclip";details.style.zIndex="50";details.hittest=false;details.hittestchildren=true;
         art(canvas,"window_brush_edge","BLMarketFrameTexture",0,0,w,h,5);
+        var redeemHost=box(make("Panel",canvas,"RedemptionDialogHost",""),0,0,w,h);
+        redeemHost.style.zIndex="100";redeemHost.hittest=false;redeemHost.hittestchildren=true;redeemHost.visible=false;
+        var redeemLoaded=redeemHost.BLoadLayout("file://{resources}/layout/custom_game/redemption_code.xml",false,false);
+        var redeemInput=redeemHost.FindChildTraverse("RedemptionCodeInput"),redeemSubmit=redeemHost.FindChildTraverse("RedemptionSubmit");
+        var redeemPending=cfg.SurvivalRedemptionPending||null,redeemBusy=false,redeemTimer=null;
+        var redeemErrors={redeem_code_invalid:"兑换码错误，请检查后重试。",redeem_code_expired:"兑换码已过期。",
+            redeem_code_disabled:"兑换码已停用。",redeem_code_not_started:"兑换码尚未生效。",
+            redeem_code_exhausted:"兑换码已达到领取上限。",redeem_already_used:"您已使用过这个兑换码。",
+            redeem_rate_limited:"操作过于频繁，请稍后重试。",profile_not_ready:"请先完成对局登录。",
+            match_session_missing:"请先完成对局登录。",commerce_busy:"操作处理中，请稍后重试。"};
+        function redeemMessage(message){GameEvents.SendEventClientSide("dota_hud_error_message",{reason:80,message:message});}
+        function redeemIdle(){redeemBusy=false;if(redeemTimer!==null&&$.CancelScheduled)$.CancelScheduled(redeemTimer);redeemTimer=null;if(valid(redeemInput))redeemInput.enabled=true;if(valid(redeemSubmit))redeemSubmit.enabled=true;}
+        function closeRedeem(){if(valid(redeemHost))redeemHost.visible=false;}
+        function openRedeem(){
+            if(!redeemLoaded||!valid(redeemInput)){redeemMessage("兑换窗口暂不可用，请重新进入游戏。");return;}
+            redeemHost.visible=true;if(redeemPending)redeemInput.text=redeemPending.code;
+            if(redeemInput.SetFocus)redeemInput.SetFocus();
+        }
+        function submitRedeem(){
+            if(redeemBusy||!valid(redeemInput))return;
+            var code=String(redeemInput.text||"").trim().toUpperCase();
+            if(!/^[A-Z0-9-]{6,80}$/.test(code)){redeemMessage(redeemErrors.redeem_code_invalid);return;}
+            if(!redeemPending||redeemPending.code!==code)redeemPending={code:code,request_id:"redeem_"+String(Date.now())+"_"+String(Math.random()).slice(2)};
+            cfg.SurvivalRedemptionPending=redeemPending;redeemBusy=true;redeemInput.enabled=false;redeemSubmit.enabled=false;
+            GameEvents.SendCustomGameEventToServer("survival_commerce_request",{action:"redeem",code:code,request_id:redeemPending.request_id});
+            // Keep the same transaction after an uncertain timeout or layout reload.
+            redeemTimer=$.Schedule(105,function(){redeemIdle();redeemMessage("兑换结果待确认，请使用原码重试查询。");});
+        }
+        redeemEntry.SetPanelEvent("onactivate",openRedeem);
+        var redeemSubscription=GameEvents.Subscribe("survival_commerce_result",function(result){
+            if(result.action!=="redeem"||!redeemPending||result.request_id!==redeemPending.request_id||!valid(p))return;
+            redeemIdle();
+            if(result.ok){
+                redeemPending=null;delete cfg.SurvivalRedemptionPending;redeemInput.text="";closeRedeem();
+                redeemMessage("兑换成功，奖品已到账。");
+                if(cfg.SurvivalCommerceWallet&&cfg.SurvivalCommerceWallet.Refresh)cfg.SurvivalCommerceWallet.Refresh();
+                if(cfg.SurvivalPayments&&cfg.SurvivalPayments.RefreshCatalog)cfg.SurvivalPayments.RefreshCatalog(true);
+            }else{
+                if(result.terminal){redeemPending=null;delete cfg.SurvivalRedemptionPending;}
+                redeemMessage(redeemErrors[result.error]||"兑换暂未完成，请稍后使用原码重试。");
+            }
+        });
         var menu={panel:p,shell:shell,canvas:canvas,content:content,actions:actions,detailLayer:details,sidebar:tabs,listWidth:1357,width:w,height:h,skinVersion:10,layout:"black_lion_list",
-            Open:function(){shell.Open();},Close:function(){shell.Close();},Dispose:function(){shell.Dispose();},IsOpen:function(){return shell.IsOpen();},
+            OpenRedeem:openRedeem,CloseRedeem:closeRedeem,SubmitRedeem:submitRedeem,
+            Open:function(){shell.Open();},Close:function(){closeRedeem();shell.Close();},Dispose:function(){redeemIdle();GameEvents.Unsubscribe(redeemSubscription);shell.Dispose();},IsOpen:function(){return shell.IsOpen();},
             SetReadonly:function(value){readonlyView=value===true;if(valid(recharge)){var allowed=!readonlyView&&cashReady();recharge.visible=allowed;recharge.enabled=allowed;recharge.hittest=allowed;}},
             SetPurchaseType:function(value,select){typeCallback=select;typeOptions.forEach(function(option){typeButtons[option.id].SetHasClass("UISelected",option.id===value);});},
             Scale:function(){if(fittedScale!==null)return fittedScale;var rw=(root.actuallayoutwidth||1672)/(root.actualuiscale_x||1),rh=(root.actuallayoutheight||941)/(root.actualuiscale_y||1);return Math.min(rw*.94/w,rh*.90/d.height);},

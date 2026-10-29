@@ -1,0 +1,17 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/redemption_code.css" />
+    </styles>
+    <Panel class="RedemptionOverlay" hittest="false" oncancel="GameUI.CustomUIConfig().SurvivalBlackLionMarket.GetWindow().CloseRedeem()">
+        <Button class="RedemptionScrim" onactivate="GameUI.CustomUIConfig().SurvivalBlackLionMarket.GetWindow().CloseRedeem()" />
+        <Panel id="RedemptionPopup" class="PopupPanel" hittest="true">
+            <Label class="PopupTitle" text="兑换码" />
+            <TextEntry id="RedemptionCodeInput" placeholder="请输入兑换码" maxchars="80"
+                ontextentrysubmit="GameUI.CustomUIConfig().SurvivalBlackLionMarket.GetWindow().SubmitRedeem()" />
+            <Panel class="PopupButtonRow">
+                <Button id="RedemptionSubmit" class="ButtonPrimary" onactivate="GameUI.CustomUIConfig().SurvivalBlackLionMarket.GetWindow().SubmitRedeem()"><Label text="兑换" /></Button>
+                <Button class="ButtonPrimary DarkGrey" onactivate="GameUI.CustomUIConfig().SurvivalBlackLionMarket.GetWindow().CloseRedeem()"><Label text="取消" /></Button>
+            </Panel>
+        </Panel>
+    </Panel>
+</root>
