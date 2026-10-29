@@ -12,7 +12,8 @@
         portraitIdentity = snapshot ? {entindex:Number(snapshot.entindex),
             portrait_unit_name:String(snapshot.portrait_unit_name || ""),
             model_asset_id:String(snapshot.model_asset_id || ""),
-            portrait_model_name:String(snapshot.portrait_model_name || "")} : null;
+            portrait_model_name:String(snapshot.portrait_model_name || ""),
+            portrait_display_only:snapshot.portrait_display_only} : null;
     }
     function currentBackdrop() {
         var palette = cfg.SurvivalPortraitPalette || {}, entity = selectedEntity(), unitName = "";
@@ -36,9 +37,28 @@
         var builder = identity.model_asset_id === "builder_io_benevolent_companion";
         var nativeRebirth = /^npc_survival_named_rebirth_boss_(0[1-9]|10)$/.test(unitName)
             || /^monster_boss_rebirth_(0[1-9]|10)_/.test(identity.model_asset_id || "");
+        var official = palette.nativeRebirthBackgrounds || {};
+        var nativeBackground = (official.assets || {})[identity.model_asset_id] || (official.units || {})[unitName];
         return {color:color, fill:builder ? "#071321" : backdropCache[color],
             image:builder ? BUILDER_IO_BACKDROP : "none", nativeRebirth:nativeRebirth, entity:entity, unit:unitName,
+            officialTexture:nativeRebirth && nativeBackground ? nativeBackground.texture : "",
             portrait:identity.portrait_unit_name || "", asset:identity.model_asset_id || "", model:identity.portrait_model_name || ""};
+    }
+    function updateOfficialBackground(container, foreground, backdrop) {
+        if (!valid(container) || !container.FindChildTraverse) return;
+        var image = container.FindChildTraverse("SurvivalOfficialPortraitBackground");
+        if (!backdrop.officialTexture) { hide(image); return; }
+        if (!valid(image)) {
+            image = $.CreatePanel("Image", container, "SurvivalOfficialPortraitBackground");
+            image.hittest = false; image.hittestchildren = false;
+            if (valid(foreground) && container.MoveChildBefore) container.MoveChildBefore(image, foreground);
+        }
+        style(image, {width:"100%", height:"100%", position:"0px 0px 0px", zIndex:"-1",
+            visibility:"visible", opacity:"1", washColor:"#ffffff"});
+        if (image.__survivalOfficialTexture !== backdrop.officialTexture) {
+            image.__survivalOfficialTexture = backdrop.officialTexture;
+            image.SetImage(backdrop.officialTexture);
+        }
     }
     function opacityCSS(value) {
         value = Number(value);
@@ -102,7 +122,9 @@
     }
     function updateStatusFaces(group) {
         var entity = selectedEntity(), now = Date.now(), key = String(entity);
-        if (!isFinite(entity) || entity < 0) {
+        var displayOnly = portraitIdentity && portraitIdentity.entindex === entity
+            && Number(portraitIdentity.portrait_display_only) === 1;
+        if (!isFinite(entity) || entity < 0 || displayOnly) {
             hide(group.FindChildTraverse("SilenceIcon"));
             hide(group.FindChildTraverse("MutedIcon"));
             return;
@@ -168,6 +190,7 @@
             backgroundRepeat:backdrop.nativeRebirth ? "" : "no-repeat",
             border:"0px", boxShadow:"none"});
         var nativePortrait = group.FindChildTraverse("portraitHUD");
+        updateOfficialBackground(container, nativePortrait, backdrop);
         // The staging modifier must still prevent spells/items; only its giant
         // native blur is suppressed; status faces expire after three seconds.
         style(nativePortrait, {blur:"gaussian(0)", animationName:"none", transitionProperty:"none"});
@@ -235,6 +258,19 @@
     }
     function refreshLocalHeroPortrait(root) {
         if (!valid(root)) return;
+        // Valve's inspected-unit portrait is a separate tree. Updating the
+        // main PortraitGroup alone leaves this background unchanged.
+        var query = root.FindChildTraverse("QueryVertical");
+        var queryContainer = valid(query) && query.FindChildTraverse("PortraitContainer");
+        var queryPortrait = valid(queryContainer) && queryContainer.FindChildTraverse("QueryUnitHeroPortrait");
+        if (valid(queryContainer) && valid(queryPortrait)) {
+            var queryBackdrop = currentBackdrop();
+            if (queryBackdrop.nativeRebirth) {
+                style(queryContainer, {backgroundColor:"transparent", backgroundImage:"none"});
+                style(queryPortrait, {blur:"gaussian(0)", animationName:"none", transitionProperty:"none"});
+            }
+            updateOfficialBackground(queryContainer, queryPortrait, queryBackdrop);
+        }
         var image=root.FindChildTraverse("SurvivalLocalHeroPortrait");
         if (!valid(image)) return;
         var portrait=image.FindChildTraverse("SurvivalLocalHeroPortraitImage");

@@ -2,6 +2,13 @@
     "use strict";
 
     var customConfig = GameUI.CustomUIConfig();
+    // Retire the withdrawn portrait trial even when a development HUD reload
+    // retains CustomUIConfig and the old native-parented panels.
+    ["SurvivalRebirthPortraitTools", "SurvivalRebirthPortraitRenderer"].forEach(function (key) {
+        var retired = customConfig[key];
+        if (retired && retired.Shutdown) { try { retired.Shutdown("portrait_rollback"); } catch (error) {} }
+        delete customConfig[key];
+    });
     var contextPanel = $.GetContextPanel();
     var lifecycleGeneration = Number(customConfig.SurvivalInputLifecycleGeneration || 0);
     var contextShutdown = false;
@@ -1567,10 +1574,13 @@
         var keys = ["model_asset_id", "portrait_unit_name", "portrait_item_def", "portrait_model_name"];
         // A stats-only update is not an instruction to remove the portrait.
         // Explicit empty fields still clear it; never inherit across entities.
-        if (!keys.every(function (key) { return snapshot[key] === undefined; })) return snapshot;
+        var missingMetadata = keys.every(function (key) { return snapshot[key] === undefined; });
+        var missingDisplayFlag = snapshot.portrait_display_only === undefined && previous.portrait_display_only !== undefined;
+        if (!missingMetadata && !missingDisplayFlag) return snapshot;
         var merged = {};
         Object.keys(snapshot).forEach(function (key) { merged[key] = snapshot[key]; });
-        keys.forEach(function (key) { if (previous[key] !== undefined) merged[key] = previous[key]; });
+        if (missingMetadata) keys.forEach(function (key) { if (previous[key] !== undefined) merged[key] = previous[key]; });
+        if (missingDisplayFlag) merged.portrait_display_only = previous.portrait_display_only;
         return merged;
     }
 
@@ -2040,6 +2050,56 @@
             || null;
     }
 
+    function officialHotkeyAbilityRoots() {
+        var root = officialHudRoot();
+        if (!root || !root.FindChildTraverse) return { main: null, query: null };
+        // Valve owns two different DOTAAbilityList nodes named "abilities".
+        // Resolve their current scopes instead of caching the first root match.
+        var branch = root.FindChildTraverse("AbilitiesAndStatBranch");
+        var vertical = root.FindChildTraverse("QueryVertical");
+        var queryBody = vertical && vertical.FindChildTraverse("AbilitiesHealthMana");
+        var query = queryBody && queryBody.FindChildTraverse("abilities");
+        var main = branch && branch.FindChildTraverse("abilities");
+        if (!main) main = root.FindChildTraverse("abilities") || branch;
+        if (main === query) main = null;
+        return { main: main, query: query };
+    }
+
+    function viewingOtherAbilityUnit() {
+        return Number(displayUnit()) !== Number(selectedUnit());
+    }
+
+    function queryAbilityHotkeysMatch(query) {
+        if (!validPortraitPanel(query) || !query.FindChildTraverse) return true;
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
+            var panel = query.FindChildTraverse("Ability" + slot);
+            if (!validPortraitPanel(panel)) continue;
+            if (nativeAbilityHotkeyContainer(panel) && !nativeAbilityHotkeySuppressed(panel)) return false;
+            var label = panel.FindChildTraverse("SurvivalAbilityHotkey") || panel.FindChildTraverse("SurvivalUtilityHotkey");
+            if (validPortraitPanel(label) && String(label.text || "")
+                && abilityPanelStyleValue(label, "visibility") !== "collapse") return false;
+        }
+        return true;
+    }
+
+    function clearQueryAbilityHotkeys(query, restore) {
+        if (!validPortraitPanel(query) || !query.FindChildTraverse) return;
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
+            var panel = query.FindChildTraverse("Ability" + slot);
+            if (!validPortraitPanel(panel)) continue;
+            if (restore) restoreNativeAbilityHotkey(panel);
+            else suppressNativeAbilityHotkey(panel);
+            ["SurvivalAbilityHotkey", "SurvivalUtilityHotkey"].forEach(function (id) {
+                var label = panel.FindChildTraverse(id);
+                if (!validPortraitPanel(label)) return;
+                if (String(label.text || "")) label.text = "";
+                if (abilityPanelStyleValue(label, "visibility") !== "collapse") label.style.visibility = "collapse";
+            });
+            // Query slots share AbilityN IDs with the command HUD. They must
+            // never erase the command HUD's independently owned mirror bindings.
+        }
+    }
+
     function collectVisibleOfficialAbilityPanels(abilities) {
         var panels = [];
         var seen = [];
@@ -2080,8 +2140,7 @@
     }
 
     function resolveOfficialAbilityMappings(visibleAbilities) {
-        var abilities = officialPanel("abilities")
-            || officialPanel("AbilitiesAndStatBranch");
+        var abilities = officialHotkeyAbilityRoots().main;
         var unit=selectedUnit(),unitName="";
         try{unitName=String(Entities.GetUnitName(unit)||"");}catch(error){}
         if(/^npc_archive_challenge_[1-4]$/.test(unitName)){
@@ -2182,6 +2241,9 @@
 
     function officialAbilityHotkeysMatch(mappings) {
         if (!mappings) return false;
+        var roots = officialHotkeyAbilityRoots();
+        if (!queryAbilityHotkeysMatch(roots.query)) return false;
+        if (viewingOtherAbilityUnit() && mappings.length) return false;
         var unitName = "";
         try { unitName = Entities.GetUnitName(selectedUnit()) || ""; } catch (error) {}
         for (var index = 0; index < mappings.length; index++) {
@@ -2201,6 +2263,22 @@
                 || abilityPanelStyleValue(label, "visibility") === "collapse"
                 || (label.GetParent && label.GetParent() !== mapping.anchor)
                 || !nativeAbilityHotkeySuppressed(mapping.panel)) return false;
+        }
+        // Valve retains and rewrites empty AbilityN placeholders when a hero
+        // is replaced by a skill-less creature. They are outside mappings,
+        // but their native Q/W/E labels must not become visible again.
+        var abilities = roots.main;
+        if (!validPortraitPanel(abilities) || !abilities.FindChildTraverse) return false;
+        var mappedPanels = mappings.map(function (mapping) { return mapping.panel; });
+        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
+            var emptyPanel = abilities.FindChildTraverse("Ability" + String(slot));
+            if (!validPortraitPanel(emptyPanel) || belongsToLegacyHud(emptyPanel)
+                || mappedPanels.indexOf(emptyPanel) >= 0) continue;
+            if (nativeAbilityHotkeyContainer(emptyPanel) && !nativeAbilityHotkeySuppressed(emptyPanel)) return false;
+            var staleLabel = emptyPanel.FindChildTraverse("SurvivalAbilityHotkey")
+                || emptyPanel.FindChildTraverse("SurvivalUtilityHotkey");
+            if (validPortraitPanel(staleLabel) && String(staleLabel.text || "")
+                && abilityPanelStyleValue(staleLabel, "visibility") !== "collapse") return false;
         }
         return true;
     }
@@ -2317,9 +2395,9 @@
         scheduledJobs = [];
         if (validPortraitPanel(contextPanel)) {
             hideCosmeticPortrait("context_shutdown");
-            var abilities = officialPanel("abilities")
-                || officialPanel("AbilitiesAndStatBranch");
-            clearOfficialAbilityHotkeys(abilities);
+            var hotkeyRoots = officialHotkeyAbilityRoots();
+            clearOfficialAbilityHotkeys(hotkeyRoots.main);
+            clearQueryAbilityHotkeys(hotkeyRoots.query, true);
         }
         var config = GameUI.CustomUIConfig();
         if (config.SurvivalAbilityHotkeys
@@ -2331,8 +2409,9 @@
 
     customConfig.SurvivalAbilityHotkeys = {
         Refresh: function () {
+            if (!contextActive()) return false;
             var unit = selectedUnit();
-            var visibleAbilities = unit === undefined || unit < 0
+            var visibleAbilities = unit === undefined || unit < 0 || viewingOtherAbilityUnit()
                 ? [] : visibleAbilityEntries(unit);
             refreshOfficialUtilityHotkeys(visibleAbilities);
         },
@@ -2370,16 +2449,18 @@
         return key;
     }
     function refreshOfficialUtilityHotkeys(visibleAbilities, mappings) {
+        if (!contextActive()) return false;
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return false;
-        var abilities = officialPanel("abilities")
-            || officialPanel("AbilitiesAndStatBranch");
+        var roots = officialHotkeyAbilityRoots();
+        clearQueryAbilityHotkeys(roots.query, false);
+        var abilities = roots.main;
         if (!abilities || !abilities.FindChildTraverse) return false;
         visibleAbilities = visibleAbilities || [];
 
         var unit = selectedUnit();
-        if (unit === undefined || unit < 0 || visibleAbilities.length === 0) {
-            clearOfficialAbilityHotkeys(abilities);
+        if (unit === undefined || unit < 0 || viewingOtherAbilityUnit() || visibleAbilities.length === 0) {
+            clearOfficialAbilityHotkeys(abilities, true);
             return true;
         }
         var unitName = "";
@@ -2387,9 +2468,14 @@
         // A null mapping means the caller already checked an incomplete native
         // HUD. Do not rescan it until the next scheduled recovery attempt.
         if (mappings === undefined) mappings = resolveOfficialAbilityMappings(visibleAbilities);
-        if (!mappings || mappings.length !== visibleAbilities.length) return false;
+        if (!mappings || mappings.length !== visibleAbilities.length) {
+            clearOfficialAbilityHotkeys(abilities, true);
+            return false;
+        }
         var archiveMouseOnly=/^npc_archive_challenge_[1-4]$/.test(unitName);
-        clearOfficialAbilityHotkeys(abilities,archiveMouseOnly);
+        // Start with native placeholders suppressed, including unused trailing
+        // slots; actual mapped entries alone may restore a native fallback.
+        clearOfficialAbilityHotkeys(abilities, true);
 
         var complete = true;
         for (var index = 0; index < mappings.length; index++) {
@@ -2409,7 +2495,7 @@
 
             var key = hotkeyForAbilityEntry(entry, unitName);
             if (!key) {
-                if (archiveMouseOnly||isPassiveAbility(entry.ability)) suppressNativeAbilityHotkey(abilityPanel);
+                if (!archiveMouseOnly && !isPassiveAbility(entry.ability)) restoreNativeAbilityHotkey(abilityPanel);
                 continue;
             }
             if (!suppressNativeAbilityHotkey(abilityPanel)) {
@@ -2465,14 +2551,15 @@
     }
 
     function refreshAbilityHotkeysIfChanged(force) {
+        if (!contextActive()) return;
         var unit = selectedUnit();
-        var visibleAbilities = unit === undefined || unit < 0
+        var visibleAbilities = unit === undefined || unit < 0 || viewingOtherAbilityUnit()
             ? [] : visibleAbilityEntries(unit);
-        var mappings = unit === undefined || unit < 0
+        var mappings = unit === undefined || unit < 0 || visibleAbilities.length === 0
             ? [] : resolveOfficialAbilityMappings(visibleAbilities);
-        var signature = unit === undefined || unit < 0
+        var signature = String(displayUnit()) + ":" + (unit === undefined || unit < 0
             ? "invalid" : visibleAbilitySignature(unit, visibleAbilities)
-                + "#" + officialAbilityMappingSignature(mappings);
+                + "#" + officialAbilityMappingSignature(mappings));
         if (!force && refreshAbilities.signature === signature
             && officialAbilityHotkeysMatch(mappings)) {
             refreshOfficialAbilityRuntime(mappings);
