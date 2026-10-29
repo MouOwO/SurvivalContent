@@ -94,7 +94,7 @@ function scope(root){
  // Category redraws delete old rows. Keep only live Labels owned by this font;
  // do this once per scope, not once per glyph in the recursive traversal.
  labels=labels.filter(function(n){return valid(n)&&n.__archiveFontOwner===api;});
- function visit(node){if(!valid(node))return;var children=node.Children().slice();if(String(node.paneltype).toLowerCase()==="label")render(node);children.forEach(function(child){if(child.id!=="ArchiveFontV36Glyphs")visit(child);});}
+ function visit(node){if(!valid(node)||(node.visible===false&&node.BHasClass&&node.BHasClass("ArchiveCard")))return;var children=node.Children().slice();if(String(node.paneltype).toLowerCase()==="label")render(node);children.forEach(function(child){if(child.id!=="ArchiveFontV36Glyphs")visit(child);});}
  visit(root);
 }
 var previous=cfg.SurvivalArchiveFontV36;if(previous&&previous.Dispose)previous.Dispose();

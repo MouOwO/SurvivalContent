@@ -18,13 +18,21 @@
         if(warmed[key])return;warmed[key]=true;queue.push(create);
         if(running)return;running=true;
         $.Schedule(0,function tick(){
-            if(!host){host=$.CreatePanel("Panel",$.GetContextPanel(),"");host.hittest=false;host.hittestchildren=false;
+            if(!host||(host.IsValid&&!host.IsValid())){host=$.CreatePanel("Panel",$.GetContextPanel(),"");host.hittest=false;host.hittestchildren=false;
                 host.style.width="1px";host.style.height="1px";host.style.opacity="0";host.style.overflow="clip";}
             for(var i=0;i<6&&queue.length;i++){var create=queue.shift();create(host);}
             if(queue.length)$.Schedule(0.01,tick);else running=false;
         });
     }
-    GameUI.CustomUIConfig().SurvivalSnapshotCache={Apply:apply,Warm:warm};
+    function warmImage(uri){
+        if(typeof uri!=="string"||!/^(s2r:\/\/panorama\/images\/|file:\/\/{images}\/)/.test(uri))return;
+        warm("image:"+uri,function(parent){
+            var image=$.CreatePanel("Image",parent,"",{texturewidth:"128px",textureheight:"128px"});
+            image.hittest=false;image.hittestchildren=false;
+            image.style.width="128px";image.style.height="128px";image.SetImage(uri);
+        });
+    }
+    GameUI.CustomUIConfig().SurvivalSnapshotCache={Apply:apply,Warm:warm,WarmImage:warmImage};
     // Read the private local wallet only when the player starts an action.
     // Unlock shading does not depend on wood/gold updates.
     var wallet=null;

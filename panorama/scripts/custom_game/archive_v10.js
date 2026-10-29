@@ -14,14 +14,14 @@
     function contentX(x){return x-sidebarReduction;}
     var canvas=null,gridHost=null,sidebar=null,filterMenu=null,headerIcon=null,tip=null,tooltip=null,viewScale=1;
     var active=false,disposed=false,current="",rows=[],categoryRows=[],filters={},balances=[],moved=[],subscriptions=[],sidebarKey="",hover=null,displayKey="";
-    var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="";
+    var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="",panelCache={};
     var order=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","commerce_goods","shop","endless","fishing","building","starjoy_points","titles"];
     var names={clear:"通关存档",shadow:"虚空之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"我的好基友",ex:"我的前女友",beast:"瑞兽赐福",starjoy_points:"星悦积分",titles:"称号"};
     var layers=D.layers;layers.forEach(function(layer){if(layer.kind==="text")textSpecs[layer.id]=layer;});
     var marker=$.CreatePanel("Panel",root,"");marker.visible=false;marker.hittest=false;
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
     function alive(){return !disposed&&valid(root)&&valid(marker);}
-    function p(id){return valid(root)?root.FindChildTraverse(id):null;}
+    function p(id){if(!valid(root))return null;var node=panelCache[id];if(!valid(node))node=panelCache[id]=root.FindChildTraverse(id);return node;}
     function style(node,values){var cache=node.__v10Style||(node.__v10Style={});Object.keys(values).forEach(function(k){if(cache[k]!==values[k]){node.style[k]=values[k];cache[k]=values[k];}});}
     function pos(node,x,y,w,h){style(node,{position:Math.round(x)+"px "+Math.round(y)+"px 0px",width:w+"px",height:h+"px",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top"});}
     function make(type,parent,id,cls){var node=$.CreatePanel(type,parent,id||"");if(cls)node.AddClass(cls);return node;}
@@ -101,7 +101,7 @@
         }
         layoutSidebar();
     }
-    function findClass(node,cls){if(node.BHasClass(cls))return node;var children=node.Children();for(var i=0;i<children.length;i++){var found=findClass(children[i],cls);if(found)return found;}return null;}
+    function findClass(node,cls){if(node.id==="ArchiveFontV36Glyphs")return null;if(node.BHasClass(cls))return node;var children=node.Children();for(var i=0;i<children.length;i++){var found=findClass(children[i],cls);if(found)return found;}return null;}
     function fillItemIcon(node,item){var presentation=cfg.SurvivalRewardPresentation;if(presentation&&presentation.FillIcon)presentation.FillIcon(node,item);}
     function decorateCommerce(card,item,slot){
         var points=current==="points",height=112,pitch=116;

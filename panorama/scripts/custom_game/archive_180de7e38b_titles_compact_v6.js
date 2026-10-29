@@ -94,8 +94,11 @@
     var archiveFit={reference:[1672,941]},voidView=cfg.SurvivalArchiveV10Factory?cfg.SurvivalArchiveV10Factory():cfg.SurvivalArchiveVoidV1;
     function renderVoid(data){return voidView&&voidView.Render(data,current,filterMode,categories,archiveFit);}
     function tabs() {
-        var container = panel("ArchiveTabs"), signature = JSON.stringify([current, categories]);
-        if (container === renderedTabs && signature === tabsSignature) return false;
+        var container = panel("ArchiveTabs"), signature = JSON.stringify(categories);
+        if (container === renderedTabs && signature === tabsSignature) {
+            categories.forEach(function(category){var toggle=panel("ArchiveTab_"+category.id);if(toggle)toggle.checked=category.id===current;});
+            return false;
+        }
         container.RemoveAndDeleteChildren();
         categories.forEach(function (category) {
             var toggle = $.CreatePanel("RadioButton", panel("ArchiveTabs"), "ArchiveTab_" + category.id);
@@ -444,9 +447,16 @@
         }else delete resyncPages[category];
         pageVersions[category]=sequence;
         pageCache[category]=complete;
+        // Warm actual shared textures while the authoritative pages arrive,
+        // before the first click. A URI gets one Image, not one icon per row.
+        var resources=GameUI.CustomUIConfig().SurvivalItemResources,images=GameUI.CustomUIConfig().SurvivalSnapshotCache;
+        if(GameUI.CustomUIConfig().SurvivalArchiveV10&&resources&&images.WarmImage)array(complete.rows).forEach(function(item){
+            var resource=item&&resources.Lookup(item);
+            if(resource){images.WarmImage(resource.uri);images.WarmImage(resource.overlay_uri);}
+        });
         // The void gallery already renders its fixed catalog artwork. Warming
         // another hidden copy on unrelated profile revisions adds native work.
-        if (opened && category === current && category !== "shadow") array(complete.rows).forEach(function(item){
+        if (opened && category === current && category !== "shadow" && !GameUI.CustomUIConfig().SurvivalArchiveV10) array(complete.rows).forEach(function(item){
             if(!item)return;
             GameUI.CustomUIConfig().SurvivalSnapshotCache.Warm("archive:"+category+":"+(item.id||item.name)+":"+(item.icon||item.icon_path||""),function(host){if(active()&&valid(host))A.Icon(host,item,category,buildingIcons);});
         });
@@ -513,6 +523,12 @@
             {name:"tabs",get:function(){return tabs;},set:function(fn){tabs=fn;}}
         ],Number(cfg.HandoffGeneration||0));
         if(voidView&&voidView.RegisterToolsProbe)voidView.RegisterToolsProbe();
+        if(cfg.SurvivalArchiveV10&&voidView)probe.RegisterModule("archiveView",[
+            {name:"render",get:function(){return voidView.Render;},set:function(fn){voidView.Render=fn;}}
+        ],Number(cfg.HandoffGeneration||0));
+        if(cfg.SurvivalArchiveFontV36)probe.RegisterModule("archiveFont",[
+            {name:"scope",get:function(){return cfg.SurvivalArchiveFontV36.Scope;},set:function(fn){cfg.SurvivalArchiveFontV36.Scope=fn;}}
+        ],Number(cfg.HandoffGeneration||0));
         return registered;
     }
     // Re-evaluating only this controller must not retain the previous row tree.

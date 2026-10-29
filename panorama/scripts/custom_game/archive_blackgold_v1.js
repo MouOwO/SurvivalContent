@@ -3,7 +3,7 @@
     var cfg=GameUI.CustomUIConfig(),root=$.GetContextPanel();
     if(cfg.SurvivalArchiveBlackGold&&cfg.SurvivalArchiveBlackGold.Dispose)cfg.SurvivalArchiveBlackGold.Dispose();
     if(cfg.ArchiveBlackGoldDisabled)return;
-    var stage=Math.max(1,Math.min(5,Number(cfg.ArchiveBlackGoldStage)||5)),disposed=false,views=[];
+    var stage=Math.max(1,Math.min(5,Number(cfg.ArchiveBlackGoldStage)||5)),disposed=false,views=[],panelCache={};
     var originalFactory=cfg.SurvivalArchiveV10Factory;
     var uri={
         header:'url("s2r://panorama/images/dota_plus/dota_plus_horizontal_banner_background_png.vtex")',
@@ -43,9 +43,9 @@
         symbol(legacy,navigationIcons[category]||"emblems",true,true);
     }
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
-    function find(id){return valid(root)?root.FindChildTraverse(id):null;}
+    function find(id){if(!valid(root))return null;var node=panelCache[id];if(!valid(node))node=panelCache[id]=root.FindChildTraverse(id);return node;}
     function paint(node,values,force){if(!valid(node))return;var cache=node.__archiveBlackGoldPaint||(node.__archiveBlackGoldPaint={});Object.keys(values).forEach(function(key){if(force||cache[key]!==values[key]){node.style[key]=values[key];cache[key]=values[key];}});}
-    function walk(node,fn){if(!valid(node))return;fn(node);node.Children().forEach(function(child){walk(child,fn);});}
+    function walk(node,fn){if(!valid(node))return;fn(node);node.Children().forEach(function(child){if(child.id!=="ArchiveFontV36Glyphs")walk(child,fn);});}
     function is(node,name){return node.BHasClass&&node.BHasClass(name);}
     function rowBacking(card,node){
         // The retained view assigns parity from the visible slot after filtering.
@@ -126,7 +126,7 @@
         ["all","unlocked","locked"].forEach(function(id){var p=find("ArchiveV10Filter_"+id);if(!valid(p))return;paint(p,{backgroundColor:is(p,"ArchiveV10Selected")?"#ad985333":"transparent"});walk(p,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:"#d8ddcd"});});});
         paint(find("ArchiveV10Close"),{backgroundImage:"none",backgroundColor:stage>=4?"gradient(linear,0% 0%,0% 100%,from(#373d36),to(#20251f))":"#24291f",border:"1px solid #96956d66"});
         var close=find("ArchiveV10Close");if(valid(close)){if(!valid(close.__archiveBlackGoldGlyph)){var glyph=$.CreatePanel("Image",close,"");glyph.hittest=false;glyph.hittestchildren=false;glyph.SetImage("file://{images}/control_icons/24px/x_close.svg");glyph.SetScaling("stretch-to-fit-preserve-aspect");paint(glyph,{position:"6px 6px 0px",width:"17px",height:"17px"});close.__archiveBlackGoldGlyph=glyph;}walk(close,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:"#dddac5"});});}
-        var grid=find("ArchiveGrid");if(valid(grid))grid.Children().forEach(function(card){if(!card.__v10)return;var cell=card.__v10,unowned=is(card,"ArchiveCommerceUnowned"),unknown=is(card,"ArchiveCommerceUnknown");paint(cell.name,{color:unowned?"#7e887c":unknown?"#a0a997":"#e0e3d2"});
+        var grid=find("ArchiveGrid");if(valid(grid))grid.Children().forEach(function(card){if(!card.visible||!card.__v10)return;var cell=card.__v10,unowned=is(card,"ArchiveCommerceUnowned"),unknown=is(card,"ArchiveCommerceUnknown");paint(cell.name,{color:unowned?"#7e887c":unknown?"#a0a997":"#e0e3d2"});
             walk(card,function(node){if(is(node,"ArchiveParchmentRowBacking"))rowBacking(card,node);if(is(node,"ArchiveV10HoverFrame"))paint(node,{backgroundImage:"none",backgroundColor:"#d9c17a0b",border:"1px solid #c5b57b55"});if(is(node,"ArchiveCommerceIconBacking"))paint(node,{backgroundImage:"none",backgroundColor:"#080e0bee",border:unowned?"1px solid #777f6166":"1px solid #b1a26b99",boxShadow:stage>=5&&!unowned?"#c2b77b12 0px 0px 6px 1px":"inset #00000099 0px 0px 3px 1px"});});
             if(valid(cell.track))paint(cell.track,{backgroundImage:"none",backgroundColor:"#080d09cc",border:"1px solid #6b745455"});
             if(valid(cell.fill))paint(cell.fill,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#70673e),color-stop(.7,#b9aa64),to(#e2d69b))"});

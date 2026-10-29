@@ -7,6 +7,6 @@
 "m_outputClearColor" "vector4" "0 0 0 0"
 "m_nOutputMinDimension" "int" "0"
 "m_nOutputMaxDimension" "int" "256"
-"m_bNoLod" "bool" "0"
+"m_bNoLod" "bool" "1"
 "m_textureOutputChannelArray" "element_array" [ "CDmeTextureOutputChannel" { "m_inputTextureArray" "string_array" [ "0" ] "m_srcChannels" "string" "rgba" "m_dstChannels" "string" "rgba" "m_mipAlgorithm" "CDmeImageProcessor" { "m_algorithm" "string" "" "m_stringArg" "string" "" "m_vFloat4Arg" "vector4" "0 0 0 0" } "m_outputColorSpace" "string" "srgb" } ]
 }
