@@ -40,7 +40,6 @@
         <include src="file://{resources}/scripts/custom_game/multiselect_portraits.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_palette.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_presentation.js" />
-        <include src="file://{resources}/scripts/custom_game/rebirth_portrait_outfits.js" />
         <include src="file://{resources}/scripts/custom_game/combat_stats.js" />
         <include src="file://{resources}/scripts/custom_game/portrait_camera_editor.js" /><include src="file://{resources}/scripts/custom_game/lottery_scene_transition.js" /><include src="file://{resources}/scripts/custom_game/lottery_handoff_bb9968eef7.js" /><include src="file://{resources}/scripts/custom_game/lottery_cinematic_v1.js"/><include src="file://{resources}/scripts/custom_game/lottery_ui_remaining_5d5c1152eb.js"/>
 
