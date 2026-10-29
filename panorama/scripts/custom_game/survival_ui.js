@@ -750,6 +750,8 @@
 
     function showNotification(payload) {
         if (!payload) return;
+        // Endless countdowns use the archive's transient screen-center tip.
+        if (payload.kind === "endless_tip") return;
         if (payload.audience === "player" && Number(payload.player_id) !== playerId) return;
         var message = String(payload.message || "");
         if (!message.trim()) return;

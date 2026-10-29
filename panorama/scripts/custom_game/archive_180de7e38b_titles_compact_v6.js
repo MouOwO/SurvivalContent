@@ -28,6 +28,7 @@
     var renderedTabs = null, tabsSignature = "", lastPaletteKey = "";
     var latestEndlessState = null, endlessStatusPanel = null;
     var endlessStatusText = "", endlessStatusHidden = null, endlessRequestKey = "";
+    var endlessTipTimer = null, endlessTipGeneration = 0, endlessTipKey = "";
     var panelCache = {};
     // Match the actual archive definitions, not the example names in the style reference.
     var buildingIcons = {
@@ -469,21 +470,52 @@
             panel("ArchiveStatus").text=data.error || "称号切换失败，请重试";
         }
     });
+    function cancelEndlessTipTimer() {
+        if (endlessTipTimer === null) return;
+        if ($.CancelScheduled) $.CancelScheduled(endlessTipTimer);
+        var timer = endlessTipTimer;
+        timers = timers.filter(function(id){return id !== timer;});
+        endlessTipTimer = null;
+    }
+    function hideEndlessTip() {
+        endlessTipGeneration++;
+        cancelEndlessTipTimer();
+        if (valid(endlessStatusPanel) && endlessStatusHidden !== true) endlessStatusPanel.SetHasClass("ArchiveHidden", true);
+        endlessStatusHidden = true;
+    }
+    function showEndlessTip(text) {
+        if (!text || !String(text).trim()) return;
+        var status = valid(endlessStatusPanel) ? endlessStatusPanel : panel("EndlessStatus");
+        if (!status) return;
+        cancelEndlessTipTimer();
+        var generation = ++endlessTipGeneration;
+        if (status !== endlessStatusPanel || endlessStatusHidden !== false) status.SetHasClass("ArchiveHidden", false);
+        if (status !== endlessStatusPanel || text !== endlessStatusText) status.text = text;
+        endlessStatusPanel = status; endlessStatusHidden = false; endlessStatusText = text;
+        endlessTipTimer = later(3, function(){
+            if (generation !== endlessTipGeneration) return;
+            endlessTipTimer = null;
+            hideEndlessTip();
+        });
+    }
     function refreshEndlessStatus() {
         if (!latestEndlessState) return;
         var data = latestEndlessState;
-        var status = valid(endlessStatusPanel) ? endlessStatusPanel : panel("EndlessStatus");
-        if (!status) return;
-        var hidden = data.status === "idle";
+        if (data.status === "idle") { endlessTipKey = ""; hideEndlessTip(); return; }
+        if (data.status === "preparing") return;
+        var key = JSON.stringify([data.variant || "endless", data.status, data.wave, data.reason || ""]);
+        if (key === endlessTipKey) return;
+        endlessTipKey = key;
         var label = data.variant === "tower" ? "通天塔" : "无尽";
         var text = data.status === "running" ? label + "第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
             : label + "结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
-        // This standalone HUD label remains live while the archive is closed.
-        // It never invalidates the archive's cards, typography or palette.
-        if (status !== endlessStatusPanel || hidden !== endlessStatusHidden) status.SetHasClass("ArchiveHidden", hidden);
-        if (status !== endlessStatusPanel || text !== endlessStatusText) status.text = text;
-        endlessStatusPanel = status; endlessStatusHidden = hidden; endlessStatusText = text;
+        // One brief tip per wave/end, never a persistent per-second banner.
+        showEndlessTip(text);
     }
+    subscribe("ui_notification", function(data){
+        if (!data || data.kind !== "endless_tip" || Number(data.player_id) !== Game.GetLocalPlayerID()) return;
+        showEndlessTip(String(data.message || ""));
+    });
     subscribe("survival_endless_state", function (data) {
         if (!data) return;
         latestEndlessState = data;
@@ -506,6 +538,7 @@
     }
     function dispose(){
         if(disposed)return;
+        hideEndlessTip();
         close();disposed=true;
         timers.forEach(function(timer){if($.CancelScheduled)$.CancelScheduled(timer);});timers=[];
         subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];
