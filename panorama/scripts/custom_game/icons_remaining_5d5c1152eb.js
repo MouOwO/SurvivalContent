@@ -5,7 +5,7 @@
             runtime_uri:row.uri,display_width:84,display_height:84};
     });
     var originalIcon=view.Icon,originalInit=view.Init,originalObserve=view.Observe,index={},trial,caption,trialCategory;
-    var names={shadow:'虚空之影',points:'积分道具',fragment:'神兵碎片',pet:'秘法牢笼',friend:'我的好基友',ex:'我的前女友',wife:'我的老婆',beast:'瑞兽赐福',fishing:'钓鱼存档',building:'存档神器',shop:'商店道具'};
+    var names={shadow:'虚空之影',points:'积分道具',fragment:'神兵碎片',pet:'秘法牢笼',friend:'我的好基友',ex:'我的前女友',wife:'我的老婆',concubine:'我的侍妾',beast:'瑞兽赐福',fishing:'钓鱼存档',building:'存档神器',shop:'商店道具'};
     var categories=[],category='shadow',page=0,grid,heading,pageText,previousPage,nextPage;
     entries.forEach(function(row){index[row.category_id+':'+row.item_id]=row;});
     entries.forEach(function(row){if(categories.indexOf(row.category_id)<0)categories.push(row.category_id);});
@@ -49,7 +49,7 @@
         if(resources&&resources.Lookup(item)&&presentation&&presentation.CreateRegisteredIcon){
             var common=$.CreatePanel('Panel',parent,'');common.AddClass('ArchiveArt');common.hittest=false;
             if(presentation.CreateRegisteredIcon(common,item,'ArchiveRewardIcon')){
-                var fragment=category==='fragment',social=['friend','ex','wife','beast'].indexOf(category)>=0,collection=category==='fishing'||category==='work';
+                var fragment=category==='fragment',social=['friend','ex','wife','concubine','beast'].indexOf(category)>=0,collection=category==='fishing'||category==='work';
                 common.style.width=fragment?'128px':social?'96px':collection?'88px':'84px';common.style.height=fragment?'112px':social?'96px':collection?'88px':'84px';
                 if(category==='points'){
                     var tier=String(item.quality||'').toUpperCase();
@@ -69,7 +69,7 @@
         var row=index[category+':'+item.id];
         if(!row){var result=originalIcon.call(view,parent,item,category,buildings);return result;}
         var art=$.CreatePanel('Panel',parent,'');art.AddClass('ArchiveArt');art.hittest=false;
-        var fragment=category==='fragment',social=category==='friend'||category==='ex'||category==='wife'||category==='beast';
+        var fragment=category==='fragment',social=category==='friend'||category==='ex'||category==='wife'||category==='concubine'||category==='beast';
         var collection=category==='fishing'||category==='work';
         var rewardArt=row.art_status==='generated_reward_v5';
         if(rewardArt)parent.AddClass('ArchiveRewardV5Card');

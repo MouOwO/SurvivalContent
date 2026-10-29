@@ -20,7 +20,7 @@
     lifetimeMarker.visible=false;lifetimeMarker.hittest=false;lifetimeMarker.hittestchildren=false;
     var current = "clear", opened = false, latest = 0, assembly = null;
     var filterMode = "all", lastData = null, fitGeneration = 0;
-    var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",beast:"blessing"};
+    var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",wife:"ex",concubine:"ex",beast:"blessing"};
     var categories = [], tooltipVisible = false, requestGeneration = 0, tooltipGeneration = 0;
     var pageCache = {}, pageAssemblies = {}, pageVersions = {};
     var rowCards = {};
@@ -35,7 +35,7 @@
         building_04: "item_claymore", building_05: "item_abyssal_blade", building_06: "item_platemail",
         building_07: "item_arcane_boots", building_08: "item_bfury", building_09: "item_mjollnir"
     };
-    function isDrawPage() { return current === "friend" || current === "ex" || current === "wife" || current === "beast"; }
+    function isDrawPage() { return current === "friend" || current === "ex" || current === "wife" || current === "concubine" || current === "beast"; }
     function showDrawBar() {
         var visible = isDrawPage();
         panel("ArchiveContent").SetHasClass("ArchiveHasDraw", visible);
@@ -43,7 +43,7 @@
         var drawVisibility=visible?"visible":"collapse";
         if(panel("ArchiveDrawBar").style.visibility!==drawVisibility)panel("ArchiveDrawBar").style.visibility=drawVisibility;
         panel("ArchiveContent").SetHasClass("ArchiveBuildingPage", current === "building");
-        panel("ArchiveContent").SetHasClass("ArchiveCollectionPage",["friend","ex","wife","beast","fishing"].indexOf(current)>=0);
+        panel("ArchiveContent").SetHasClass("ArchiveCollectionPage",["friend","ex","wife","concubine","beast","fishing"].indexOf(current)>=0);
         panel("ArchiveContent").SetHasClass("ArchiveWorkPage",current==="work");
         panel("ArchiveFaith").AddClass("ArchiveHidden");
         panel("ArchiveFaith").text = "";
@@ -161,8 +161,8 @@
             data=Object.assign({},data,{rows:cfg.ArchiveV10Semantics.Normalize(data,current)});
         }
         lastData=data; A.Observe(data);
-        var order=["clear","shadow","points","starjoy_points","gift","fragment","pet","endless","friend","ex","wife","beast"];
-        categories = array(data.categories).filter(function(category){return category.id!=="ex"&&category.id!=="friend"&&category.id!=="wife"&&category.id!=="beast";}).sort(function(a,b){var ai=a.id==="titles"?1000:order.indexOf(a.id),bi=b.id==="titles"?1000:order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
+        var order=["clear","shadow","points","starjoy_points","gift","fragment","pet","endless","friend","ex","wife","concubine","beast"];
+        categories = array(data.categories).filter(function(category){return category.id!=="ex"&&category.id!=="friend"&&category.id!=="wife"&&category.id!=="concubine"&&category.id!=="beast";}).sort(function(a,b){var ai=a.id==="titles"?1000:order.indexOf(a.id),bi=b.id==="titles"?1000:order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
         var paletteDirty = tabs();
         if(!cfg.SurvivalArchiveV10 && renderVoid(data))return;
         if(!cfg.SurvivalArchiveV10)hideTooltip();
@@ -202,7 +202,7 @@
             card.__archiveCategory=current;
             card.SetHasClass("ArchiveContentLocked",unlocked!==true);
             // Collection/item artwork stays recognizable; text still reflects ownership.
-            card.SetHasClass("ArchiveArtAlwaysBright",["fragment","friend","ex","wife","beast","fishing","shadow","points","pet","work","building"].indexOf(current)>=0);
+            card.SetHasClass("ArchiveArtAlwaysBright",["fragment","friend","ex","wife","concubine","beast","fishing","shadow","points","pet","work","building"].indexOf(current)>=0);
             // Cached rows still need current visual policy when artwork stays unchanged.
             if(cached&&cached.fingerprint===fingerprint)return;
             paletteDirty = true;
@@ -323,7 +323,7 @@
         if (socialPage && social) {
             panel("ArchiveHint").text = "每次消耗" + social.draw_cost + "张" + social.currency_name + " · 剩余数量决定抽取权重 · 重复获得叠加效果";
             panel("ArchiveSummary").text = "已拥有 " + ownedTypes + " / " + rows.length + " 种 · 共 " + social.total + " 件";
-            panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" : current === "friend" && Number(social.unlocked) === 1 ? "已集齐100件 · 我的大基巴已解锁（入口预留）" : "挑战3获取" + social.currency_name + " · 每项挑战每日最多10张 · 奖励效果按持有数量叠加";
+            panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" : current === "friend" && Number(social.unlocked) === 1 ? "已集齐100件 · 我的大基巴已解锁（入口预留）" : (current === "wife" || current === "concubine" ? "挑战4获取" : current === "friend" ? "挑战3获取" : "挑战2获取") + social.currency_name + " · 每项挑战每日最多10张 · 奖励效果按持有数量叠加";
         }
         if (current === "building" && data.buildings) {
             var buildings = data.buildings;
@@ -475,8 +475,9 @@
         var status = valid(endlessStatusPanel) ? endlessStatusPanel : panel("EndlessStatus");
         if (!status) return;
         var hidden = data.status === "idle";
-        var text = data.status === "running" ? "无尽第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
-            : "无尽结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
+        var label = data.variant === "tower" ? "通天塔" : "无尽";
+        var text = data.status === "running" ? label + "第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
+            : label + "结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
         // This standalone HUD label remains live while the archive is closed.
         // It never invalidates the archive's cards, typography or palette.
         if (status !== endlessStatusPanel || hidden !== endlessStatusHidden) status.SetHasClass("ArchiveHidden", hidden);
@@ -542,7 +543,7 @@
         Open: function () { if(active()&&!opened)this.Toggle(); },
         SelectCategory: function(id) {
             if(!active())return;
-            if(id==="ex"||id==="friend"||id==="wife"||id==="beast"){
+            if(id==="ex"||id==="friend"||id==="wife"||id==="concubine"||id==="beast"){
                 if(cfg.SurvivalCollection&&cfg.SurvivalCollection.Open){close();cfg.SurvivalCollection.Open(id);}
                 return;
             }

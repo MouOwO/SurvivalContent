@@ -17,7 +17,7 @@ var canvas,grid,gridBody,empty,draw,drawText,drawCost,tickets,currencyName,summa
 var filterOpen=false,filterDismiss,filterMenu,filterItems=[];
 var rewardHighlight=null;
 var scale=1,cardsKey="",visibleRows=[],slots=[],tabs={},nodes={},api,createdRoots=[];
-var names={beast:"瑞兽赐福",ex:"我的前女友",friend:"我的前男友",wife:"我的老婆"};
+var names={beast:"瑞兽赐福",ex:"我的前女友",friend:"我的前男友",wife:"我的老婆",concubine:"我的侍妾"};
 var filterNames=["全部收藏","已拥有","未拥有"];
 var rarityColors={UR:"#ef5350",SSR:"#f5c65e",SR:"#b680ee",R:"#74c8f2",N:"#8fc47b"};
 function rarity(item){var quality=String(item.quality||"").trim().toUpperCase(),recognized=Object.prototype.hasOwnProperty.call(rarityColors,quality);return {quality:recognized?quality:"",color:recognized?rarityColors[quality]:"#88939b"};}
@@ -82,7 +82,7 @@ Object.keys(names).forEach(function(id,i){
  var tab=make("Button",canvas,"CollectionGW2Tab_"+id,"CollectionGW2Tab");rect(tab,13,68+i*54,44,44);style(tab,{backgroundImage:"none",backgroundColor:"transparent",border:"0px"});tab.hittestchildren=false;
  nine(tab,"button",0,0,44,44,"CollectionGoldTabSkin");
  var selectedArt=make("Panel",tab,"","CollectionGW2TabSelected");rect(selectedArt,-4,10,2,24);style(selectedArt,{backgroundColor:"#debc6f"});selectedArt.hittest=false;
- image(tab,"file://{images}/control_icons/24px/"+({ex:"star.svg",friend:"profile.svg",wife:"rewards.svg",beast:"trophy.svg"}[id]),10,10,id==="ex"?25:24,24,"","CollectionGoldTabIcon");
+ image(tab,"file://{images}/control_icons/24px/"+({ex:"star.svg",friend:"profile.svg",wife:"rewards.svg",concubine:"rewards.svg",beast:"trophy.svg"}[id]),10,10,id==="ex"?25:24,24,"","CollectionGoldTabIcon");
  tab.SetPanelEvent("onactivate",function(){if(alive())select(id);});
  tab.SetPanelEvent("onmouseover",function(){if(alive()&&opened)$.DispatchEvent("DOTAShowTextTooltip",tab,names[id]);});tab.SetPanelEvent("onmouseout",function(){$.DispatchEvent("DOTAHideTextTooltip");});tabs[id]=tab;
 });

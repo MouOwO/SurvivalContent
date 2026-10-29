@@ -11,7 +11,7 @@
     function alive(){return !disposed&&valid(root)&&valid(marker);}
     var canvas=null,grid=null,sidebar=null,active=false,saved=null,fitOptions=null,currentFilter="all",latestRows=[],filterButtons={},balances=[],subscriptions=[];
     var panelCache={},rowCards={},sidebarSignature=null,rowsSignature=null,filterSignature=null,hoveredCard=null;
-    var sidebarOrder=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","shop","endless","fishing","building","friend","ex","beast"];
+    var sidebarOrder=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","shop","endless","fishing","building","friend","ex","wife","concubine","beast"];
     var layers={};D.layers.forEach(function(x){if(x.id)layers[x.id]=x;});
     function p(id){var el=panelCache[id];if(!valid(el))el=panelCache[id]=root.FindChildTraverse(id);return el;}
     function valid(el){return el&&(!el.IsValid||el.IsValid());}

@@ -256,11 +256,11 @@
             var state=S.State(item,category), name=options.categoryName ? options.categoryName(category) : category;
             elements.Title.text=String(item.name||"");
             var unlockItem=S.IsUnlockItem&&S.IsUnlockItem(item,category);
-            elements.State.text=onlyEffect ? "" : category==="points"&&unlockItem ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
+            elements.State.text=onlyEffect ? "" : category==="points"&&unlockItem ? name : name+" · "+(state===null ? "状态待同步" : state ? (!unlockItem&&["shadow","pet","fishing","friend","ex","wife","concubine","beast","points","commerce_goods","shop"].indexOf(category)>=0 ? "已拥有" : "已解锁") : "未解锁");
             var rarityColor=colors.caption, titleColor=colors.title;
             if (rarityLine) {
                 var rarityParts=[],quality=String(item.quality||"").trim().toUpperCase();
-                if (!onlyEffect && ["ex","friend","wife","beast"].indexOf(category)>=0) {
+                if (!onlyEffect && ["ex","friend","wife","concubine","beast"].indexOf(category)>=0) {
                     if (Object.prototype.hasOwnProperty.call(rarityColors,quality)) { rarityParts.push("品质 "+quality); rarityColor=rarityColors[quality]; titleColor=rarityColor; }
                     if (Number(item.draw_enabled)===0) rarityParts.push("暂不参与抽取");
                     else { var chance=probabilityText(item.draw_probability); if (chance) rarityParts.push("当前抽取概率 "+chance); }

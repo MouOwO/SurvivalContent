@@ -16,7 +16,7 @@
     var active=false,disposed=false,current="",rows=[],categoryRows=[],filters={},balances=[],moved=[],subscriptions=[],sidebarKey="",hover=null,displayKey="";
     var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="",panelCache={};
     var order=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","commerce_goods","shop","endless","fishing","building","starjoy_points","titles"];
-    var names={clear:"通关存档",shadow:"虚空之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"我的好基友",ex:"我的前女友",beast:"瑞兽赐福",starjoy_points:"星悦积分",titles:"称号"};
+    var names={clear:"通关存档",shadow:"虚空之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"我的好基友",ex:"我的前女友",wife:"我的老婆",concubine:"我的侍妾",beast:"瑞兽赐福",starjoy_points:"星悦积分",titles:"称号"};
     var layers=D.layers;layers.forEach(function(layer){if(layer.kind==="text")textSpecs[layer.id]=layer;});
     var marker=$.CreatePanel("Panel",root,"");marker.visible=false;marker.hittest=false;
     function valid(p){return p&&(!p.IsValid||p.IsValid());}
@@ -46,8 +46,8 @@
     }
     function serif(node){style(node,{fontFamily:'"Source Han Sans SC"',fontWeight:"bold",textShadow:"none",letterSpacing:"0px"});return node;}
     function categoryIcon(id){
-        var key={commerce_goods:"gift",shop:"endless",wife:"ex"}[id]||id;
-        if(["clear","shadow","endless","map_level","work","fishing","building","boss","gift","points","fragment","pet","friend","ex","beast","titles","starjoy_points"].indexOf(key)<0)key="clear";
+        var key={commerce_goods:"gift",shop:"endless",wife:"ex",concubine:"ex"}[id]||id;
+        if(["clear","shadow","endless","map_level","work","fishing","building","boss","gift","points","fragment","pet","friend","ex","wife","concubine","beast","titles","starjoy_points"].indexOf(key)<0)key="clear";
         return "file://{images}/custom_game/archive_polish_v2/nav/"+key+".svg";
     }
     function headerEmblem(id){return categoryIcon(id);}
@@ -96,7 +96,7 @@
     }
     function renderSidebar(categories){
         var signature=JSON.stringify(categories||[]);if(signature!==sidebarKey){
-            sidebar.RemoveAndDeleteChildren();sidebarButtons={};var ids=order.slice();list(categories).forEach(function(row){if(row.id!=="ex"&&row.id!=="friend"&&row.id!=="wife"&&row.id!=="beast"&&ids.indexOf(row.id)<0)ids.push(row.id);});
+            sidebar.RemoveAndDeleteChildren();sidebarButtons={};var ids=order.slice();list(categories).forEach(function(row){if(row.id!=="ex"&&row.id!=="friend"&&row.id!=="wife"&&row.id!=="concubine"&&row.id!=="beast"&&ids.indexOf(row.id)<0)ids.push(row.id);});
             ids.forEach(function(id){var button=make("Button",sidebar,"ArchiveV10Category_"+id,"ArchiveV10Button ArchiveParchmentCategory");button.hittestchildren=false;categoryBadge(button,id,4,1,32,28);var text=serif(label(button,categoryName(id),47,5,narrow(231),29,21,"#f0eadb"));button.SetPanelEvent("onactivate",function(){if(!alive()||!valid(button))return;hideTooltip();filterMenu.visible=false;cfg.SurvivalArchive.SelectCategory(id);});sidebarButtons[id]={panel:button,text:text};});sidebarKey=signature;
         }
         layoutSidebar();
@@ -220,7 +220,7 @@
             leaderboardView.Show(gridHost);return true;
         }
         if(leaderboardView)leaderboardView.Hide();p("ArchiveGrid").visible=true;p("ArchiveV10SectionTitle").text="收集条目";
-        var ownership=["shadow","pet","fishing","friend","ex","wife","beast","commerce_goods","shop"].indexOf(current)>=0;
+        var ownership=["shadow","pet","fishing","friend","ex","wife","concubine","beast","commerce_goods","shop"].indexOf(current)>=0;
         filters.unlocked.text.text=ownership?"已拥有":"已解锁";filters.locked.text.text=ownership?"未拥有":"未解锁";
         p("ArchiveV10FilterText").text=mode==="unlocked"?filters.unlocked.text.text:mode==="locked"?filters.locked.text.text:"全部存档";
         Object.keys(filters).forEach(function(key){filters[key].panel.SetHasClass("ArchiveV10Selected",key===(mode||"all"));});
@@ -229,7 +229,7 @@
         if(!data){p("ArchiveGrid").Children().forEach(function(card){card.visible=false;});slot=0;}
         var known=rows.filter(function(item){return S.State(item,current)!==null;}).length,owned=rows.filter(function(item){return S.State(item,current)===true;}).length;
         p("ArchiveV10Overview").text=!data?"正在读取…":Number(data.unavailable)===1?"分类尚未启用":(ownership?"已拥有 ":"已解锁 ")+owned+" / "+rows.length+" 项"+(known<rows.length?" · 同步中":"");
-        var draw=["friend","ex","wife","beast"].indexOf(current)>=0,context=p("ArchiveV10Context"),details="";
+        var draw=["friend","ex","wife","concubine","beast"].indexOf(current)>=0,context=p("ArchiveV10Context"),details="";
         if(current==="map_level"&&data&&data.online)details="当前地图等级 "+data.online.level;
         if(current==="work"&&data&&data.online)details="软妹币："+data.online.coins;
         if(current==="building"&&data&&data.buildings)details="信仰值："+data.buildings.faith;

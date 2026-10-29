@@ -346,7 +346,7 @@
     function fixedTarget(unit){
         if(!valid(unit))return false;
         var name=String(Entities.GetUnitName(unit)||"");
-        if(/^(building_|npc_dota_unit_building_|asset_proxy_(tower_|wall_))/.test(name) || name==="npc_dota_unit_ultimate_tower" || /^npc_archive_challenge_[123]$/.test(name) || name==="enemy_tree" || name==="npc_dota_unit_enemy_tree")return true;
+        if(/^(building_|npc_dota_unit_building_|asset_proxy_(tower_|wall_))/.test(name) || name==="npc_dota_unit_ultimate_tower" || /^npc_archive_challenge_[1-4]$/.test(name) || name==="enemy_tree" || name==="npc_dota_unit_enemy_tree")return true;
         return !!(Entities.IsBuilding && Entities.IsBuilding(unit));
     }
     function cancel(){serial++;gesture=null;pending=null;}

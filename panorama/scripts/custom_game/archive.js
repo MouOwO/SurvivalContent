@@ -4,7 +4,7 @@
     var U=GameUI.CustomUIConfig().SurvivalUI;
     var current = "clear", opened = false, latest = 0, assembly = null;
     var filterMode = "all", lastData = null, fitGeneration = 0;
-    var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",beast:"blessing"};
+    var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",wife:"ex",concubine:"ex",beast:"blessing"};
     var categories = [], tooltipVisible = false, requestGeneration = 0, tooltipGeneration = 0;
     // Match the actual archive definitions, not the example names in the style reference.
     var buildingIcons = {
@@ -12,7 +12,7 @@
         building_04: "item_claymore", building_05: "item_abyssal_blade", building_06: "item_platemail",
         building_07: "item_arcane_boots", building_08: "item_bfury", building_09: "item_mjollnir"
     };
-    function isDrawPage() { return current === "friend" || current === "ex" || current === "beast"; }
+    function isDrawPage() { return current === "friend" || current === "ex" || current === "wife" || current === "concubine" || current === "beast"; }
     function showDrawBar() {
         var visible = isDrawPage();
         panel("ArchiveContent").SetHasClass("ArchiveHasDraw", visible);
@@ -131,7 +131,7 @@
         if (data.category_id !== current) return;
         hideTooltip(); lastData=data;
         ["all","unlocked","locked"].forEach(function(mode){panel("ArchiveFilter_"+mode).checked=mode===filterMode;});
-        var order=["clear","shadow","points","fragment","pet","endless","friend","ex","beast"];
+        var order=["clear","shadow","points","fragment","pet","endless","friend","ex","wife","concubine","beast"];
         categories = array(data.categories).sort(function(a,b){var ai=order.indexOf(a.id),bi=order.indexOf(b.id);return (ai<0?100:ai)-(bi<0?100:bi);});
         tabs();
         var social = data.social, socialPage = isDrawPage();
@@ -226,7 +226,7 @@
         if (socialPage && social) {
             panel("ArchiveHint").text = "每次消耗" + social.draw_cost + "张" + social.currency_name + " · 剩余数量决定抽取权重 · 重复获得叠加效果";
             panel("ArchiveSummary").text = "已拥有 " + ownedTypes + " / " + rows.length + " 种 · 共 " + social.total + " 件";
-            panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" : current === "friend" && Number(social.unlocked) === 1 ? "已集齐100件 · 我的大基巴已解锁（入口预留）" : "挑战3获取" + social.currency_name + " · 每项挑战每日最多10张 · 奖励效果按持有数量叠加";
+            panel("ArchiveStatus").text = Number(data.pending) === 1 ? "奖励正在保存…" : current === "friend" && Number(social.unlocked) === 1 ? "已集齐100件 · 我的大基巴已解锁（入口预留）" : (current === "wife" || current === "concubine" ? "挑战4获取" : current === "friend" ? "挑战3获取" : "挑战2获取") + social.currency_name + " · 每项挑战每日最多10张 · 奖励效果按持有数量叠加";
         }
         if (current === "building" && data.buildings) {
             var buildings = data.buildings;
@@ -283,8 +283,9 @@
     GameEvents.Subscribe("survival_endless_state", function (data) {
         var status = panel("EndlessStatus");
         status.SetHasClass("ArchiveHidden", data.status === "idle");
-        status.text = data.status === "running" ? "无尽第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
-            : "无尽结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
+        var label = data.variant === "tower" ? "通天塔" : "无尽";
+        status.text = data.status === "running" ? label + "第" + data.wave + "波 · 剩余" + data.remaining + "只 · " + data.seconds + "秒 · 本局" + data.score + "分"
+            : label + "结束 · 已通过" + (data.cleared || 0) + "波 · " + data.score + "分 · " + (data.reason || "");
         if (opened && current === "endless" && data.remaining === 0) request();
     });
     function close() {

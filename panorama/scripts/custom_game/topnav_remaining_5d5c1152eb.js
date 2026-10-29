@@ -332,6 +332,23 @@
     var difficultyLabel=label(difficultyRow,"HandoffDifficulty");place(difficultyLabel,0,0,50,44);
     style(difficultyLabel,{height:"fit-children",minHeight:"0px",verticalAlign:"center",textAlign:"center",color:"#f0d48a",textShadow:"none"});
     topMetric("HandoffWave","top_wave",780,822,346);
+    var finishArchive=create("Button",topStatus,"HandoffArchiveFinish",true);
+    place(finishArchive,1008,58,158,30);
+    style(finishArchive,{backgroundColor:"#352b20ee",border:"1px solid #c5a35f88",padding:"2px 6px"});
+    var finishArchiveText=label(finishArchive,"HandoffArchiveFinishText");
+    finishArchiveText.text="结束我的挑战";
+    style(finishArchiveText,{width:"100%",height:"100%",fontSize:"18px",textAlign:"center",verticalAlign:"center"});
+    finishArchive.visible=false;
+    tooltip(finishArchive,"结束自己的存档挑战，未击败的怪物不发奖。其他玩家可继续；所有玩家结束且奖励保存完成后结算。");
+    finishArchive.SetPanelEvent("onactivate",function(){
+        if(cfg.HandoffGeneration!==generation||!finishArchive.visible)return;
+        GameEvents.SendCustomGameEventToServer("survival_archive_finish",{});
+    });
+    GameEvents.Subscribe("survival_archive_return",function(payload){
+        if(cfg.HandoffGeneration!==generation||!payload)return;
+        var unit=Number(payload.entindex);
+        if(isFinite(unit)&&unit>0&&Entities.IsValidEntity(unit))GameUI.SelectUnit(unit,false);
+    });
     [["gold",1194,1234],["wood",1339,1379],["population",1484,1524]].forEach(function(a){topMetric("HandoffResource_"+a[0],"top_"+a[0],a[1],a[2],105);});
     var fxButton=create("Button",top,"HandoffCombatEffects",true);
     place(fxButton,effectsNavX,6,96,86);
@@ -564,7 +581,23 @@
                 // runtime owns invisibility and input, this skin removes space.
                 style(p,{width:"0px",marginRight:"0px"});return;
             }
-            skillPanels.push(p);square(p,force);style(p,{marginRight:"4px"});
+            skillPanels.push(p);square(p,force);
+            if(g.archiveChallenge){
+                // The engine list omits empty slots. Keep the video's absolute
+                // 1..12 positions instead of shifting later challenges left.
+                var slot=Number(entry.slot),runtime=CustomNetTables.GetTableValue("survival_ability_runtime",String(entry.ability))||{};
+                var order=Number(runtime.slot_order);
+                if(Number(runtime.ability_entindex)===Number(entry.ability)
+                    &&Number(runtime.owner_entindex)===Number(selectedUnit())
+                    &&order>=1&&order<=12&&Math.floor(order)===order)slot=order-1;
+                if(!isFinite(slot)||slot<0||slot>11||Math.floor(slot)!==slot)slot=index;
+                p.__handoffArchiveSlot=slot;
+                place(p,(slot%4)*120,Math.floor(slot/4)*120,116,116);
+                style(p,{marginRight:"0px"});
+            }else{
+                if(p.__handoffArchiveSlot!==undefined){delete p.__handoffArchiveSlot;style(p,{position:"0px 0px 0px"});}
+                style(p,{marginRight:"4px"});
+            }
         });
         skillPanels.forEach(function(p){
             [p,p.FindChildTraverse("AbilityButton"),p.FindChildTraverse("ButtonWell")].forEach(function(anchor){
@@ -612,7 +645,7 @@
         var keySignature=[unit,layoutRevision,geometry.heroWidth,geometry.scale];
         for(var keyIndex=0;keyIndex<skillPanels.length;keyIndex++){
             var keySlot=skillPanels[keyIndex],keyBinding=keySlot&&keyBindings[keySlot.id];
-            keySignature.push(keySlot&&keySlot.id,keyBinding&&keyBinding.text,keyBinding&&keyBinding.unit,keyBinding&&keyBinding.ability,
+            keySignature.push(keySlot&&keySlot.id,keySlot&&keySlot.__handoffArchiveSlot,keyBinding&&keyBinding.text,keyBinding&&keyBinding.unit,keyBinding&&keyBinding.ability,
                 currentEntries[keyIndex]&&currentEntries[keyIndex].ability,
                 valid(nodes["HandoffKey_"+keyIndex+"Bounds"])?1:0);
         }
@@ -624,7 +657,13 @@
             var matching=binding&&binding.unit===unit&&currentEntries[i]&&Number(currentEntries[i].ability)===binding.ability;
             if(!bounds&&matching){bounds=create("Panel",bottom,id+"Bounds",false);label(bounds,id,"HandoffNumber");}
             if(!bounds)continue;bounds.visible=!!matching&&!!binding.text;
-            if(bounds.visible){centered(bottom,id,actionOffset(geometry)+3+i*120,138,43,33,25);style(bounds,{backgroundImage:'url("file://{images}/'+assets.key_plate.file+'")',backgroundSize:"100% 100%",zIndex:"100"});text(id,binding.text);}
+            if(bounds.visible){
+                var gridSlot=geometry.archiveChallenge?Number(slot.__handoffArchiveSlot):i;
+                if(!isFinite(gridSlot))gridSlot=i;
+                centered(bottom,id,actionOffset(geometry)+3+(geometry.archiveChallenge?gridSlot%4:gridSlot)*120,
+                    138+(geometry.archiveChallenge?Math.floor(gridSlot/4)*120:0),43,33,25);
+                style(bounds,{backgroundImage:'url("file://{images}/'+assets.key_plate.file+'")',backgroundSize:"100% 100%",zIndex:"100"});text(id,binding.text);
+            }
         }
         mirrorKeys.signature=keySignature;mirrorKeys.checkedAt=now;
     }
@@ -970,10 +1009,11 @@
         // End legacy corner cleanup.
         place(native("portraitHUD"),0,0,g.portraitSize,g.portraitSize);style(native("portraitHUD"),{transform:"none"});
         ["stats_container","unitname","health_mana","center_bg","left_flare","right_flare","PortraitBacker","PortraitBackerColor"].forEach(function(id){var n=block.FindChildTraverse(id);style(n,{opacity:"0"});if(valid(n)){n.hittest=false;n.hittestchildren=false;}});
-        place(branch,actionOffset(g),61,g.centerWidth-20,116);style(branch,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
+        var abilityHeight=g.archiveChallenge?356:116;
+        place(branch,actionOffset(g),61,g.centerWidth-20,abilityHeight);style(branch,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
         // Valve inserts an anonymous talent/ability wrapper; clear its stock left gutter.
         wrappers.forEach(function(wrapper){
-            place(wrapper,0,0,g.centerWidth-20,116);style(wrapper,{flowChildren:"none",transform:"none",overflow:"noclip"});
+            place(wrapper,0,0,g.centerWidth-20,abilityHeight);style(wrapper,{flowChildren:"none",transform:"none",overflow:"noclip"});
         });
         place(native("StatBranch"),actionOffset(g),-85,74,74);
         style(native("InnateIcon"),{visibility:"collapse"});
@@ -982,7 +1022,7 @@
         for(var innate=native("InnateIcon");valid(innate)&&innate!==branch;innate=innate.GetParent()){
             if(innate.paneltype==="DOTAInnateDisplay"){style(innate,{visibility:"collapse"});break;}
         }
-        place(list,0,0,g.centerWidth-20,116);style(list,{flowChildren:"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
+        place(list,0,0,g.centerWidth-20,abilityHeight);style(list,{flowChildren:g.archiveChallenge?"none":"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
         // Slot-local geometry stays 116px when this outer canvas reflows.
         // New native children and actual resets already invalidate square().
         fitNativeSkills(g,false,readContext);
@@ -1027,9 +1067,10 @@
         place(native("PortraitGroup"),29,g.portraitY===undefined?49:g.portraitY,g.portraitSize,g.portraitHeight||g.portraitSize,{overflow:"clip",transform:"none",transitionProperty:"none",animationName:"none"});
         place(native("PortraitContainer"),0,0,g.portraitSize,g.portraitSize);
         place(native("portraitHUD"),0,0,g.portraitSize,g.portraitSize,{transform:"none"});
-        place(branch,actionOffset(g),61,g.centerWidth-20,116,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
-        wrappers.forEach(function(wrapper){place(wrapper,0,0,g.centerWidth-20,116,{flowChildren:"none",transform:"none",overflow:"noclip"});});
-        place(list,0,0,g.centerWidth-20,116,{flowChildren:"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
+        var abilityHeight=g.archiveChallenge?356:116;
+        place(branch,actionOffset(g),61,g.centerWidth-20,abilityHeight,{flowChildren:"none",minWidth:"0px",overflow:"noclip"});
+        wrappers.forEach(function(wrapper){place(wrapper,0,0,g.centerWidth-20,abilityHeight,{flowChildren:"none",transform:"none",overflow:"noclip"});});
+        place(list,0,0,g.centerWidth-20,abilityHeight,{flowChildren:g.archiveChallenge?"none":"right",minWidth:"0px",minHeight:"0px",overflow:"noclip",transform:"none"});
         place(native("StatBranch"),actionOffset(g),-85,74,74);
         style(native("InnateIcon"),{visibility:"collapse"});
         for(var innate=native("InnateIcon");valid(innate)&&innate!==branch;innate=innate.GetParent()){
@@ -1101,6 +1142,16 @@
         var unit=selectedUnit(),presentation=statVisibility(unit);
         presentation.multi=!!(cfg.SurvivalMultiSelectionPortraits&&cfg.SurvivalMultiSelectionPortraits.IsActive());
         var count=presentation.tree?0:abilityCount(readContext),g=cfg.HandoffGeometry(w,h,count,presentation.building,presentation.tree,presentation);
+        if(presentation.archive_challenge){
+            // Archive hubs use the reference's four columns and three rows.
+            // Retain the normal action anchor and native buttons/hit handlers.
+            g.archiveChallenge=true;g.centerWidth=500;g.height=438;g.count=12;
+            var reserve=Math.min(280*h/941,w*.22),baseScale=Math.min(.5*h/941,(w-2*(reserve+14))/1352);
+            g.scale=Math.min(baseScale,(w-14-g.actionX)/(g.centerWidth-10));
+            g.actionOffset=10;g.x=g.actionX-10*g.scale;g.y=h-g.height*g.scale-6;
+            g.centerX=0;g.attributeX=g.centerWidth;g.inventoryX=g.centerWidth;g.width=g.centerWidth;
+            g.barWidth=g.centerWidth-30;
+        }
         var signature=[viewportSignature,navHeight,count,g.heroWidth,g.height,g.actionOffset,g.x,g.scale,g.attributeWidth,g.inventoryX,unit,presentation.multi?1:0,
             currentEntries.map(function(e){return e.ability;}).join(",")].join(":");
         var panels=[native("abilities"),native("inventory"),native("PortraitGroup"),native("minimap_container"),native("minimap")];
@@ -1172,7 +1223,11 @@
                 if(!nodes[value.id+"Bounds"]){var bounds=create("Panel",center,value.id+"Bounds",false);value.SetParent(bounds);}
                 centered(center,value.id,24,y+4,g.barWidth-16,44,30);
             });
-            for(var i=0;i<32;i++){var key="HandoffSkillFrame_"+i;var frame=nodes[key];if(i<count&&!frame)frame=art(center,key,"slot_frame");if(frame){frame.visible=i<count;place(frame,10+120*i,38,116,116);}}
+            for(var i=0;i<32;i++){
+                var key="HandoffSkillFrame_"+i,frame=nodes[key],frameCount=g.archiveChallenge?12:count;
+                if(i<frameCount&&!frame)frame=art(center,key,"slot_frame");
+                if(frame){frame.visible=i<frameCount;place(frame,10+120*(g.archiveChallenge?i%4:i),38+(g.archiveChallenge?Math.floor(i/4)*120:0),116,116);}
+            }
             slotFrames.forEach(function(p,i){place(p,g.inventoryX+15+(i%3)*121,55+Math.floor(i/3)*126,116,116);});
             bottom.visible=true;ctx.AddClass("HandoffReady");
             ["TopBar","WaveBar"].forEach(function(id){var p=ctx.FindChildTraverse(id);if(p){p.hittest=false;p.hittestchildren=false;}});
@@ -1191,10 +1246,11 @@
     function statVisibility(unit) {
         if (unit < 0) return {combat:false,attributes:false};
         var name=String(Entities.GetUnitName(unit) || ""),building=false;
+        var archiveChallenge=/^npc_archive_challenge_[1-4]$/.test(name);
         try {building=!!(Entities.IsBuilding && Entities.IsBuilding(unit));} catch(error) {}
         // Some towers/walls are npc_dota_creature proxies with hero models.
         building=building || /^(building_|npc_dota_unit_building_|asset_proxy_(tower_|wall_))/.test(name)
-            || name==="npc_dota_unit_ultimate_tower" || /^npc_archive_challenge_[123]$/.test(name);
+            || name==="npc_dota_unit_ultimate_tower" || archiveChallenge;
         var snapshot=cfg.HandoffCombat && cfg.HandoffCombat.Snapshot ? cfg.HandoffCombat.Snapshot(unit) : null;
         var id=snapshot && snapshot.building_id || "";
         var tree=name==="enemy_tree" || name==="npc_dota_unit_enemy_tree" || !!(snapshot && Number(snapshot.is_resource_tree)===1);
@@ -1213,7 +1269,7 @@
         var monster=/^(npc_survival_(?:wave_|named_|rogue_training_dummy)|asset_proxy_(?:monster_|wave_)|zombie_)/.test(name);
         try {monster=monster || !!(Entities.GetTeamNumber && Number(Entities.GetTeamNumber(unit))===3);} catch(error) {}
         monster=!building && monster;
-        return {combat:!!name && !building,attributes:hero && !building && !monster,building:building,wall:wall,tower:tower,monster:monster,production:/^building_(main_city|(?:advanced_)?research_lab)$/.test(name)};
+        return {combat:!!name && !building,attributes:hero && !building && !monster,building:building,wall:wall,tower:tower,monster:monster,archive_challenge:archiveChallenge,production:/^building_(main_city|(?:advanced_)?research_lab)$/.test(name)};
     }
     function buildingPresentation(shown,multi) {
         var now=Date.now(),presentationSignature=[selectedUnit(),multi?1:0,layoutRevision,
@@ -1440,6 +1496,7 @@
         if(wave.status==="archive_challenges"||wave.status==="archive_challenges_pending") {
             if(Number(wave.challenge_saving)===1)return "挑战结束 · 正在保存奖励";
             if(Number(wave.challenge_ended)===1)return "挑战阶段已结束";
+            if(Number(wave.challenge_player_finished)===1)return "自己的挑战已结束 · 等待队友";
             if(!wave.challenge_deadline&&wave.challenge_remaining_seconds===undefined)return "挑战阶段 · 准备中";
             var seconds=remaining(wave.challenge_deadline,wave.challenge_remaining_seconds);
             return "挑战剩余 "+(Math.floor(seconds/60)<10?"0":"")+Math.floor(seconds/60)
@@ -1457,6 +1514,9 @@
         var difficulty=String(wave.difficulty_id||"").toUpperCase();
         text("HandoffDifficulty",selected&&/^N[1-9][0-9]*$/.test(difficulty)?difficulty:"");
         countdownWave=wave;renderCountdowns();
+        finishArchive.visible=(wave.status==="archive_challenges"||wave.status==="archive_challenges_pending")
+            && Number(wave.challenge_ended)!==1 && Number(wave.challenge_saving)!==1
+            && Number(wave.challenge_player_finished)!==1;
         var alive=Math.max(0,Math.floor(Number(wave.alive)||0)),limit=Number(wave.alive_limit);
         if(cfg.SurvivalEnemyPopulationWarning)cfg.SurvivalEnemyPopulationWarning.Render(wave);
         enemyCounter.visible=!fishing&&isFinite(limit)&&limit>0;

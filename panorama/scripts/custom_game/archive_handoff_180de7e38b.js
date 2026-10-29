@@ -173,7 +173,7 @@ function formatArchiveEffects(value) {
         // The compact grid hides its former explanatory footer. Keep the
         // category's configured earning/limit rules in the item detail instead.
         var hint=p('ArchiveHint');
-        if(hint&&hint.text&&['clear','endless','shadow','fragment','pet','friend','ex','beast','boss','fishing','map_level','gift'].indexOf(category)>=0)details+=(details?'\n':'')+String(hint.text);
+        if(hint&&hint.text&&['clear','endless','shadow','fragment','pet','friend','ex','wife','concubine','beast','boss','fishing','map_level','gift'].indexOf(category)>=0)details+=(details?'\n':'')+String(hint.text);
         p('ArchiveTooltipCondition').text=details;
         p('ArchiveTooltipCondition').visible=!effectOnly&&!!details;
         p('ArchiveTooltipCondition').style.visibility=!effectOnly&&details?'visible':'collapse';
