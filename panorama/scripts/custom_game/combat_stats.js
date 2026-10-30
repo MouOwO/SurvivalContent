@@ -464,6 +464,8 @@
     }
 
     function hidePortraitScenesExcept(activeScene) {
+        var monsterRenderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        if (monsterRenderer) monsterRenderer.Hide(activeScene);
         [towerPortraitScenePanel(), builderPortraitScenePanel(false)].forEach(function (scene) {
             if (!validPortraitPanel(scene) || scene === activeScene) return;
             if (String(scene.style.visibility) !== "collapse") {
@@ -731,9 +733,12 @@
     }
 
     function usesNativeRebirthPortrait(unit, snapshot) {
-        // The ten rebirth bosses always use Valve's entity-bound portrait,
-        // including pending snapshots and any retained outfit trial data.
+        // Retain the entity-bound fallback until authoritative outfit metadata
+        // arrives. The native background world then owns the full outfit.
         if (!isFinite(unit) || unit < 0) return false;
+        var renderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        if (renderer && snapshot && Number(snapshot.entindex) === Number(unit)
+            && renderer.HasAsset(snapshot.model_asset_id)) return false;
         var unitName = "";
         try { unitName = String(Entities.GetUnitName(unit) || ""); } catch (error) {}
         if (/^npc_survival_named_rebirth_boss_(0[1-9]|10)$/.test(unitName)) return true;
@@ -772,7 +777,7 @@
 
     function towerPortraitEntityUnchanged(unit) {
         unit = Number(unit);
-        return activePortraitMode === "tower_scene"
+        return (activePortraitMode === "tower_scene" || activePortraitMode === "monster_scene")
             && Number(activePortraitEntity) === unit
             && !!activePortraitKey
             && !!selectedUnitSnapshot
@@ -915,6 +920,8 @@
             return false;
         }
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
+        var monsterRenderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        var isMonsterPortrait = !!(monsterRenderer && monsterRenderer.HasAsset(modelAssetId));
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
         var isBuilderPortrait = modelAssetId === "builder_io_benevolent_companion"
@@ -925,28 +932,36 @@
             .test(modelAssetId)
             && /^npc_dota_hero_/.test(portraitUnit);
         if (!snapshot || Number(snapshot.entindex) !== Number(displayUnit())
-            || !(isTowerPortrait || isBuilderPortrait)) {
+            || !(isTowerPortrait || isBuilderPortrait || isMonsterPortrait)) {
             hideCosmeticPortrait("unsupported_portrait");
             return false;
         }
         var overlay = towerPortraitOverlayPanel();
-        var scene = isBuilderPortrait ? builderPortraitScenePanel(true) : towerPortraitScenePanel();
+        var prepared = null;
+        if (isMonsterPortrait && overlay) {
+            // SceneLoaded requires a visible ancestor during first load.
+            overlay.style.visibility = "visible";
+            prepared = monsterRenderer.Prepare(overlay, modelAssetId);
+        }
+        var scene = isMonsterPortrait ? prepared && prepared.scene
+            : isBuilderPortrait ? builderPortraitScenePanel(true) : towerPortraitScenePanel();
         var anchor = officialPortraitPanel();
-        var portraitMode = "tower_scene";
+        var portraitMode = isMonsterPortrait ? "monster_scene" : "tower_scene";
         if (!overlay || !anchor || !scene) {
             setPortraitAnchorDiagnostic(!overlay || !scene
                 ? "missing_overlay" : "missing_anchor");
             hideCosmeticPortrait("anchor_unavailable");
             return false;
         }
-        var portraitKey = [modelAssetId, portraitUnit, portraitItemDef].join(":");
+        var portraitKey = [modelAssetId, portraitUnit, portraitItemDef, prepared ? prepared.key : ""].join(":");
         if (!mountTowerPortraitAtNativeLayer(overlay, anchor)) {
             setPortraitAnchorDiagnostic("native_layer_unavailable");
             hideCosmeticPortrait("native_layer_unavailable");
             return false;
         }
         hidePortraitScenesExcept(scene);
-        applyTowerPortraitContentScale(scene);
+        if (isMonsterPortrait) resetTowerPortraitContentScale(scene);
+        else applyTowerPortraitContentScale(scene);
         scene.style.visibility = "visible";
         if (!positionCosmeticPortrait(overlay, anchor, scene)) {
             setPortraitAnchorDiagnostic("invalid_geometry");
@@ -956,7 +971,7 @@
         setPortraitAnchorDiagnostic("ready:" + String(anchor.id || "anonymous"));
         if (loadedPortraitKey !== portraitKey || loadedPortraitScene !== scene) {
             try {
-                if (!isBuilderPortrait) {
+                if (!isBuilderPortrait && !isMonsterPortrait) {
                     if (portraitSceneProbe && portraitSceneProbe.enabled) portraitSceneProbe.setUnitCalls += 1;
                     var setUnitResult = scene.SetUnit(portraitUnit, "default", false);
                     if (setUnitResult === false) throw new Error("SetUnit returned false");

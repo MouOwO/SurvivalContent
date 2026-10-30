@@ -39,9 +39,11 @@
             || /^monster_boss_rebirth_(0[1-9]|10)_/.test(identity.model_asset_id || "");
         var official = palette.nativeRebirthBackgrounds || {};
         var nativeBackground = (official.assets || {})[identity.model_asset_id] || (official.units || {})[unitName];
+        var monsterBackground = (cfg.SurvivalMonsterPortraitScenes || {})[identity.model_asset_id];
         return {color:color, fill:builder ? "#071321" : backdropCache[color],
             image:builder ? BUILDER_IO_BACKDROP : "none", nativeRebirth:nativeRebirth, entity:entity, unit:unitName,
-            officialTexture:nativeRebirth && nativeBackground ? nativeBackground.texture : "",
+            officialTexture:nativeRebirth && monsterBackground ? monsterBackground.background
+                : nativeRebirth && nativeBackground ? nativeBackground.texture : "",
             portrait:identity.portrait_unit_name || "", asset:identity.model_asset_id || "", model:identity.portrait_model_name || ""};
     }
     function updateOfficialBackground(container, foreground, backdrop) {
@@ -180,10 +182,10 @@
         }
         var backdrop = currentBackdrop();
         var container = group.FindChildTraverse("PortraitContainer");
-        // Remove our fill for the ten rebirth bosses so Valve's portrait owns
-        // both the live model and its backdrop. Empty inline values restore
-        // the native stylesheet and also clear a previously selected builder.
-        style(container, {backgroundColor:backdrop.nativeRebirth ? "" : backdrop.fill,
+        // Clear the prior fill so the original portrait texture is visible.
+        // A colour setter requires a valid transparent colour, not an empty
+        // string; repeated invalid writes flood the native script log.
+        style(container, {backgroundColor:backdrop.nativeRebirth ? "transparent" : backdrop.fill,
             backgroundImage:backdrop.nativeRebirth ? "" : backdrop.image,
             backgroundSize:backdrop.nativeRebirth ? "" : "100% 100%",
             backgroundPosition:backdrop.nativeRebirth ? "" : "50% 50%",
