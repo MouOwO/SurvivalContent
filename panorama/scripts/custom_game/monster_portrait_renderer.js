@@ -147,12 +147,15 @@
                 presentable:entry.ready && Date.now() - entry.mountedAt >= 100};
         }
         return {HasAsset:function (asset) { return !!specification(String(asset || "")); },
-            ResolveAsset:function(asset, model) {
+            ResolveAsset:function(asset, model, unitName) {
                 if (specification(String(asset || ""))) return String(asset);
+                model=String(model || "").replace(/\\/g,"/").replace(/\.vmdl_c$/i,".vmdl");
                 var specs=cfg.SurvivalMonsterPortraitScenes || {}, matches=Object.keys(specs).filter(function(a){
                     return specification(a) && specs[a].modelFallback && specs[a].model === model;
                 });
-                return matches.length === 1 ? matches[0] : "";
+                if (matches.length === 1) return matches[0];
+                var alias=(cfg.SurvivalMonsterPortraitUnitAssets || {})[String(unitName || "")], spec=specification(alias);
+                return !asset && spec && (!model || spec.model===model) ? alias : "";
             }, Prepare:prepare, Hide:hide, Prewarm:prewarm,
             Shutdown:function () { stopped = true; entries.slice().forEach(remove); if (valid(stage)) stage.DeleteAsync(0); },
             Inspect:function () { return {cached:entries.length, loaded:entries.filter(function(e){return e.ready;}).length,

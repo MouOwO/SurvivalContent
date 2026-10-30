@@ -39,11 +39,15 @@
             || /^monster_boss_rebirth_(0[1-9]|10)_/.test(identity.model_asset_id || "");
         var official = palette.nativeRebirthBackgrounds || {};
         var nativeBackground = (official.assets || {})[identity.model_asset_id] || (official.units || {})[unitName];
-        var monsterBackground = (cfg.SurvivalMonsterPortraitScenes || {})[identity.model_asset_id];
+        var renderer = cfg.SurvivalMonsterPortraitRenderer;
+        var resolvedAsset = renderer && renderer.ResolveAsset
+            ? renderer.ResolveAsset(identity.model_asset_id || "", identity.portrait_model_name || "", unitName) : identity.model_asset_id;
+        var monsterBackground = (cfg.SurvivalMonsterPortraitScenes || {})[resolvedAsset];
         return {color:color, fill:builder ? "#071321" : backdropCache[color],
             image:builder ? BUILDER_IO_BACKDROP : "none", nativeRebirth:nativeRebirth, entity:entity, unit:unitName,
-            officialTexture:nativeRebirth && monsterBackground ? monsterBackground.background
-                : nativeRebirth && nativeBackground ? nativeBackground.texture : "",
+            officialTexture:monsterBackground ? monsterBackground.background
+                : nativeRebirth && nativeBackground ? nativeBackground.texture
+                : /^npc_survival_wave_/.test(unitName) ? "s2r://panorama/images/custom_game/monster_portrait_backgrounds/portraitbackground_coolinterior.vtex" : "",
             portrait:identity.portrait_unit_name || "", asset:identity.model_asset_id || "", model:identity.portrait_model_name || ""};
     }
     function updateOfficialBackground(container, foreground, backdrop) {
@@ -116,57 +120,23 @@
         panel.hittest = false;
         panel.hittestchildren = false;
     }
-    var statusHistory = {};
     function selectedEntity() {
         var resolver = cfg.SurvivalSelectionResolver;
         if (resolver && resolver.ResolveDisplayUnit) return Number(resolver.ResolveDisplayUnit());
         return Number(Players.GetLocalPlayerPortraitUnit());
     }
     function updateStatusFaces(group) {
-        var entity = selectedEntity(), now = Date.now(), key = String(entity);
-        var displayOnly = portraitIdentity && portraitIdentity.entindex === entity
-            && Number(portraitIdentity.portrait_display_only) === 1;
-        if (!isFinite(entity) || entity < 0 || displayOnly) {
-            hide(group.FindChildTraverse("SilenceIcon"));
-            hide(group.FindChildTraverse("MutedIcon"));
-            return;
-        }
-        var record = statusHistory[key];
-        if (!record) record = statusHistory[key] = {seen:now, states:{}};
-        record.seen = now;
-        // Bound history without resetting the timer when the selected unit or
-        // native HUD panel changes. A continuous status is shown only once.
-        var keys = Object.keys(statusHistory);
-        if (keys.length > 128) {
-            keys.sort(function (a,b) {return statusHistory[a].seen-statusHistory[b].seen;});
-            delete statusHistory[keys[0]];
-        }
-        var visibleFace = false;
-        [["SilenceIcon","UnitSilenced"],["MutedIcon","UnitMuted"]].forEach(function (entry) {
-            var icon = group.FindChildTraverse(entry[0]);
-            if (!valid(icon)) return;
-            var active = icon.BAscendantHasClass && icon.BAscendantHasClass(entry[1]);
-            var previous = record.states[entry[0]];
-            if (!active) {
-                delete record.states[entry[0]];
-                hide(icon);
-                return;
-            }
-            if (!previous) previous = record.states[entry[0]] = {started:now};
-            var elapsed = now-previous.started;
-            if (elapsed >= 3250 || visibleFace) { hide(icon); return; }
-            icon.hittest = false;
-            icon.hittestchildren = false;
-            style(icon, {visibility:"visible", transitionProperty:"opacity",
-                transitionDuration:elapsed < 3000 ? "0s" : "0.25s",
-                opacity:elapsed < 3000 ? "1" : "0", animationName:"none"});
-            visibleFace = true;
+        ["SilenceIcon", "MutedIcon"].forEach(function (id) {
+            var icon = group.FindChildTraverse(id);
+            hide(icon);
+            style(icon, {width:"0px", height:"0px", maxWidth:"0px", maxHeight:"0px", overflow:"clip"});
         });
     }
     function refresh(group) {
         if (!valid(group) || !group.FindChildTraverse) return;
         var hudRoot=group;
         while(hudRoot.GetParent && hudRoot.GetParent()) hudRoot=hudRoot.GetParent();
+        if (hudRoot.AddClass) hudRoot.AddClass("SurvivalPortraitNoStatusFaces");
         refreshLocalHeroPortrait(hudRoot);
         hiddenIds.forEach(function (id) { hide(group.FindChildTraverse(id)); });
         updateStatusFaces(group);
@@ -185,16 +155,16 @@
         // Clear the prior fill so the original portrait texture is visible.
         // A colour setter requires a valid transparent colour, not an empty
         // string; repeated invalid writes flood the native script log.
-        style(container, {backgroundColor:backdrop.nativeRebirth ? "transparent" : backdrop.fill,
-            backgroundImage:backdrop.nativeRebirth ? "none" : backdrop.image,
+        style(container, {backgroundColor:backdrop.officialTexture ? "transparent" : backdrop.fill,
+            backgroundImage:backdrop.officialTexture ? "none" : backdrop.image,
             backgroundSize:"100% 100%",
             backgroundPosition:"50% 50%",
             backgroundRepeat:"no-repeat",
             border:"0px", boxShadow:"none"});
         var nativePortrait = group.FindChildTraverse("portraitHUD");
         updateOfficialBackground(container, nativePortrait, backdrop);
-        // The staging modifier must still prevent spells/items; only its giant
-        // native blur is suppressed; status faces expire after three seconds.
+        // Keep gameplay states intact while removing the oversized portrait
+        // blur and status faces from the custom gold frame.
         style(nativePortrait, {blur:"gaussian(0)", animationName:"none", transitionProperty:"none"});
         if (valid(nativePortrait) && nativePortrait.FindChildTraverse) {
             ["LowerOverlay", "InspectButton", "ReportUserButton", "HeroViewButton"].forEach(function (id) {
@@ -202,11 +172,11 @@
             });
         }
         var custom = group.FindChildTraverse("SurvivalTowerPortraitOverlay");
-        style(custom, {backgroundColor:backdrop.nativeRebirth ? "transparent" : backdrop.fill,
-            backgroundImage:backdrop.nativeRebirth ? "none" : backdrop.image,
+        style(custom, {backgroundColor:backdrop.officialTexture ? "transparent" : backdrop.fill,
+            backgroundImage:backdrop.officialTexture ? "none" : backdrop.image,
             backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat"});
         var multi=cfg.SurvivalMultiSelectionPortraits;
-        var effectsEnabled=backdrop.entity>=0 && !backdrop.nativeRebirth && !(multi && multi.IsActive && multi.IsActive());
+        var effectsEnabled=backdrop.entity>=0 && !backdrop.officialTexture && !(multi && multi.IsActive && multi.IsActive());
         var customActive=valid(custom) && String(custom.style.visibility)==="visible";
         updateBackdropMotes(container,nativePortrait,backdrop,effectsEnabled && !customActive);
         updateBackdropMotes(custom,valid(custom)&&custom.FindChildTraverse("SurvivalTowerPortraitScene"),backdrop,effectsEnabled && customActive);
@@ -267,7 +237,7 @@
         var queryPortrait = valid(queryContainer) && queryContainer.FindChildTraverse("QueryUnitHeroPortrait");
         if (valid(queryContainer) && valid(queryPortrait)) {
             var queryBackdrop = currentBackdrop();
-            if (queryBackdrop.nativeRebirth) {
+            if (queryBackdrop.officialTexture) {
                 style(queryContainer, {backgroundColor:"transparent", backgroundImage:"none"});
                 style(queryPortrait, {blur:"gaussian(0)", animationName:"none", transitionProperty:"none"});
             }

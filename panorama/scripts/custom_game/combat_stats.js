@@ -239,6 +239,8 @@
     }
 
     function resolveUnitDisplayName(unitName, snapshotName) {
+        var encounterName = (GameUI.CustomUIConfig().SurvivalMonsterPortraitUnitNames || {})[unitName];
+        if (encounterName) return encounterName;
         var configured = configuredUnitNames[unitName];
         if (snapshotName && !isInternalUnitName(snapshotName, unitName)) {
             return String(snapshotName).replace(/^#/, "");
@@ -982,7 +984,8 @@
         }
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
         if (monsterRenderer && monsterRenderer.ResolveAsset && snapshot) {
-            modelAssetId = monsterRenderer.ResolveAsset(modelAssetId, String(snapshot.portrait_model_name || "")) || modelAssetId;
+            modelAssetId = monsterRenderer.ResolveAsset(modelAssetId, String(snapshot.portrait_model_name || ""),
+                String(Entities.GetUnitName(Number(displayUnit())) || "")) || modelAssetId;
         }
         var isMonsterPortrait = !!(monsterRenderer && monsterRenderer.HasAsset(modelAssetId));
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
