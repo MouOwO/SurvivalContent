@@ -113,8 +113,7 @@
     function canPresent() {
         if (!admitted() || !readyUI()) return false;
         var layers = cfg.SurvivalUILayers, top = layers.Top();
-        var guide = cfg.SurvivalOnboarding, info = guide && guide.Inspect ? guide.Inspect() : null;
-        return (!top || top === "public_beta_gift") && !(info && info.shown);
+        return !top || top === "public_beta_gift";
     }
     function render() {
         if (!alive()) return;
