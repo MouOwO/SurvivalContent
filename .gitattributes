@@ -45,3 +45,6 @@ panorama/layout/custom_game/custom_ui_manifest.xml text eol=crlf
 panorama/scripts/custom_game/native_transport_probe.js text eol=crlf
 # Texture dependency CRCs must match the game repository.
 *.vtex text eol=lf
+
+# Editable portrait scene for the canonical Bladeform body skin.
+maps/portraits/monster_1bc348e8932e1cfc065b_v1.vmap filter=lfs diff=lfs merge=lfs -text

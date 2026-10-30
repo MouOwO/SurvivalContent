@@ -721,7 +721,7 @@
     "modelFallback": false
   },
   "hero_permanent_hero_blademaster": {
-    "map": "portraits/monster_960cd997848edbc33fde_v1",
+    "map": "portraits/monster_1bc348e8932e1cfc065b_v1",
     "camera": "monster_portrait_camera",
     "light": "monster_portrait_light",
     "unit": "npc_dota_hero_juggernaut",
