@@ -159,7 +159,22 @@
         cache.entries[key]={actual:actual,expected:expected,equal:equal};
         return equal?2:0;
     }
-    function style(p, values) {if(valid(p)) Object.keys(values).forEach(function(k){if(!sameStyleValue(p,k,String(p.style[k]),String(values[k])))p.style[k]=values[k];});}
+    function style(p, values) {if(valid(p)) Object.keys(values).forEach(function(k){
+        var actual;
+        try{actual=String(p.style[k]);}
+        catch(error){
+            if(k!=="backgroundImage")throw error;
+            // Some native image layers cannot round-trip through the JS getter.
+            // A decoration read must not abort the remaining hotkey cleanup.
+            if(!p.__handoffBackgroundReadFailed){p.__handoffBackgroundReadFailed=true;$.Msg("[HANDOFF_STYLE] unreadable_background panel=",p.id);}
+            actual=p.__handoffBackgroundValue;
+        }
+        if(!sameStyleValue(p,k,actual,String(values[k]))){
+            try{p.style[k]=values[k];}
+            catch(error){throw new Error("style_write panel="+p.id+" property="+k+" value="+values[k]+" error="+error);}
+        }
+        if(k==="backgroundImage")p.__handoffBackgroundValue=String(values[k]);
+    });}
     function cssNumber(value, precision) {
         // Panorama rejects exponent notation, including near-zero centering
         // residue such as 1.1368683772161603e-13. Keep subpixel layout in decimal.
@@ -600,9 +615,19 @@
             if(slot)delete keyBindings[slot.id];
             return;
         }
-        if(slot)keyBindings[slot.id]={text:String(p.text||""),unit:Number(unit),ability:Number(ability)};
+        if(slot)keyBindings[slot.id]={slot:slot,text:String(p.text||""),unit:Number(unit),ability:Number(ability)};
+        mirrorKeys.signature="";
+        mirrorKeys();
     };
-    cfg.HandoffClearHotkey=function(slot){if(slot)delete keyBindings[slot.id];};
+    cfg.HandoffClearHotkey=function(slot){
+        if(!slot)return;
+        var binding=keyBindings[slot.id];
+        if(binding&&binding.slot!==slot)return;
+        delete keyBindings[slot.id];
+        // The independent mirror must clear now, even if no skill slots remain.
+        skillPanels.forEach(function(p,i){var b=nodes["HandoffKey_"+i+"Bounds"];if(p===slot&&valid(b))b.visible=false;});
+        mirrorKeys.signature="";
+    };
     function recoverReadyHotkeyMirror(){
         if(hotkeyMirrorRecovery.finished||!ready||!currentEntries.length)return;
         if(geometry&&geometry.archiveChallenge)return;
@@ -629,8 +654,10 @@
     }
     function mirrorKeys(){
         var unit=Number(selectedUnit());
+        var resolver=cfg.SurvivalSelectionResolver;
+        var command=resolver&&resolver.Resolve?Number(resolver.Resolve()):unit;
         if(!geometry)return;
-        var keySignature=[unit,layoutRevision,geometry.heroWidth,geometry.scale];
+        var keySignature=[unit,command,layoutRevision,geometry.heroWidth,geometry.scale];
         for(var keyIndex=0;keyIndex<skillPanels.length;keyIndex++){
             var keySlot=skillPanels[keyIndex],keyBinding=keySlot&&keyBindings[keySlot.id];
             keySignature.push(keySlot&&keySlot.id,keySlot&&keySlot.__handoffArchiveSlot,keyBinding&&keyBinding.text,keyBinding&&keyBinding.unit,keyBinding&&keyBinding.ability,
@@ -639,10 +666,18 @@
         }
         keySignature=keySignature.join(":");
         var now=Date.now();
-        if(mirrorKeys.signature===keySignature&&now-mirrorKeys.checkedAt<1000)return;
+        if(mirrorKeys.signature===keySignature&&now-mirrorKeys.checkedAt<100)return;
+        // Clear every obsolete pixel before any decorative style operation can
+        // throw. A failing first slot must not leave W/E/R from the former unit.
+        for(var clearIndex=0;clearIndex<32;clearIndex++){
+            var oldBounds=nodes["HandoffKey_"+clearIndex+"Bounds"],oldSlot=skillPanels[clearIndex],oldBinding=oldSlot&&keyBindings[oldSlot.id];
+            if(valid(oldBounds))oldBounds.visible=!!(command===unit&&!geometry.archiveChallenge&&oldBinding&&oldBinding.slot===oldSlot&&valid(oldSlot)
+                &&oldBinding.unit===unit&&currentEntries[clearIndex]&&Number(currentEntries[clearIndex].ability)===oldBinding.ability&&oldBinding.text);
+        }
         for(var i=0;i<32;i++){
             var id="HandoffKey_"+i,bounds=nodes[id+"Bounds"],slot=skillPanels[i],binding=slot&&keyBindings[slot.id];
-            var matching=!geometry.archiveChallenge&&binding&&binding.unit===unit&&currentEntries[i]&&Number(currentEntries[i].ability)===binding.ability;
+            var matching=command===unit&&!geometry.archiveChallenge&&binding&&binding.slot===slot&&valid(slot)
+                &&binding.unit===unit&&currentEntries[i]&&Number(currentEntries[i].ability)===binding.ability;
             if(!bounds&&matching){bounds=create("Panel",bottom,id+"Bounds",false);label(bounds,id,"HandoffNumber");}
             if(!bounds)continue;bounds.visible=!!matching&&!!binding.text;
             if(bounds.visible){
@@ -660,16 +695,25 @@
             if(valid(pip)&&pip.BHasClass("LevelPanel")&&!pip.BHasClass("Hidden")&&pip.visible!==false)pips.push(pip);
         }
         var state=container.__handoffLevelPips;
+        var defaults={position:"0px 0px 0px",width:"fit-children",height:"fit-children",horizontalAlign:"left",verticalAlign:"top",
+            margin:"0px",marginRight:"0px",padding:"0px",flowChildren:"none",overflow:"noclip",transitionDuration:"0s",
+            minWidth:"0px",minHeight:"0px",maxWidth:"10000px",maxHeight:"10000px"};
+        function normalized(values){var result={};Object.keys(values).forEach(function(key){
+            var value=String(values[key]||"");result[key]=!value||value==="null"?defaults[key]:value;
+        });return result;}
         if(pips.length<2){
             if(state){
                 container.__handoffLevelPips=null;
-                style(container,state.original);
-                state.pips.forEach(function(saved){if(valid(saved.panel))style(saved.panel,saved.original);});
+                style(container,normalized(state.original));
+                state.pips.forEach(function(saved){if(valid(saved.panel))style(saved.panel,normalized(saved.original));});
             }
             return;
         }
         function snapshot(panel,keys){
-            var values={};keys.forEach(function(key){values[key]=String(panel.style[key]||"");});return values;
+            var values={};keys.forEach(function(key){
+                var value=String(panel.style[key]||"");
+                values[key]=!value||value==="null"?defaults[key]:value;
+            });return values;
         }
         if(!state)state=container.__handoffLevelPips={
             original:snapshot(container,["position","width","height","horizontalAlign","verticalAlign","margin","padding","flowChildren","overflow","transitionDuration","minWidth","minHeight","maxWidth","maxHeight"]),pips:[]

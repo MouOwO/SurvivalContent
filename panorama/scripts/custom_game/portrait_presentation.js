@@ -186,10 +186,10 @@
         // A colour setter requires a valid transparent colour, not an empty
         // string; repeated invalid writes flood the native script log.
         style(container, {backgroundColor:backdrop.nativeRebirth ? "transparent" : backdrop.fill,
-            backgroundImage:backdrop.nativeRebirth ? "" : backdrop.image,
-            backgroundSize:backdrop.nativeRebirth ? "" : "100% 100%",
-            backgroundPosition:backdrop.nativeRebirth ? "" : "50% 50%",
-            backgroundRepeat:backdrop.nativeRebirth ? "" : "no-repeat",
+            backgroundImage:backdrop.nativeRebirth ? "none" : backdrop.image,
+            backgroundSize:"100% 100%",
+            backgroundPosition:"50% 50%",
+            backgroundRepeat:"no-repeat",
             border:"0px", boxShadow:"none"});
         var nativePortrait = group.FindChildTraverse("portraitHUD");
         updateOfficialBackground(container, nativePortrait, backdrop);

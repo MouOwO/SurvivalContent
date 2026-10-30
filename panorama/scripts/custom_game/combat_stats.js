@@ -480,6 +480,7 @@
         while (current) {
             var id = String(current.id || "");
             if (id === "SurvivalHeroBottomHUD"
+                || id === "SurvivalPortraitPrewarm"
                 || id === "SurvivalTowerPortraitOverlay") return true;
             current = current.GetParent ? current.GetParent() : null;
         }
@@ -921,6 +922,9 @@
         }
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
         var monsterRenderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        if (monsterRenderer && monsterRenderer.ResolveAsset && snapshot) {
+            modelAssetId = monsterRenderer.ResolveAsset(modelAssetId, String(snapshot.portrait_model_name || "")) || modelAssetId;
+        }
         var isMonsterPortrait = !!(monsterRenderer && monsterRenderer.HasAsset(modelAssetId));
         var portraitUnit = String(snapshot && snapshot.portrait_unit_name || "");
         var portraitItemDef = String(snapshot && snapshot.portrait_item_def || "");
@@ -939,9 +943,15 @@
         var overlay = towerPortraitOverlayPanel();
         var prepared = null;
         if (isMonsterPortrait && overlay) {
-            // SceneLoaded requires a visible ancestor during first load.
-            overlay.style.visibility = "visible";
+            var warmAnchor = officialPortraitPanel();
+            if (monsterRenderer.Prewarm && warmAnchor && warmAnchor.GetParent) {
+                monsterRenderer.Prewarm(warmAnchor.GetParent(), modelAssetId);
+            }
             prepared = monsterRenderer.Prepare(overlay, modelAssetId);
+            if (prepared && !prepared.ready) {
+                hideCosmeticPortrait("portrait_prewarming");
+                return false;
+            }
         }
         var scene = isMonsterPortrait ? prepared && prepared.scene
             : isBuilderPortrait ? builderPortraitScenePanel(true) : towerPortraitScenePanel();
@@ -1007,6 +1017,9 @@
     }
 
     function cosmeticPortraitSentinel() {
+        var renderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        var anchor = officialPortraitPanel();
+        if (renderer && renderer.Prewarm && anchor && anchor.GetParent) renderer.Prewarm(anchor.GetParent());
         var current = selectedUnitSnapshot;
         if (current && Number(current.entindex) === Number(displayUnit())) {
             updateCosmeticPortrait(current);
@@ -2349,7 +2362,9 @@
         // The shared check still enumerates current abilities and live native
         // bindings, but clears/rebinds only when either actually changed.
         refreshAbilityHotkeysIfChanged(false);
-        scheduleActive(1.0, refreshAbilities);
+        // Valve can restore old native hotkeys after the selection event and
+        // its short retries. Match the live HUD at the same cadence as portraits.
+        scheduleActive(0.10, refreshAbilities);
     }
 
     function belongsToLegacyHud(target) {
