@@ -27,7 +27,7 @@
         }
         function hide(except) {
             entries.forEach(function (e) {
-                if (valid(e.host)) e.host.style.visibility = e.scene === except || e === warming ? "visible" : "collapse";
+                if (valid(e.host)) e.host.style.visibility = e.scene === except || (e === warming && !e.ready) ? "visible" : "collapse";
             });
             if (!except) current = null;
         }
@@ -38,7 +38,8 @@
                 $.Msg("[SURVIVAL_MONSTER_PORTRAIT] READY asset=", entry.asset, " map=", entry.spec.map,
                     " ms=", Date.now() - entry.started, " components=", entry.spec.components);
             }
-            if (!entry.ready && Date.now() - entry.started > 10000) {
+            if (!entry.ready && (entry === warming || entry === current || !valid(stage))
+                && Date.now() - entry.started > 10000) {
                 failed[entry.key] = true;
                 $.Warning("[SURVIVAL_MONSTER_PORTRAIT] LOAD_FAILED asset=" + entry.asset);
                 remove(entry); return false;
@@ -87,6 +88,7 @@
                 var entry = ensure(stage, queued.shift());
                 if (entry && !entry.ready) {
                     warming = entry;
+                    entry.started = Date.now();
                     if (entry !== current) entry.host.SetParent(stage);
                     entry.host.style.visibility = "visible";
                 }
@@ -121,11 +123,28 @@
             asset = String(asset || "");
             var entry = ensure(valid(stage) ? stage : parent, asset);
             if (!entry || !valid(parent)) { hide(); return null; }
+            if (!entry.ready && valid(stage) && warming !== entry) {
+                // The selected outfit must render now, rather than waiting in
+                // the background queue while Hide collapses its loading host.
+                if (warming && valid(warming.host)) {
+                    if (warming !== current) warming.host.style.visibility = "collapse";
+                    queued.unshift(warming.asset);
+                }
+                warming = entry; entry.started = Date.now();
+                queued = queued.filter(function (a) { return keyFor(specification(a)) !== entry.key; });
+                if (entry.host.GetParent() !== stage) entry.host.SetParent(stage);
+                entry.host.style.visibility = "visible";
+                if (!timer) { timer = true; $.Schedule(0.05, tickWarm); }
+            }
             if (entry.ready || !valid(stage)) {
+                if (current !== entry || entry.host.GetParent() !== parent) entry.mountedAt = Date.now();
                 if (entry.host.GetParent() !== parent) entry.host.SetParent(parent);
                 current = entry; hide(entry.scene);
             }
-            return {scene:entry.scene, ready:entry.ready, key:entry.key};
+            // Resuming/reparenting a cached scene reallocates its render target.
+            // SceneLoaded stays set while the first target frames can be white.
+            return {scene:entry.scene, ready:entry.ready, key:entry.key,
+                presentable:entry.ready && Date.now() - entry.mountedAt >= 100};
         }
         return {HasAsset:function (asset) { return !!specification(String(asset || "")); },
             ResolveAsset:function(asset, model) {

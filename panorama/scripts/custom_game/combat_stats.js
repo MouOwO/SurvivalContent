@@ -123,6 +123,7 @@
     var portraitGeometrySignature = "";
     var portraitGeometryDiagnosticSignature = "";
     var portraitTransitionSignature = "";
+    var portraitPendingUnit = -1, portraitPendingStarted = 0;
     var dimmedNativePortraits = [];
     var towerPortraitOverlay = null;
     var towerPortraitScene = null;
@@ -659,8 +660,6 @@
             return entry && entry.panel === anchor;
         });
         if (alreadyDimmed) {
-            // The opaque, input-transparent sibling covers the native pixels.
-            // DOTAPortrait itself stays visible to retain engine mouse input.
             if (String(anchor.style.opacity || "") !== "1") anchor.style.opacity = "1";
             return;
         }
@@ -678,7 +677,8 @@
         anchor.__survivalPortraitDimmed = true;
         anchor.__survivalPortraitOriginalOpacity = originalOpacity;
         // wash-color alpha controls tint strength, not pixel transparency.
-        // Hide the native pixels with the opaque sibling, keeping input alive.
+        // The input-transparent cover owns the transition pixels. Keep the
+        // native input leaf at its original active opacity for engine handling.
         anchor.style.opacity = "1";
     }
 
@@ -750,9 +750,16 @@
     function unitUsesTowerPortrait(unit) {
         unit = Number(unit);
         if (!isFinite(unit) || unit < 0) return false;
-        if (usesNativeRebirthPortrait(unit, selectedUnitSnapshot)) return false;
+        var renderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        if (!renderer && usesNativeRebirthPortrait(unit, selectedUnitSnapshot)) return false;
         try {
         var unitName = String(Entities.GetUnitName(unit) || "");
+        // Before outfit metadata arrives, cover the native body without guessing
+        // an outfit from a shared wave-unit name. The snapshot decides the scene.
+        if (renderer && (/^(npc_survival_|building_)/.test(unitName) || unitName === "enemy_tree"
+            || Object.keys(customConfig.SurvivalMonsterPortraitScenes || {}).some(function (asset) {
+                return customConfig.SurvivalMonsterPortraitScenes[asset].unit === unitName;
+            }))) return true;
         if (unitName === "npc_survival_builder_proxy") return true;
         if (unitName === "building_arrow_tower") {
             return true;
@@ -790,10 +797,46 @@
         return !!(controller && controller.IsActive && controller.IsActive());
     }
 
-    function holdTowerPortraitTransition(reason) {
+    function showPortraitTransitionCover(overlay, modelAssetId) {
+        var cover = overlay.FindChildTraverse("SurvivalPortraitTransitionCover");
+        if (!validPortraitPanel(cover)) {
+            cover = $.CreatePanel("Panel", overlay, "SurvivalPortraitTransitionCover");
+            cover.style.width = "100%"; cover.style.height = "100%";
+            cover.style.position = "0px 0px 0px"; cover.style.zIndex = "100";
+            cover.style.backgroundColor = "#071321";
+            cover.hittest = false; cover.hittestchildren = false;
+            cover.__backgrounds = {};
+        }
+        var spec = (customConfig.SurvivalMonsterPortraitScenes || {})[modelAssetId];
+        var uri = spec ? spec.background : "";
+        cover.__selectedBackground = uri;
+        Object.keys(cover.__backgrounds).forEach(function (key) {
+            cover.__backgrounds[key].style.visibility = key === uri ? "visible" : "collapse";
+        });
+        if (uri && !cover.__backgrounds[uri]) {
+            var image = $.CreatePanel("Image", cover, "SurvivalPortraitTransitionBackground" + Object.keys(cover.__backgrounds).length);
+            cover.__backgrounds[uri] = image;
+            image.style.width = "100%"; image.style.height = "100%";
+            image.style.position = "0px 0px 0px"; image.style.opacity = "0.001";
+            image.hittest = false; image.hittestchildren = false;
+            $.RegisterEventHandler("ImageLoaded", image, function () {
+                if (validPortraitPanel(image)) image.style.opacity = "1";
+            });
+            image.SetImage(uri);
+        }
+        cover.style.visibility = "visible";
+    }
+
+    function holdTowerPortraitTransition(reason, modelAssetId) {
         if (multiSelectionPortraitActive()) return false;
         var unit = Number(displayUnit());
-        if (!unitUsesTowerPortrait(unit)) return false;
+        if (!modelAssetId && !unitUsesTowerPortrait(unit)) return false;
+        if (portraitPendingUnit !== unit) {
+            portraitPendingUnit = unit; portraitPendingStarted = Date.now();
+        }
+        // A lost/unsupported metadata response must not leave an empty cover
+        // indefinitely. Known scenes have their own bounded loading timeout.
+        if (!modelAssetId && Date.now() - portraitPendingStarted > 1500) return false;
         var overlay = towerPortraitOverlayPanel();
         var scene = towerPortraitScenePanel();
         var anchor = officialPortraitPanel();
@@ -803,6 +846,8 @@
         restoreNativePortraitsExcept(anchor);
         dimNativePortraitOpacity(anchor);
         hidePortraitScenesExcept(null);
+        showPortraitTransitionCover(overlay, modelAssetId);
+        overlay.style.backgroundColor = "#071321";
         overlay.style.visibility = "visible";
         var signature = [unit, String(anchor.id || anchor.paneltype || "anonymous")]
             .join(":");
@@ -823,6 +868,16 @@
         // restart the custom Scene. The sentinel independently repairs Valve
         // anchor/opacity changes without entering the black transition mask.
         if (towerPortraitEntityUnchanged(Number(displayUnit()))) return;
+        var unit = Number(displayUnit());
+        var snapshot = selectedUnitSnapshot && Number(selectedUnitSnapshot.entindex) === unit
+            ? selectedUnitSnapshot : CustomNetTables.GetTableValue(tableName, tableKey);
+        // Native selection updates before the deferred stat/name retries. Reuse
+        // an already received authoritative identity in this very event instead.
+        if (snapshot && Number(snapshot.entindex) === unit
+            && (acceptedSnapshotUnit !== unit || Number(snapshot.refresh_version || 0) >= acceptedSnapshotVersion)) {
+            updateCosmeticPortrait(snapshot);
+            return;
+        }
         if (holdTowerPortraitTransition(reason)) return;
         hideCosmeticPortrait(reason);
     }
@@ -916,12 +971,16 @@
             hideCosmeticPortrait("multi_selection");
             return false;
         }
+        var monsterRenderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
+        if (monsterRenderer && snapshot && Number(snapshot.entindex) === Number(displayUnit())
+            && ["model_asset_id", "portrait_unit_name", "portrait_item_def", "portrait_model_name"].every(function (key) {
+                return snapshot[key] === undefined;
+            }) && holdTowerPortraitTransition("portrait_metadata_pending")) return false;
         if (usesNativeRebirthPortrait(Number(displayUnit()), snapshot)) {
             hideCosmeticPortrait("native_rebirth_portrait");
             return false;
         }
         var modelAssetId = String(snapshot && snapshot.model_asset_id || "");
-        var monsterRenderer = GameUI.CustomUIConfig().SurvivalMonsterPortraitRenderer;
         if (monsterRenderer && monsterRenderer.ResolveAsset && snapshot) {
             modelAssetId = monsterRenderer.ResolveAsset(modelAssetId, String(snapshot.portrait_model_name || "")) || modelAssetId;
         }
@@ -949,7 +1008,8 @@
             }
             prepared = monsterRenderer.Prepare(overlay, modelAssetId);
             if (prepared && !prepared.ready) {
-                hideCosmeticPortrait("portrait_prewarming");
+                if (!holdTowerPortraitTransition("portrait_prewarming", modelAssetId))
+                    hideCosmeticPortrait("portrait_prewarming_anchor_unavailable");
                 return false;
             }
         }
@@ -1010,6 +1070,10 @@
         activePortraitEntity = Number(snapshot.entindex);
         activePortraitScene = scene;
         portraitTransitionSignature = "";
+        portraitPendingUnit = -1;
+        var transitionCover = overlay.FindChildTraverse("SurvivalPortraitTransitionCover");
+        if (prepared && prepared.presentable === false) showPortraitTransitionCover(overlay, modelAssetId);
+        else if (validPortraitPanel(transitionCover)) transitionCover.style.visibility = "collapse";
         restoreNativePortraitsExcept(anchor);
         dimNativePortraitOpacity(anchor);
         overlay.style.visibility = "visible";
@@ -1791,10 +1855,12 @@
             if (unitChanged) {
                 heroPanelState.unit = Number(unit);
                 ["CombatAttackValue","CombatArmorValue","CombatAttackSpeedValue","CombatStrengthValue","CombatAgilityValue","CombatIntellectValue"].forEach(function(id){setText(id,"…");});
-                selectedUnitSnapshot = null;
+                if (!selectedUnitSnapshot || Number(selectedUnitSnapshot.entindex) !== Number(unit)) selectedUnitSnapshot = null;
                 transitionCosmeticPortrait("selected_unit_changed");
-                acceptedSnapshotUnit = Number(unit);
-                acceptedSnapshotVersion = 0;
+                if (acceptedSnapshotUnit !== Number(unit)) {
+                    acceptedSnapshotUnit = Number(unit);
+                    acceptedSnapshotVersion = 0;
+                }
                 var tooltipBindings = GameUI.CustomUIConfig().SurvivalTooltipBindings;
                 if (tooltipBindings && tooltipBindings.Recover) {
                     tooltipBindings.Recover();
