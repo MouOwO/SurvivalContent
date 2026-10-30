@@ -513,7 +513,8 @@
         showEndlessTip(text);
     }
     subscribe("ui_notification", function(data){
-        if (!data || data.kind !== "endless_tip" || Number(data.player_id) !== Game.GetLocalPlayerID()) return;
+        if (!data || (data.kind !== "endless_tip" && data.kind !== "wave_overflow_tip")
+            || Number(data.player_id) !== Game.GetLocalPlayerID()) return;
         showEndlessTip(String(data.message || ""));
     });
     subscribe("survival_endless_state", function (data) {
