@@ -518,7 +518,43 @@
         return null;
     }
 
+    var portraitAnchorCache = null, portraitQueryMode = false;
+    function portraitAnchorVisible(anchor, root) {
+        if (!portraitCandidateUsable(anchor, root)) return false;
+        // Follow only this fixed-depth parent chain, never the scene collection.
+        for (var p = anchor, depth = 0; p && depth < 32; depth++) {
+            if (!validPortraitPanel(p) || p.visible === false || p.style.visibility === "collapse") return false;
+            if (p === root) return true;
+            p = p.GetParent ? p.GetParent() : null;
+        }
+        return false;
+    }
+
     function officialPortraitPanel() {
+        var root = officialHudRoot();
+        if (!root || !root.FindChildTraverse) return null;
+        var cache = portraitAnchorCache;
+        if (!cache || cache.root !== root
+            || (cache.main && (!validPortraitPanel(cache.main) || cache.main.GetParent() !== cache.mainParent))
+            || (cache.query && (!validPortraitPanel(cache.query) || cache.query.GetParent() !== cache.queryParent))) {
+            // One lookup per actual HUD/panel identity. Missing late query
+            // children are retried only in the existing bounded event window.
+            var query = root.FindChildTraverse("QueryUnitHeroPortrait");
+            var main = findMainPortraitPanel();
+            cache = portraitAnchorCache = {root:root, main:main, query:query,
+                mainParent:main && main.GetParent(), queryParent:query && query.GetParent()};
+        }
+        if (portraitQueryMode) return portraitAnchorVisible(cache.query, root) ? cache.query : null;
+        if (portraitAnchorVisible(cache.main, root)) return cache.main;
+        return portraitAnchorVisible(cache.query, root) ? cache.query : null;
+    }
+
+    function refreshMissingPortraitAnchors() {
+        if (portraitAnchorCache && (!portraitAnchorCache.main
+            || (portraitQueryMode && !portraitAnchorCache.query))) portraitAnchorCache = null;
+    }
+
+    function findMainPortraitPanel() {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return null;
         var ids = [
@@ -1927,6 +1963,7 @@
         if (unitNameTransition && unitNameTransition.pending
             && unitNameTransition.unit === transitionUnit) return;
         unitNameTransitionSerial += 1;
+        refreshMissingPortraitAnchors();
         transitionCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
         unitNameTransition = { unit: transitionUnit, pending: true };
@@ -1935,6 +1972,7 @@
                 if (serial !== unitNameTransitionSerial) return;
                 unitNameTransition.pending = false;
                 if (retryIndex === unitNameRetryDelays.length - 1) unitNameTransition = null;
+                refreshMissingPortraitAnchors();
                 var currentUnit = Number(displayUnit());
                 // Keep every late native-HUD check, but only rewrite shortcuts
                 // when their binding or native suppression has actually changed.
@@ -1960,10 +1998,10 @@
         if (!contextActive()) return;
         if (!localSelectionEvent(payload)) return;
         var resolver = GameUI.CustomUIConfig().SurvivalSelectionResolver;
-        if (resolver && resolver.SetDisplayIdentityMode) {
-            resolver.SetDisplayIdentityMode(
-                reason === "query_unit_event" ? "query" : "selection"
-            );
+        var queryMode = reason === "query_unit_event";
+        if (!resolver || !resolver.SetDisplayIdentityMode
+            || resolver.SetDisplayIdentityMode(queryMode ? "query" : "selection") !== false) {
+            portraitQueryMode = queryMode;
         }
         beginUnitNameTransition(reason);
     }
