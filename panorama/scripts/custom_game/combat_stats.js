@@ -520,12 +520,25 @@
         return null;
     }
 
-    var portraitAnchorCache = null, portraitQueryMode = false;
-    function portraitAnchorVisible(anchor, root) {
+    var portraitAnchorCache = null, portraitQueryMode = false, portraitQueryDiagnostic = "";
+    function hiddenPortraitOpacity(value) {
+        // Native Panorama getters return null for an unset CSS property.
+        // Number(null) is zero, but unset opacity uses the native default.
+        if (value === null || value === undefined || String(value).trim() === "") return false;
+        var opacity = Number(value);
+        return isFinite(opacity) && opacity <= 0;
+    }
+    function portraitAnchorVisible(anchor, root, queryMain) {
         if (!portraitCandidateUsable(anchor, root)) return false;
+        var queryLeaf = queryMain || String(anchor.id || "") === "QueryUnitHeroPortrait";
         // Follow only this fixed-depth parent chain, never the scene collection.
         for (var p = anchor, depth = 0; p && depth < 32; depth++) {
             if (!validPortraitPanel(p) || p.visible === false || p.style.visibility === "collapse") return false;
+            // QueryUnitGuts is a native layout snippet. A retained older guts
+            // may still be attached/visible while its branch fades to zero.
+            var opacityValue = p.style.opacity;
+            var ownedLegacyLeaf = p === anchor && p.__survivalPortraitDimmed === true;
+            if (queryLeaf && hiddenPortraitOpacity(opacityValue) && !ownedLegacyLeaf) return false;
             if (p === root) return true;
             p = p.GetParent ? p.GetParent() : null;
         }
@@ -541,30 +554,225 @@
         return false;
     }
 
+    function portraitChildCount(panel) {
+        return validPortraitPanel(panel) && panel.GetChildCount ? panel.GetChildCount() : -1;
+    }
+
+    function indexQueryPortraitAnchors(cache) {
+        // Valve puts QueryUnitHeroPortrait inside the repeatable QueryUnitGuts
+        // snippet, not directly beneath a unique permanent query leaf. Index
+        // that real native container only on creation/rebuild, never per tick.
+        var started = Date.now(), scope = cache.root.FindChildTraverse("QueryContainer"), candidates = [];
+        if (scope && belongsToCustomPortraitHud(scope)) scope = null;
+        var visited = 0;
+        function visit(panel, depth) {
+            if (!validPortraitPanel(panel) || depth > 16 || visited >= 2048) return;
+            visited++;
+            if (String(panel.id || "") === "QueryUnitHeroPortrait"
+                && !belongsToCustomPortraitHud(panel)) candidates.push(panel);
+            if (!panel.GetChildCount || !panel.GetChild) return;
+            var count = panel.GetChildCount();
+            for (var i = 0; i < count && visited < 2048; i++) visit(panel.GetChild(i), depth + 1);
+        }
+        if (scope) visit(scope, 0);
+        else {
+            // Compatibility with native layouts predating QueryContainer.
+            var leaf = cache.root.FindChildTraverse("QueryUnitHeroPortrait");
+            if (leaf && !belongsToCustomPortraitHud(leaf)) candidates.push(leaf);
+        }
+        cache.queryScope = scope;
+        cache.queryScopeParent = scope && scope.GetParent();
+        cache.queryScopeCount = portraitChildCount(scope);
+        cache.rootChildCount = portraitChildCount(cache.root);
+        cache.queryCandidates = candidates;
+        cache.queryIndexNodes = visited;
+        cache.queryIndexMs = Math.max(0, Date.now() - started);
+        cache.query = null;
+        cache.queryRefresh = true;
+    }
+
+    function queryPortraitRejection(anchor, root) {
+        if (!validPortraitPanel(anchor)) return "invalid_leaf";
+        if (!portraitAnchorAttached(anchor, root)) return "detached_leaf";
+        if (anchor.visible === false) return "hidden_leaf";
+        if (anchor.style.visibility === "collapse") return "collapsed_leaf";
+        var position = windowPosition(anchor), width = Number(anchor.actuallayoutwidth || 0), height = Number(anchor.actuallayoutheight || 0);
+        if (!position) return "missing_leaf_geometry";
+        if (!isFinite(width) || !isFinite(height) || width < 64 || height < 56 || width > 280 || height > 240) return "leaf_size";
+        if (Number(root.actuallayoutheight || 0) && Number(position.y || 0) < Number(root.actuallayoutheight) * 0.45) return "outside_bottom_hud";
+        if (!portraitCandidateUsable(anchor, root)) return "leaf_geometry_or_visibility";
+        for (var panel = anchor, depth = 0; panel && depth < 32; depth++) {
+            if (!validPortraitPanel(panel)) return "invalid_ancestor";
+            if (panel.visible === false || panel.style.visibility === "collapse") return "hidden_ancestor:" + String(panel.id || panel.paneltype || "anonymous");
+            var raw = panel.style.opacity;
+            if (hiddenPortraitOpacity(raw)
+                && !(panel === anchor && panel.__survivalPortraitDimmed === true)) return "zero_opacity_ancestor:" + String(panel.id || panel.paneltype || "anonymous");
+            if (panel === root) return "usable";
+            panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        return "ancestor_depth_or_root";
+    }
+
+    function captureQueryMainRejection(cache, root) {
+        var reason = queryPortraitRejection(cache.main, root);
+        if (cache.queryMainRejection && cache.queryMainRejectAnchor === cache.main
+            && cache.queryMainRejectEntity === cache.queryResolvedEntity && cache.queryMainRejection.reason === reason) return;
+        var chain = [];
+        for (var panel = cache.main, depth = 0; panel && depth < 32; depth++) {
+            if (!validPortraitPanel(panel)) {chain.push({reason:"invalid_ancestor"});break;}
+            var opacity = panel.style.opacity;
+            chain.push({id:String(panel.id || ""),type:String(panel.paneltype || ""),visible:panel.visible,
+                visibility:panel.style.visibility,opacityRaw:opacity,opacityType:opacity === null ? "null" : typeof opacity,
+                width:Number(panel.actuallayoutwidth || 0),height:Number(panel.actuallayoutheight || 0)});
+            if (panel === root) break;
+            panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        cache.queryMainRejectAnchor = cache.main;cache.queryMainRejectEntity = cache.queryResolvedEntity;
+        cache.queryMainRejection = {reason:reason,capturedAt:Date.now(),chain:chain};
+    }
+
+    function reportQueryPortraitAnchor(cache, binding, anchor) {
+        if (!portraitQueryMode) return;
+        var entity = cache.queryResolvedEntity;
+        if (entity === undefined) entity = Number(displayUnit());
+        if (cache.queryReportedAnchor === anchor && cache.queryReportedEntity === entity
+            && cache.queryReportedBinding === binding && cache.queryReportedCandidates === cache.queryCandidates
+            && cache.queryReportedNativeUnit === cache.queryNativePortraitUnit
+            && cache.queryReportedReason === cache.querySharedReason) return;
+        cache.queryReportedAnchor = anchor;cache.queryReportedEntity = entity;
+        cache.queryReportedBinding = binding;cache.queryReportedCandidates = cache.queryCandidates;
+        cache.queryReportedNativeUnit = cache.queryNativePortraitUnit;cache.queryReportedReason = cache.querySharedReason;
+        var rows = cache.queryCandidates.slice(0, 8).map(function (candidate) {
+            if (!validPortraitPanel(candidate)) return {reason:"invalid_leaf", chosen:candidate === cache.query};
+            var parent = candidate.GetParent ? candidate.GetParent() : null, position = windowPosition(candidate);
+            return {id:String(candidate.id || ""), parent:String(parent && parent.id || ""),
+                width:Number(candidate.actuallayoutwidth || 0), height:Number(candidate.actuallayoutheight || 0),
+                x:position && position.x, y:position && position.y,
+                reason:queryPortraitRejection(candidate, cache.root), chosen:candidate === cache.query};
+        });
+        var state = {entity:entity, expectedDisplayUnit:entity, binding:binding,
+            branch:binding === "none" ? "mismatch" : binding, nativePortraitUnit:cache.queryNativePortraitUnit,
+            sharedMainReason:cache.querySharedReason, mainRejection:cache.queryMainRejection || null,
+            scope:String(cache.queryScope && cache.queryScope.id || "legacy"),
+            candidates:cache.queryCandidates.length, indexedNodes:cache.queryIndexNodes,
+            chosen:cache.queryCandidates.indexOf(cache.query), leaves:rows};
+        if (validPortraitPanel(anchor)) state.anchor = {id:String(anchor.id || ""),type:String(anchor.paneltype || ""),
+            width:Number(anchor.actuallayoutwidth || 0),height:Number(anchor.actuallayoutheight || 0),position:windowPosition(anchor)};
+        var signature = JSON.stringify(state);
+        if (signature === portraitQueryDiagnostic) return;
+        portraitQueryDiagnostic = signature;
+        state.indexMs = cache.queryIndexMs;
+        $.Msg("[SURVIVAL_PORTRAIT] QUERY_ANCHOR ", JSON.stringify(state));
+    }
+
+    function chooseQueryPortraitAnchor(cache) {
+        var chosen = null;
+        for (var index = 0; index < cache.queryCandidates.length; index++) {
+            var candidate = cache.queryCandidates[index];
+            if (portraitAnchorVisible(candidate, cache.root)) { chosen = candidate; break; }
+        }
+        cache.query = chosen;
+        cache.queryParent = chosen && chosen.GetParent();
+        cache.queryWasVisible = !!chosen;
+        cache.queryRefresh = false;
+        return chosen;
+    }
+
+    function sharedQueryMainPortrait(cache, root) {
+        // Classic native HUD has no independent query guts: DOTAPortrait
+        // displays the engine's current portrait unit in the main slot.
+        // An event's name alone cannot choose that slot; bind both identities.
+        if (!cache.main || String(cache.main.id || "") !== "portraitHUD"
+            || String(cache.main.paneltype || "").toLowerCase() !== "dotaportrait") {
+            cache.querySharedReason = "main_is_not_native_dotaportrait";return null;
+        }
+        if (!portraitAnchorVisible(cache.main, root, true)) {
+            captureQueryMainRejection(cache, root);
+            cache.querySharedReason = "main_not_visible:" + cache.queryMainRejection.reason;return null;
+        }
+        cache.queryMainRejection = null;
+        if (!cache.queryNativePortraitApi) {
+            cache.querySharedReason = "native_portrait_identity_unavailable";return null;
+        }
+        if (!isFinite(cache.queryResolvedEntity) || cache.queryResolvedEntity < 0
+            || cache.queryNativePortraitUnit !== cache.queryResolvedEntity) {
+            cache.querySharedReason = "native_portrait_identity_mismatch";return null;
+        }
+        cache.querySharedReason = "native_portrait_identity_matches";
+        return cache.main;
+    }
+
     function officialPortraitPanel() {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return null;
         var cache = portraitAnchorCache;
-        if (!cache || cache.root !== root || !cache.main
-            || (portraitQueryMode && !cache.query)
-            || (cache.main && (!portraitAnchorAttached(cache.main, root) || cache.main.GetParent() !== cache.mainParent))
-            || (cache.query && (!portraitAnchorAttached(cache.query, root) || cache.query.GetParent() !== cache.queryParent))) {
-            // Cache positive identities only: native nodes may appear after a
-            // negative lookup even without a new selection event. A requested
-            // query and detached ancestor are re-evaluated on the next call.
-            var query = root.FindChildTraverse("QueryUnitHeroPortrait");
+        if (!cache || cache.root !== root) {
             var main = findMainPortraitPanel();
-            cache = portraitAnchorCache = {root:root, main:main, query:query,
-                mainParent:main && main.GetParent(), queryParent:query && query.GetParent()};
+            cache = portraitAnchorCache = {root:root, main:main, mainParent:main && main.GetParent()};
+            indexQueryPortraitAnchors(cache);
+        } else {
+            var rootChanged = portraitChildCount(root) !== cache.rootChildCount;
+            if ((!cache.main && rootChanged) || (cache.main && (!portraitAnchorAttached(cache.main, root)
+                || cache.main.GetParent() !== cache.mainParent))) {
+                cache.main = findMainPortraitPanel();
+                cache.mainParent = cache.main && cache.main.GetParent();
+            }
+            var queryDetached = cache.query && (!portraitAnchorAttached(cache.query, root)
+                || cache.query.GetParent() !== cache.queryParent);
+            var scopeChanged = cache.queryScope && (!portraitAnchorAttached(cache.queryScope, root)
+                || cache.queryScope.GetParent() !== cache.queryScopeParent
+                || portraitChildCount(cache.queryScope) !== cache.queryScopeCount);
+            if (queryDetached || scopeChanged || rootChanged) {
+                indexQueryPortraitAnchors(cache);
+            }
         }
-        if (portraitQueryMode) return portraitAnchorVisible(cache.query, root) ? cache.query : null;
+        if (cache.queryRefresh) chooseQueryPortraitAnchor(cache);
+        if (portraitQueryMode) {
+            cache.queryResolvedEntity = Number(displayUnit());
+            cache.queryNativePortraitUnit = -1;
+            cache.queryNativePortraitApi = typeof Players !== "undefined" && typeof Players.GetLocalPlayerPortraitUnit === "function";
+            if (cache.queryNativePortraitApi) {
+                try {cache.queryNativePortraitUnit = Number(Players.GetLocalPlayerPortraitUnit());} catch (_) {}
+            }
+            var visible = portraitAnchorVisible(cache.query, root);
+            if (!visible && cache.queryWasVisible) {
+                // A real visibility/opacity transition can switch native guts
+                // without detaching the old leaf. Reconcile once for that
+                // change, rather than pinning a hidden same-ID first match.
+                indexQueryPortraitAnchors(cache);
+                chooseQueryPortraitAnchor(cache);
+                visible = !!cache.query;
+            }
+            cache.queryWasVisible = visible;
+            if (visible) {
+                cache.querySharedReason = "dedicated_query_visible";
+                reportQueryPortraitAnchor(cache, "dedicated_query", cache.query);
+                return cache.query;
+            }
+            var shared = sharedQueryMainPortrait(cache, root);
+            reportQueryPortraitAnchor(cache, shared ? "shared_main" : "none", shared);
+            return shared;
+        }
         if (portraitAnchorVisible(cache.main, root)) return cache.main;
         return portraitAnchorVisible(cache.query, root) ? cache.query : null;
     }
 
-    function refreshMissingPortraitAnchors() {
-        if (portraitAnchorCache && (!portraitAnchorCache.main
-            || (portraitQueryMode && !portraitAnchorCache.query))) portraitAnchorCache = null;
+    function refreshMissingPortraitAnchors(rebuildQuery) {
+        var cache = portraitAnchorCache;
+        if (!cache) return;
+        if (!cache.main || !portraitAnchorAttached(cache.main, cache.root)) {
+            cache.main = findMainPortraitPanel();
+            cache.mainParent = cache.main && cache.main.GetParent();
+        }
+        if (portraitQueryMode) {
+            // A real selection can replace guts without changing child count.
+            // Later bounded retries recheck the indexed leaves, while actual
+            // detach/count transitions are handled by officialPortraitPanel.
+            if (rebuildQuery || cache.queryCandidates.some(function (candidate) {
+                return !portraitAnchorAttached(candidate, cache.root);
+            })) indexQueryPortraitAnchors(cache);
+            else cache.queryRefresh = true;
+        }
     }
 
     function findMainPortraitPanel() {
@@ -2009,7 +2217,7 @@
         if (unitNameTransition && unitNameTransition.pending
             && unitNameTransition.unit === transitionUnit) return;
         unitNameTransitionSerial += 1;
-        refreshMissingPortraitAnchors();
+        refreshMissingPortraitAnchors(true);
         transitionCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
         unitNameTransition = { unit: transitionUnit, pending: true };
@@ -3510,8 +3718,86 @@
         $.Msg("[TOOLS_PROBE_COMMANDS] ",JSON.stringify({api:apiKey,commandId:id,commands:commands}));
     }
 
+    function queryAnchorTreeCensus(nonce) {
+        // Explicit Tools command only. Never called by a selection, refresh,
+        // timer, or production registration path. Read panel metadata only.
+        if (!contextActive() || !Game.IsInToolsMode || !Game.IsInToolsMode()) return false;
+        nonce = /^[0-9a-f]{24}$/.test(String(nonce || "")) ? String(nonce) : "manual_" + Date.now();
+        var started = Date.now(), root = $.GetContextPanel(), parent, depth = 0;
+        var calls = {getContextPanel:1,getParent:0,isValid:0,getChildCount:0,getChild:0,getPosition:0};
+        function valid(panel) {
+            if (!panel) return false;
+            try {calls.isValid++;return !panel.IsValid || panel.IsValid();} catch (_) {return false;}
+        }
+        while (valid(root) && depth++ < 32) {
+            calls.getParent++;parent = root.GetParent();if (!parent) break;root = parent;
+        }
+        if (!valid(root)) return false;
+        var wanted = {QueryContainer:1,QueryUnit:1,QueryVertical:1,QueryUnitHeroPortrait:1,
+            PortraitGroup:1,PortraitContainer:1,portraitHUD:1};
+        var rows = [], nodes = 0, omitted = 0, work = [{panel:root,depth:0}];
+        function describe(panel) {
+            var point = null;try {calls.getPosition++;point = panel.GetPositionWithinWindow();} catch (_) {}
+            var opacity = panel.style.opacity;
+            return {id:String(panel.id || ""),type:String(panel.paneltype || ""),
+                visible:panel.visible,visibility:String(panel.style.visibility || ""),opacity:String(opacity || ""),
+                opacityRaw:opacity,opacityType:opacity === null ? "null" : typeof opacity,
+                transform:String(panel.style.transform || ""),transformOrigin:String(panel.style.transformOrigin || ""),
+                width:Number(panel.actuallayoutwidth || 0),height:Number(panel.actuallayoutheight || 0),
+                scaleX:Number(panel.actualuiscale_x || 0),scaleY:Number(panel.actualuiscale_y || 0),
+                xy:point ? {x:Number(point.x !== undefined ? point.x : point[0]),y:Number(point.y !== undefined ? point.y : point[1])} : null};
+        }
+        while (work.length && nodes < 40000) {
+            var entry = work.pop(), panel = entry.panel;
+            if (!valid(panel) || entry.depth > 64) continue;
+            nodes++;
+            var id = String(panel.id || ""), type = String(panel.paneltype || "");
+            if (wanted[id] || type === "DOTAQueryUnit" || type === "DOTAQueryUnitGuts" || type === "DOTAQueryUnitPortraitContainer") {
+                if (rows.length < 256) {
+                    var row = describe(panel), cursor = panel, chain = [];
+                    for (var d = 0; valid(cursor) && d < 32; d++) {
+                        chain.push(describe(cursor));if (cursor === root) break;
+                        calls.getParent++;cursor = cursor.GetParent();
+                    }
+                    row.ancestors = chain;rows.push(row);
+                } else omitted++;
+            }
+            if (panel.GetChildCount && panel.GetChild) {
+                calls.getChildCount++;var count = panel.GetChildCount();
+                for (var i = count - 1; i >= 0; i--) {
+                    calls.getChild++;work.push({panel:panel.GetChild(i),depth:entry.depth + 1});
+                }
+            }
+        }
+        var truncated = work.length > 0 || omitted > 0;
+        $.Msg("[QUERY_DOM_CENSUS_BEGIN] ",JSON.stringify({nonce:nonce,generation:lifecycleGeneration,
+            scope:"TOOLS_EXPLICIT_ONE_SHOT_NATIVE_PANEL_METADATA",rootId:String(root.id || ""),rootType:String(root.paneltype || ""),
+            visited:nodes,pending:work.length,truncated:truncated,matches:rows.length,omitted:omitted,
+            elapsed_ms:Date.now() - started,calls:calls,account_reads:0,timers:0}));
+        rows.forEach(function (row, index) {
+            var leaf = {};
+            Object.keys(row).forEach(function (key) {if (key !== "ancestors") leaf[key] = row[key];});
+            $.Msg("[QUERY_DOM_CENSUS_LEAF] ",JSON.stringify({nonce:nonce,index:index,leaf:leaf}));
+            for (var from = 0; from < row.ancestors.length; from += 4) {
+                $.Msg("[QUERY_DOM_CENSUS_CHAIN] ",JSON.stringify({nonce:nonce,index:index,from:from,chain:row.ancestors.slice(from,from + 4)}));
+            }
+        });
+        $.Msg("[QUERY_DOM_CENSUS_END] ",JSON.stringify({nonce:nonce,generation:lifecycleGeneration,matches:rows.length,visited:nodes,truncated:truncated}));
+        return true;
+    }
+
     if (typeof Game !== "undefined" && typeof Game.IsInToolsMode === "function"
         && Game.IsInToolsMode()) {
+        var queryTreeSequence = Number(customConfig.SurvivalToolsProbeCommandSequence || 0) + 1;
+        customConfig.SurvivalToolsProbeCommandSequence = queryTreeSequence;
+        var queryTreeCommand = "survival_query_anchor_tree_v1_" + String(lifecycleGeneration) + "_" + queryTreeSequence + "_" + Date.now();
+        customConfig.SurvivalQueryAnchorTreeProbe = {Run:queryAnchorTreeCensus};
+        registerToolsProbeCommandOnce(queryTreeCommand,function () {
+            var current = GameUI.CustomUIConfig().SurvivalQueryAnchorTreeProbe;
+            var args = Array.prototype.slice.call(arguments);
+            if (current && current.Run) current.Run(args.length ? args[args.length - 1] : "");
+        },"Tools: explicit one-shot query/portrait DOM metadata census; no player/account reads");
+        $.Msg("[TOOLS_QUERY_ANCHOR_COMMAND] ",queryTreeCommand);
         portraitSceneProbe = {enabled:false, setUnitCalls:0};
         var portraitProbeApi = {
             Start:function () {
