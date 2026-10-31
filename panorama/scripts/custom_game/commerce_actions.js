@@ -1,6 +1,7 @@
 (function () {
     "use strict";
     var id = Game.GetLocalPlayerID(), data = {}, aiming = "";
+    var combatHero = -1;
     var cfg = GameUI.CustomUIConfig(), disposed = false, subscriptions = [];
     var shieldTask = null, refreshTask = null, shieldKey = "", initialShieldRead = false;
     var counters = {refreshes:0, events:0, coalesced:0, textWrites:0, visibleWrites:0, initialReads:0};
@@ -147,6 +148,15 @@
         if (key === "player_" + id) render(value);
     });
     render(CustomNetTables.GetTableValue("survival_commerce_actions", "player_" + id));
+    function updateCombatHero(value) {
+        var index = value && Number(value.unit_entindex);
+        combatHero = value && Number(value.hero_ready) === 1
+            && isFinite(index) && index >= 0 ? index : -1;
+    }
+    subscribe("survival_hero_skills", function (_, key, value) {
+        if (key === "player_" + id) updateCombatHero(value);
+    });
+    updateCombatHero(CustomNetTables.GetTableValue("survival_hero_skills", "player_" + id));
     // Use the shared input dispatcher; do not replace the game's mouse callback.
     var aimHandler = function (eventName, button) {
         if (!active() || !aiming || eventName !== "pressed") return false;
@@ -158,6 +168,9 @@
     };
     var blinkHandler = function () {
         if (!active() || Number(data.blink) !== 1) return false;
+        // Owning the item must not steal the builder's independent D hotkey.
+        if (combatHero < 0 || typeof Players === "undefined"
+            || Players.GetLocalPlayerPortraitUnit() !== combatHero) return false;
         var point = GameUI.GetScreenWorldPosition(GameUI.GetCursorPosition());
         if (point) send("blink", point);
         return true;

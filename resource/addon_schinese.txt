@@ -186,7 +186,7 @@
         "DOTA_Tooltip_ability_ability_survival_return_home" "回城"
         "DOTA_Tooltip_ability_ability_survival_return_home_Description" "立即返回己方主城周围的安全位置。"
 		"DOTA_Tooltip_ability_ability_survival_hero_ball_lightning" "球状传送"
-		"DOTA_Tooltip_ability_ability_survival_hero_ball_lightning_Description" "立即闪现至800范围内可站立的目标位置，消耗20点魔法。可以跨越沿途地形，不造成伤害。"
+		"DOTA_Tooltip_ability_ability_survival_hero_ball_lightning_Description" "拥有侏儒传送器后解锁。立即闪现至800范围内可站立的目标位置，消耗20点魔法；与商城传送共享10秒冷却，传送失败返还魔法且不进入冷却。可以跨越沿途地形，不造成伤害。"
 		"DOTA_Tooltip_ability_ability_survival_builder_blink" "建造者闪烁"
 		"DOTA_Tooltip_ability_ability_survival_builder_blink_Description" "闪烁到1000范围内可通行且未被阻挡的目标位置，并躲避飞行中的投射物。"
 		"survival_pickup_out_of_range" "目标位置必须在700范围内"

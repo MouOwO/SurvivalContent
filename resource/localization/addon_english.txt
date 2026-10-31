@@ -92,7 +92,7 @@
         "DOTA_Tooltip_ability_ability_survival_return_home" "Return Home"
         "DOTA_Tooltip_ability_ability_survival_return_home_Description" "Immediately returns to a safe position near your main city."
 		"DOTA_Tooltip_ability_ability_survival_hero_ball_lightning" "Ball Lightning Travel"
-		"DOTA_Tooltip_ability_ability_survival_hero_ball_lightning_Description" "Instantly blink to a valid destination within 800 range for 20 mana. Crosses intervening terrain and deals no damage."
+		"DOTA_Tooltip_ability_ability_survival_hero_ball_lightning_Description" "Unlocked by owning Gnome Teleporter. Instantly blink to a valid destination within 800 range for 20 mana. Shares a 10-second cooldown with the shop teleport; failed teleportation refunds mana and does not start a cooldown. Crosses intervening terrain and deals no damage."
 		"DOTA_Tooltip_ability_ability_survival_builder_blink" "Builder Blink"
 		"DOTA_Tooltip_ability_ability_survival_builder_blink_Description" "Blink to a traversable, unblocked point within 1000 range and dodge incoming projectiles."
 		"survival_pickup_out_of_range" "Target must be within 700 range"

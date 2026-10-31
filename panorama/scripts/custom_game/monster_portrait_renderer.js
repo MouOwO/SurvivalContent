@@ -4,13 +4,17 @@
     var cfg = GameUI.CustomUIConfig();
     if (cfg.SurvivalMonsterPortraitRenderer) cfg.SurvivalMonsterPortraitRenderer.Shutdown();
     function create() {
-        var entries = [], current = null, failed = {}, serial = 0, stopped = false;
+        var entries = [], current = null, failed = Object.create(null), serial = 0, stopped = false;
         var stage = null, warming = null, timer = false, created = 0, loaded = 0;
         var visibleEntries = [];
         var entriesByKey = Object.create(null), specsByAsset = Object.create(null), keysByAsset = Object.create(null);
         var models = Object.create(null), aliases = Object.create(null), unitNames = Object.create(null), owner = {};
-        var queueHead = null, queueTail = null, queued = 0, queuedByKey = Object.create(null);
-        var backgroundNotBefore = 0, motion = null, movementPauses = 0, cooldownPauses = 0;
+        var pendingAsset = "";
+        // Catalog coverage is independent of native world residency. Cold
+        // appearances remain addressable without constructing 188 render worlds.
+        var MAX_RESIDENT = 4, lruHead = null, lruTail = null, evictions = 0;
+        var selectionEpoch = 0, lastRequestKey = "", manualRequests = Object.create(null);
+        var subscriptions = [], retries = 0, failures = 0;
         function valid(p) {
             try { return !!p && (!p.IsValid || p.IsValid()); }
             catch (_) { return false; }
@@ -35,44 +39,34 @@
             if (specsByAsset[asset]) aliases[unit] = asset;
         });
         function specification(asset) { return specsByAsset[asset] || null; }
-        function unqueue(node) {
-            if (!node) return;
-            if (node.previous) node.previous.next = node.next; else queueHead = node.next;
-            if (node.next) node.next.previous = node.previous; else queueTail = node.previous;
-            delete queuedByKey[node.key]; queued--;
+        function requestStamp(key) { return selectionEpoch + ":" + (manualRequests[key] || 0); }
+        function mayAttempt(key) {
+            var failure = failed[key];
+            return !failure || (failure.stamp !== requestStamp(key) && Date.now() >= failure.retryAt);
         }
-        function enqueue(asset, first, priority) {
-            var key = keysByAsset[asset];
-            if (!key) return;
-            var node = queuedByKey[key];
-            if (node) unqueue(node); else node = {key:key};
-            node.asset = asset; node.priority = !!priority; node.previous = null; node.next = null;
-            if (first) {
-                node.next = queueHead;
-                if (queueHead) queueHead.previous = node; else queueTail = node;
-                queueHead = node;
-            } else {
-                node.previous = queueTail;
-                if (queueTail) queueTail.next = node; else queueHead = node;
-                queueTail = node;
-            }
-            queuedByKey[key] = node; queued++;
+        function selectionChanged(payload) {
+            if (stopped) return;
+            var id = payload && (payload.PlayerID !== undefined ? payload.PlayerID : payload.player_id);
+            if (id !== undefined && typeof Game !== "undefined" && Game.GetLocalPlayerID
+                && Number(id) !== Number(Game.GetLocalPlayerID())) return;
+            selectionEpoch++; pendingAsset = "";
         }
-        function idleForBackground() {
-            var now = Date.now(), resolver = cfg.SurvivalSelectionResolver;
-            try {
-                var unit = resolver && resolver.Resolve ? Number(resolver.Resolve()) : -1;
-                if (unit >= 0 && typeof Entities !== "undefined" && Entities.GetAbsOrigin) {
-                    var p = Entities.GetAbsOrigin(unit);
-                    if (p && p.length >= 3 && isFinite(Number(p[0])) && isFinite(Number(p[1]))) {
-                        if (!motion || motion.unit !== unit || Math.abs(p[0]-motion.x) + Math.abs(p[1]-motion.y) > 0.01)
-                            motion = {unit:unit, x:Number(p[0]), y:Number(p[1]), since:now};
-                        if (now-motion.since < 250) { movementPauses++; return false; }
-                    }
-                }
-            } catch (_) { motion = null; }
-            if (now < backgroundNotBefore) { cooldownPauses++; return false; }
-            return true;
+        if (typeof GameEvents !== "undefined" && GameEvents.Subscribe) {
+            ["dota_player_update_selected_unit", "dota_player_update_query_unit"].forEach(function (event) {
+                subscriptions.push(GameEvents.Subscribe(event, selectionChanged));
+            });
+        }
+        function unlink(entry) {
+            if (entry.previous) entry.previous.next = entry.next; else lruHead = entry.next;
+            if (entry.next) entry.next.previous = entry.previous; else lruTail = entry.previous;
+            entry.previous = null; entry.next = null;
+        }
+        function touch(entry) {
+            if (lruHead === entry) return;
+            if (entry.previous || entry.next || lruTail === entry) unlink(entry);
+            entry.previous = null; entry.next = lruHead;
+            if (lruHead) lruHead.previous = entry; else lruTail = entry;
+            lruHead = entry;
         }
         function show(entry, visible) {
             if (!entry || entry.visible === visible) return;
@@ -86,6 +80,7 @@
             if (entry && valid(entry.host)) entry.host.DeleteAsync(0);
             if (entry && entriesByKey[entry.key] === entry) {
                 delete entriesByKey[entry.key];
+                unlink(entry);
                 var last = entries.pop();
                 if (last !== entry) { entries[entry.index] = last; last.index = entry.index; }
                 if (entry.ready) loaded--;
@@ -112,12 +107,16 @@
             if (!entry.ready && entry.imageReady && entry.scene.BHasClass("SceneLoaded")) {
                 entry.ready = true;
                 loaded++;
+                delete failed[entry.key];
                 $.Msg("[SURVIVAL_MONSTER_PORTRAIT] READY asset=", entry.asset, " map=", entry.spec.map,
                     " ms=", Date.now() - entry.started, " components=", entry.spec.components);
             }
             if (!entry.ready && (entry === warming || entry === current || !valid(stage))
                 && Date.now() - entry.started > 10000) {
-                failed[entry.key] = true;
+                var previous = failed[entry.key], attempts = Math.min(3, (previous ? previous.attempts : 0) + 1);
+                failed[entry.key] = {attempts:attempts, stamp:entry.requestStamp,
+                    retryAt:Date.now() + [0, 2000, 10000, 30000][attempts]};
+                failures++;
                 $.Warning("[SURVIVAL_MONSTER_PORTRAIT] LOAD_FAILED asset=" + entry.asset);
                 remove(entry); return false;
             }
@@ -127,24 +126,41 @@
             var spec = specification(asset);
             if (stopped || !valid(parent) || !spec) return null;
             var key = keysByAsset[asset];
-            if (failed[key]) return null;
             var entry = entriesByKey[key];
             if (entry) return check(entry) ? entry : null;
-            // The catalog bounds this cache. Selection must not evict warmed maps.
-            if (entries.length >= 256) return null;
+            var failure = failed[key];
+            // A scheduler tick cannot admit a retry. The request must originate
+            // from a new local selection epoch or the explicit Retry API, and
+            // its bounded cooldown must have elapsed. No permanent blacklist.
+            if (!mayAttempt(key)) return null;
+            if (entries.length >= MAX_RESIDENT) {
+                var victim = lruTail, skipped = 0;
+                // At most current and warming are protected: <=2 pointer hops,
+                // independent of the 197-identity catalog and cache population.
+                while (victim && (victim === current || victim === warming) && skipped < 2) {
+                    victim = victim.previous; skipped++;
+                }
+                if (!victim || victim === current || victim === warming) return null;
+                remove(victim); evictions++;
+            }
             var host = $.CreatePanel("Panel", parent, "SurvivalMonsterPortrait" + (++serial));
             host.style.width = "100%"; host.style.height = "100%";
             host.style.position = "0px 0px 0px"; host.style.overflow = "clip";
             host.style.backgroundColor = "#071321"; host.hittest = false; host.hittestchildren = false;
-            entry = {key:key, asset:asset, host:host, spec:spec, started:Date.now(), imageReady:false, ready:false, index:entries.length, owner:owner};
+            entry = {key:key, asset:asset, host:host, spec:spec, started:Date.now(), imageReady:false, ready:false,
+                index:entries.length, owner:owner, requestStamp:requestStamp(key), previous:null, next:null};
             entriesByKey[key] = entry;
             entries.push(entry); created++;
+            touch(entry);
+            if (failure) retries++;
             show(entry, true);
             var background = $.CreatePanel("Image", host, "Background");
             background.style.width = "100%"; background.style.height = "100%";
             background.style.position = "0px 0px 0px"; background.style.washColor = "#ffffff";
             background.hittest = false;
-            $.RegisterEventHandler("ImageLoaded", background, function () { entry.imageReady = true; });
+            $.RegisterEventHandler("ImageLoaded", background, function () {
+                if (!stopped && entry.owner === owner) entry.imageReady = true;
+            });
             background.SetImage(spec.background);
             var scene = $.CreatePanel("DOTAScenePanel", host, "Scene", {
                 map:spec.map, camera:spec.camera, light:spec.light, drawbackground:"true",
@@ -163,13 +179,10 @@
             if (warming && (!check(warming) || warming.ready)) {
                 if (warming && warming !== current) show(warming, false);
                 warming = null;
-                backgroundNotBefore = Date.now() + 500;
             }
-            while (!warming && queueHead) {
-                var queuedEntry = entriesByKey[queueHead.key];
-                if ((!queuedEntry || !queuedEntry.ready) && !queueHead.priority && !idleForBackground()) break;
-                var node = queueHead; unqueue(node);
-                var entry = ensure(stage, node.asset);
+            if (!warming && pendingAsset) {
+                var asset = pendingAsset; pendingAsset = "";
+                var entry = ensure(stage, asset);
                 if (entry && !entry.ready) {
                     warming = entry;
                     entry.started = Date.now();
@@ -177,7 +190,7 @@
                     show(entry, true);
                 }
             }
-            if (warming || queued) { timer = true; $.Schedule(0.05, tickWarm); }
+            if (warming || pendingAsset) { timer = true; $.Schedule(0.05, tickWarm); }
         }
         function prewarm(parent, priorityAsset) {
             if (stopped || !valid(parent)) return;
@@ -194,29 +207,37 @@
                 stage.style.overflow = "clip"; stage.hittest = false; stage.hittestchildren = false;
                 // Behind the native opaque portrait, but still laid out/rendered.
                 // Collapsing or zero opacity stalls SceneLoaded in the engine.
-                Object.keys(specsByAsset).sort(function (a,b) {
-                    return specification(a).priority - specification(b).priority || (a < b ? -1 : 1);
-                }).forEach(function (asset) { enqueue(asset, false, false); });
+                // A bare Prewarm call only establishes the rendering anchor.
+                // It must not turn catalog size into startup native work.
             } else if (stage.GetParent() !== parent) stage.SetParent(parent);
             var key = keysByAsset[priorityAsset], priorityEntry = key && entriesByKey[key];
-            if (key && (!priorityEntry || !priorityEntry.ready) && (!warming || warming.key !== key)) {
-                enqueue(priorityAsset, true, true);
+            if (key && pendingAsset && keysByAsset[pendingAsset] !== key) pendingAsset = "";
+            if (key && mayAttempt(key) && (!priorityEntry || !priorityEntry.ready) && (!warming || warming.key !== key)) {
+                // Only the latest explicit request can wait; no catalog queue.
+                pendingAsset = priorityAsset;
             }
-            if (!timer && (warming || queued)) { timer = true; $.Schedule(0.05, tickWarm); }
+            if (!timer && (warming || pendingAsset)) { timer = true; $.Schedule(0.05, tickWarm); }
         }
         function prepare(parent, asset) {
             asset = String(asset || "");
+            var key = keysByAsset[asset] || "";
+            if (key && key !== lastRequestKey) { lastRequestKey = key; selectionEpoch++; }
+            if (pendingAsset && keysByAsset[pendingAsset] !== key) pendingAsset = "";
             var entry = ensure(valid(stage) ? stage : parent, asset);
             if (!entry || !valid(parent)) { hide(); return null; }
+            touch(entry);
+            // The explicit prewarm may start before Prepare observes this
+            // selection. A later failure belongs to the latest requesting
+            // epoch, otherwise that same sentinel could gain a spurious retry.
+            if (!entry.ready) entry.requestStamp = requestStamp(key);
             if (!entry.ready && valid(stage) && warming !== entry) {
                 // The selected outfit must render now, rather than waiting in
                 // the background queue while Hide collapses its loading host.
                 if (warming && valid(warming.host)) {
                     if (warming !== current) show(warming, false);
-                    enqueue(warming.asset, true, false);
                 }
                 warming = entry; entry.started = Date.now();
-                unqueue(queuedByKey[entry.key]);
+                if (keysByAsset[pendingAsset] === entry.key) pendingAsset = "";
                 if (entry.host.GetParent() !== stage) entry.host.SetParent(stage);
                 show(entry, true);
                 if (!timer) { timer = true; $.Schedule(0.05, tickWarm); }
@@ -240,16 +261,27 @@
                 var alias=aliases[String(unitName || "")], spec=specification(alias);
                 return !asset && spec && (!model || spec.model===model) ? alias : "";
             }, Prepare:prepare, Hide:hide, Prewarm:prewarm,
-            // Disposal is the sole full cache walk after initialization.
+            Retry:function(asset) {
+                var key = keysByAsset[String(asset || "")];
+                if (stopped || !key || !failed[key]) return false;
+                manualRequests[key] = (manualRequests[key] || 0) + 1;
+                return true;
+            },
+            // Disposal walks only the four resident worlds, never the catalog.
             Shutdown:function () {
                 stopped = true; entries.slice().forEach(remove);
-                queueHead = null; queueTail = null; queuedByKey = Object.create(null); queued = 0; motion = null;
+                subscriptions.forEach(function(handle) {
+                    try { if (typeof GameEvents !== "undefined" && GameEvents.Unsubscribe) GameEvents.Unsubscribe(handle); }
+                    catch (_) {}
+                });
+                subscriptions = []; pendingAsset = ""; lruHead = null; lruTail = null;
                 if (valid(stage)) stage.DeleteAsync(0);
                 stage = null;
             },
             Inspect:function () { return {cached:entries.length, loaded:loaded,
-                created:created, queued:queued, warming:warming && warming.asset || "", ready:!!(current && current.ready), map:current && current.spec.map || "",
-                visible:visibleEntries.length, movementPauses:movementPauses, cooldownPauses:cooldownPauses}; }};
+                created:created, queued:pendingAsset ? 1 : 0, warming:warming && warming.asset || "", ready:!!(current && current.ready), map:current && current.spec.map || "",
+                visible:visibleEntries.length, residentLimit:MAX_RESIDENT, evictions:evictions, retries:retries, failures:failures,
+                selectionEpoch:selectionEpoch, movementPauses:0, cooldownPauses:0}; }};
     }
     var renderer = create(); renderer.Create = create;
     cfg.SurvivalMonsterPortraitRenderer = renderer;
