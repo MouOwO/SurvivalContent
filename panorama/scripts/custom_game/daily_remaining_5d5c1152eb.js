@@ -15,13 +15,14 @@ var dailyRoot=$.GetContextPanel(),view=null,shell=null,canvas=null,dailyTooltip=
 var cardSignature="",specialSignature="",statusText="",scale=1;
 var tooltipSources=[];
 var rewardFX=null,activePage="login",benefitWaiting=null,benefitSignature="",benefitErrorText="",loginNodes=[];
+var entryKnown=false,entryClaimable=false,entryAdmitted=false,entryProbeAttempts=0,entryProbeScheduled=false,entryProbeSerial=0,loadingSubscription=null;
 var columnLabels=["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ"];
 function valid(node){return node&&(!node.IsValid||node.IsValid());}
 function p(id){return valid(dailyRoot)?dailyRoot.FindChildTraverse(id):null;}
 function viewValid(){return valid(p("DailyWindow"));}
 if(!viewValid()){active=false;return;}
 if(cfg.SurvivalDaily&&cfg.SurvivalDaily.Dispose)cfg.SurvivalDaily.Dispose();
-function stopIfInvalid(){if(!active)return true;if(viewValid())return false;active=false;if(rewardFX)rewardFX.Dispose();if(dailyTooltip)dailyTooltip.Dispose();life.Dispose();viewLife.Dispose();if(view)view.Dispose();return true;}
+function stopIfInvalid(){if(!active)return true;if(viewValid())return false;active=false;disposeEntryLoading();if(rewardFX)rewardFX.Dispose();if(dailyTooltip)dailyTooltip.Dispose();life.Dispose();viewLife.Dispose();if(view)view.Dispose();return true;}
 function array(v){return Array.isArray(v)?v:Object.keys(v||{}).sort(function(a,b){return Number(a)-Number(b);}).map(function(k){return v[k];});}
 function cashReady(){var payments=cfg.SurvivalPayments;return cfg.SurvivalDevelopmentPayments===true||!!payments&&typeof payments.IsRealMoneyEnabled==="function"&&payments.IsRealMoneyEnabled()===true;}
 function passPriceText(){
@@ -172,6 +173,25 @@ function request(){
  GameEvents.SendCustomGameEventToServer("survival_daily_request",{});
  if(shell.IsOpen())viewLife.Later(8,function(){if(!active||serial!==fetchSerial||!fetching)return;fetching=false;if(!data){errorText="读取奖励超时，请重试";render();}});else fetching=false;
 }
+function disposeEntryLoading(){
+ if(loadingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(loadingSubscription);
+ loadingSubscription=null;
+}
+function probeEntry(){
+ if(stopIfInvalid()||!entryAdmitted||entryKnown||entryProbeScheduled||entryProbeAttempts>=3)return;
+ entryProbeAttempts++;entryProbeScheduled=true;var probe=++entryProbeSerial;request();
+ life.Later(5,function(){if(probe!==entryProbeSerial)return;entryProbeScheduled=false;probeEntry();});
+}
+function syncEntryAdmission(){
+ if(stopIfInvalid())return;
+ var state=CustomNetTables.GetTableValue("survival_loading","state");
+ entryAdmitted=!!state&&(state.admission_complete===undefined
+  ?state.all_ready===true||Number(state.all_ready)===1
+  :state.admission_complete===true||Number(state.admission_complete)===1);
+ if(!entryAdmitted){entryKnown=false;entryClaimable=false;entryProbeAttempts=0;entryProbeScheduled=false;entryProbeSerial++;}
+ else probeEntry();
+}
+function hasClaimable(){return active&&entryAdmitted&&entryKnown&&entryClaimable;}
 function artId(item){return item.art_id&&RH.DailyResourceInfo(item.art_id).runtime?item.art_id:"daily.item.crystals";}
 function rewardQuantity(item){var value=item&&item.count;return value!==undefined&&value!==null&&String(value).trim()!==""&&isFinite(Number(value))&&Number(value)>=0?value:null;}
 function itemDescription(item,value){var resources=cfg.SurvivalItemResources;return resources&&resources.DisplayDescription?resources.DisplayDescription(item,value):String(value||"");}
@@ -256,7 +276,7 @@ function benefitDisplayRows(track){
  var definitions=cfg.SurvivalBenefitDefinitions,rows=definitions&&definitions.tracks&&definitions.tracks[track];
  return array(rows).map(function(row){var preview={};Object.keys(row).forEach(function(key){preview[key]=row[key];});preview.status="syncing";preview.can_claim=0;preview.claimed=0;preview.__preview=true;return preview;});
 }
-function benefitsClaimable(){return ["daily_time","daily_wins","weekly_time"].some(function(track){return array(benefitData(track)&&benefitData(track).rows).some(function(row){return row.status==="claimable"||row.can_claim===true||Number(row.can_claim)===1;});});}
+function benefitsClaimable(){return ["daily_time","daily_wins","weekly_time"].some(function(track){return array(benefitData(track)&&benefitData(track).rows).some(function(row){return benefitState(row)==="claimable"&&!benefitAutomatic(row);});});}
 function selectPage(id){
  if(!active||!viewValid()||["login","daily","weekly"].indexOf(id)<0)return;
  activePage=id;hideTooltip();var rules=p("DailyRulesText");rules.AddClass("ArchiveHidden");rules.visible=false;render();
@@ -394,10 +414,17 @@ function showClaim(intent){
   anchor:anchor,surface:surface,title:"领取成功",text:intent.text||"奖励已领取",tone:"gold"});
 }
 life.Subscribe("survival_daily_snapshot",function(next){
- if(!active)return;fetching=false;fetchSerial++;if(!(next.ok===true||Number(next.ok)===1)){errorText=next.error||"正在读取档案";render();return;}
+ if(!active)return;fetching=false;fetchSerial++;if(!(next.ok===true||Number(next.ok)===1)){entryKnown=false;entryClaimable=false;errorText=next.error||"正在读取档案";render();return;}
  if(Number(next.sequence)>0&&Number(next.sequence)<=sequence)return;if(data&&Number(next.today)<Number(data.today))return;sequence=Number(next.sequence)||sequence;
  acceptBenefitSnapshot(next);var result=next.claim_result,claimed=null;if(waiting){if(Number(next.today)!==waiting.day||String(next.period_id)!==waiting.period){waiting=null;errorText="";}else if(confirmedClaim(next,waiting)){claimed=waiting;waiting=null;errorText="";}else if(result&&Number(result.target_day)===waiting.target&&Number(next.pending)!==1&&!(result.pending===true||Number(result.pending)===1)){waiting=null;errorText=result.error||"领取失败，请重试";}}
  data=next;if(!waiting&&!(result&&!(result.ok===true||Number(result.ok)===1)))errorText="";render();
+ // A pending/failed write cannot extinguish an unclaimed reward. Publish only
+ // saved eligibility; the HUD consumes this cached flag without another timer.
+ var benefitResult=next.benefit_claim_result;
+ function unconfirmed(receipt){return !!receipt&&(!(receipt.ok===true||Number(receipt.ok)===1)||receipt.pending===true||Number(receipt.pending)===1);}
+ if(Number(next.pending)!==1&&!unconfirmed(result)&&!unconfirmed(benefitResult)){
+  entryKnown=true;entryClaimable=availability().enabled||benefitsClaimable();entryProbeScheduled=false;entryProbeSerial++;
+ }
  if(claimed){
   // Only the saved, consumed intent invalidates the wallet. Pending/failure
   // snapshots and repeated ACKs never create another refresh or a purchase.
@@ -408,8 +435,8 @@ life.Subscribe("survival_daily_snapshot",function(next){
 function poll(){if(stopIfInvalid()||!shell.IsOpen())return;request();viewLife.Later(3,poll);}
 cfg.SurvivalDaily={Open:function(pass){
  if(!active||!viewValid())return;cfg.SurvivalDailyStargoldOpen=true;hideTooltip();buying=pass===true;if(buying)activePage="login";p("DailyWindow").RemoveClass("ArchiveHidden");p("DailyScrim").RemoveClass("ArchiveHidden");view.Open();viewLife.Cancel();fetching=false;render();request();viewLife.Later(3,poll);
-},RefreshPaymentCapability:function(){if(active&&viewValid())render();},SelectPage:selectPage,Close:close,Inspect:function(){var cards=p("DailyCards");return {open:active&&viewValid()&&shell.IsOpen(),layout:"daily_gw2",page:activePage,benefitWaiting:!!benefitWaiting,canvas:size.slice(),cell:[cellWidth,cellHeight],cellPadding:cellPadding,columns:columns.slice(),rows:rows.slice(),monthlyX:layout.monthlyX,monthlySlots:valid(p("DailySpecials"))?p("DailySpecials").GetChildCount():0,pass:buying,waiting:!!waiting,fetching:fetching,today:data&&data.today,count:data&&data.count,hasPass:!!data&&Number(data.has_pass)===1,calendarDay:data&&data.calendar_current_day,days:valid(cards)?cards.GetChildCount():0,status:statusText};},
-Dispose:function(){if(!active)return;close();active=false;if(rewardFX)rewardFX.Dispose();viewLife.Dispose();life.Dispose();view.Dispose();}};
+},HasClaimable:hasClaimable,RefreshPaymentCapability:function(){if(active&&viewValid())render();},SelectPage:selectPage,Close:close,Inspect:function(){var cards=p("DailyCards");return {open:active&&viewValid()&&shell.IsOpen(),layout:"daily_gw2",page:activePage,benefitWaiting:!!benefitWaiting,claimable:hasClaimable(),claimabilityKnown:entryKnown,canvas:size.slice(),cell:[cellWidth,cellHeight],cellPadding:cellPadding,columns:columns.slice(),rows:rows.slice(),monthlyX:layout.monthlyX,monthlySlots:valid(p("DailySpecials"))?p("DailySpecials").GetChildCount():0,pass:buying,waiting:!!waiting,fetching:fetching,today:data&&data.today,count:data&&data.count,hasPass:!!data&&Number(data.has_pass)===1,calendarDay:data&&data.calendar_current_day,days:valid(cards)?cards.GetChildCount():0,status:statusText};},
+Dispose:function(){if(!active)return;close();active=false;disposeEntryLoading();if(rewardFX)rewardFX.Dispose();viewLife.Dispose();life.Dispose();view.Dispose();}};
 // Local Tools-only visual inspection. These commands never claim, purchase or
 // invent reward snapshots; they show the real page and inspect native labels.
 if(Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){
@@ -430,6 +457,7 @@ if(Game.IsInToolsMode&&Game.IsInToolsMode()&&Game.AddCommand){
  Game.AddCommand(reviewCommand,runReview,"Inspect the live daily UI and compare font faces without changing rewards",0);
  $.Msg("[DAILY_STARGOLD_COMMAND] "+reviewCommand);
 }
-life.Later(1,request);
+if(CustomNetTables.SubscribeNetTableListener)loadingSubscription=CustomNetTables.SubscribeNetTableListener("survival_loading",function(table,key){if(key==="state")syncEntryAdmission();});
+life.Later(1,syncEntryAdmission);
 if(reopenAfterReload)cfg.SurvivalDaily.Open(false);
 })();

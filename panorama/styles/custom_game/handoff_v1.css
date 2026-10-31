@@ -37,6 +37,12 @@
 }
 .HandoffNavUnified:hover .HandoffNavGlow,
 .HandoffNavUnified.HandoffNavActive .HandoffNavGlow { opacity:1; }
+/* Saved reward availability is a static light, independent of hover/selection. */
+.HandoffNavUnified.HandoffNavRewardReady .HandoffNavGlow {
+    background-color:gradient(radial,50% 50%,0% 0%,50% 50%,from(#ffda8299),color-stop(.4,#e9b95255),to(#e9b95200));
+    opacity:1;
+}
+.HandoffNavUnified.HandoffNavRewardReady Image { img-shadow:0px 0px 8px 2 #efbf66bb; }
 /* Constant dark silhouette separates gold strokes from bright terrain.
    Hover gold light is a separate halo, so it never replaces this edge. */
 .HandoffNavUnified Image,

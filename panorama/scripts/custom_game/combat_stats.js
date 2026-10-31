@@ -153,6 +153,8 @@
     var lastHotkeyCastTime = {};
     var lastReturnHomeTime = -100;
     var maxAbilityEngineSlots = 64;
+    var abilityRefreshLookup = null, abilityRootsCache = null, abilitySlotIndexes = [];
+    var portraitUnitsCatalog = null, portraitUnitNames = Object.create(null);
     var towerRuntimeTrace = {};
     var standardAbilityHotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
     var utilityHotkeys = {
@@ -530,15 +532,26 @@
         return false;
     }
 
+    function portraitAnchorAttached(anchor, root) {
+        for (var panel = anchor, depth = 0; panel && depth < 32; depth++) {
+            if (!validPortraitPanel(panel)) return false;
+            if (panel === root) return true;
+            panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        return false;
+    }
+
     function officialPortraitPanel() {
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return null;
         var cache = portraitAnchorCache;
-        if (!cache || cache.root !== root
-            || (cache.main && (!validPortraitPanel(cache.main) || cache.main.GetParent() !== cache.mainParent))
-            || (cache.query && (!validPortraitPanel(cache.query) || cache.query.GetParent() !== cache.queryParent))) {
-            // One lookup per actual HUD/panel identity. Missing late query
-            // children are retried only in the existing bounded event window.
+        if (!cache || cache.root !== root || !cache.main
+            || (portraitQueryMode && !cache.query)
+            || (cache.main && (!portraitAnchorAttached(cache.main, root) || cache.main.GetParent() !== cache.mainParent))
+            || (cache.query && (!portraitAnchorAttached(cache.query, root) || cache.query.GetParent() !== cache.queryParent))) {
+            // Cache positive identities only: native nodes may appear after a
+            // negative lookup even without a new selection event. A requested
+            // query and detached ancestor are re-evaluated on the next call.
             var query = root.FindChildTraverse("QueryUnitHeroPortrait");
             var main = findMainPortraitPanel();
             cache = portraitAnchorCache = {root:root, main:main, query:query,
@@ -729,11 +742,11 @@
             || towerPortraitLayerAnchor !== anchor;
         if (overlay.GetParent() !== host) overlay.SetParent(host);
         if (overlay.GetParent() !== host) return false;
-        overlay.style.ignoreParentFlow = true;
+        setOwnedPortraitStyle(overlay, "ignoreParentFlow", true);
         // Valve's #portraitHUD stylesheet uses z-index 3 even when the inline
         // getter reports zero. Paint above that layer and any inline override.
         var nativeZIndex = Number(anchor.style.zIndex);
-        overlay.style.zIndex = String(Math.max(4, isFinite(nativeZIndex) ? nativeZIndex + 1 : 4));
+        setOwnedPortraitStyle(overlay, "zIndex", String(Math.max(4, isFinite(nativeZIndex) ? nativeZIndex + 1 : 4)));
         if (layerChanged && host.MoveChildAfter) host.MoveChildAfter(overlay, anchor);
         if (layerChanged) {
             towerPortraitLayerAnchor = anchor;
@@ -751,24 +764,39 @@
         if (!overlay || !overlay.GetParent || !overlay.SetParent
             || !validPortraitPanel(towerPortraitHome)) return;
         if (overlay.GetParent() !== towerPortraitHome) overlay.SetParent(towerPortraitHome);
-        overlay.style.zIndex = "0";
+        setOwnedPortraitStyle(overlay, "zIndex", "0");
         towerPortraitLayerAnchor = null;
         portraitGeometrySignature = "";
         portraitGeometryDiagnosticSignature = "";
     }
 
+    function setOwnedPortraitStyle(target, property, value) {
+        // These transforms/layer values belong to our own overlay/scenes. The
+        // native bridge normalizes CSS text, so retain the last requested value.
+        var values = target.__survivalOwnedPortraitStyles || (target.__survivalOwnedPortraitStyles = {});
+        if (values[property] === value) return;
+        target.style[property] = value;
+        values[property] = value;
+    }
+
+    function setPortraitVisibility(target, value) {
+        // Visibility is also touched by transitions. Read it live so a rebuilt
+        // or externally hidden scene is repaired without redundant setters.
+        if (String(target.style.visibility) !== value) target.style.visibility = value;
+    }
+
     function applyTowerPortraitContentScale(scene) {
         if (!validPortraitPanel(scene)) return;
-        scene.style.transformOrigin = "50% 50%";
-        scene.style.transform = "scale3d("
+        setOwnedPortraitStyle(scene, "transformOrigin", "50% 50%");
+        setOwnedPortraitStyle(scene, "transform", "scale3d("
             + String(TOWER_PORTRAIT_CONTENT_SCALE) + ", "
-            + String(TOWER_PORTRAIT_CONTENT_SCALE) + ", 1.0)";
+            + String(TOWER_PORTRAIT_CONTENT_SCALE) + ", 1.0)");
     }
 
     function resetTowerPortraitContentScale(scene) {
         if (!validPortraitPanel(scene)) return;
-        scene.style.transform = "scale3d(1, 1, 1)";
-        scene.style.transformOrigin = "50% 50%";
+        setOwnedPortraitStyle(scene, "transform", "scale3d(1, 1, 1)");
+        setOwnedPortraitStyle(scene, "transformOrigin", "50% 50%");
     }
 
     function usesNativeRebirthPortrait(unit, snapshot) {
@@ -785,6 +813,21 @@
             && /^monster_boss_rebirth_(0[1-9]|10)_/.test(String(snapshot.model_asset_id || ""));
     }
 
+    function knownPortraitUnit(renderer, unitName) {
+        if (renderer && typeof renderer.HasUnitName === "function") return renderer.HasUnitName(unitName);
+        // A missing/older renderer can still receive the scene catalog. Build
+        // its compatibility index once per catalog replacement, never per wait.
+        var catalog = customConfig.SurvivalMonsterPortraitScenes || null;
+        if (catalog !== portraitUnitsCatalog) {
+            portraitUnitsCatalog = catalog; portraitUnitNames = Object.create(null);
+            Object.keys(catalog || {}).forEach(function (asset) {
+                var spec = catalog[asset];
+                if (spec && spec.unit) portraitUnitNames[String(spec.unit)] = true;
+            });
+        }
+        return portraitUnitNames[unitName] === true;
+    }
+
     function unitUsesTowerPortrait(unit) {
         unit = Number(unit);
         if (!isFinite(unit) || unit < 0) return false;
@@ -794,10 +837,8 @@
         var unitName = String(Entities.GetUnitName(unit) || "");
         // Before outfit metadata arrives, cover the native body without guessing
         // an outfit from a shared wave-unit name. The snapshot decides the scene.
-        if (renderer && (/^(npc_survival_|building_)/.test(unitName) || unitName === "enemy_tree"
-            || Object.keys(customConfig.SurvivalMonsterPortraitScenes || {}).some(function (asset) {
-                return customConfig.SurvivalMonsterPortraitScenes[asset].unit === unitName;
-            }))) return true;
+        if ((renderer && (/^(npc_survival_|building_)/.test(unitName) || unitName === "enemy_tree"))
+            || knownPortraitUnit(renderer, unitName)) return true;
         if (unitName === "npc_survival_builder_proxy") return true;
         if (unitName === "building_arrow_tower") {
             return true;
@@ -844,15 +885,18 @@
             cover.style.backgroundColor = "#071321";
             cover.hittest = false; cover.hittestchildren = false;
             cover.__backgrounds = {};
+            cover.__backgroundCount = 0;
         }
         var spec = (customConfig.SurvivalMonsterPortraitScenes || {})[modelAssetId];
         var uri = spec ? spec.background : "";
+        var previous = cover.__selectedBackground;
+        if (previous !== uri && cover.__backgrounds[previous]) setPortraitVisibility(cover.__backgrounds[previous], "collapse");
         cover.__selectedBackground = uri;
-        Object.keys(cover.__backgrounds).forEach(function (key) {
-            cover.__backgrounds[key].style.visibility = key === uri ? "visible" : "collapse";
-        });
         if (uri && !cover.__backgrounds[uri]) {
-            var image = $.CreatePanel("Image", cover, "SurvivalPortraitTransitionBackground" + Object.keys(cover.__backgrounds).length);
+            // A retained cover from the prior controller needs this count only
+            // once; subsequent background switches touch previous/next alone.
+            if (cover.__backgroundCount === undefined) cover.__backgroundCount = Object.keys(cover.__backgrounds).length;
+            var image = $.CreatePanel("Image", cover, "SurvivalPortraitTransitionBackground" + cover.__backgroundCount++);
             cover.__backgrounds[uri] = image;
             image.style.width = "100%"; image.style.height = "100%";
             image.style.position = "0px 0px 0px"; image.style.opacity = "0.001";
@@ -862,7 +906,8 @@
             });
             image.SetImage(uri);
         }
-        cover.style.visibility = "visible";
+        if (previous !== uri && cover.__backgrounds[uri]) setPortraitVisibility(cover.__backgrounds[uri], "visible");
+        setPortraitVisibility(cover, "visible");
     }
 
     function holdTowerPortraitTransition(reason, modelAssetId) {
@@ -886,7 +931,7 @@
         hidePortraitScenesExcept(null);
         showPortraitTransitionCover(overlay, modelAssetId);
         overlay.style.backgroundColor = "#071321";
-        overlay.style.visibility = "visible";
+        setPortraitVisibility(overlay, "visible");
         var signature = [unit, String(anchor.id || anchor.paneltype || "anonymous")]
             .join(":");
         if (portraitTransitionSignature !== signature) {
@@ -922,7 +967,7 @@
 
     function hideCosmeticPortrait(reason) {
         var overlay = towerPortraitOverlayPanel();
-        if (overlay) overlay.style.visibility = "collapse";
+        if (overlay) setPortraitVisibility(overlay, "collapse");
         hidePortraitScenesExcept(null);
         restoreNativePortraitOpacity();
         restoreTowerPortraitHome(overlay);
@@ -1071,7 +1116,7 @@
         hidePortraitScenesExcept(scene);
         if (isMonsterPortrait) resetTowerPortraitContentScale(scene);
         else applyTowerPortraitContentScale(scene);
-        scene.style.visibility = "visible";
+        setPortraitVisibility(scene, "visible");
         if (!positionCosmeticPortrait(overlay, anchor, scene)) {
             setPortraitAnchorDiagnostic("invalid_geometry");
             hideCosmeticPortrait("invalid_geometry");
@@ -1112,10 +1157,10 @@
         portraitPendingUnit = -1;
         var transitionCover = overlay.FindChildTraverse("SurvivalPortraitTransitionCover");
         if (prepared && prepared.presentable === false) showPortraitTransitionCover(overlay, modelAssetId);
-        else if (validPortraitPanel(transitionCover)) transitionCover.style.visibility = "collapse";
+        else if (validPortraitPanel(transitionCover)) setPortraitVisibility(transitionCover, "collapse");
         restoreNativePortraitsExcept(anchor);
         dimNativePortraitOpacity(anchor);
-        overlay.style.visibility = "visible";
+        setPortraitVisibility(overlay, "visible");
         return true;
     }
 
@@ -1957,6 +2002,7 @@
     }
 
     function beginUnitNameTransition(reason) {
+        abilityRootsCache = null;
         var transitionUnit = Number(displayUnit());
         // Coalesce notifications queued for the same first check. A later
         // event still gets its full retry window for an asynchronous HUD rebuild.
@@ -1976,6 +2022,9 @@
                 var currentUnit = Number(displayUnit());
                 // Keep every late native-HUD check, but only rewrite shortcuts
                 // when their binding or native suppression has actually changed.
+                // Query HUD children may arrive after the selection event.
+                // Probe missing roots only during this bounded retry window.
+                if (abilityRootsCache && !abilityRootsCache.roots.query) abilityRootsCache = null;
                 refreshAbilityHotkeysIfChanged(false);
                 if (currentUnit < 0) {
                     return;
@@ -2186,8 +2235,16 @@
     }
 
     function officialHotkeyAbilityRoots() {
+        if (abilityRefreshLookup && abilityRefreshLookup.roots) return abilityRefreshLookup.roots;
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return { main: null, query: null };
+        if (abilityRootsCache && abilityRootsCache.root === root
+            && abilityRootsCache.links.every(function (link) {
+                return validPortraitPanel(link.panel) && link.panel.GetParent() === link.parent;
+            })) {
+            if (abilityRefreshLookup) abilityRefreshLookup.roots = abilityRootsCache.roots;
+            return abilityRootsCache.roots;
+        }
         // Valve owns two different DOTAAbilityList nodes named "abilities".
         // Resolve their current scopes instead of caching the first root match.
         var branch = root.FindChildTraverse("AbilitiesAndStatBranch");
@@ -2197,7 +2254,72 @@
         var main = branch && branch.FindChildTraverse("abilities");
         if (!main) main = root.FindChildTraverse("abilities") || branch;
         if (main === query) main = null;
-        return { main: main, query: query };
+        var roots = { main: main, query: query };
+        if (main) {
+            var links = [];
+            [main, query].forEach(function (panel) {
+                for (var depth = 0; panel && panel !== root && depth < 24; depth++) {
+                    var parent = panel.GetParent ? panel.GetParent() : null;
+                    links.push({panel:panel, parent:parent}); panel = parent;
+                }
+            });
+            abilityRootsCache = {root:root, roots:roots, links:links};
+        }
+        if (abilityRefreshLookup) abilityRefreshLookup.roots = roots;
+        return roots;
+    }
+
+    function withAbilityLookup(callback) {
+        var previous = abilityRefreshLookup;
+        if (previous) return callback();
+        abilityRefreshLookup = {roots:null, indexes:[]};
+        try { return callback(); }
+        finally { abilityRefreshLookup = previous; }
+    }
+
+    function abilitySlotPanel(root, slot) {
+        if (!root || !root.FindChildTraverse) return null;
+        var localIndexes = abilityRefreshLookup && abilityRefreshLookup.indexes;
+        var index = localIndexes && localIndexes.filter(function (item) { return item.root === root; })[0];
+        if (!index) {
+            index = abilitySlotIndexes.filter(function (item) { return item.root === root; })[0];
+            if (index && !index.links.every(function (link) {
+                return validPortraitPanel(link.panel)
+                    && (!link.panel.GetParent || link.panel.GetParent() === link.parent)
+                    && (link.count === null || link.panel.GetChildCount() === link.count);
+            })) index = null;
+            if (!index) {
+                index = {root:root, slots:{}, links:[], fallback:!root.GetChildCount || !root.GetChild};
+                var stack = [root];
+                while (stack.length && !index.fallback) {
+                    var panel = stack.pop();
+                    if (!validPortraitPanel(panel)) continue;
+                    var match = /^Ability(\d+)$/.exec(String(panel.id || ""));
+                    var number = match ? Number(match[1]) : -1;
+                    var isSlot = match && number >= 0 && number < maxAbilityEngineSlots
+                        && String(panel.id) === "Ability" + number;
+                    var count = isSlot ? null : panel.GetChildCount ? panel.GetChildCount() : 0;
+                    index.links.push({panel:panel, parent:panel.GetParent ? panel.GetParent() : null, count:count});
+                    if (isSlot) {
+                        if (!Object.prototype.hasOwnProperty.call(index.slots, number)) index.slots[number] = panel;
+                        // Slot internals have duplicate IDs and our labels can
+                        // be added during this refresh; keep their lookups live.
+                        continue;
+                    }
+                    if (panel.GetChild) for (var child = count - 1; child >= 0; child--) stack.push(panel.GetChild(child));
+                }
+                var activeRoots = officialHotkeyAbilityRoots();
+                abilitySlotIndexes = abilitySlotIndexes.filter(function (item) {
+                    return item.root !== root && (item.root === activeRoots.main || item.root === activeRoots.query);
+                });
+                abilitySlotIndexes.push(index);
+            }
+            if (localIndexes) localIndexes.push(index);
+        }
+        if (index.fallback && !Object.prototype.hasOwnProperty.call(index.slots, slot)) {
+            index.slots[slot] = root.FindChildTraverse("Ability" + slot);
+        }
+        return index.slots[slot] || null;
     }
 
     function viewingOtherAbilityUnit() {
@@ -2207,7 +2329,7 @@
     function queryAbilityHotkeysMatch(query) {
         if (!validPortraitPanel(query) || !query.FindChildTraverse) return true;
         for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var panel = query.FindChildTraverse("Ability" + slot);
+            var panel = abilitySlotPanel(query, slot);
             if (!validPortraitPanel(panel)) continue;
             if (nativeAbilityHotkeyContainer(panel) && !nativeAbilityHotkeySuppressed(panel)) return false;
             var label = panel.FindChildTraverse("SurvivalAbilityHotkey") || panel.FindChildTraverse("SurvivalUtilityHotkey");
@@ -2220,7 +2342,7 @@
     function clearQueryAbilityHotkeys(query, restore) {
         if (!validPortraitPanel(query) || !query.FindChildTraverse) return;
         for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var panel = query.FindChildTraverse("Ability" + slot);
+            var panel = abilitySlotPanel(query, slot);
             if (!validPortraitPanel(panel)) continue;
             if (restore) restoreNativeAbilityHotkey(panel);
             else suppressNativeAbilityHotkey(panel);
@@ -2240,7 +2362,7 @@
         var seen = [];
         if (!abilities || !abilities.FindChildTraverse) return panels;
         for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
-            var panel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
+            var panel = abilitySlotPanel(abilities, nodeIndex);
             if (!panel || seen.indexOf(panel) >= 0 || belongsToLegacyHud(panel)) continue;
             seen.push(panel);
             if (panel.IsValid && !panel.IsValid()) continue;
@@ -2275,6 +2397,7 @@
     }
 
     function resolveOfficialAbilityMappings(visibleAbilities) {
+        if (!abilityRefreshLookup) return withAbilityLookup(function () { return resolveOfficialAbilityMappings(visibleAbilities); });
         var abilities = officialHotkeyAbilityRoots().main;
         var unit=selectedUnit(),unitName="";
         try{unitName=String(Entities.GetUnitName(unit)||"");}catch(error){}
@@ -2289,7 +2412,7 @@
                 var entry=visibleAbilities[i],slot=Number(entry.slot);
                 if(!isFinite(slot)||slot<0||Math.floor(slot)!==slot
                     ||Number(abilityIndexForSlot(unit,slot))!==Number(entry.ability))return null;
-                var panel=abilities.FindChildTraverse("Ability"+slot),anchor=officialAbilityButtonAnchor(panel);
+                var panel=abilitySlotPanel(abilities,slot),anchor=officialAbilityButtonAnchor(panel);
                 if(!validPortraitPanel(panel)||!validPortraitPanel(anchor)||belongsToLegacyHud(panel))return null;
                 archiveMappings.push({entry:entry,panel:panel,anchor:anchor,nodeIndex:slot});
             }
@@ -2375,6 +2498,7 @@
     }
 
     function officialAbilityHotkeysMatch(mappings) {
+        if (!abilityRefreshLookup) return withAbilityLookup(function () { return officialAbilityHotkeysMatch(mappings); });
         if (!mappings) return false;
         var roots = officialHotkeyAbilityRoots();
         if (!queryAbilityHotkeysMatch(roots.query)) return false;
@@ -2406,7 +2530,7 @@
         if (!validPortraitPanel(abilities) || !abilities.FindChildTraverse) return false;
         var mappedPanels = mappings.map(function (mapping) { return mapping.panel; });
         for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var emptyPanel = abilities.FindChildTraverse("Ability" + String(slot));
+            var emptyPanel = abilitySlotPanel(abilities, slot);
             if (!validPortraitPanel(emptyPanel) || belongsToLegacyHud(emptyPanel)
                 || mappedPanels.indexOf(emptyPanel) >= 0) continue;
             if (nativeAbilityHotkeyContainer(emptyPanel) && !nativeAbilityHotkeySuppressed(emptyPanel)) return false;
@@ -2483,10 +2607,11 @@
         return false;
     }
     function clearOfficialAbilityHotkeys(abilities, keepNativeSuppressed) {
+        if (!abilityRefreshLookup) return withAbilityLookup(function () { return clearOfficialAbilityHotkeys(abilities, keepNativeSuppressed); });
         officialAbilityMappings = [];
         if (!validPortraitPanel(abilities) || !abilities.FindChildTraverse) return;
         for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
-            var abilityPanel = abilities.FindChildTraverse("Ability" + String(nodeIndex));
+            var abilityPanel = abilitySlotPanel(abilities, nodeIndex);
             if (!validPortraitPanel(abilityPanel) || belongsToLegacyHud(abilityPanel)) continue;
             if(keepNativeSuppressed)suppressNativeAbilityHotkey(abilityPanel);
             else restoreNativeAbilityHotkey(abilityPanel);
@@ -2586,6 +2711,7 @@
         return key;
     }
     function refreshOfficialUtilityHotkeys(visibleAbilities, mappings) {
+        if (!abilityRefreshLookup) return withAbilityLookup(function () { return refreshOfficialUtilityHotkeys(visibleAbilities, mappings); });
         if (!contextActive()) return false;
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return false;
@@ -2688,6 +2814,7 @@
     }
 
     function refreshAbilityHotkeysIfChanged(force) {
+        if (!abilityRefreshLookup) return withAbilityLookup(function () { return refreshAbilityHotkeysIfChanged(force); });
         if (!contextActive()) return;
         var unit = selectedUnit();
         var visibleAbilities = unit === undefined || unit < 0 || viewingOtherAbilityUnit()

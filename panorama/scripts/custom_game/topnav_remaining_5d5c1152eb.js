@@ -331,6 +331,12 @@
         }
         markActiveNav(matched);
     }
+    function syncDailyRewardHint() {
+        var daily=cfg.SurvivalDaily,button=topButtons.benefit;
+        var ready=!!(daily&&typeof daily.HasClaimable==="function"&&daily.HasClaimable());
+        if(button.__dailyRewardHint===ready)return;
+        button.__dailyRewardHint=ready;button.SetHasClass("HandoffNavRewardReady",ready);
+    }
     function topMetric(id,key,x,textX,textWidth){
         var row=create("Panel",topStatus,id+"Row",false);place(row,x,14,textX-x+textWidth,44);
         var icon=art(row,id+"Icon",key);place(icon,0,0,32,32);style(icon,{verticalAlign:"center"});
@@ -1495,6 +1501,7 @@
         if(cfg.SurvivalVIPStatus)cfg.SurvivalVIPStatus.Render(topButtons.vip,{
             icon:nodes.HandoffNavIcon_vip,caption:nodes.HandoffNavCaption_vip,glow:nodes.HandoffNavGlow_vip});
         syncActiveNav();
+        syncDailyRewardHint();
         // Both daily and monthly-pass views are reachable inside the existing welfare window.
         if(availability.benefit&&(repaint||mirror.benefitReady!==availability.benefit))["DailyEntry","PassEntry"].forEach(function(id){style(findCached(root,id,true),{visibility:"collapse"});});
         mirror.benefitReady=availability.benefit;
