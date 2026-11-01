@@ -104,6 +104,11 @@
     var officialArmorText = "";
     var logicalAttributeOverlay = null;
     var officialHudCache = {};
+    var officialHudParents = {};
+    var officialHudWatches = [];
+    var officialHudContextParent = null;
+    var officialHudSeeded = false;
+    var inventorySlotLookup = {panel:null, values:{}, watches:[]};
     var officialUnitNameOverlay = null;
     var unitNameTransitionSerial = 0;
     var unitNameTransition = null;
@@ -319,22 +324,140 @@
         return isNativeHero(unitName);
     }
 
+    function resetOfficialHudLookup() {
+        officialHudCache = {};
+        officialHudParents = {};
+        officialHudWatches = [];
+        officialHudContextParent = null;
+        officialHudSeeded = false;
+        inventorySlotLookup = {panel:null, values:{}, watches:[]};
+        // These indexes describe the same native HUD generation.
+        abilityRootsCache = null;
+        abilitySlotIndexes = [];
+    }
+
+    function watchOfficialHudPath(panel, structural) {
+        // Cache only the bounded paths to requested native controls. Never
+        // enumerate the full HUD just to validate a positive or negative hit.
+        for (var depth = 0; validPortraitPanel(panel) && depth < 48; depth++) {
+            var existing = null;
+            for (var index = 0; index < officialHudWatches.length; index++) {
+                if (officialHudWatches[index].panel === panel) { existing = officialHudWatches[index]; break; }
+            }
+            var parent = panel.GetParent ? panel.GetParent() : null;
+            if (!existing) officialHudWatches.push({panel:panel, parent:parent,
+                children:structural !== false && panel.GetChildCount ? panel.GetChildCount() : null});
+            else if (structural !== false && existing.children === null && panel.GetChildCount)
+                existing.children = panel.GetChildCount();
+            panel = parent;
+        }
+    }
+
+    function refreshOfficialHudLookup() {
+        // Called once by the 100ms task, not once per alias. K is the union of
+        // cached native ancestor paths, independent of the full HUD N. Counts
+        // and identity detect real rebuilds, including late children and a
+        // same-size replacement whose former native node remains alive.
+        for (var index = 0; index < officialHudWatches.length; index++) {
+            var entry = officialHudWatches[index], panel = entry.panel;
+            if (!validPortraitPanel(panel)
+                || (panel.GetParent ? panel.GetParent() : null) !== entry.parent
+                || (entry.children !== null && panel.GetChildCount() !== entry.children)) {
+                resetOfficialHudLookup();
+                break;
+            }
+        }
+        if (!officialHudSeeded) {
+            var root = officialHudRoot();
+            if (!root) return;
+            seedOfficialHudContainers(root);
+            officialHudSeeded = true;
+        }
+    }
+
     function officialHudRoot() {
-        if (validPortraitPanel(officialHudCache.root)) return officialHudCache.root;
+        var parent = contextPanel && contextPanel.GetParent ? contextPanel.GetParent() : null;
+        if (validPortraitPanel(officialHudCache.root) && parent === officialHudContextParent)
+            return officialHudCache.root;
+        resetOfficialHudLookup();
         var root = $.GetContextPanel();
         if (!validPortraitPanel(root)) return null;
         while (root && root.GetParent && root.GetParent()) root = root.GetParent();
         officialHudCache.root = root;
+        officialHudContextParent = parent;
+        // Custom overlay reparenting must not masquerade as a native rebuild.
+        watchOfficialHudPath(contextPanel, false);
+        watchOfficialHudPath(root);
         return root;
     }
 
+    function seedOfficialHudContainers(root) {
+        // These are observed native creation boundaries, not a catalog scan.
+        // Late inventory/query children appear beneath these fixed containers.
+        ["Hud", "HUDElements", "lower_hud", "center_with_stats", "center_block", "QueryUnit", "QueryContainer"].forEach(function (id) {
+            var container = root.FindChildTraverse ? root.FindChildTraverse(id) : null;
+            officialHudCache[id] = validPortraitPanel(container) ? container : null;
+            if (officialHudCache[id]) {
+                officialHudParents[id] = container.GetParent ? container.GetParent() : null;
+                watchOfficialHudPath(container);
+            }
+        });
+    }
+
     function officialPanel(id) {
-        var cached = officialHudCache[id];
-        if (validPortraitPanel(cached)) return cached;
         var root = officialHudRoot();
-        cached = root && root.FindChildTraverse ? root.FindChildTraverse(id) : null;
-        officialHudCache[id] = validPortraitPanel(cached) ? cached : null;
+        if (Object.prototype.hasOwnProperty.call(officialHudCache, id)) {
+            var cached = officialHudCache[id];
+            if (cached === null) return null;
+            if (validPortraitPanel(cached)
+                && (!cached.GetParent || cached.GetParent() === officialHudParents[id])) return cached;
+            // A requested leaf can expire between the regular checks. Invalidate
+            // its exact cache entry; a negative result is retained until the
+            // observed native ancestor/container generation actually changes.
+            delete officialHudCache[id];
+            delete officialHudParents[id];
+        }
+        var found = root && root.FindChildTraverse ? root.FindChildTraverse(id) : null;
+        officialHudCache[id] = validPortraitPanel(found) ? found : null;
+        if (officialHudCache[id]) {
+            officialHudParents[id] = found.GetParent ? found.GetParent() : null;
+            watchOfficialHudPath(found);
+        }
         return officialHudCache[id];
+    }
+
+    function inventorySlotIndex(inventory) {
+        var cache = inventorySlotLookup;
+        var changed = cache.panel !== inventory;
+        for (var index = 0; !changed && index < cache.watches.length; index++) {
+            var entry = cache.watches[index], panel = entry.panel;
+            changed = !validPortraitPanel(panel)
+                || (panel.GetParent ? panel.GetParent() : null) !== entry.parent
+                || (entry.children !== null && panel.GetChildCount() !== entry.children);
+        }
+        if (!changed) return cache;
+        cache = {panel:inventory, values:{}, watches:[]};
+        var stack = [inventory];
+        while (stack.length) {
+            var current = stack.pop();
+            if (!validPortraitPanel(current)) continue;
+            var id = String(current.id || "");
+            var slot = /^(?:inventory_slot_|inventoryslot|InventorySlot)\d+$/.test(id);
+            var count = current.GetChildCount ? current.GetChildCount() : 0;
+            cache.watches.push({panel:current,
+                parent:current.GetParent ? current.GetParent() : null,
+                children:slot ? null : count});
+            if (slot) {
+                if (!Object.prototype.hasOwnProperty.call(cache.values, id)) cache.values[id] = current;
+                // Item artwork/tooltips below a slot are not creation boundaries
+                // for sibling backpack slots. Never index those dynamic trees.
+                continue;
+            }
+            if (current.GetChild) for (var child = count - 1; child >= 0; child--)
+                stack.push(current.GetChild(child));
+        }
+        inventorySlotLookup = cache;
+        return cache;
     }
 
     function validPortraitPanel(candidate) {
@@ -1396,9 +1519,9 @@
     function collapseOfficialPanel(id) {
         var target = officialPanel(id);
         if (!target) return false;
-        target.style.visibility = "collapse";
-        target.hittest = false;
-        target.hittestchildren = false;
+        if (target.style.visibility !== "collapse") target.style.visibility = "collapse";
+        if (target.hittest !== false) target.hittest = false;
+        if (target.hittestchildren !== false) target.hittestchildren = false;
         return true;
     }
 
@@ -1409,9 +1532,9 @@
         ["AbilitiesAndStatBranch", "abilities"].forEach(function (id) {
             var target = officialPanel(id);
             if (!target) return;
-            target.style.visibility = "visible";
-            target.hittest = true;
-            target.hittestchildren = true;
+            if (target.style.visibility !== "visible") target.style.visibility = "visible";
+            if (target.hittest !== true) target.hittest = true;
+            if (target.hittestchildren !== true) target.hittestchildren = true;
         });
     }
 
@@ -1431,17 +1554,18 @@
 
         var inventory = officialPanel("inventory") || officialPanel("Inventory");
         if (!inventory || !inventory.FindChildTraverse) return;
+        var inventorySlots = inventorySlotIndex(inventory);
         for (var slot = 6; slot <= 8; slot++) {
             [
                 "inventory_slot_" + String(slot),
                 "inventoryslot" + String(slot),
                 "InventorySlot" + String(slot)
             ].forEach(function (id) {
-                var target = inventory.FindChildTraverse(id);
+                var target = inventorySlots.values[id] || null;
                 if (!target) return;
-                target.style.visibility = "collapse";
-                target.hittest = false;
-                target.hittestchildren = false;
+                if (target.style.visibility !== "collapse") target.style.visibility = "collapse";
+                if (target.hittest !== false) target.hittest = false;
+                if (target.hittestchildren !== false) target.hittestchildren = false;
             });
         }
     }
@@ -2210,6 +2334,9 @@
     }
 
     function beginUnitNameTransition(reason) {
+        // A real selection may expose a newly created native query subtree.
+        // Validate the bounded ancestor set; unchanged selection is not a scan.
+        refreshOfficialHudLookup();
         abilityRootsCache = null;
         var transitionUnit = Number(displayUnit());
         // Coalesce notifications queued for the same first check. A later
@@ -2232,6 +2359,7 @@
                 // when their binding or native suppression has actually changed.
                 // Query HUD children may arrive after the selection event.
                 // Probe missing roots only during this bounded retry window.
+                refreshOfficialHudLookup();
                 if (abilityRootsCache && !abilityRootsCache.roots.query) abilityRootsCache = null;
                 refreshAbilityHotkeysIfChanged(false);
                 if (currentUnit < 0) {
@@ -2455,12 +2583,12 @@
         }
         // Valve owns two different DOTAAbilityList nodes named "abilities".
         // Resolve their current scopes instead of caching the first root match.
-        var branch = root.FindChildTraverse("AbilitiesAndStatBranch");
-        var vertical = root.FindChildTraverse("QueryVertical");
+        var branch = officialPanel("AbilitiesAndStatBranch");
+        var vertical = officialPanel("QueryVertical");
         var queryBody = vertical && vertical.FindChildTraverse("AbilitiesHealthMana");
         var query = queryBody && queryBody.FindChildTraverse("abilities");
         var main = branch && branch.FindChildTraverse("abilities");
-        if (!main) main = root.FindChildTraverse("abilities") || branch;
+        if (!main) main = officialPanel("abilities") || branch;
         if (main === query) main = null;
         var roots = { main: main, query: query };
         if (main) {
@@ -2794,6 +2922,7 @@
     }
 
     function refreshAbilities() {
+        refreshOfficialHudLookup();
         hideDeferredHudFeatures();
         // Valve reuses Ability0/Ability1 panels and may restore DOTADisabled
         // after a selection change. Reapply the authoritative runtime state for
@@ -2874,6 +3003,7 @@
             && config.SurvivalAbilityHotkeys.Shutdown === shutdownCombatContext) {
             config.SurvivalAbilityHotkeys = null;
         }
+        resetOfficialHudLookup();
         $.Msg("[SURVIVAL_ABILITY_HOTKEY] shutdown reason=", String(reason || "unknown"));
     }
 
