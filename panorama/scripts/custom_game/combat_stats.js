@@ -615,19 +615,95 @@
         return false;
     }
 
+    function portraitNativeLayoutScale(candidate, root, axis) {
+        // Native layout dimensions include Panorama's UI scale, but not the
+        // topnav canvas transform. Read the native leaf first, then its root.
+        var key = "actualuiscale_" + axis;
+        var value = candidate && candidate[key];
+        if (value === undefined || value === null || value === "") value = root && root[key];
+        if (value === undefined || value === null || value === "") {
+            // Compatibility for builds without actualuiscale: Panorama uses a
+            // 1080-high logical canvas. Never override an explicit bad scale.
+            var height = Number(root && root.actuallayoutheight);
+            return isFinite(height) && height > 0 && height < 1000000 ? height / 1080 : NaN;
+        }
+        var scale = Number(value);
+        return isFinite(scale) && scale > 0 ? scale : NaN;
+    }
+
+    function portraitCandidateGeometry(candidate, root) {
+        var width = Number(candidate && candidate.actuallayoutwidth || 0);
+        var height = Number(candidate && candidate.actuallayoutheight || 0);
+        if (!usableLayoutNumber(width) || !usableLayoutNumber(height)) return {reason:"leaf_size"};
+        var scaleX = portraitNativeLayoutScale(candidate, root, "x");
+        var scaleY = portraitNativeLayoutScale(candidate, root, "y");
+        if (!isFinite(scaleX) || !isFinite(scaleY)) return {reason:"leaf_scale"};
+        var logicalWidth = width / scaleX, logicalHeight = height / scaleY;
+        // The formal native leaf is 264 logical px (topnav/HandoffGeometry).
+        // Keep a finite envelope in logical units, independent of resolution,
+        // display DPI and the separate parent canvas's visual transform.
+        if (!isFinite(logicalWidth) || !isFinite(logicalHeight)
+            || logicalWidth < 64 || logicalHeight < 56
+            || logicalWidth > 320 || logicalHeight > 320) return {reason:"leaf_size"};
+        var position = windowPosition(candidate);
+        if (!position) return {reason:"missing_leaf_geometry"};
+        var rootHeight = Number(root && root.actuallayoutheight || 0);
+        if (!usableLayoutNumber(rootHeight) || rootHeight <= 0) return {reason:"root_geometry"};
+        if (Number(position.y || 0) < rootHeight * 0.45) return {reason:"outside_bottom_hud"};
+        return {reason:"usable",logicalWidth:logicalWidth,logicalHeight:logicalHeight};
+    }
+
+    function mainPortraitProbePath(candidate, root) {
+        var path = [];
+        for (var panel = candidate, depth = 0; panel && depth < 32; depth++) {
+            path.push(panel);
+            if (panel === root) break;
+            panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        return path;
+    }
+
+    function mainPortraitProbePathChanged(cache, candidate) {
+        var path = cache.mainLayoutProbePath || [], panel = candidate, depth = 0;
+        // Only a remembered missing-main leaf needs this negative-cache check.
+        // Follow at most its existing native parent chain, never sibling nodes.
+        for (; panel && depth < 32; depth++) {
+            if (path[depth] !== panel) return true;
+            if (panel === cache.root) return path.length !== depth + 1;
+            panel = panel.GetParent ? panel.GetParent() : null;
+        }
+        return path.length !== depth;
+    }
+
+    function rememberMainPortraitLayoutProbe(cache, candidate) {
+        // Retain only the native identity already found during discovery. A
+        // rejected size must not lose the only signal that its layout recovers.
+        if (cache && validPortraitPanel(candidate) && String(candidate.id || "") === "portraitHUD"
+            && String(candidate.paneltype || "").toLowerCase() === "dotaportrait") {
+            cache.mainLayoutProbe = candidate;
+            cache.mainLayoutProbePath = mainPortraitProbePath(candidate, cache.root);
+            cache.mainLayoutProbeRevision = Number(cache.mainLayoutProbeRevision || 0) + 1;
+        }
+    }
+
+    function mainPortraitLayoutSignature(cache) {
+        var root = cache.root, leaf = cache.main || cache.mainLayoutProbe;
+        var rootState = [root.actuallayoutwidth, root.actuallayoutheight, root.actualuiscale_x, root.actualuiscale_y];
+        if (!validPortraitPanel(leaf)) return rootState.join(":") + ":no_leaf";
+        if (!cache.main && mainPortraitProbePathChanged(cache, leaf)) {
+            cache.mainLayoutProbePath = mainPortraitProbePath(leaf, root);
+            cache.mainLayoutProbeRevision = Number(cache.mainLayoutProbeRevision || 0) + 1;
+        }
+        return rootState.concat([leaf.actuallayoutwidth, leaf.actuallayoutheight,
+            leaf.actualuiscale_x, leaf.actualuiscale_y, cache.mainLayoutProbeRevision || 0]).join(":");
+    }
+
     function portraitCandidateUsable(candidate, root) {
         if (!candidate || !root || !candidate.GetPositionWithinWindow
             || belongsToCustomPortraitHud(candidate)) return false;
         if (candidate.IsValid && !candidate.IsValid()) return false;
         if (candidate.visible === false || candidate.style.visibility === "collapse") return false;
-        var width = Number(candidate.actuallayoutwidth || 0);
-        var height = Number(candidate.actuallayoutheight || 0);
-        var rootHeight = Number(root.actuallayoutheight || 0);
-        var position = windowPosition(candidate);
-        if (!position) return false;
-        if (!isFinite(width) || !isFinite(height) || width < 64 || height < 56
-            || width > 280 || height > 240) return false;
-        return !rootHeight || Number(position.y || 0) >= rootHeight * 0.45;
+        return portraitCandidateGeometry(candidate, root).reason === "usable";
     }
 
     function nativePortraitScenePanel(container, root, depth) {
@@ -719,10 +795,8 @@
         if (!portraitAnchorAttached(anchor, root)) return "detached_leaf";
         if (anchor.visible === false) return "hidden_leaf";
         if (anchor.style.visibility === "collapse") return "collapsed_leaf";
-        var position = windowPosition(anchor), width = Number(anchor.actuallayoutwidth || 0), height = Number(anchor.actuallayoutheight || 0);
-        if (!position) return "missing_leaf_geometry";
-        if (!isFinite(width) || !isFinite(height) || width < 64 || height < 56 || width > 280 || height > 240) return "leaf_size";
-        if (Number(root.actuallayoutheight || 0) && Number(position.y || 0) < Number(root.actuallayoutheight) * 0.45) return "outside_bottom_hud";
+        var geometry = portraitCandidateGeometry(anchor, root);
+        if (geometry.reason !== "usable") return geometry.reason;
         if (!portraitCandidateUsable(anchor, root)) return "leaf_geometry_or_visibility";
         for (var panel = anchor, depth = 0; panel && depth < 32; depth++) {
             if (!validPortraitPanel(panel)) return "invalid_ancestor";
@@ -830,15 +904,22 @@
         if (!root || !root.FindChildTraverse) return null;
         var cache = portraitAnchorCache;
         if (!cache || cache.root !== root) {
-            var main = findMainPortraitPanel();
-            cache = portraitAnchorCache = {root:root, main:main, mainParent:main && main.GetParent()};
+            cache = portraitAnchorCache = {root:root, main:null, mainLayoutProbe:null};
+            cache.main = findMainPortraitPanel(cache);
+            cache.mainParent = cache.main && cache.main.GetParent();
+            cache.mainLayoutSignature = mainPortraitLayoutSignature(cache);
             indexQueryPortraitAnchors(cache);
         } else {
+            var layoutSignature = mainPortraitLayoutSignature(cache);
+            var layoutChanged = layoutSignature !== cache.mainLayoutSignature;
+            cache.mainLayoutSignature = layoutSignature;
+            if (layoutChanged) cache.queryRefresh = true;
             var rootChanged = portraitChildCount(root) !== cache.rootChildCount;
-            if ((!cache.main && rootChanged) || (cache.main && (!portraitAnchorAttached(cache.main, root)
+            if ((!cache.main && (rootChanged || layoutChanged)) || (cache.main && (!portraitAnchorAttached(cache.main, root)
                 || cache.main.GetParent() !== cache.mainParent))) {
-                cache.main = findMainPortraitPanel();
+                cache.main = findMainPortraitPanel(cache);
                 cache.mainParent = cache.main && cache.main.GetParent();
+                cache.mainLayoutSignature = mainPortraitLayoutSignature(cache);
             }
             var queryDetached = cache.query && (!portraitAnchorAttached(cache.query, root)
                 || cache.query.GetParent() !== cache.queryParent);
@@ -884,8 +965,9 @@
         var cache = portraitAnchorCache;
         if (!cache) return;
         if (!cache.main || !portraitAnchorAttached(cache.main, cache.root)) {
-            cache.main = findMainPortraitPanel();
+            cache.main = findMainPortraitPanel(cache);
             cache.mainParent = cache.main && cache.main.GetParent();
+            cache.mainLayoutSignature = mainPortraitLayoutSignature(cache);
         }
         if (portraitQueryMode) {
             // A real selection can replace guts without changing child count.
@@ -898,7 +980,8 @@
         }
     }
 
-    function findMainPortraitPanel() {
+    function findMainPortraitPanel(cache) {
+        if (cache) cache.mainLayoutProbe = null;
         var root = officialHudRoot();
         if (!root || !root.FindChildTraverse) return null;
         var ids = [
@@ -908,6 +991,7 @@
         for (var index = 0; index < ids.length; index++) {
             var candidate = root.FindChildTraverse(ids[index]);
             if (!candidate) continue;
+            rememberMainPortraitLayoutProbe(cache, candidate);
             if (ids[index] === "PortraitGroup" && candidate.FindChildTraverse) {
                 var nativeScene = nativePortraitScenePanel(candidate, root, 0);
                 if (nativeScene) return nativeScene;
@@ -917,6 +1001,7 @@
                 ];
                 for (var visualIndex = 0; visualIndex < visualIds.length; visualIndex++) {
                     var visual = candidate.FindChildTraverse(visualIds[visualIndex]);
+                    rememberMainPortraitLayoutProbe(cache, visual);
                     if (portraitCandidateUsable(visual, root)) return visual;
                 }
                 // PortraitGroup is a shared container, never an opacity target.
