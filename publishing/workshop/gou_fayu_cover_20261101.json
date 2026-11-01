@@ -1,0 +1,18 @@
+{
+  "source": "苟发育.png",
+  "master": "gou_fayu_cover_master.png",
+  "preview": "gou_fayu_workshop.jpg",
+  "width": 1672,
+  "height": 941,
+  "quality": 94,
+  "subsampling": 0,
+  "crop": false,
+  "resize": false,
+  "master_sha256": "7d4bbd0865782c8469b964b75a9c299b8f150d95ac59246511e3c49b65b8c351",
+  "preview_sha256": "00714bb69b9c400231f88112673b2fd881d50680a0a76ab63a1792256b679aa1",
+  "preview_bytes": 936610,
+  "approved_on": "2026-11-01",
+  "workshop_id": "3824360109",
+  "remote_preview_url": "https://images.steamusercontent.com/ugc/14913131426160410278/2CBCF2EB49661EE459A235D9CC42F8E6956941E3/",
+  "remote_preview_verified": true
+}
