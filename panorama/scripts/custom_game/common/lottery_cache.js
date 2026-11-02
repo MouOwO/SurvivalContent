@@ -11,6 +11,8 @@
     };
     var subscriptions = [], tableSubscription = null, disposed = false, generation = 0;
     var assemblies = {}, catalogAssembly = null, resyncPending = {}, handshakeTimerKey="";
+    var redemptionReplies=Object.create(null),redemptionRing=[],redemptionCursor=0;
+    var ticketPools=["map","cultivation","dragon_knight","summer"];
     memo.errors=memo.errors || {};
     memo.oldHashes=memo.oldHashes || {};
     function integer(value) {return isFinite(value) && Math.floor(value)===value;}
@@ -116,6 +118,19 @@
         send("ui_lottery_cache_resync",{pool_id:pool,md5:memo.md5});
         var token=generation;
         $.Schedule(5,function(){if(!disposed && token===generation && resyncPending[pool]===request){delete resyncPending[pool];resync(pool);}});
+    }
+    function redemptionResult(packet) {
+        if(disposed || !packet || packet.action!=="redeem" || !(packet.ok===true || packet.ok===1)
+            || typeof packet.request_id!=="string" || !packet.request_id || packet.request_id.length>96)return;
+        var current=syncIdentity(),key=current.account+"|"+current.session+"|"+packet.request_id;
+        if(redemptionReplies[key])return;
+        var previous=redemptionRing[redemptionCursor];if(previous)delete redemptionReplies[previous];
+        redemptionRing[redemptionCursor]=key;redemptionReplies[key]=true;redemptionCursor=(redemptionCursor+1)%32;
+        // All four pools can share redeemed currencies. One server refresh returns
+        // every pool; never guess a ticket delta from a redemption success message.
+        ticketPools.forEach(function(pool){memo.errors[pool]="authoritative_snapshot_unavailable";});
+        assemblies={};delete resyncPending.map;
+        notify("");resync("map");
     }
     function staticCatalog(raw,expected,hash) {
         if(typeof raw!=="string" || !/^[0-9a-f]{32}$/.test(String(expected)) || !/^[0-9a-f]{64}$/.test(String(hash)) || md5(raw)!==expected) return false;
@@ -281,6 +296,7 @@
     cfg.SurvivalLotteryCache=api;
     subscriptions.push(GameEvents.Subscribe("ui_lottery_catalog",function(packet){if(!disposed)catalogue(packet);}));
     subscriptions.push(GameEvents.Subscribe("ui_lottery_snapshot",ingest));
+    subscriptions.push(GameEvents.Subscribe("survival_commerce_result",redemptionResult));
     if(typeof CustomNetTables!=="undefined" && CustomNetTables.SubscribeNetTableListener)tableSubscription=CustomNetTables.SubscribeNetTableListener("survival_loading",function(table,key){if(!disposed && key==="state")handshake();});
     handshake();
 })();
