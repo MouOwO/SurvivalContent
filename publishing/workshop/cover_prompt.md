@@ -1,5 +1,9 @@
 # 孤城逐晓工坊封面
 
+## 当前确认｜2026-11-02 沿用美术宣传图
+
+用户明确选择《我在刀塔2苟发育》伐木建塔、抵御尸潮宣传图。已通过禁止缓存的官方单条UGC查询及CDN下载，确认现役封面与两仓 gou_fayu_workshop.jpg 完全一致：1672×941、936610字节、SHA256 00714bb69b9c400231f88112673b2fd881d50680a0a76ab63a1792256b679aa1。直接沿用原图，不重复上传封面或游戏包，不改变标题、可见性或旧发行记录。配套记录为 gou_fayu_cover_20261102.json；下方素材过程按历史保留。
+
 生成方式：内置 `imagegen`，2026-10-21。参考图为项目现有的 `panorama/src/images/custom_game/loading/dawnward_citadel_background.png`；没有复制《守望轮回谷》的封面、标志或角色。主图为1254×1254 PNG，上传副本为同尺寸JPEG、质量90、605055字节；JPEG仅转换编码，没有裁切、缩放或改字。
 
 原图另存于 content 仓库的 `publishing/workshop/gucheng_zhuxiao_cover_master.png`。本目录的图片是工坊页面素材，不进入游戏运行资源白名单。

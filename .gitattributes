@@ -53,3 +53,6 @@ maps/portraits/monster_1bc348e8932e1cfc065b_v1.vmap filter=lfs diff=lfs merge=lf
 panorama/scripts/custom_game/commerce_actions.js text eol=lf
 panorama/scripts/custom_game/monster_portrait_renderer.js text eol=crlf
 panorama/scripts/custom_game/combat_stats.js text eol=crlf
+
+# Keep confirmed Workshop preview metadata byte-stable.
+publishing/workshop/gou_fayu_cover_20261102.json text eol=lf

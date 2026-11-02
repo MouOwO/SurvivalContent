@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "approved_on": "2026-11-02",
+  "selection": "我在刀塔2苟发育：伐木建塔、抵御尸潮",
+  "action": "KEEP_EXISTING_APPROVED_PREVIEW",
+  "workshop_id": "3824360109",
+  "master": "gou_fayu_cover_master.png",
+  "preview": "gou_fayu_workshop.jpg",
+  "width": 1672,
+  "height": 941,
+  "master_sha256": "7d4bbd0865782c8469b964b75a9c299b8f150d95ac59246511e3c49b65b8c351",
+  "preview_sha256": "00714bb69b9c400231f88112673b2fd881d50680a0a76ab63a1792256b679aa1",
+  "preview_bytes": 936610,
+  "fresh_ugc_query_cache_disabled": true,
+  "official_cdn_verified": true,
+  "game_content_assets_identical": true,
+  "observed_utc": "2026-11-02T01:03:13.545249+00:00",
+  "cover_uploaded": false,
+  "game_uploaded": false,
+  "sdk_publication_calls": 0,
+  "listing_or_journal_changed": false,
+  "verification_receipt_sha256": "9636edccede58d75f76675668f50af7b51c22a1e00735348c64b67254cb87971"
+}
