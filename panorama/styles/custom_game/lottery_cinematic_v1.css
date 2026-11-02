@@ -16,3 +16,22 @@
 .LotteryCinematicPlaying #LotterySkipReveal { visibility:collapse; }
 .LotteryCinematicPlaying #LotteryRevealStage { visibility:collapse; }
 .LotteryCinematicPlaying #LotteryCloseButton { visibility:collapse; }
+
+/* Native asynchronous errors advance to the real results on the next bounded
+   check. Keep the stock wrapper's error text from flashing over this film. */
+#LotteryCinematicMovie #ErrorMessage { visibility:collapse; }
+
+/* Native compositor fallback: one current theme texture, three light shapes. */
+#LotteryCinematicFallback { width:100%; height:100%; overflow:clip; z-index:1; background-color:#040812; }
+#LotteryFallbackTheme { width:100%; height:100%; opacity:0.12; }
+#LotteryFallbackHalo { align:center center; width:430px; height:430px; border-radius:50%; border:3px solid #ffe2a8; box-shadow:#8dd8ff88 0px 0px 70px 12px; opacity:0; }
+#LotteryFallbackRing { align:center center; width:560px; height:560px; border-radius:50%; border:6px solid #d7f5ff; box-shadow:#9ae3ff88 0px 0px 35px 6px; opacity:0; }
+#LotteryFallbackFlare { align:center center; width:900px; height:5px; background-color:gradient(linear,0% 50%,100% 50%,from(#fff2d000),color-stop(0.5,#fff5dfff),to(#fff2d000)); box-shadow:#ffdf9a88 0px 0px 40px 10px; opacity:0; }
+.LCFallbackActive #LotteryFallbackTheme { animation-name:LCThemeReveal; animation-duration:3.6s; animation-timing-function:ease-out; animation-iteration-count:1; animation-fill-mode:forwards; }
+.LCFallbackActive #LotteryFallbackHalo { animation-name:LCHaloReveal; animation-duration:3.6s; animation-timing-function:ease-out; animation-iteration-count:1; }
+.LCFallbackActive #LotteryFallbackRing { animation-name:LCRingConverge; animation-duration:3.6s; animation-timing-function:ease-in-out; animation-iteration-count:1; }
+.LCFallbackActive #LotteryFallbackFlare { animation-name:LCFlareReveal; animation-duration:3.6s; animation-timing-function:ease-out; animation-iteration-count:1; }
+@keyframes 'LCThemeReveal' { 0% { opacity:0.12; transform:scale3d(1.12,1.12,1); } 30% { opacity:0.75; } 100% { opacity:1; transform:scale3d(1,1,1); } }
+@keyframes 'LCHaloReveal' { 0% { opacity:0; transform:scale3d(0.35,0.35,1); } 30% { opacity:0.85; transform:scale3d(1,1,1); } 100% { opacity:0; transform:scale3d(1.6,1.6,1); } }
+@keyframes 'LCRingConverge' { 0% { opacity:0; transform:scale3d(2.4,2.4,1); } 30% { opacity:0.85; } 75% { opacity:1; transform:scale3d(0.15,0.15,1); } 100% { opacity:0; transform:scale3d(0.05,0.05,1); } }
+@keyframes 'LCFlareReveal' { 0% { opacity:0; transform:scale3d(0.1,1,1); } 65% { opacity:0; } 80% { opacity:0.95; transform:scale3d(1.4,2,1); } 100% { opacity:0; transform:scale3d(1.7,1,1); } }

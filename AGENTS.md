@@ -7,6 +7,12 @@
 - 索引仅在初始化或真实容器重建时构建，并正确处理销毁/换局/旧回包；必要后台批处理采用真实耗时预算与限流，优先当前交互，相同值不重复跨原生桥写入。
 - 交付提供可复现复杂度/调用计数，模拟结果不能冒充FPS。完整规则见 game 仓库 [docs/performance_rules.md](../../../game/dota_addons/survival/docs/performance_rules.md)。
 
+## VPK 实验与 Tools 挂载隔离（2026-11-02）
+
+- 所有裸 VPK、数据分卷、合成包和安装／恢复 LAB 必须放在 game/content 的 addon 树之外，使用独立实验目录；不得放入 addon 内的 `output`、临时目录或测试夹具目录。
+- Git ignore 只隔离版本控制，不隔离 Dota Tools 的资源／依赖扫描。裸分卷被当作独立目录包加载时，可能导致 `VPK directory corrupt`，不能据此认定正式签包损坏。
+- 需要隔离时先确认目录归属，完整保留 LAB 文件、回执和迁移位置；不得自动删除或覆盖正式安装、签包、真实排演或玩家备份，也不得移动正常的 `maps/*.vpk` 来规避检查。
+
 ## Git 提交与同步
 
 用户要求 **game 和 content 两个独立仓库都要提交、推送**，此约定持续适用于后续任务：
