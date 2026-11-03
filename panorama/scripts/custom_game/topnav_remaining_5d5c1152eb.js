@@ -444,6 +444,7 @@
     ["HandoffStatName_attack_speed","HandoffStat_attack_speed","HandoffStatIcon_attack_speed"].forEach(function(id){
         nodes[id].hittest=true;tooltip(nodes[id],function(){
             var s=selectedSnapshot(),d=s&&s.stat_tooltips&&s.stat_tooltips.attack_speed;
+            if(s&&s._selected_aux_pending)return "正在读取攻速来源";
             if(!d)return "攻速（刀/秒）<br>正在读取攻速来源";
             function n(v){return Number(v||0).toFixed(2).replace(/\.?0+$/,"");}
             var lines=["当前攻速："+attackFrequencyText(s.attack_speed)+" 刀/秒"];
@@ -524,6 +525,7 @@
     function selectedSnapshot() {return cfg.HandoffCombat && cfg.HandoffCombat.Snapshot ? cfg.HandoffCombat.Snapshot(selectedUnit()) : null;}
     function buildingBonusHelp(stat) {
         var snapshot=selectedSnapshot(),d=snapshot && snapshot.building_stat_details || {};
+        if(snapshot&&snapshot._selected_aux_pending)return "正在读取加成来源";
         var growth="<br>逐秒、攻击、伤害、杀敌累积成长计入白色数值。";
         if(!snapshot)return "正在读取加成来源";
         if(snapshot.building_id==="arrow_tower")return "攻击加成来源"+
@@ -543,6 +545,7 @@
     }
     function statBonusHelp(stat) {
         var snapshot=selectedSnapshot(),key=stat==="intelligence"?"intellect":stat;
+        if(snapshot&&snapshot._selected_aux_pending)return "正在读取加成来源";
         if(!snapshot)return "正在读取加成来源";
         return "英雄固定加成"+
             "<br>来自装备、研究、固定奖励与固定技能效果。"+

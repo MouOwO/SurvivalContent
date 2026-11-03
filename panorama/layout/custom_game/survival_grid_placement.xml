@@ -3,6 +3,18 @@
         <include src="file://{resources}/styles/custom_game/survival_grid_placement.css" />
     </styles>
     <scripts>
+        <include src="file://{resources}/scripts/custom_game/common/ui_static_catalog.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_wire.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_ui_runtime.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_archive_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_daily_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_hud_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_hud_source.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_lottery_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_grid_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_selected_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/network50_diagnostics.js" />
+
         <include src="file://{resources}/scripts/custom_game/survival_static_grid.js" />
         <include src="file://{resources}/scripts/custom_game/survival_grid_state.js" />
         <include src="file://{resources}/scripts/custom_game/survival_grid_placement.js" />

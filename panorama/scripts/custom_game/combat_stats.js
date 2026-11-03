@@ -93,6 +93,7 @@
     var debugTableName = "survival_combat_debug";
     var lastRequestedUnit = -1;
     var selectedUnitSnapshot = null;
+    var compactSelectedView=null,compactSelectedModel=null,compactSelectedToken=0;
     var acceptedSnapshotUnit = -1;
     var acceptedSnapshotVersion = 0;
     var officialAttackText = "";
@@ -1466,6 +1467,10 @@
     }
 
     function updateCosmeticPortrait(snapshot) {
+        if(snapshot&&snapshot._selected_unknown_fields){
+            var missing=snapshot._selected_unknown_fields;
+            if(missing.model_asset_id||missing.portrait_model_name||missing.portrait_unit_name||missing.portrait_item_def){hideCosmeticPortrait("portrait_resource_unknown");return false;}
+        }
         if (multiSelectionPortraitActive()) {
             hideCosmeticPortrait("multi_selection");
             return false;
@@ -2288,8 +2293,33 @@
     }
 
     function requestSelectedUnitStats(unit, force) {
+        if(!contextActive())return;
         if (unit === undefined || unit < 0) return;
+        if(Number(unit)!==Number(displayUnit()))return;
         if (!force && Number(unit) === lastRequestedUnit) return;
+        if(customConfig.SurvivalCompactRuntime&&customConfig.SurvivalCompactSelectedModel){
+            if(!compactSelectedView){
+                compactSelectedModel=customConfig.SurvivalCompactSelectedModel.Create(customConfig.SurvivalUICatalog);
+                compactSelectedView=customConfig.SurvivalCompactRuntime.CreateView("selected",{onCommit:function(tx,ids,read){
+                    if(!contextActive())return;
+                    var result=compactSelectedModel.Apply(tx,ids,read);
+                    if(compactSelectedToken===0){requestSelectedUnitStats(Number(displayUnit()),true);return;}
+                    if(result.known&&result.entity===Number(displayUnit())){update(result.snapshot);refreshHeroPanel(false);}
+                    else if(!result.stale&&result.entity===Number(displayUnit())){
+                        selectedUnitSnapshot=null;officialAttackText="";hideCosmeticPortrait("selected_sync_unavailable");
+                        ["CombatAttackValue","CombatArmorValue","CombatAttackSpeedValue","CombatStrengthValue","CombatAgilityValue","CombatIntellectValue"].forEach(function(id){setText(id,"…");});
+                    }
+                }});
+                compactSelectedView.Open();
+                if(compactSelectedToken>0&&lastRequestedUnit===Number(unit))return;
+            }
+            if(compactSelectedToken>=4294967295)return;
+            var previousToken=compactSelectedToken,previousUnit=lastRequestedUnit,nextToken=previousToken+1;
+            compactSelectedToken=nextToken;lastRequestedUnit=Number(unit);compactSelectedModel.Select(Number(unit),nextToken);
+            var sent=compactSelectedView.SendInput(1,{selected_entity:Number(unit),selected_token:nextToken});
+            if(!sent.sent){compactSelectedToken=previousToken;lastRequestedUnit=previousUnit;compactSelectedModel.Select(Number(unit),previousToken);}
+            return;
+        }
         lastRequestedUnit = Number(unit);
         $.Msg(force
             ? "[SURVIVAL_STATS][CLIENT] FORCE_REFRESH entindex="
@@ -2348,7 +2378,13 @@
 
     function refreshHeroPanel() {
         var unit = displayUnit();
-        if (unit === undefined || unit < 0) return;
+        if (unit === undefined || unit < 0) {
+            if(compactSelectedView&&lastRequestedUnit>=0&&compactSelectedToken<4294967295){
+                var cleared=compactSelectedView.SendInput(2,{selected_entity:0,selected_token:compactSelectedToken+1});
+                if(cleared.sent){compactSelectedToken++;lastRequestedUnit=-1;compactSelectedModel.Select(0,compactSelectedToken);selectedUnitSnapshot=null;hideCosmeticPortrait("selection_cleared");}
+            }
+            return;
+        }
         var unitName = "npc_dota_hero_undying";
         try {
             unitName = Entities.GetUnitName(unit) || unitName;
@@ -3051,9 +3087,10 @@
 
     function shutdownCombatContext(reason) {
         if (contextShutdown) return;
+        contextShutdown = true; // Invalidate callbacks before Dispose can reenter.
+        if(compactSelectedView){compactSelectedView.Dispose();compactSelectedView=null;}
         if (clientCallbackProbe) clientCallbackProbe.Stop();
         if (portraitSceneProbe) portraitSceneProbe.enabled=false;
-        contextShutdown = true;
         loadedPortraitKey = "";
         loadedPortraitScene = null;
         combatSubscriptions.forEach(function (subscription) {
@@ -4309,6 +4346,7 @@
         requestSelectedUnitStats(hero, true);
     });
     subscribeCombatEvent("ui_selected_unit_stats_snapshot", function (snapshot) {
+        if(customConfig.SurvivalCompactRuntime&&customConfig.SurvivalCompactSelectedModel)return;
         if (!snapshot || snapshot.success !== 1) return;
         if (Number(snapshot.entindex) !== Number(displayUnit())) return;
         if (GameUI.CustomUIConfig().SurvivalStatsDebug === true) $.Msg("[SURVIVAL_STATS][CLIENT] SNAPSHOT unit=", String(snapshot.entindex),

@@ -63,7 +63,7 @@
         for(n=0;n<spec.records.length;n++){id=spec.records[n];need(integer(id,1,65535) && !data.records[id],"record_registry_invalid");data.records[id]=true;}
         need(spec.fields && typeof spec.fields==="object","field_registry_required");keys=Object.keys(spec.fields);
         for(n=0;n<keys.length;n++){
-            id=Number(keys[n]);f=spec.fields[keys[n]];need(integer(id,1,127) && f && typeof f==="object","field_registry_invalid");kind=f.kind;
+            id=Number(keys[n]);f=spec.fields[keys[n]];need(integer(id,1,255) && f && typeof f==="object","field_registry_invalid");kind=f.kind;
             need(kind==="uint" || kind==="sint" || kind==="bool","field_type_unknown");lo=kind==="sint"?-MAX_SINT:0;hi=kind==="bool"?1:kind==="sint"?MAX_SINT:MAX_UINT;
             min=f.min===undefined?lo:f.min;max=f.max===undefined?hi:f.max;
             need(integer(min,lo,hi) && integer(max,min,hi),"field_range_invalid");
@@ -95,7 +95,7 @@
     }
     function decodeChanges(data,raw){
         var out=[],seen=Object.create(null),cursor={at:0},record,tag,id,field,value,key,change;
-        while(cursor.at<raw.length){record=readUint(raw,cursor);tag=readUint(raw,cursor);need(data.records[record],"record_unknown");id=Math.floor(tag/2);field=data.fields[id];need(!!field,"field_unknown");key=record*128+id;need(!seen[key],"duplicate_changed_index");seen[key]=true;change={record:record,field:id};
+        while(cursor.at<raw.length){record=readUint(raw,cursor);tag=readUint(raw,cursor);need(data.records[record],"record_unknown");id=Math.floor(tag/2);field=data.fields[id];need(!!field,"field_unknown");key=record*256+id;need(!seen[key],"duplicate_changed_index");seen[key]=true;change={record:record,field:id};
             if(tag%2===1)change.remove=true;else{value=readUint(raw,cursor);if(field.kind==="sint")value=value%2===1?-(value+1)/2:value/2;change.value=fieldValue(field,value);}
             out.push(change);need(out.length<=65535,"change_count_limit");
         }return out;
@@ -122,7 +122,7 @@
         var budget=valueBudget(options),data=dataOf(schema),raw="",seen=Object.create(null),n,c,field,key,value;
         dense(changes,65535);
         for(n=0;n<changes.length;n++){c=changes[n];need(c&&typeof c==="object","change_required");Object.keys(c).forEach(function(k){need(k==="record"||k==="field"||k==="value"||k==="remove","change_key_unknown");});
-            need(data.records[c.record],"record_unknown");field=data.fields[c.field];need(!!field,"field_unknown");key=c.record*128+c.field;need(!seen[key],"duplicate_changed_index");seen[key]=true;need(c.remove===undefined||c.remove===true,"remove_flag_invalid");
+            need(data.records[c.record],"record_unknown");field=data.fields[c.field];need(!!field,"field_unknown");key=c.record*256+c.field;need(!seen[key],"duplicate_changed_index");seen[key]=true;need(c.remove===undefined||c.remove===true,"remove_flag_invalid");
             raw+=uint(c.record)+uint(c.field*2+(c.remove?1:0));if(c.remove)need(c.value===undefined,"removed_value_present");else{value=fieldValue(field,c.value);if(field.kind==="sint")value=value<0?-value*2-1:value*2;raw+=uint(value);}
         }
         if(!raw.length&&!options.full)return {packets:[],report:{changes:0,business_bytes:0,protocol_bytes:0,ascii_bytes:0,native_bytes:null}};
@@ -225,5 +225,5 @@
     }
     return {EVENT:"cw",KEY:"d",VERSION:1,DEFAULT_VALUE_BUDGET:24,CompileSchema:compileSchema,CompileLookup:compileLookup,PeekHeader:peekHeader,DecodePacket:decodePacket,DecodeResync:decodeResync,Encode:encode,EncodeResync:encodeResync,NewReceiver:newReceiver,NewClient:newClient,
         compile_schema:compileSchema,compile_lookup:compileLookup,decode_packet:decodePacket,encode_resync:encodeResync,new_receiver:newReceiver,
-        limits:{record_id:65535,field_id:127,token:MAX_TOKEN,revision:MAX_REV,uint:MAX_UINT,sint:MAX_SINT}};
+        limits:{record_id:65535,field_id:255,token:MAX_TOKEN,revision:MAX_REV,uint:MAX_UINT,sint:MAX_SINT}};
 }));

@@ -26,6 +26,10 @@
         <include src="file://{resources}/scripts/custom_game/common/compact_hud_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_hud_source.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_lottery_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_grid_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_selected_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/network50_diagnostics.js" />
+
 <include src="file://{resources}/scripts/custom_game/common/archive_text.js" /><include src="file://{resources}/scripts/custom_game/common/item_resources.js" /><include src="file://{resources}/scripts/custom_game/common/vip_badges.js" /><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/lottery_catalog_seed.js" /><include src="file://{resources}/scripts/custom_game/common/lottery_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/common/reward_feedback.js" /><include src="file://{resources}/scripts/custom_game/common/tooltip_dismiss.js" />
         <include src="file://{resources}/scripts/custom_game/ui_layers.js" /><include src="file://{resources}/scripts/custom_game/archive_v10_data.js" /><include src="file://{resources}/scripts/custom_game/common/menu_v10.js" /><include src="file://{resources}/scripts/custom_game/common/purple_shell.js"/>
         <include src="file://{resources}/scripts/custom_game/reward_presentation.js" /><include src="file://{resources}/scripts/custom_game/native_ui_icons.js"/><include src="file://{resources}/scripts/custom_game/item_art_remaining_5d5c1152eb.js"/>

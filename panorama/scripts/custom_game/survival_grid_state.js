@@ -2,6 +2,7 @@
     "use strict";
     var shared=GameUI.CustomUIConfig();
     function decode(source) {
+        if(source && typeof source==="object" && Array.isArray(source.states))return source;
         var f=String(source||"").split("|");
         if(f[0]!=="3" || f.length!==8) return null;
         var size=Number(f[1]),x=Number(f[2]),y=Number(f[3]),w=Number(f[4]),h=Number(f[5]),z=Number(f[6]);
@@ -112,13 +113,45 @@
         for(var x=Math.floor(r[0]/index.size);x<=Math.floor(r[2]/index.size);x++)
             for(var y=Math.floor(r[1]/index.size);y<=Math.floor(r[3]/index.size);y++) {
                 var ids=index.buckets[x+":"+y]||[];
-                for(var i=0;i<ids.length;i++) {
-                    var id=ids[i],q=index.rects[id];
-                    if(seen[id] || q[2]<r[0] || q[0]>r[2] || q[3]<r[1] || q[1]>r[3]) continue;
+                function visit(id) {
+                    var q=index.rects[id];
+                    if(!q)return;
+                    if(seen[id] || q[2]<r[0] || q[0]>r[2] || q[3]<r[1] || q[1]>r[3]) return;
                     seen[id]=true;selected.push(id);
                 }
+                if(index.sparse){for(var id in ids)visit(Number(id));}
+                else for(var i=0;i<ids.length;i++)visit(ids[i]);
             }
         return selected;
+    }
+    // Stable column/run IDs let a 16-cell word patch rebuild only its affected
+    // columns. The spatial buckets are updated in place; no whole-atlas runs,
+    // clone, catalogue scan or full spatial-index rebuild occurs on a delta.
+    function patchColumns(source,index,changes,filter) {
+        var shape=[source.size,source.x,source.y,source.w,source.h,source.z].join(":"),rebuild=!index||!index.sparse||index.shape!==shape;
+        if(rebuild)index={sparse:true,shape:shape,buckets:{},rects:[],columns:{},size:source.size*8,
+            bounds:[source.x*source.size,source.y*source.size,(source.x+source.w)*source.size,(source.y+source.h)*source.size],visits:0,version:0};
+        var columns={};if(rebuild)for(var x=0;x<source.w;x++)columns[x]=true;
+        else (changes||[]).forEach(function(n){columns[Math.floor(n/source.h)]=true;});
+        for(var column in columns) {
+            var x=Number(column),old=index.columns[x]||[];
+            old.forEach(function(id){var r=index.rects[id];if(r)r.buckets.forEach(function(key){var b=index.buckets[key];if(b){delete b[id];if(!Object.keys(b).length)delete index.buckets[key];}});delete index.rects[id];});
+            var next=[],start=-1;index.version++;
+            function add(end) {
+                var id=x*(source.h+1)+start,r=[(source.x+x)*source.size,(source.y+start)*source.size,(source.x+x+1)*source.size,(source.y+end)*source.size];
+                r.version=index.version;r.buckets=[];index.rects[id]=r;next.push(id);
+                for(var bx=Math.floor(r[0]/index.size);bx<=Math.floor(r[2]/index.size);bx++)for(var by=Math.floor(r[1]/index.size);by<=Math.floor(r[3]/index.size);by++){
+                    var key=bx+":"+by;(index.buckets[key]||(index.buckets[key]={}))[id]=true;r.buckets.push(key);
+                }
+            }
+            for(var y=0;y<=source.h;y++) {
+                index.visits++;var red=y<source.h&&source.states[x*source.h+y]===1&&(!filter||filter(x,y));
+                if(red&&start<0)start=y;
+                if(start>=0&&(!red||y-start>=8)){add(y);start=red?y:-1;}
+            }
+            index.columns[x]=next;
+        }
+        return index;
     }
     function create(options) {
         var atlas=null,redRuns=[],terrain=[],foot=[],marks=[],dynamic=null,dynamicUntil=0;
@@ -127,6 +160,7 @@
         var buildBounds=null,outsideRuns=[],outsidePanels=[],outsideZ=0,layoutKey="";
         var visibleWorld=null,range=null,rangeKey="",rangeEdges=[];
         var terrainIndex=runIndex([]),dynamicIndex=runIndex([]),lastTerrain=[],lastDynamic=[],terrainVersion=0;
+        var paintPending=false,atlasStructuredRevision=-1,dynamicStructuredRevision=-1;
         var stats={terrain_builds:0,terrain_layouts:0,footprint_layouts:0,terrain_panels:0,footprint_panels:0,terrain_candidates:0,
             dynamic_decodes:0,dynamic_builds:0,dynamic_reuses:0};
         function newPanel(host,kind) {
@@ -253,8 +287,9 @@
             if(next!==viewKey) {viewKey=next;revision++;footKey="";}
             if(refreshRange()) revision++;
             var nextDraw=revision+":"+dynamicRevision;
-            if(drawKey===nextDraw && terrain.length>=redRuns.length && dynamicPanels.length>=dynamicRuns.length) return;
+            if(drawKey===nextDraw && !paintPending && (terrainIndex.sparse||terrain.length>=redRuns.length) && (dynamicIndex.sparse||dynamicPanels.length>=dynamicRuns.length)) return;
             drawKey=nextDraw;
+            paintPending=false;
             // The non-buildable map uses four rectangles. Reclip their visible
             // portions only when the camera or placement range changes.
             while(outsidePanels.length<outsideRuns.length) outsidePanels.push(newPanel(options.terrainHost,"TerrainBlocked"));
@@ -275,7 +310,7 @@
                 else outer.visible=false;
                 outer.__revision=revision;
             }
-            while(terrain.length<redRuns.length && budget-->0) terrain.push(newPanel(options.terrainHost,"TerrainBlocked"));
+            if(!terrainIndex.sparse)while(terrain.length<redRuns.length && budget-->0) terrain.push(newPanel(options.terrainHost,"TerrainBlocked"));
             var candidates=visibleRuns(terrainIndex,visible),wanted={};
             stats.terrain_candidates=candidates.length;
             for(var c=0;c<candidates.length;c++) wanted[candidates[c]]=true;
@@ -283,27 +318,31 @@
                 var old=lastTerrain[t];if(!wanted[old] && terrain[old]) terrain[old].visible=false;
             }
             for(var i=0;i<candidates.length;i++) {
-                var id=candidates[i],p=terrain[id];if(!p) continue;
-                var paintKey=camera+":"+terrainVersion+":"+(rangeRelation(redRuns[id])===1?"inside":rangeKey);
+                var id=candidates[i],p=terrain[id];if(!p&&terrainIndex.sparse&&budget>0){p=terrain[id]=newPanel(options.terrainHost,"TerrainBlocked");budget--;}
+                if(!p){paintPending=true;continue;}
+                var stamp=terrainIndex.sparse?terrainIndex.shape+":"+redRuns[id].version:terrainVersion;
+                var paintKey=camera+":"+stamp+":"+(rangeRelation(redRuns[id])===1?"inside":rangeKey);
                 if(p.__paintKey!==paintKey) {
                     paint(p,redRuns[id],atlas.z+options.zOffset(),true);p.__paintKey=paintKey;p.__paintVisible=p.visible;stats.terrain_layouts++;
-                } else p.visible=p.__paintVisible;
+                } else if(p.visible!==p.__paintVisible)p.visible=p.__paintVisible;
             }
             lastTerrain=candidates;
             stats.terrain_panels=terrain.length;
             if(dynamic) {
-                while(dynamicPanels.length<dynamicRuns.length && budget-->0) dynamicPanels.push(newPanel(options.dynamicHost,"TerrainBlocked"));
+                if(!dynamicIndex.sparse)while(dynamicPanels.length<dynamicRuns.length && budget-->0) dynamicPanels.push(newPanel(options.dynamicHost,"TerrainBlocked"));
                 var selected=visibleRuns(dynamicIndex,visible),dynamicWanted={};
                 for(var s=0;s<selected.length;s++) dynamicWanted[selected[s]]=true;
                 for(var d=0;d<lastDynamic.length;d++) {
                     var old=lastDynamic[d];if(!dynamicWanted[old] && dynamicPanels[old]) dynamicPanels[old].visible=false;
                 }
                 for(var j=0;j<selected.length;j++) {
-                    var p=dynamicPanels[selected[j]];if(!p) continue;
-                    var key=camera+":"+dynamicRevision+":"+(rangeRelation(dynamicRuns[selected[j]])===1?"inside":rangeKey);
+                    var p=dynamicPanels[selected[j]];if(!p&&dynamicIndex.sparse&&budget>0){p=dynamicPanels[selected[j]]=newPanel(options.dynamicHost,"TerrainBlocked");budget--;}
+                    if(!p){paintPending=true;continue;}
+                    var stamp=dynamicIndex.sparse?dynamicIndex.shape+":"+dynamicRuns[selected[j]].version:dynamicRevision;
+                    var key=camera+":"+stamp+":"+(rangeRelation(dynamicRuns[selected[j]])===1?"inside":rangeKey);
                     if(p.__paintKey!==key) {
                         paint(p,dynamicRuns[selected[j]],dynamic.z+options.zOffset(),true);p.__paintKey=key;p.__paintVisible=p.visible;
-                    } else p.visible=p.__paintVisible;
+                    } else if(p.visible!==p.__paintVisible)p.visible=p.__paintVisible;
                 }
                 lastDynamic=selected;
             }
@@ -359,6 +398,19 @@
             for(var j=0;j<marks.length;j++) marks[j].visible=false;
         }
         function configure(source) {
+            if(source && typeof source==="object" && Array.isArray(source.states)) {
+                if(atlas===source && atlasStructuredRevision===source.revision)return true;
+                var replaced=atlas!==source;atlas=source;atlasSource=source;atlasStructuredRevision=source.revision;
+                terrainIndex=patchColumns(source,replaced?null:terrainIndex,source.changes);redRuns=terrainIndex.rects;
+                terrainVersion++;revision++;viewKey="";footKey="";stats.terrain_builds++;
+                if(dynamic && dynamicStructuredRevision>=0) {
+                    var touched=[];
+                    if(!replaced)(source.changes||[]).forEach(function(n){var wx=(source.x+Math.floor(n/source.h)+0.5)*source.size,wy=(source.y+n%source.h+0.5)*source.size;
+                        var x=Math.floor(wx/dynamic.size)-dynamic.x,y=Math.floor(wy/dynamic.size)-dynamic.y;if(x>=0&&x<dynamic.w&&y>=0&&y<dynamic.h)touched.push(x*dynamic.h+y);});
+                    dynamicIndex=patchColumns(dynamic,replaced?null:dynamicIndex,touched,function(x,y){return staticSample((dynamic.x+x+0.5)*dynamic.size,(dynamic.y+y+0.5)*dynamic.size)!==1;});
+                    dynamicRuns=dynamicIndex.rects;dynamicRevision++;
+                } else if(dynamic)rebuildDynamic();return true;
+            }
             if(source===atlasSource && atlas) return true;
             var next=decode(source);if(!next) return false;
             atlasSource=source;atlas=next;redRuns=runs(atlas);terrainIndex=runIndex(redRuns,atlas.size*8);terrainVersion++;
@@ -375,7 +427,7 @@
         function prewarmTerrain() {
             var budget=24;
             while(outsidePanels.length<outsideRuns.length && budget-->0) outsidePanels.push(newPanel(options.terrainHost,"TerrainBlocked"));
-            while(terrain.length<redRuns.length && budget-->0) terrain.push(newPanel(options.terrainHost,"TerrainBlocked"));
+            if(!terrainIndex.sparse)while(terrain.length<redRuns.length && budget-->0) terrain.push(newPanel(options.terrainHost,"TerrainBlocked"));
             stats.terrain_panels=terrain.length;
         }
         function rebuildDynamic() {
@@ -390,6 +442,14 @@
         return {configure:configure,reset:reset,warm:warm,update:update,hideFoot:hideFoot,stats:stats,
             prewarm:prewarm,prewarmTerrain:prewarmTerrain,configureLayout:configureLayout,
             ingestDynamic:function(source){
+                if(source && typeof source==="object" && Array.isArray(source.states)) {
+                    if(dynamic===source && dynamicStructuredRevision===source.revision){dynamicUntil=Date.now()+1000;stats.dynamic_reuses++;return;}
+                    var replaced=dynamic!==source||source.revision>dynamicStructuredRevision+1;dynamic=source;dynamicSource=source;dynamicStructuredRevision=source.revision;
+                    dynamicUntil=Date.now()+1000;footKey="";
+                    dynamicIndex=patchColumns(source,replaced?null:dynamicIndex,source.changes,function(x,y){return staticSample((source.x+x+0.5)*source.size,(source.y+y+0.5)*source.size)!==1;});
+                    dynamicRuns=dynamicIndex.rects;dynamicRevision++;stats.dynamic_builds++;
+                    stats.dynamic_column_visits=dynamicIndex.visits;return;
+                }
                 // Area notifications and validation replies can carry the same
                 // payload. Renew freshness without decoding, rebuilding the
                 // spatial index or invalidating an unchanged painted overlay.
@@ -404,5 +464,5 @@
             },
             ready:function(){return !!atlas;}};
     }
-    shared.SurvivalGridState={decode:decode,sample:sample,runs:runs,wedge:wedge,create:create};
+    shared.SurvivalGridState={decode:decode,sample:sample,runs:runs,wedge:wedge,create:create,patchColumns:patchColumns};
 })();

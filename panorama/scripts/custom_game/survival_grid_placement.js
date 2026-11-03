@@ -1,6 +1,18 @@
 (function () {
     "use strict";
     var controllerConfig=GameUI.CustomUIConfig();
+    var compactView=null,compactStaticView=null,compactModel=null,compactLayout=null;
+    function sendGrid(name,payload) {
+        if(controllerConfig.SurvivalCompactRuntime) {
+            if(!compactView || !compactModel)return {sent:false,error:"not_ready"};
+            if(name==="ui_grid_placement_profiles_request")return compactView.Open();
+            var actions={ui_grid_placement_validate:1,ui_grid_placement_pose:2,ui_grid_placement_preview_end:3,
+                ui_grid_placement_commit:4,ui_grid_placement_pause_area:5};
+            var code=actions[name];if(!code)return {sent:false,error:"grid_action_unknown"};
+            return compactView.SendInput(code,compactModel.Input(code,payload||{}));
+        }
+        return GameEvents.SendCustomGameEventToServer(name,payload);
+    }
     var controllerEpoch=(Number(controllerConfig.SurvivalGridControllerEpoch)||0)+1;
     controllerConfig.SurvivalGridControllerEpoch=controllerEpoch;
     var framePerformance={frames:0,max_total_ms:0,max_camera_ms:0,max_range_ms:0,max_grid_ms:0,max_state_ms:0,
@@ -478,7 +490,7 @@
         if (!activeProfile) return;
         var closingSession = activePreviewSession;
         if (notifyServer !== false) {
-            GameEvents.SendCustomGameEventToServer(
+            sendGrid(
                 "ui_grid_placement_preview_end",
                 {
                     ability_name: String(activeProfile.ability_name || ""),
@@ -509,7 +521,7 @@
 
     function cancelPreview(reason) {
         if (pendingRelocationStart) {
-            GameEvents.SendCustomGameEventToServer("ui_grid_placement_preview_end", {
+            sendGrid("ui_grid_placement_preview_end", {
                 ability_name: pendingRelocationStart.ability_name, session_id: String(pendingRelocationStart.session)
             });
             pendingRelocationStart = null;
@@ -572,7 +584,7 @@
             + Number(world[1]).toFixed(1) + "," + Number(world[2]).toFixed(1)
             + " anchor=" + String(anchor[0]) + ":" + String(anchor[1])
             + " changed=" + String(anchorChanged));
-        GameEvents.SendCustomGameEventToServer("ui_grid_placement_validate", {
+        sendGrid("ui_grid_placement_validate", {
             session_id: String(activePreviewSession),
             request_id: String(requestSequence),
             entindex: activeUnit,
@@ -812,7 +824,7 @@
                     // the same anchor before the old response arrives.
                     lastValidation=null;
                     newestResponse=requestSequence+1;
-                    GameEvents.SendCustomGameEventToServer("ui_grid_placement_pause_area",{
+                    sendGrid("ui_grid_placement_pause_area",{
                         session_id:String(activePreviewSession),request_id:String(requestSequence)
                     });
                 }
@@ -1122,7 +1134,7 @@
             setVisualValid(false, "位置尚未通过服务端占地校验");
             return true;
         }
-        GameEvents.SendCustomGameEventToServer("ui_grid_placement_commit", {
+        sendGrid("ui_grid_placement_commit", {
             session_id: String(activePreviewSession),
             entindex: activeUnit,
             ability_entindex: activeAbility,
@@ -1147,7 +1159,7 @@
         // A click is an intent at this cell, never authorization from an old
         // green reply. The server checks ownership/range/occupancy again.
         pendingRelocation = activePreviewSession;
-        GameEvents.SendCustomGameEventToServer("ui_grid_placement_commit", {
+        sendGrid("ui_grid_placement_commit", {
             session_id: String(activePreviewSession), entindex: activeUnit,
             ability_entindex: activeAbility, ability_name: activeProfile.ability_name,
             x: destination[0], y: destination[1], z: destination[2]
@@ -1181,7 +1193,7 @@
         var now=Date.now(), key=world[0]+":"+world[1]+":"+world[2];
         if(now-lastPoseAt<50 || (key===lastPoseKey && now-lastPoseAt<500)) return;
         lastPoseAt=now; lastPoseKey=key; poseSequence++;
-        GameEvents.SendCustomGameEventToServer("ui_grid_placement_pose", {
+        sendGrid("ui_grid_placement_pose", {
             session_id:String(activePreviewSession), request_id:String(poseSequence),
             ability_name:activeProfile.ability_name, entindex:activeUnit,
             ability_entindex:activeAbility, x:world[0], y:world[1], z:world[2]
@@ -1329,10 +1341,11 @@
         }
         var list = normalizeLuaArray(data && data.profiles);
         if(!ready) {
-            scheduleProfilesRetry();
+            if(!compactView)scheduleProfilesRetry();
             return;
         }
         buildPlaneHeight=data.static_grid && isFinite(Number(data.static_grid.height)) ? Number(data.static_grid.height) : null;
+        if(compactView)compactLayout=data.static_grid;
         if (staticGrid) staticGrid.configure(data.static_grid,gridCellSize,previewVisual);
         // Panorama may hot-reload the controller before its shared helper.
         // Older retained instances must not abort profile registration.
@@ -1382,6 +1395,11 @@
             return;
         }
         if (fastMotion) return;
+        if(data.area_state!==undefined) {
+            if(gridState && data.area_state && Number(data.area_complete)!==0)gridState.ingestDynamic(data.area_state);
+            lastValidation=data;lastAreaValidation=data;
+            return;
+        }
         if (Number(data.area_complete)===0 && completedArea) {
             data.area=completedArea; data.area_complete=1;
         } else if (Number(data.area_complete)!==0) completedArea=String(data.area||"");
@@ -1427,6 +1445,12 @@
         if (!activeProfile || Number(data.session_id) !== activePreviewSession
             || data.ability_name !== activeProfile.ability_name || fastMotion) return;
         var complete=Number(data.complete)!==0;
+        if(data.area_state!==undefined) {
+            if(gridState && data.area_state && complete)gridState.ingestDynamic(data.area_state);
+            if(lastValidation){lastValidation.area_state=data.area_state;lastValidation.area_complete=complete?1:0;}
+            if(lastAreaValidation){lastAreaValidation.area_state=data.area_state;lastAreaValidation.area_complete=complete?1:0;}
+            return;
+        }
         if(gridState && complete) gridState.ingestDynamic(data.area);
         if (!complete && completedArea) return;
         if (complete) completedArea=String(data.area||"");
@@ -1537,7 +1561,7 @@
             pendingRelocationStart = {session: ++previewSessionSequence, ability: Number(ability),
                 ability_name: name, unit: Number(unit)};
             if (!profiles[name]) {
-                GameEvents.SendCustomGameEventToServer("ui_grid_placement_profiles_request", {});
+                sendGrid("ui_grid_placement_profiles_request", {});
             }
             resumeRelocationStart();
             return !!pendingRelocationStart || !!activeProfile;
@@ -1557,8 +1581,26 @@
         subscriptions.push(GameEvents.Subscribe(name,function(data){if(currentController()) fn(data);}));
     }
     controllerConfig.SurvivalGridUnsubscribe=function(){
+        if(compactView)compactView.Dispose();if(compactStaticView)compactStaticView.Dispose();
         if(GameEvents.Unsubscribe) for(var i=0;i<subscriptions.length;i++) GameEvents.Unsubscribe(subscriptions[i]);
     };
+    if(controllerConfig.SurvivalCompactRuntime && controllerConfig.SurvivalCompactGridModel) {
+        compactModel=controllerConfig.SurvivalCompactGridModel.Create(controllerConfig.SurvivalUICatalog);
+        function compactCommit(tx,ids,read) {
+            if(!currentController())return;
+            var data=compactModel.Apply(tx,ids,read);
+            if(data.profiles)onProfiles(data.profiles);
+            if(data.static_reset && gridState){gridState.reset();if(compactLayout)gridState.configureLayout(compactLayout);}
+            if(data.static && gridState)gridState.configure(data.static);
+            if(data.validation)onValidation(data.validation);
+            if(data.area_notification)onArea(data.area_notification);
+            if(data.commit)onCommitResult(data.commit);
+        }
+        compactView=controllerConfig.SurvivalCompactRuntime.CreateView("grid",{onCommit:compactCommit});
+        compactStaticView=controllerConfig.SurvivalCompactRuntime.CreateView("grid_static",{onCommit:compactCommit});
+        compactView.Open();compactStaticView.Open();
+    }
+    if(!controllerConfig.SurvivalCompactRuntime) {
     subscribe("ui_grid_placement_profiles", onProfiles);
     subscribe("ui_grid_placement_static_area",function(data){
         if(!sameGridScope(data)) return;
@@ -1567,6 +1609,7 @@
     subscribe("ui_grid_placement_validation", onValidation);
     subscribe("ui_grid_placement_area", onArea);
     subscribe("ui_grid_placement_commit_result", onCommitResult);
+    }
     bindInputHandlers();
     $.Msg("[GridPlacement] client preview initialized");
 
@@ -1579,7 +1622,7 @@
     function requestProfilesUntilReady() {
         if(!currentController()) return;
         if (profileCount > 0) return;
-        GameEvents.SendCustomGameEventToServer("ui_grid_placement_profiles_request", {});
+        sendGrid("ui_grid_placement_profiles_request", {});
         scheduleProfilesRetry();
     }
 

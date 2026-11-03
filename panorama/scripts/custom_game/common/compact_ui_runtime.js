@@ -23,7 +23,7 @@
  }
 }(function(){
  "use strict";
- var BUILD="compact_ui_runtime_20261103_v3";
+ var BUILD="compact_ui_runtime_20261103_v5";
  var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7};
  var ERRORS={schema_mismatch:"界面版本与服务器不一致，请更新游戏后重新进入。",schema_unknown:"界面协议不一致，请更新游戏后重新进入。",not_ready:"正在核对界面版本，请稍后。",token_exhausted:"本次会话的操作编号已用完，请重新进入游戏。",revision_exhausted:"本次会话的消息编号已用完，请重新进入游戏。",native_send_failed:"同步消息未能发送，请重新打开界面。",application_rejected:"界面数据校验失败，正在重新同步。"};
  function need(ok,code){if(!ok)throw new Error(code);}
@@ -37,7 +37,7 @@
   var control=records["wire:control"],helloWords=[],helloByRecord=Object.create(null),word;
   need(control&&F.count&&F.visible&&F.known&&F.action_code&&F.arg_a&&F.arg_b&&F.arg_c&&F.request_token,"compact_control_schema_missing");
   for(word=1;word<=8;word++){var rec=records["wire:hello:"+word];need(rec,"compact_hello_schema_missing");helloWords.push(rec);helloByRecord[rec]=word-1;}
-  keys.hud=2;keys.daily=3;
+  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;
   var categories=C.auxiliary&&C.auxiliary.archive_projection&&C.auxiliary.archive_projection.categories||[];
   categories.forEach(function(row,index){keys["archive:"+row.id]=101+index;});
   var pools=C.auxiliary&&C.auxiliary.lottery_public&&C.auxiliary.lottery_public.snapshots||[];
@@ -77,13 +77,17 @@
    if(!next&&admitted){resetBindings();helloRequested=false;helloResyncPending=false;generation++;}
    admitted=next&&identity!==null;if(admitted)requestHello(1,false);
   }
-  function controlOps(values){return Object.keys(values).map(function(name){need(F[name]!==undefined,"control_field_unknown");return {record:control,field:F[name],value:values[name]};});}
-  function emitControl(view,values){
+  function controlOps(values,record){return Object.keys(values).map(function(name){need(F[name]!==undefined,"control_field_unknown");return {record:record||control,field:F[name],value:values[name]};});}
+  function emitControl(view,values,record){
    if(!ready||!session)return {sent:false,error:"not_ready"};var sessions=recordSession(session),out=sessions[view.id];
    if(!out)out=sessions[view.id]={revision:0,needsFull:true};
    if(out.revision>=1048575){notify(view,"revision_exhausted");return {sent:false,error:"revision_exhausted"};}
-   var encoded;try{encoded=W.Encode(schema,binding(view.id,1),out.revision+1,controlOps(values),{full:out.needsFull===true,value_budget:24});}catch(error){notify(view,error.message);return {sent:false,error:error.message};}
-   out.revision++;try{encoded.packets.forEach(send);out.needsFull=false;counters.controls++;return {sent:true};}catch(error){out.needsFull=true;notify(view,error.message);return {sent:false,error:error.message};}
+   // Each input/control contains its own complete arguments. Independent full
+   // transactions recover after a lost or rejected C2S command without retrying
+   // a consumptive intent; revisions and original business nonces still guard
+   // replay. Only the tag changes, so this adds no bytes or acknowledgements.
+   var encoded;try{encoded=W.Encode(schema,binding(view.id,1),out.revision+1,controlOps(values,record),{full:true,value_budget:24});}catch(error){notify(view,error.message);return {sent:false,error:error.message};}
+   out.revision++;try{encoded.packets.forEach(send);out.needsFull=false;counters.controls++;return {sent:true,revision:out.revision};}catch(error){out.needsFull=true;notify(view,error.message);return {sent:false,error:error.message};}
   }
   function desiredControl(view){
    if(!ready||!view.consumer||!view.consumer.active||view.desired===null||view.sentDesired===view.desired)return {sent:false,unchanged:true};
@@ -163,8 +167,19 @@
     var result=emitControl(view,values);result.request_token=token;if(result.sent)counters.intents++;return result;
    }
    function dispose(){if(!alive())return;close();consumer.active=false;if(view.client)view.client.Abort();view.consumer=null;}
+   function input(code,args){
+    if(!alive())return {sent:false,error:"disposed"};
+    if(!ready||view.desired!=="open")return {sent:false,error:"not_ready"};
+    if(id!==4&&id!==5)return {sent:false,error:"input_view_mismatch"};
+    if(!integer(code,1,id===4?5:2))return {sent:false,error:"input_action_invalid"};
+    var rec=records[id===4?"grid:input":"selected:input"],values={},allowed=id===4?{grid_session:1,grid_request:1,grid_profile:1,grid_actor:1,grid_ability:1,grid_x_hi:1,grid_x_lo:1,grid_y_hi:1,grid_y_lo:1,grid_z_hi:1,grid_z_lo:1}:{selected_entity:1,selected_token:1};
+    values[id===4?"grid_action":"selected_action"]=code;
+    if(!rec)return {sent:false,error:"input_schema_missing"};args=args||{};
+    var names=Object.keys(args);for(var n=0;n<names.length;n++){var name=names[n];if(!allowed[name]||!integer(args[name],0,4294967295))return {sent:false,error:"input_argument_invalid"};values[name]=args[name];}
+    return emitControl(view,values,rec);
+   }
    function inspect(){return {key:key,id:id,active:alive(),ready:ready,session:session,epoch:view.epoch,desired:view.desired,resync_pending:view.resyncPending,error:view.lastError,receiver:view.client&&view.client.Inspect()};}
-   consumer.api={Open:open,Probe:probe,Close:close,Dispose:dispose,Read:read,SendIntent:intent,Resync:function(reason){return alive()?resync(view,reason):{sent:false,error:"disposed"};},Inspect:inspect};
+   consumer.api={Open:open,Probe:probe,Close:close,Dispose:dispose,Read:read,SendIntent:intent,SendInput:input,Resync:function(reason){return alive()?resync(view,reason):{sent:false,error:"disposed"};},Inspect:inspect};
    if(helloFailed)notify(view,"schema_mismatch");return consumer.api;
   }
   function dispose(){if(!active)return;allViews.slice().forEach(function(v){if(v.consumer&&v.consumer.active)v.consumer.api.Dispose();if(v.client)v.client.Dispose();});active=false;generation++;cancelHello();if(subscription!==null&&options.unsubscribe)options.unsubscribe(subscription);if(loadingSubscription!==null&&options.unsubscribeLoading)options.unsubscribeLoading(loadingSubscription);subscription=null;loadingSubscription=null;}
