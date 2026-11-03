@@ -36,6 +36,10 @@ Game.AddCommand(command,function(){
   out.wave=wave?{status:wave.status,current:wave.current_wave,alive:wave.alive,defeated:wave.player_defeated}:null;
   var state=runtime&&runtime.Inspect&&runtime.Inspect();
   out.wire=state?{ready:state.ready,views:state.views,counters:state.counters}:null;
+  var bulk=cfg.SurvivalGridBulkPerformance;
+  if(bulk){out.grid_bulk={};["transactions","steps","max_step_ms","max_step_cells","cancelled","failures","bytes"].forEach(function(key){
+   var number=bulk[key];out.grid_bulk[key]=typeof number==="number"&&isFinite(number)&&number>=0?number:null;
+  });}
  }
  $.Msg("[NETWORK50_UI_INSPECT] "+args[0]+" "+JSON.stringify(out));
 },"Tools-only read-only network and game clock sample; requires one32hex nonce",0);

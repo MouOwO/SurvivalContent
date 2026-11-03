@@ -5,6 +5,7 @@
     <scripts>
         <include src="file://{resources}/scripts/custom_game/common/ui_static_catalog.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_wire.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_grid_bulk_wire.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_ui_runtime.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_archive_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_daily_model.js" />
@@ -14,6 +15,7 @@
         <include src="file://{resources}/scripts/custom_game/common/compact_grid_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_selected_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_production_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_public_beta_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/network50_diagnostics.js" />
 
         <include src="file://{resources}/scripts/custom_game/survival_static_grid.js" />

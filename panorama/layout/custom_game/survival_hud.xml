@@ -20,6 +20,7 @@
     <scripts>
         <include src="file://{resources}/scripts/custom_game/common/ui_static_catalog.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_wire.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_grid_bulk_wire.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_ui_runtime.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_archive_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_daily_model.js" />
@@ -29,6 +30,7 @@
         <include src="file://{resources}/scripts/custom_game/common/compact_grid_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_selected_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_production_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_public_beta_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/network50_diagnostics.js" />
 
 <include src="file://{resources}/scripts/custom_game/common/archive_text.js" /><include src="file://{resources}/scripts/custom_game/common/item_resources.js" /><include src="file://{resources}/scripts/custom_game/common/vip_badges.js" /><include src="file://{resources}/scripts/custom_game/ui_snapshot_cache.js" /><include src="file://{resources}/scripts/custom_game/lottery_catalog_seed.js" /><include src="file://{resources}/scripts/custom_game/common/lottery_cache.js" /><include src="file://{resources}/scripts/custom_game/handoff_boot.js"/><include src="file://{resources}/scripts/custom_game/common/ui_typography.js"/><include src="file://{resources}/scripts/custom_game/common/ui_registry.js"/><include src="file://{resources}/scripts/custom_game/common/ui_components.js"/><include src="file://{resources}/scripts/custom_game/common/reward_feedback.js" /><include src="file://{resources}/scripts/custom_game/common/tooltip_dismiss.js" />

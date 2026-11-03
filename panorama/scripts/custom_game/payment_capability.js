@@ -7,6 +7,7 @@
     var context=null, lease=null, latest=null, issued=null, serial=0, lastRequest=-Infinity, notifying=false;
     var epoch=String(Date.now())+"_"+String(Math.random()).slice(2), TTL=30000, REQUEST_TTL=12000, INTERVAL=15000;
     var development=cfg.SurvivalDevelopmentPayments===true, api;
+    var loading=null,loadingByPlayer={},compactRuntime=null,compactView=null,sending=false,buffered=null,attaching=false;
     function valid(){return !disposed&&cfg.SurvivalPaymentCapability===api&&root&&(!root.IsValid||root.IsValid());}
     function flag(value){return value===true||value===1;}
     function numericAccount(value){return typeof value==="number"&&isFinite(value)&&value%1===0&&value>0&&value<=4294967295?String(value):"";}
@@ -29,12 +30,17 @@
             if(typeof Game.GetPlayerInfo==="function"){var info=Game.GetPlayerInfo(id);fallback=steamAccount(info&&info.player_steamid);}
             if(account&&fallback&&account!==fallback)return null;
             account=account||fallback;if(!account)return null;
-            var loading=CustomNetTables.GetTableValue("survival_loading","state"),session=loading&&loading.session_id;
+            var session=loading&&loading.session_id;
             if(typeof session!=="string"||!/^[A-Za-z0-9_.:-]{8,128}$/.test(session))return null;
-            var own=null,rows=loading.players||{};
-            Object.keys(rows).some(function(key){var row=rows[key];if(row&&row.player_id===id){own=row;return true;}return false;});
+            var own=loadingByPlayer[id]||null;
             return {player_id:id,account_id:account,match_session_id:session,authenticated:!!own&&flag(own.authenticated),key:id+":"+account+":"+session};
         }catch(ignore){return null;}
+    }
+    function updateLoading(value){
+        loading=value;loadingByPlayer={};
+        var rows=value&&value.players||{};
+        // Index only on the initial read or a real loading-container update.
+        Object.keys(rows).forEach(function(key){var row=rows[key];if(row&&typeof row.player_id==="number"&&row.player_id%1===0)loadingByPlayer[row.player_id]=row;});
     }
     function notify(){
         if(notifying)return;notifying=true;
@@ -45,6 +51,34 @@
         }finally{notifying=false;}
     }
     function revoke(){var changed=lease!==null;lease=null;if(changed)notify();}
+    function ensureCompact(){
+        if(attaching)return false;
+        var next=cfg.SurvivalCompactRuntime,C=cfg.SurvivalUICatalog;
+        if(next===compactRuntime&&compactView)return true;
+        attaching=true;
+        try{
+        if(compactView)compactView.Dispose();compactView=null;compactRuntime=null;latest=null;issued=null;buffered=null;lastRequest=-Infinity;revoke();
+        if(!next||typeof next.CreateView!=="function"||typeof next.ScopeIdentity!=="function"||!C||!C.ByKey||!C.FieldIds)return false;
+        var rec=C.ByKey["payment:capability"],F=C.FieldIds;
+        if(!rec||!F.known||!F.enabled||!F.request_token)return false;
+        compactRuntime=next;
+        try{
+            compactView=next.CreateView("payment",{onCommit:function(tx,changed,read){
+                if(!valid()||cfg.SurvivalCompactRuntime!==next)return false;
+                var row={known:read(rec,F.known),enabled:read(rec,F.enabled),token:read(rec,F.request_token)};
+                if(sending&&(!issued||row.token!==issued.token))buffered=row;else receiveCompact(row);
+                if(row.known!==1)request(false);
+            },onError:function(){if(valid()){latest=null;revoke();}}});
+            compactView.Open();return true;
+        }catch(ignore){compactView=null;compactRuntime=null;return false;}
+        }finally{attaching=false;}
+    }
+    function wireScope(current){
+        if(!current||!ensureCompact())return null;
+        var scope=compactRuntime.ScopeIdentity();
+        return scope&&scope.active===true&&scope.ready===true&&scope.loading_identity===current.match_session_id
+            &&typeof scope.session==="number"&&scope.session%1===0&&scope.session>=1&&scope.session<=16383?scope:null;
+    }
     function observe(){
         var next=binding(),old=context;
         if(!next||!old||next.key!==old.key){context=next;latest=null;issued=null;lastRequest=-Infinity;revoke();}
@@ -54,16 +88,31 @@
     function allowed(){
         if(!valid())return false;if(development)return cfg.SurvivalDevelopmentPayments===true;
         var current=observe(),now=Date.now();
-        if(!current||!current.authenticated||!lease||lease.key!==current.key||now<lease.at||now-lease.at>=TTL){revoke();return false;}
+        var scope=wireScope(current);
+        if(!current||!current.authenticated||!scope||!lease||lease.key!==current.key||lease.runtime!==compactRuntime||lease.session!==scope.session||now<lease.at||now-lease.at>=TTL){revoke();return false;}
         return true;
     }
     function request(force){
         if(!valid()||development)return false;
-        var current=observe(),now=Date.now();if(!current)return false;
+        var current=observe(),now=Date.now(),scope=wireScope(current);if(!current||!scope)return false;
         if(latest&&now>=latest.at&&now-latest.at<REQUEST_TTL)return false;
         if(now-lastRequest<(force===true?2000:INTERVAL))return false;
-        latest={key:current.key,request_id:epoch+"_"+(++serial),at:now};issued=latest;lastRequest=now;
-        GameEvents.SendCustomGameEventToServer("survival_payment_capability_request",{request_id:latest.request_id});return true;
+        var pending={key:current.key,request_id:epoch+"_"+(++serial),at:now,player_id:current.player_id,
+            account_id:current.account_id,match_session_id:current.match_session_id,session:scope.session,runtime:compactRuntime};
+        latest=pending;sending=true;buffered=null;var result;
+        try{result=compactView.SendIntent("payment_capability",{});}catch(ignore){result=null;}finally{sending=false;}
+        if(!result||!result.sent||typeof result.request_token!=="number"||result.request_token%1!==0||result.request_token<1||result.request_token>16383){if(latest===pending)latest=null;buffered=null;return false;}
+        pending.token=result.request_token;issued=pending;lastRequest=now;
+        var reply=buffered;buffered=null;if(reply)receiveCompact(reply);return true;
+    }
+    function receiveCompact(row){
+        var current=observe(),scope=wireScope(current),sent=issued;
+        if(!scope||!sent||sent.key!==current.key||sent.runtime!==compactRuntime||sent.session!==scope.session
+            ||!row||row.known!==1||row.token!==sent.token)return;
+        // Reconstruct the original response exclusively from that local intent,
+        // never by stamping a stale packet with the current account/session.
+        receive({enabled:row.enabled,request_id:sent.request_id,player_id:sent.player_id,
+            account_id:sent.account_id,match_session_id:sent.match_session_id});
     }
     function receive(value){
         if(!valid()||development)return;
@@ -78,11 +127,12 @@
         if(!pending||pending.key!==current.key||value.request_id!==pending.request_id||now<pending.at||now-pending.at>=REQUEST_TTL)return;
         latest=null;
         if(!flag(value.enabled)||!current.authenticated){revoke();return;}
-        var changed=!lease||lease.key!==current.key;lease={key:current.key,at:now};if(changed)notify();
+        var changed=!lease||lease.key!==current.key;lease={key:current.key,at:now,runtime:issued.runtime,session:issued.session};if(changed)notify();
     }
     function dispose(){
         if(disposed)return;disposed=true;latest=null;issued=null;context=null;revoke();
         if(timer!==null&&$.CancelScheduled)$.CancelScheduled(timer);timer=null;
+        if(compactView)compactView.Dispose();compactView=null;compactRuntime=null;buffered=null;
         subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];
         if(tableSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(tableSubscription);
         listeners=[];if(cfg.SurvivalPaymentCapability===api)cfg.SurvivalPaymentCapability=null;
@@ -92,8 +142,8 @@
         Inspect:function(){return {allowed:allowed(),bound:!!context,pending:!!latest,development:development};},Dispose:dispose};
     cfg.SurvivalPaymentCapability=api;
     if(!development){
-        subscriptions.push(GameEvents.Subscribe("survival_payment_capability",receive));
-        tableSubscription=CustomNetTables.SubscribeNetTableListener("survival_loading",function(name,key){if(key!=="state"||!valid())return;var old=context&&context.authenticated;observe();request(old!==!!(context&&context.authenticated));});
+        updateLoading(CustomNetTables.GetTableValue("survival_loading","state"));
+        tableSubscription=CustomNetTables.SubscribeNetTableListener("survival_loading",function(name,key,value){if(key!=="state"||!valid())return;var old=context&&context.authenticated;updateLoading(value||CustomNetTables.GetTableValue("survival_loading","state"));observe();request(old!==!!(context&&context.authenticated));});
         try{$.RegisterEventHandler("PanelDeleted",root,dispose);}catch(ignore){}
         request(false);timer=$.Schedule(1,monitor);
     }

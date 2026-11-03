@@ -79,10 +79,13 @@
     cfg.SurvivalPublicBetaGiftGeneration = generation;
     var disposed = false, timer = null, subscription = null, loadingSubscription = null, shell = null, api;
     var lastRequest = -100, hadAdmission = false, hasFreshSnapshot = false;
+    var compactView=null,compactModel=null;
     function valid(panel) { return !!panel && (!panel.IsValid || panel.IsValid()); }
     function alive() { return !disposed && cfg.SurvivalPublicBetaGiftGeneration === generation && valid(context) && valid(root); }
     function now() { return Date.now() / 1000; }
-    function setText(panel, value) { if (valid(panel) && panel.text !== value) panel.text = value; }
+    function setText(panel, value) { if(valid(panel)&&panel.__betaText!==value){panel.text=value;panel.__betaText=value;} }
+    function property(panel,key,value){var values=panel.__betaProperties||(panel.__betaProperties={});if(values[key]===value)return;panel[key]=value;values[key]=value;}
+    function classed(panel,key,value){var values=panel.__betaClasses||(panel.__betaClasses={});if(values[key]===value)return;panel.SetHasClass(key,value);values[key]=value;}
     function admitted() {
         var loading = CustomNetTables.GetTableValue("survival_loading", "state");
         return !!loading && yes(loading.admission_complete === undefined ? loading.all_ready : loading.admission_complete)
@@ -94,13 +97,16 @@
     }
     function request(force) {
         if (!alive() || !admitted() || (!force && now() - lastRequest < 5)) return false;
+        if(cfg.SurvivalCompactRuntime&&!compactView)return false;
         lastRequest = now();
+        if(compactView){var result=force?compactView.Open():compactView.Resync(5);return !!(result.sent||result.unchanged);}
         GameEvents.SendCustomGameEventToServer("survival_public_beta_gift_request", {});
         return true;
     }
     function close() {
         if (!alive()) return;
-        dismiss(state); if (shell) shell.Close();
+        dismiss(state); if (shell&&shell.IsOpen()) shell.Close();
+        if(compactView&&!busy(state))compactView.Close();
     }
     function mount() {
         if (shell || !readyUI()) return;
@@ -125,20 +131,20 @@
         var success = state.confirmed && claimed;
         if (!state.dismissed && eligible(state) && canPresent()) state.want_open = true;
         if (!hasFreshSnapshot || !data || !yes(data.active) || state.dismissed || !admitted()) {
-            shell.Close(); return;
+            if(shell.IsOpen())shell.Close(); return;
         }
         if (state.want_open && !shell.IsOpen() && canPresent()) shell.Open();
         if (!shell.IsOpen()) return;
-        root.SetHasClass("PublicBetaGiftClaimed", success || claimed);
-        root.SetHasClass("PublicBetaGiftPending", pending);
+        classed(root,"PublicBetaGiftClaimed",success||claimed);
+        classed(root,"PublicBetaGiftPending",pending);
         setText(reward, success ? "今日好礼已到账" : claimed ? "今日好礼已领取" : "金色抽奖券");
-        quantity.visible = !(success || claimed);
+        property(quantity,'visible',!(success||claimed));
         setText(caption, success || claimed ? "金色抽奖券 ×2" : "今日登录好礼");
-        receipt.visible = success;
+        property(receipt,'visible',success);
         var slow = !!state.pending && now() - Number(state.pending.started_at) >= 10;
         setText(buttonText, pending ? (slow ? "正在确认…" : "领取中…") : claimed ? "开始游戏" : state.notice ? "重试领取" : "立即领取");
-        button.enabled = !pending && (claimed || eligible(state));
-        button.SetHasClass("PublicBetaGiftDisabled", !button.enabled);
+        var enabled=!pending&&(claimed||eligible(state));property(button,'enabled',enabled);
+        classed(button,"PublicBetaGiftDisabled",!enabled);
         setText(notice, pending ? (slow ? "正在确认领取结果，请稍候…" : "正在领取今日好礼…") : state.notice || "好运相伴，共赴新程");
     }
     function claim() {
@@ -149,11 +155,22 @@
         if (!begin(state, requestId, now())) return;
         render();
         // Quantity, item, calendar day and eligibility are all server-owned.
-        GameEvents.SendCustomGameEventToServer("survival_public_beta_gift_claim", {request_id:requestId});
+        if(compactView){
+            var sent=compactView.SendIntent("public_beta_claim",{});
+            if(sent.sent)compactModel.BindIntent(sent.request_token,requestId);
+            else{state.pending=null;state.confirmed=false;state.notice="领取未完成，请重试";render();}
+        }else GameEvents.SendCustomGameEventToServer("survival_public_beta_gift_claim", {request_id:requestId});
     }
     function receive(payload) {
         if (!alive() || !accept(state, payload)) return;
+        // A legacy claim can predate the typed nonce table. Synchronize only
+        // the authoritative claimed/pending flags; do not invent a matching
+        // successful receipt or automatically submit another claim.
+        if(compactModel&&state.pending&&!compactModel.HasRequest(state.pending.request_id)&&!yes(payload.claim_pending)){
+            state.pending=null;state.confirmed=false;state.notice=yes(payload.claimed)?"":"领取未完成，请重试";
+        }
         hasFreshSnapshot = true; render();
+        if(compactView&&state.dismissed&&!busy(state))compactView.Close();
     }
     function dispose() {
         if (disposed) return;
@@ -162,6 +179,7 @@
         if (subscription !== null && GameEvents.Unsubscribe) GameEvents.Unsubscribe(subscription);
         if (loadingSubscription !== null && CustomNetTables.UnsubscribeNetTableListener) CustomNetTables.UnsubscribeNetTableListener(loadingSubscription);
         if (shell) shell.Dispose();
+        if(compactView)compactView.Dispose();
         // Hot reload retains the intent and dismissal; it never resubmits a claim.
     }
     function loop() {
@@ -181,7 +199,13 @@
     }
     button.SetPanelEvent("onactivate", claim);
     closeButton.SetPanelEvent("onactivate", function () { if (shell) shell.RequestClose("button"); });
-    subscription = GameEvents.Subscribe("survival_public_beta_gift_snapshot", receive);
+    if(cfg.SurvivalCompactRuntime&&cfg.SurvivalCompactPublicBetaModel&&cfg.SurvivalUICatalog){
+        compactModel=cfg.SurvivalCompactPublicBetaModel.Create(cfg.SurvivalUICatalog,{memo:cfg.SurvivalPublicBetaGiftWireMemo||(cfg.SurvivalPublicBetaGiftWireMemo={}),scope:function(){return cfg.SurvivalCompactRuntime.ScopeIdentity&&cfg.SurvivalCompactRuntime.ScopeIdentity();}});
+        compactView=cfg.SurvivalCompactRuntime.CreateView("public_beta",{onCommit:function(tx,changed,read){
+            if(!alive())return;var result=compactModel.Apply(tx,changed,read);
+            if(result.known)receive(result.snapshot);else{hasFreshSnapshot=false;render();}
+        },onError:function(){if(alive()){hasFreshSnapshot=false;render();}}});
+    }else if(!cfg.SurvivalCompactRuntime)subscription = GameEvents.Subscribe("survival_public_beta_gift_snapshot", receive);
     if (CustomNetTables.SubscribeNetTableListener) loadingSubscription = CustomNetTables.SubscribeNetTableListener("survival_loading", function () { if (alive()) { render(); } });
     api = cfg.SurvivalPublicBetaGift = {Dispose:dispose, Inspect:function () {
         return {open:!!shell && shell.IsOpen(), login_key:state.login_key, sequence:state.sequence,

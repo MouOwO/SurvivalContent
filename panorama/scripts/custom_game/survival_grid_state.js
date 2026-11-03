@@ -153,6 +153,65 @@
         }
         return index;
     }
+    // Bulk arrives as an explicit empty atlas followed by bounded changed-cell
+    // sets. A column may be 65,536 cells: repair only aligned eight-cell blocks.
+    // Existing structured dynamic columns can be adopted without enumerating
+    // their runs; local spatial buckets find the few intersecting old runs.
+    function patchBlocks(source,index,changes,filter) {
+        var shape=[source.size,source.x,source.y,source.w,source.h,source.z].join(":"),fresh=!index||!index.sparse||index.shape!==shape;
+        if(source.empty_initial===true)fresh=true;
+        if(fresh) {
+            if(source.empty_initial!==true)throw new Error("grid_bulk_empty_initial_required");
+            index={sparse:true,bulk:true,shape:shape,buckets:{},rects:[],columns:{},bucketCounts:{},size:source.size*8,
+                bounds:[source.x*source.size,source.y*source.size,(source.x+source.w)*source.size,(source.y+source.h)*source.size],
+                visits:0,block_visits:0,bucket_visits:0,version:0};
+            return index;
+        }
+        index.bulk=true;index.bucketCounts=index.bucketCounts||{};index.block_visits=index.block_visits||0;index.bucket_visits=index.bucket_visits||0;
+        var dirty={};
+        (changes||[]).forEach(function(n){
+            if(typeof n!=="number"||n!==Math.floor(n)||n<0||n>=source.w*source.h)throw new Error("grid_bulk_changed_cell_invalid");
+            var x=Math.floor(n/source.h),start=Math.floor((n%source.h)/8)*8;dirty[x+":"+start]=[x,start];
+        });
+        function countBucket(key,b) {
+            if(index.bucketCounts[key]===undefined){var n=0;for(var id in b)n++;index.bucketCounts[key]=n;}
+        }
+        function erase(id) {
+            var r=index.rects[id];if(!r)return;
+            r.buckets.forEach(function(key){var b=index.buckets[key];if(!b)return;countBucket(key,b);
+                if(b[id]){delete b[id];index.bucketCounts[key]--;}
+                if(index.bucketCounts[key]===0){delete index.buckets[key];delete index.bucketCounts[key];}});
+            delete index.rects[id];
+        }
+        function add(x,start,end) {
+            if(end<=start)return;
+            var id=x*(source.h+1)+start,r=[(source.x+x)*source.size,(source.y+start)*source.size,(source.x+x+1)*source.size,(source.y+end)*source.size];
+            r.version=++index.version;r.buckets=[];index.rects[id]=r;
+            for(var bx=Math.floor(r[0]/index.size);bx<=Math.floor(r[2]/index.size);bx++)for(var by=Math.floor(r[1]/index.size);by<=Math.floor(r[3]/index.size);by++){
+                var key=bx+":"+by,b=index.buckets[key]||(index.buckets[key]={});countBucket(key,b);
+                if(!b[id]){b[id]=true;index.bucketCounts[key]++;}r.buckets.push(key);
+            }
+        }
+        for(var key in dirty) {
+            var block=dirty[key],x=block[0],start=block[1],end=Math.min(source.h,start+8),left=(source.x+x)*source.size,right=left+source.size,
+                bottom=(source.y+start)*source.size,top=(source.y+end)*source.size,old={},outside=[];
+            index.block_visits++;
+            for(var bx=Math.floor(left/index.size);bx<=Math.floor(right/index.size);bx++)for(var by=Math.floor(bottom/index.size);by<=Math.floor(top/index.size);by++){
+                var bucket=index.buckets[bx+":"+by]||{};index.bucket_visits++;
+                for(var id in bucket){var r=index.rects[id];if(r&&r[0]===left&&r[2]===right&&r[1]<top&&r[3]>bottom)old[id]=r;}
+            }
+            for(var id in old){var r=old[id],a=Math.round(r[1]/source.size)-source.y,b=Math.round(r[3]/source.size)-source.y;
+                if(a<start)outside.push([a,start]);if(b>end)outside.push([end,b]);erase(Number(id));}
+            outside.forEach(function(span){add(x,span[0],span[1]);});
+            var run=-1;
+            for(var y=start;y<end;y++) {
+                index.visits++;var red=source.states[x*source.h+y]===1&&(!filter||filter(x,y));
+                if(red&&run<0)run=y;if(!red&&run>=0){add(x,run,y);run=-1;}
+            }
+            if(run>=0)add(x,run,end);
+        }
+        return index;
+    }
     function create(options) {
         var atlas=null,redRuns=[],terrain=[],foot=[],marks=[],dynamic=null,dynamicUntil=0;
         var dynamicRuns=[],dynamicPanels=[],dynamicRevision=0,dynamicSource="";
@@ -401,13 +460,16 @@
             if(source && typeof source==="object" && Array.isArray(source.states)) {
                 if(atlas===source && atlasStructuredRevision===source.revision)return true;
                 var replaced=atlas!==source;atlas=source;atlasSource=source;atlasStructuredRevision=source.revision;
-                terrainIndex=patchColumns(source,replaced?null:terrainIndex,source.changes);redRuns=terrainIndex.rects;
+                terrainIndex=source.bulk_mode?patchBlocks(source,replaced?null:terrainIndex,source.changes):patchColumns(source,replaced?null:terrainIndex,source.changes);redRuns=terrainIndex.rects;
+                if(source.bulk_mode){stats.terrain_cell_visits=terrainIndex.visits;stats.terrain_block_visits=terrainIndex.block_visits;}
                 terrainVersion++;revision++;viewKey="";footKey="";stats.terrain_builds++;
                 if(dynamic && dynamicStructuredRevision>=0) {
                     var touched=[];
                     if(!replaced)(source.changes||[]).forEach(function(n){var wx=(source.x+Math.floor(n/source.h)+0.5)*source.size,wy=(source.y+n%source.h+0.5)*source.size;
                         var x=Math.floor(wx/dynamic.size)-dynamic.x,y=Math.floor(wy/dynamic.size)-dynamic.y;if(x>=0&&x<dynamic.w&&y>=0&&y<dynamic.h)touched.push(x*dynamic.h+y);});
-                    dynamicIndex=patchColumns(dynamic,replaced?null:dynamicIndex,touched,function(x,y){return staticSample((dynamic.x+x+0.5)*dynamic.size,(dynamic.y+y+0.5)*dynamic.size)!==1;});
+                    var filter=function(x,y){return staticSample((dynamic.x+x+0.5)*dynamic.size,(dynamic.y+y+0.5)*dynamic.size)!==1;};
+                    dynamicIndex=source.bulk_mode?patchBlocks(dynamic,dynamicIndex,touched,filter):patchColumns(dynamic,replaced?null:dynamicIndex,touched,filter);
+                    if(source.bulk_mode){stats.dynamic_column_visits=dynamicIndex.visits;stats.dynamic_block_visits=dynamicIndex.block_visits;}
                     dynamicRuns=dynamicIndex.rects;dynamicRevision++;
                 } else if(dynamic)rebuildDynamic();return true;
             }
@@ -446,7 +508,9 @@
                     if(dynamic===source && dynamicStructuredRevision===source.revision){dynamicUntil=Date.now()+1000;stats.dynamic_reuses++;return;}
                     var replaced=dynamic!==source||source.revision>dynamicStructuredRevision+1;dynamic=source;dynamicSource=source;dynamicStructuredRevision=source.revision;
                     dynamicUntil=Date.now()+1000;footKey="";
-                    dynamicIndex=patchColumns(source,replaced?null:dynamicIndex,source.changes,function(x,y){return staticSample((source.x+x+0.5)*source.size,(source.y+y+0.5)*source.size)!==1;});
+                    var filter=function(x,y){return staticSample((source.x+x+0.5)*source.size,(source.y+y+0.5)*source.size)!==1;};
+                    if(atlas&&atlas.bulk_mode&&!replaced)dynamicIndex=patchBlocks(source,dynamicIndex,source.changes,filter);
+                    else dynamicIndex=patchColumns(source,replaced?null:dynamicIndex,source.changes,filter);
                     dynamicRuns=dynamicIndex.rects;dynamicRevision++;stats.dynamic_builds++;
                     stats.dynamic_column_visits=dynamicIndex.visits;return;
                 }
@@ -464,5 +528,5 @@
             },
             ready:function(){return !!atlas;}};
     }
-    shared.SurvivalGridState={decode:decode,sample:sample,runs:runs,wedge:wedge,create:create,patchColumns:patchColumns};
+    shared.SurvivalGridState={decode:decode,sample:sample,runs:runs,wedge:wedge,create:create,patchColumns:patchColumns,patchBlocks:patchBlocks};
 })();

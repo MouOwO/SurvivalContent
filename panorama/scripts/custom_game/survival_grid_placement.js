@@ -1,7 +1,9 @@
 (function () {
     "use strict";
     var controllerConfig=GameUI.CustomUIConfig();
-    var compactView=null,compactStaticView=null,compactModel=null,compactLayout=null;
+    var compactView=null,compactStaticView=null,compactModel=null,compactLayout=null,bulkTask=null,bulkTimer=null;
+    var bulkPerformance={transactions:0,steps:0,max_step_ms:0,max_step_cells:0,cancelled:0,failures:0,bytes:0};
+    controllerConfig.SurvivalGridBulkPerformance=bulkPerformance;
     function sendGrid(name,payload) {
         if(controllerConfig.SurvivalCompactRuntime) {
             if(!compactView || !compactModel)return {sent:false,error:"not_ready"};
@@ -1581,6 +1583,7 @@
         subscriptions.push(GameEvents.Subscribe(name,function(data){if(currentController()) fn(data);}));
     }
     controllerConfig.SurvivalGridUnsubscribe=function(){
+        cancelBulk();
         if(compactView)compactView.Dispose();if(compactStaticView)compactStaticView.Dispose();
         if(GameEvents.Unsubscribe) for(var i=0;i<subscriptions.length;i++) GameEvents.Unsubscribe(subscriptions[i]);
     };
@@ -1589,17 +1592,40 @@
         function compactCommit(tx,ids,read) {
             if(!currentController())return;
             var data=compactModel.Apply(tx,ids,read);
+            if(bulkTask&&!bulkTask.Current())cancelBulk();
             if(data.profiles)onProfiles(data.profiles);
             if(data.static_reset && gridState){gridState.reset();if(compactLayout)gridState.configureLayout(compactLayout);}
             if(data.static && gridState)gridState.configure(data.static);
+            if(data.bulk_missing){cancelBulk();compactStaticView.Resync(2);}
             if(data.validation)onValidation(data.validation);
             if(data.area_notification)onArea(data.area_notification);
             if(data.commit)onCommitResult(data.commit);
         }
         compactView=controllerConfig.SurvivalCompactRuntime.CreateView("grid",{onCommit:compactCommit});
-        compactStaticView=controllerConfig.SurvivalCompactRuntime.CreateView("grid_static",{onCommit:compactCommit});
+        compactStaticView=controllerConfig.SurvivalCompactRuntime.CreateView("grid_static",{onCommit:compactCommit,
+            acceptBulk:function(header){return currentController()&&compactModel.AcceptBulk(header);},
+            onBulk:function(header,raw){
+                cancelBulk();var runtime=controllerConfig.SurvivalCompactRuntime,identity=runtime.ScopeIdentity();
+                if(!identity.active||!identity.ready)throw new Error("grid_bulk_owner_unknown");
+                var owner={loading_identity:identity.loading_identity,session:identity.session};
+                var task=compactModel.BeginBulk(header,raw,compactStaticView.Read,{now:Date.now,apply:function(atlas){if(gridState)gridState.configure(atlas);}});
+                bulkTask=task;bulkPerformance.transactions++;bulkPerformance.bytes+=raw.length;
+                function step(){
+                    bulkTimer=null;var live=runtime.ScopeIdentity(),view=compactStaticView.Inspect();
+                    if(!currentController()||controllerConfig.SurvivalCompactRuntime!==runtime||!live.active||!live.ready||live.loading_identity!==owner.loading_identity||live.session!==owner.session||!view.active||view.epoch!==header.epoch||bulkTask!==task||!task.Current()){cancelBulk();return;}
+                    try{
+                        var result=task.Step(),metrics=task.Inspect();bulkPerformance.steps++;
+                        bulkPerformance.max_step_ms=Math.max(bulkPerformance.max_step_ms,metrics.max_step_ms);
+                        bulkPerformance.max_step_cells=Math.max(bulkPerformance.max_step_cells,metrics.max_step_cells);
+                        if(result.done||result.cancelled){bulkTask=null;return;}
+                        bulkTimer=$.Schedule(0,step);
+                    }catch(error){bulkPerformance.failures++;cancelBulk();compactStaticView.Resync(5);}
+                }
+                bulkTimer=$.Schedule(0,step);
+            }});
         compactView.Open();compactStaticView.Open();
     }
+    function cancelBulk(){if(bulkTask){bulkTask.Cancel();bulkPerformance.cancelled++;bulkTask=null;}if(bulkTimer!==null){if($.CancelScheduled)$.CancelScheduled(bulkTimer);bulkTimer=null;}}
     if(!controllerConfig.SurvivalCompactRuntime) {
     subscribe("ui_grid_placement_profiles", onProfiles);
     subscribe("ui_grid_placement_static_area",function(data){

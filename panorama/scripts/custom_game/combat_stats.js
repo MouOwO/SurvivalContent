@@ -4338,13 +4338,6 @@
         }
     );
     renderCombatDebug(CustomNetTables.GetTableValue(debugTableName, tableKey));
-    subscribeCombatEvent("ui_weapon_synthesis_snapshot", function (snapshot) {
-        if (snapshot && snapshot.player_id !== undefined
-            && Number(snapshot.player_id) !== Number(playerId)) return;
-        var hero = Number(snapshot && snapshot.hero_entindex || -1);
-        if (hero < 0 || Number(displayUnit()) !== hero) return;
-        requestSelectedUnitStats(hero, true);
-    });
     subscribeCombatEvent("ui_selected_unit_stats_snapshot", function (snapshot) {
         if(customConfig.SurvivalCompactRuntime&&customConfig.SurvivalCompactSelectedModel)return;
         if (!snapshot || snapshot.success !== 1) return;
@@ -4433,6 +4426,11 @@
         ApplyRuntime: applyAbilityRuntime,
         Entries: visibleAbilityEntries,
         Snapshot: function(unit){return selectedUnitSnapshot && Number(selectedUnitSnapshot.entindex)===Number(unit) ? selectedUnitSnapshot : null;},
+        ReadWeaponGrowth: function(unit,content){
+            unit=Number(unit);
+            if(!contextActive()||unit!==Number(displayUnit())||!compactSelectedModel||!compactSelectedModel.WeaponGrowth)return null;
+            return compactSelectedModel.WeaponGrowth(unit,compactSelectedToken,String(content||""));
+        },
         RefreshSelection: function(){refreshHeroPanel();refreshAbilityHotkeysIfChanged(false);}
     };
     installClientCallbackProbe();

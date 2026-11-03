@@ -15,13 +15,13 @@
   }
   var shared=index.grid,wordIndex=shared.wordIndex,profiles=shared.profiles,profileRecords=shared.profileRecords,layoutIds=shared.layoutIds;
   var state=R["grid:state"],validation=R["grid:validation"],commit=R["grid:commit"];
-  var areas={area:{meta:R["grid:area:meta"],words:shared.words.area,atlas:null,overrides:Object.create(null)},static:{meta:R["grid:static:meta"],words:shared.words.static,atlas:null,overrides:Object.create(null)}};
+  var areas={area:{meta:R["grid:area:meta"],words:shared.words.area,atlas:null,overrides:Object.create(null)},static:{meta:R["grid:static:meta"],words:shared.words.static,atlas:null,overrides:Object.create(null),bulkGeneration:0,bulkBase:[],bulkMode:false,bulkPending:false,bulkStarted:false,bulkMetaRevision:0}};
   var scope=0,map=2,lastValidation=null,lastCommit=null,revision=0,metrics={field_reads:0,word_visits:0,cell_visits:0,container_rebuilds:0};
   function get(read,id,name){metrics.field_reads++;return read(id,F[name]);}
   function double(read,id,axis,fallback){var hi=get(read,id,"grid_"+axis+"_hi"),lo=get(read,id,"grid_"+axis+"_lo");if(hi===undefined&&lo===undefined)return fallback;need(hi!==undefined&&lo!==undefined,"grid_float_words_missing");var b=new ArrayBuffer(8),d=new DataView(b);d.setUint32(0,hi);d.setUint32(4,lo);var v=d.getFloat64(0);need(isFinite(v),"grid_float_invalid");return v;}
   function common(read,id){var own=get(read,id,"grid_scope");if(own!==undefined)scope=own;return {grid_scope:"cw:"+scope,grid_scope_version:scope,session_id:get(read,id,"grid_session"),request_id:get(read,id,"grid_request")};}
   function areaApply(kind,read,indices,header){
-   var a=areas[kind],known=get(read,a.meta,"known");if(known!==1){a.atlas=null;a.overrides=Object.create(null);return null;}
+   var a=areas[kind],known=get(read,a.meta,"known");if(known!==1){a.atlas=null;a.overrides=Object.create(null);if(kind==="static"){a.bulkGeneration++;a.bulkBase=[];a.bulkPending=false;a.bulkMode=false;a.bulkStarted=false;}return null;}
    if(kind==="static"){var own=get(read,a.meta,"grid_scope");if(scope===0)scope=own;if(own!==scope)return null;}
    var size=get(read,a.meta,"grid_size"),x=get(read,a.meta,"grid_origin_x"),y=get(read,a.meta,"grid_origin_y"),w=get(read,a.meta,"grid_width"),h=get(read,a.meta,"grid_height"),z=double(read,a.meta,"z");
    need([size,x,y,w,h,z].every(function(n){return typeof n==="number"&&isFinite(n);})&&w>=1&&h>=1&&w*h<=a.words.length*16,"grid_area_header_invalid");
@@ -29,15 +29,16 @@
    if(baseId){need(base&&base.metadata.size===size&&base.metadata.origin_x===x&&base.metadata.origin_y===y&&base.metadata.width===w&&base.metadata.height===h&&base.metadata.ground_height===z,"grid_atlas_base_mismatch");}
    var next=a.atlas,rebuild=!next||next.size!==size||next.x!==x||next.y!==y||next.w!==w||next.h!==h||next.z!==z||next.base!==baseId;
    if(rebuild){next={size:size,x:x,y:y,w:w,h:h,z:z,base:baseId,states:base?base.states.slice():new Array(w*h).fill(0),revision:0,changes:[],rebuild:true};a.atlas=next;var set=Object.create(null);indices.forEach(function(n){set[n]=true;});Object.keys(a.overrides).forEach(function(n){set[n]=true;});indices=Object.keys(set).map(Number);metrics.container_rebuilds++;}
-   var changed=[];indices.forEach(function(word){metrics.word_visits++;var value=get(read,a.words[word],"grid_word");if(value===undefined){delete a.overrides[word];value=base?base.words[word]:0;}else a.overrides[word]=true;for(var bit=0;bit<16&&word*16+bit<w*h;bit++){var n=word*16+bit,v=(value>>>bit*2)&3;need(v!==3,"grid_area_state_invalid");if(next.states[n]!==v){next.states[n]=v;changed.push(n);}}});
-   next.changes=changed;next.rebuild=rebuild;next.complete=get(read,a.meta,"grid_complete")===1;
+   var changed=[];indices.forEach(function(word){metrics.word_visits++;var value=get(read,a.words[word],"grid_word");if(value===undefined){delete a.overrides[word];value=base?base.words[word]:kind==="static"&&a.bulkBase[word]!==undefined?a.bulkBase[word]:0;}else a.overrides[word]=true;for(var bit=0;bit<16&&word*16+bit<w*h;bit++){var n=word*16+bit,v=(value>>>bit*2)&3;need(v!==3,"grid_area_state_invalid");if(next.states[n]!==v){next.states[n]=v;changed.push(n);}}});
+   next.changes=changed;next.rebuild=rebuild;next.complete=get(read,a.meta,"grid_complete")===1&&!(kind==="static"&&a.bulkPending);
+   if(kind==="static"){next.bulk_mode=a.bulkMode;next.empty_initial=!!(a.bulkMode&&a.bulkPending&&rebuild&&indices.length===0);}
    if(rebuild||changed.length){next.revision++;return next;}return header?next:null;
   }
   function apply(tx,changed,read){
    var dirty=Object.create(null),wordChanges={area:[],static:[]};changed.forEach(function(id){dirty[id]=true;var word=wordIndex[id];if(word)wordChanges[word.kind].push(word.index);});
    var out={};
    if(dirty[state]||Object.keys(layoutIds).some(function(id){return dirty[id];})){
-    var known=get(read,state,"known");if(known===1){var nextScope=get(read,state,"grid_scope");if(scope!==0&&nextScope!==scope){Object.keys(areas).forEach(function(kind){areas[kind].atlas=null;areas[kind].overrides=Object.create(null);});lastValidation=null;lastCommit=null;}scope=nextScope;map=get(read,state,"grid_map")||map;
+     var known=get(read,state,"known");if(known===1){var nextScope=get(read,state,"grid_scope");if(scope!==0&&nextScope!==scope){Object.keys(areas).forEach(function(kind){areas[kind].atlas=null;areas[kind].overrides=Object.create(null);});areas.static.bulkGeneration++;areas.static.bulkBase=[];areas.static.bulkMode=false;areas.static.bulkPending=false;lastValidation=null;lastCommit=null;}scope=nextScope;map=get(read,state,"grid_map")||map;
      var names=["default","template_map","survival_c6"],config=G.maps[names[map-1]];need(config,"grid_map_unknown");
      var ready=get(read,state,"grid_layout_ready")===1,layout=null;
      if(ready){layout={bounds:{},build_bounds:{}};[["display","bounds"],["build","build_bounds"]].forEach(function(pair){["x","y"].forEach(function(axis){layout[pair[1]]["min_"+axis]=double(read,R["grid:layout:min_"+pair[0]],axis);layout[pair[1]]["max_"+axis]=double(read,R["grid:layout:max_"+pair[0]],axis);});});layout.height=double(read,R["grid:layout:plane"],"z");}
@@ -45,7 +46,10 @@
      if(areas.static.atlas)out.static=areas.static.atlas;
     }
    }
-   Object.keys(areas).forEach(function(kind){var a=areas[kind];if(dirty[a.meta]||wordChanges[kind].length){var area=areaApply(kind,read,wordChanges[kind],!!dirty[a.meta]);if(area)out[kind]=area;else if(kind==="static"&&dirty[a.meta]&&get(read,a.meta,"known")!==1)out.static_reset=true;}});
+   Object.keys(areas).forEach(function(kind){var a=areas[kind];if(dirty[a.meta]||wordChanges[kind].length){
+    if(kind==="static"&&dirty[a.meta]){var bulk=get(read,a.meta,"types")===1;if(tx.full||bulk!==a.bulkMode){if(bulk&&a.atlas)out.static_reset=true;a.bulkGeneration++;a.bulkBase=[];a.bulkPending=bulk;a.bulkStarted=false;a.bulkMode=bulk;a.bulkMetaRevision=bulk?tx.revision:0;if(bulk){a.atlas=null;a.overrides=Object.create(null);}}}
+    var area=areaApply(kind,read,wordChanges[kind],!!dirty[a.meta]);if(area)out[kind]=area;else if(kind==="static"&&dirty[a.meta]&&get(read,a.meta,"known")!==1)out.static_reset=true;
+    if(kind==="static"&&dirty[a.meta]&&a.bulkMode&&a.bulkPending&&!a.bulkStarted&&get(read,a.meta,"grid_complete")===1)out.bulk_missing=true;}});
    var cellDirty=false;for(var c=1;c<=16;c++)if(dirty[R["grid:cell:"+c]])cellDirty=true;
    if(dirty[validation]||cellDirty){
     if(get(read,validation,"known")===1){var p=profiles[get(read,validation,"grid_profile")];need(p,"grid_profile_unknown");var d=common(read,validation),size=G.maps[["default","template_map","survival_c6"][map-1]].cell_size;
@@ -62,7 +66,39 @@
    revision++;return out;
   }
   function input(action,payload){var values={grid_session:Number(payload.session_id),grid_request:Number(payload.request_id)||1};if(action===1||action===2||action===4){values.grid_profile=profileRecords[payload.ability_name];values.grid_actor=Number(payload.entindex);values.grid_ability=Number(payload.ability_entindex);["x","y","z"].forEach(function(axis){var b=new ArrayBuffer(8),d=new DataView(b),value=Number(payload[axis]);need(isFinite(value),"grid_input_float_invalid");d.setFloat64(0,value);values["grid_"+axis+"_hi"]=d.getUint32(0);values["grid_"+axis+"_lo"]=d.getUint32(4);});}return values;}
-  return {Apply:apply,Input:input,Inspect:function(){return {revision:revision,metrics:metrics,scope:scope};}};
+  function acceptBulk(header){var a=areas.static;return!!(a.bulkMode&&a.atlas&&a.atlas.base===0&&header.scope===scope&&header.base_revision===a.bulkMetaRevision);}
+  function beginBulk(header,raw,read,options){
+   options=options||{};need(acceptBulk(header),"grid_bulk_metadata_mismatch");var a=areas.static,atlas=a.atlas,generation=a.bulkGeneration,cells=atlas.w*atlas.h;
+   need(typeof raw==="string"&&raw.length===Math.ceil(cells/4)&&raw.length<=16384,"grid_bulk_byte_length_invalid");
+   var phase=0,byteCursor=0,wordCursor=0,cancelled=false,done=false,steps=0,visited=0,maxStepCells=0,maxStepMs=0;
+   a.bulkPending=true;a.bulkStarted=true;
+   function current(){return!cancelled&&a.bulkGeneration===generation&&a.atlas===atlas&&scope===header.scope;}
+   function step(){
+    if(!current())return{cancelled:true};if(done)return{done:true};var clock=options.now||Date.now,start=clock(),count=0;
+    if(phase===0){
+     while(byteCursor<raw.length&&count<512&&(count===0||clock()-start<2)){
+      var value=raw.charCodeAt(byteCursor);need(value<=255,"grid_bulk_raw_byte_invalid");
+      for(var bit=0;bit<4;bit++){var cell=byteCursor*4+bit,code=(value>>>bit*2)&3;need(code!==3&&!(cell>=cells&&code!==0),"grid_bulk_cell_state_invalid");}
+      byteCursor++;count+=4;
+     }
+     if(byteCursor===raw.length)phase=1;
+    }else{
+     while(wordCursor<Math.ceil(cells/16)&&count<512&&(count===0||clock()-start<2)){
+      var word=0,at=wordCursor*4;for(var n=0;n<4&&at+n<raw.length;n++)word+=raw.charCodeAt(at+n)*Math.pow(256,n);
+      a.bulkBase[wordCursor]=word>>>0;
+      var patch=areaApply("static",read,[wordCursor],false);wordCursor++;count+=Math.min(16,cells-(wordCursor-1)*16);
+      if(patch){patch.empty_initial=false;if(options.apply)options.apply(patch);}
+     }
+     if(wordCursor===Math.ceil(cells/16)){
+      done=true;a.bulkPending=false;atlas.complete=get(read,a.meta,"grid_complete")===1;atlas.empty_initial=false;
+      atlas.changes=[];atlas.revision++;if(options.apply)options.apply(atlas);
+     }
+    }
+    steps++;visited+=count;maxStepCells=Math.max(maxStepCells,count);maxStepMs=Math.max(maxStepMs,Math.max(0,clock()-start));return{done:done,pending:!done,cells:count,phase:phase};
+   }
+   return{Step:step,Current:current,Cancel:function(){cancelled=true;},Inspect:function(){return{steps:steps,visited_cells:visited,max_step_cells:maxStepCells,max_step_ms:maxStepMs,done:done,cancelled:cancelled};}};
+  }
+  return {Apply:apply,Input:input,AcceptBulk:acceptBulk,BeginBulk:beginBulk,Inspect:function(){return {revision:revision,metrics:metrics,scope:scope};}};
  }
  return {Create:create};
 }));

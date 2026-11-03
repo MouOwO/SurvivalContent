@@ -12,11 +12,11 @@ function create(catalogue){
  function apply(tx,changed,read){
   var entity=read(root,F.selected_entity),token=read(root,F.selected_token);
   if(entity!==currentEntity||token!==currentToken)return{stale:true,known:false,entity:entity,token:token};
-  if(read(root,F.known)!==1)return{known:false,entity:entity,token:token,error_code:read(root,F.error_code)};
-  var next=snapshot;if(tx.full||!next){next={entindex:entity,success:1,source:"compact_selected",stat_tooltips:{attack:{unit:"logical_damage"},armor:{unit:"war3_display"},attributes:{unit:"logical_attribute"},attack_speed:{unit:"percent",interval_reductions:[],speed_bonuses:[]}},armor_unit:"war3_display"};}
-  var ids=tx.full?Object.keys(rows):changed.slice(),seen={},staged=[],nextMasks={};ids.forEach(function(id){seen[id]=true;});
-  Object.keys(zeroGroups).forEach(function(group){if(!tx.full&&changed.indexOf(Number(group))<0)return;var mask=read(Number(group),F.zero_mask);need(typeof mask==='number','selected_zero_mask_unknown');nextMasks[group]=mask;
-   if(!tx.full)zeroGroups[group].forEach(function(id){var row=rows[id];if(Math.floor(mask/row.power)%2!==Math.floor((maskCache[group]||0)/row.power)%2&&!seen[id]){seen[id]=true;ids.push(id);}});
+  if(read(root,F.known)!==1){snapshot=null;maskCache={};return{known:false,entity:entity,token:token,error_code:read(root,F.error_code)};}
+  var next=snapshot,rebuild=tx.full||!next;if(rebuild){next={entindex:entity,success:1,source:"compact_selected",stat_tooltips:{attack:{unit:"logical_damage"},armor:{unit:"war3_display"},attributes:{unit:"logical_attribute"},attack_speed:{unit:"percent",interval_reductions:[],speed_bonuses:[]}},armor_unit:"war3_display"};}
+  var ids=rebuild?Object.keys(rows):changed.slice(),seen={},staged=[],nextMasks={};ids.forEach(function(id){seen[id]=true;});
+  Object.keys(zeroGroups).forEach(function(group){if(!rebuild&&changed.indexOf(Number(group))<0)return;var mask=read(Number(group),F.zero_mask);need(typeof mask==='number','selected_zero_mask_unknown');nextMasks[group]=mask;
+   if(!rebuild)zeroGroups[group].forEach(function(id){var row=rows[id];if(Math.floor(mask/row.power)%2!==Math.floor((maskCache[group]||0)/row.power)%2&&!seen[id]){seen[id]=true;ids.push(id);}});
   });
   for(var n=0;n<ids.length;n++){var id=Number(ids[n]),row=rows[id];if(!row)continue;visits++;var value=undefined;
    if(row.kind==="number"){
@@ -30,7 +30,12 @@ function create(catalogue){
   }
   if(!next._selected_unknown_fields)next._selected_unknown_fields={};staged.forEach(function(w){set(next,w.row.path,w.value);if(w.unknown)next._selected_unknown_fields[w.row.path.join('.')]=true;else delete next._selected_unknown_fields[w.row.path.join('.')];});Object.keys(nextMasks).forEach(function(g){maskCache[g]=nextMasks[g];});next._selected_aux_pending=read(root,F.pending)===1;snapshot=next;return{known:true,entity:entity,token:token,snapshot:snapshot};
  }
- return{Select:function(entity,token){currentEntity=entity;currentToken=token;snapshot=null;maskCache={};},Apply:apply,Inspect:function(){return{entity:currentEntity,token:currentToken,metric_visits:visits};}};
+ function weaponGrowth(entity,token,content){
+  if(typeof content!=="string"||!content||!snapshot||entity!==currentEntity||token!==currentToken||snapshot.entindex!==entity||snapshot.weapon_content_id!==content)return null;
+  return{target:snapshot.stage_attack_target,count:snapshot.stage_attack_count,remaining:snapshot.stage_attack_remaining,
+   growth_attack:snapshot.weapon_growth_attack,is_max_level:snapshot.is_max_level};
+ }
+ return{Select:function(entity,token){currentEntity=entity;currentToken=token;snapshot=null;maskCache={};},Apply:apply,WeaponGrowth:weaponGrowth,Inspect:function(){return{entity:currentEntity,token:currentToken,metric_visits:visits};}};
 }
 return{Create:create};
 }));

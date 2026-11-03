@@ -24,6 +24,7 @@
     }
     var updateQueued = false, queuedRecover = false, queuedVisible = false, queuedReason = "";
     var nativeRepairQueued = false;
+    var activeGrowth=null,growthJob=null,growthSerial=0;
     var refreshCounts = {identitySeen:0, identityIgnored:0, scheduled:0, coalesced:0, recovered:0, refreshed:0};
     function active() {
         return (!context.IsValid || context.IsValid()) && (!api || config.SurvivalInventoryTooltip === api);
@@ -83,7 +84,8 @@
 
     function setText(id, value) {
         var target = byId(id);
-        if (target) target.text = String(value === undefined ? "" : value);
+        var text=String(value === undefined ? "" : value);
+        if (target&&target.text!==text) target.text=text;
     }
 
     function localize(key, fallback) {
@@ -111,6 +113,9 @@
     }
 
     function hide() {
+        growthSerial++;activeGrowth=null;
+        if(growthJob!==null&&$.CancelScheduled){try{$.CancelScheduled(growthJob);}catch(error){}}
+        growthJob=null;
         if (tooltipDismiss) tooltipDismiss.Hidden();
         activeSlot = -1;
         activePanel = null;
@@ -135,9 +140,68 @@
             row.__right.AddClass("InventoryItemFieldValue");
             rows[index] = row;
         }
-        row.visible = true;
-        row.__left.text = String(label || "");
-        row.__right.text = String(value);
+        if(!row.visible)row.visible=true;
+        var left=String(label||""),right=String(value);
+        if(row.__left.text!==left)row.__left.text=left;
+        if(row.__right.text!==right)row.__right.text=right;
+        return row;
+    }
+
+    function finite(value){return typeof value==="number"&&isFinite(value);}
+    function luaNumber(value){
+        if(value===0)return"0";
+        var rounded=value.toExponential(13).split("e"),exponent=Number(rounded[1]),text;
+        if(exponent< -4||exponent>=14){
+            var parts=rounded,n=exponent;
+            var digits=String(Math.abs(n));if(digits.length<2)digits="0"+digits;
+            return parts[0].replace(/(\.[0-9]*?)0+$/,"$1").replace(/\.$/,"")+"e"+(n<0?"-":"+")+digits;
+        }
+        text=Number(rounded.join("e")).toFixed(Math.max(0,13-exponent));
+        return text.replace(/(\.[0-9]*?)0+$/,"$1").replace(/\.$/,"");
+    }
+    function growthFields(metadata,snapshot,charges){
+        var rows=[],maximum=Number(metadata.is_max_level)===1,target=finite(snapshot&&snapshot.target)?snapshot.target:Number(metadata.stage_attack_target),count=snapshot&&snapshot.count;
+        if(metadata.native_charge_counter===1)count=finite(charges)&&isFinite(target)?Math.max(0,target-charges):undefined;
+        if(maximum)rows.push({label:"当前进度",value:"MAX"});
+        else if(target>0){
+            rows.push({label:"当前进度",value:finite(count)?luaNumber(Math.min(count,target))+" / "+luaNumber(target):"…"});
+            if(finite(count))rows.push({label:"剩余进度",value:Math.max(0,target-count)});
+        }
+        var attack=snapshot&&snapshot.growth_attack;
+        if(finite(attack)&&attack!==0)rows.push({label:"累计成长攻击",value:"+"+luaNumber(attack)});
+        var per=Number(metadata.progress_per_attack)||1,hammers=Math.max(0,Math.floor(Number(metadata.forging_hammer_count)||0));
+        if(per>1&&!maximum)rows.push({label:"每次攻击进度",value:"+"+luaNumber(per)});
+        if(hammers>0)rows.push({label:"锻造锤",value:String(hammers)+" / 4"});
+        return rows;
+    }
+    function currentGrowth(binding){
+        var combat=config.HandoffCombat,snapshot=null,charges;
+        if(combat&&typeof combat.ReadWeaponGrowth==="function")try{snapshot=combat.ReadWeaponGrowth(binding.unit,binding.content);}catch(error){}
+        if(binding.metadata.native_charge_counter===1&&typeof Items!=="undefined"&&Items.GetCurrentCharges){
+            try{charges=Number(Items.GetCurrentCharges(binding.item));}catch(error){}
+        }
+        return growthFields(binding.metadata,snapshot,charges);
+    }
+    function growthSignature(rows){return rows.map(function(row){return row.label+"\0"+String(row.value);}).join("\u0001");}
+    function startGrowth(){
+        if(growthJob!==null||!activeGrowth)return;
+        var serial=growthSerial;
+        growthJob=$.Schedule(0.1,function(){
+            if(serial!==growthSerial)return;
+            growthJob=null;var binding=activeGrowth;
+            if(serial!==growthSerial||!active()||!binding||activePanel!==binding.panel||activeItem!==binding.item)return;
+            var unit,item,identity;
+            try{unit=selectedUnit();item=unit>=0?Entities.GetItemInSlot(unit,activeSlot):-1;identity=CustomNetTables.GetTableValue("survival_inventory_item_identity",String(binding.item))||{};}catch(error){hide();return;}
+            if(Number(unit)!==binding.unit||Number(item)!==binding.item||identity.removed===1||String(identity.content_id||binding.name)!==binding.content){hide();return;}
+            var rows=currentGrowth(binding),signature=growthSignature(rows);
+            if(signature!==binding.signature){
+                binding.fields.__fieldCursor=binding.offset;
+                rows.forEach(function(row){addField(binding.fields,row.label,row.value);});
+                for(var i=binding.fields.__fieldCursor;i<binding.offset+binding.count;i++)if(binding.fields.__fieldRows[i]&&binding.fields.__fieldRows[i].visible)binding.fields.__fieldRows[i].visible=false;
+                binding.count=rows.length;binding.signature=signature;
+            }
+            startGrowth();
+        });
     }
 
     function itemView(contentId) {
@@ -146,7 +210,7 @@
         ) || {};
         var viewModel = snapshot.tooltip_view_model || {};
         var items = viewModel.items || {};
-        return items[contentId] || {};
+        return {version:snapshot.version,view:items[contentId]||{},metadata:snapshot.version===2&&snapshot.main_hand_context&&snapshot.main_hand_context.content_id===contentId?snapshot.main_hand_context:null};
     }
 
     function updateItemIcon(icon, contentId, itemName, sources) {
@@ -210,7 +274,7 @@
         ) || CustomNetTables.GetTableValue(
             "survival_item_tooltips", itemName
         ) || {};
-        var dynamic = itemView(contentId);
+        var itemData=itemView(contentId),dynamic=itemData.view;
         var tooltip = byId("CustomInventoryItemTooltip");
         var fields = byId("CustomInventoryItemFields");
         var icon = byId("CustomInventoryItemIcon");
@@ -222,6 +286,9 @@
         activePanel = panel;
         activeItem = item;
         activeContentId = contentId; activeItemName = itemName;
+        var ownUnit=Number(Players.GetPlayerHeroEntityIndex(playerId));
+        var growthBinding=itemData.metadata&&Number(unit)===ownUnit?{unit:Number(unit),item:Number(item),content:contentId,name:itemName,metadata:itemData.metadata,panel:panel,fields:fields}:null;
+        if(itemData.version===2&&Number(unit)!==ownUnit)dynamic={};
         hideNativeTooltip(panel);
         [0.0, 0.05].forEach(function (delay) {
             $.Schedule(delay, function () {
@@ -245,9 +312,14 @@
         asArray(definition.fields).forEach(function (field) {
             if (field) addField(fields, field.label, field.value);
         });
-        asArray(dynamic.fields).forEach(function (field) {
+        var dynamicRows=growthBinding?currentGrowth(growthBinding):asArray(dynamic.fields);
+        if(itemData.metadata&&!growthBinding)dynamicRows=[];
+        var dynamicOffset=fields.__fieldCursor;
+        dynamicRows.forEach(function (field) {
             if (field) addField(fields, field.label, field.value);
         });
+        activeGrowth=growthBinding;
+        if(growthBinding){growthBinding.offset=dynamicOffset;growthBinding.count=dynamicRows.length;growthBinding.signature=growthSignature(dynamicRows);startGrowth();}
         var quantity = Number(dynamic.quantity || 0);
         var formatter = GameUI.CustomUIConfig().SurvivalNumberFormatter;
         setText("CustomInventoryItemStatus", quantity > 1
@@ -354,10 +426,6 @@
             }
         }
     );
-    GameEvents.Subscribe("ui_weapon_synthesis_snapshot", function (payload) {
-        if (payload && payload.player_id !== undefined && Number(payload.player_id) !== Number(playerId)) return;
-        queueUpdate("weapon_snapshot_event", true, true);
-    });
     ["dota_player_update_selected_unit", "dota_player_update_query_unit", "dota_ability_changed"].forEach(function (event) {
         GameEvents.Subscribe(event, function (payload) {
             var pid = payload && (payload.PlayerID !== undefined ? payload.PlayerID

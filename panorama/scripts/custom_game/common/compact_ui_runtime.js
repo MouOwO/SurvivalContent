@@ -6,11 +6,12 @@
  if(typeof GameUI!=="undefined"&&GameUI.CustomUIConfig){
   var cfg=GameUI.CustomUIConfig();
   var existing=cfg.SurvivalCompactRuntime,catalogue=cfg.SurvivalUICatalog&&cfg.SurvivalUICatalog.Data;
-  if(existing&&existing.BuildVersion===api.BuildVersion&&catalogue&&existing.Inspect){var state=existing.Inspect();if(state.active&&state.schema_sha256===catalogue.sha256)return;}
+  if(existing&&existing.BuildVersion===api.BuildVersion&&catalogue&&existing.Inspect){var state=existing.Inspect();if(state.active&&state.schema_sha256===catalogue.sha256&&state.bulk_enabled===!!cfg.SurvivalCompactGridBulkWire)return;}
   if(existing&&existing.Dispose)existing.Dispose();
   if(cfg.SurvivalCompactWire&&cfg.SurvivalUICatalog){
+   var owner=typeof $.GetContextPanel==="function"?$.GetContextPanel():null;
    var memo=cfg.SurvivalCompactRuntimeMemo||(cfg.SurvivalCompactRuntimeMemo={intent_token:0,sessions:{},retired:[]});
-   cfg.SurvivalCompactRuntime=api.CreateRuntime({wire:cfg.SurvivalCompactWire,catalogue:cfg.SurvivalUICatalog,memo:memo,
+   cfg.SurvivalCompactRuntime=api.CreateRuntime({wire:cfg.SurvivalCompactWire,bulk:cfg.SurvivalCompactGridBulkWire,catalogue:cfg.SurvivalUICatalog,memo:memo,
     send:function(event,packet){GameEvents.SendCustomGameEventToServer(event,packet);return true;},
     subscribe:function(event,fn){return GameEvents.Subscribe(event,fn);},unsubscribe:function(id){GameEvents.Unsubscribe(id);},
     getLoading:function(){return CustomNetTables.GetTableValue("survival_loading","state");},
@@ -19,31 +20,39 @@
     schedule:function(ms,fn){return $.Schedule(ms/1000,fn);},cancel:function(id){$.CancelScheduled(id);},
     now:function(){return Date.now();}
    });
+   // A shared instance is reused across XML roots only for its live HUD
+   // lifetime. Destroying its owning context retires subscriptions and old
+   // callbacks; the next real root initialization creates a fresh instance.
+   var ownedRuntime=cfg.SurvivalCompactRuntime;
+   if(owner&&typeof $.RegisterEventHandler==="function")$.RegisterEventHandler("PanelDeleted",owner,function(){
+    if(cfg.SurvivalCompactRuntime===ownedRuntime)ownedRuntime.Dispose();
+   });
   }
  }
 }(function(){
  "use strict";
- var BUILD="compact_ui_runtime_20261103_v6";
- var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7,production_train:8,production_research:9,production_auto:10,production_cancel:11};
+ var BUILD="compact_ui_runtime_20261103_v7";
+ var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7,production_train:8,production_research:9,production_auto:10,production_cancel:11,payment_capability:12,public_beta_claim:13};
  var ERRORS={schema_mismatch:"界面版本与服务器不一致，请更新游戏后重新进入。",schema_unknown:"界面协议不一致，请更新游戏后重新进入。",not_ready:"正在核对界面版本，请稍后。",token_exhausted:"本次会话的操作编号已用完，请重新进入游戏。",revision_exhausted:"本次会话的消息编号已用完，请重新进入游戏。",native_send_failed:"同步消息未能发送，请重新打开界面。",application_rejected:"界面数据校验失败，正在重新同步。"};
  function need(ok,code){if(!ok)throw new Error(code);}
  function integer(n,min,max){return typeof n==="number"&&isFinite(n)&&Math.floor(n)===n&&n>=min&&n<=max;}
  function errorText(code){return ERRORS[code]||"界面同步未完成，请重新打开。";}
  function create(options){
-  options=options||{};var W=options.wire,C=options.catalogue&&options.catalogue.Data||options.catalogue;
+  options=options||{};var W=options.wire,B=options.bulk,C=options.catalogue&&options.catalogue.Data||options.catalogue;
   need(W&&W.Encode&&W.PeekHeader&&C&&C.sha256,"compact_runtime_dependencies_required");
   var schema=W.CompileLookup(C,1),F=Object.create(null),records=Object.create(null),views=Object.create(null),keys=Object.create(null),allViews=[],memo=options.memo||{intent_token:0,sessions:{},retired:[]};
   C.fields.forEach(function(f){F[f.name]=f.id;});C.records.forEach(function(r){if(!r.tombstone)records[r.key]=r.id;});
   var control=records["wire:control"],helloWords=[],helloByRecord=Object.create(null),word;
   need(control&&F.count&&F.visible&&F.known&&F.action_code&&F.arg_a&&F.arg_b&&F.arg_c&&F.request_token,"compact_control_schema_missing");
   for(word=1;word<=8;word++){var rec=records["wire:hello:"+word];need(rec,"compact_hello_schema_missing");helloWords.push(rec);helloByRecord[rec]=word-1;}
-  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;keys.production=7;keys.vip=8;
+  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;keys.production=7;keys.vip=8;keys.payment=9;keys.public_beta=10;
   var categories=C.auxiliary&&C.auxiliary.archive_projection&&C.auxiliary.archive_projection.categories||[];
   categories.forEach(function(row,index){keys["archive:"+row.id]=101+index;});
   var pools=C.auxiliary&&C.auxiliary.lottery_public&&C.auxiliary.lottery_public.snapshots||[];
   pools.forEach(function(row,index){need(row.selected_pool&&row.selected_pool.id,"compact_pool_catalogue_missing");keys["lottery:"+row.selected_pool.id]=201+index;});
-  var active=true,generation=1,ready=false,admitted=false,loadingIdentity=memo.loading_identity||null,session=null,helloReceiver=null,helloSession=null,helloRequested=false,helloFailed=false,helloTimer=null,helloResyncPending=false,subscription=null,loadingSubscription=null,lastError="";
-  var counters={received:0,sent:0,stale:0,rejected:0,hello_requests:0,hello_commits:0,view_commits:0,resyncs:0,controls:0,intents:0};
+  var active=true,generation=1,ready=false,admitted=false,loadingIdentity=memo.loading_identity||null,session=null,helloReceiver=null,helloSession=null,helloRequested=false,helloFailed=false,helloTimer=null,helloResyncPending=false,subscription=null,bulkSubscription=null,loadingSubscription=null,lastError="";
+  var counters={received:0,sent:0,stale:0,rejected:0,hello_requests:0,hello_commits:0,view_commits:0,resyncs:0,controls:0,intents:0,bulk_received:0,bulk_commits:0,bulk_rejected:0};
+  function abortBulk(view){if(view.bulkReceiver)view.bulkReceiver.Dispose();view.bulkReceiver=null;view.bulkBase=null;}
   function recordSession(value){var key=String(value);if(!memo.sessions[key])memo.sessions[key]={};return memo.sessions[key];}
   function binding(view,epoch,token){return {schema:1,schema_sha256:C.sha256,session:token===undefined?session:token,epoch:epoch,view:view};}
   function bootstrap(){return binding(1,1,1);}
@@ -58,7 +67,7 @@
   }
   function resetBindings(){
    ready=false;helloReceiver=null;helloSession=null;cancelHello();
-   allViews.forEach(function(v){if(v.client)v.client.Dispose();v.client=null;v.epoch=0;v.closedEpoch=0;v.resyncPending=false;v.lastError="";v.sentDesired=null;});
+   allViews.forEach(function(v){abortBulk(v);if(v.client)v.client.Dispose();v.client=null;v.epoch=0;v.closedEpoch=0;v.resyncPending=false;v.lastError="";v.sentDesired=null;});
   }
   function loadingChanged(){
    if(!active)return;var state=options.getLoading?options.getLoading():{admission_complete:1};
@@ -91,7 +100,9 @@
   }
   function desiredControl(view){
    if(!ready||!view.consumer||!view.consumer.active||view.desired===null||view.sentDesired===view.desired)return {sent:false,unchanged:true};
-   var values={visible:view.desired==="open"?1:0,known:view.desired==="probe"?1:0},result=emitControl(view,values);if(result.sent)view.sentDesired=view.desired;return result;
+   var values={visible:view.desired==="open"?1:0,known:view.desired==="probe"?1:0};
+   if(view.id===6&&view.desired==="open"&&B)values.types=1;
+   var result=emitControl(view,values);if(result.sent)view.sentDesired=view.desired;return result;
   }
   function resync(view,reason,epoch){
    if(!active||!ready||view.resyncPending||!view.consumer||!view.consumer.active||view.desired!=="open")return {sent:false,unchanged:true};
@@ -131,7 +142,7 @@
    for(n=0;valid&&n<tx.changes.length;n++){c=tx.changes[n];var index=helloByRecord[c.record];if(index===undefined||c.field!==F.count||c.remove||words[index]!==undefined)valid=false;else words[index]=("00000000"+c.value.toString(16)).slice(-8);}
    if(!valid||words.join("")!==C.sha256){helloReceiver.Abort();helloFailed=true;ready=false;resetBindings();notify(null,"schema_mismatch");return;}
    helloReceiver.Commit(tx);helloResyncPending=false;counters.hello_commits++;
-   var changedSession=session!==header.session;if(changedSession){retire(session);session=header.session;memo.current_session=session;generation++;allViews.forEach(function(v){if(v.client)v.client.Dispose();v.client=null;v.epoch=0;v.closedEpoch=0;v.sentDesired=null;v.resyncPending=false;v.hintSignature=null;});}
+   var changedSession=session!==header.session;if(changedSession){retire(session);session=header.session;memo.current_session=session;generation++;allViews.forEach(function(v){abortBulk(v);if(v.client)v.client.Dispose();v.client=null;v.epoch=0;v.closedEpoch=0;v.sentDesired=null;v.resyncPending=false;v.hintSignature=null;});}
    ready=true;lastError="";allViews.forEach(desiredControl);
   }
   function receive(packet){
@@ -143,7 +154,7 @@
    if(header.schema!==1){notify(view,"schema_unknown");resync(view,3,header.epoch);return;}
    if(header.epoch<view.epoch||view.desired!=="open"&&header.epoch<=view.closedEpoch){counters.stale++;return;}
    if(header.epoch>view.epoch){if(!header.full||header.revision!==1){resync(view,1,header.epoch);return;}
-    if(view.client)view.client.Dispose();view.epoch=header.epoch;view.client=newClient(view,header.epoch);
+    abortBulk(view);if(view.client)view.client.Dispose();view.epoch=header.epoch;view.client=newClient(view,header.epoch);
    }else if(header.full&&header.revision!==1){resync(view,4);return;}
    if(!view.client){resync(view,1,header.epoch);return;}
    var result=view.client.Accept(packet);if(result.error&&!result.stale){counters.rejected++;if(view.desired==="open")notify(view,result.error);}
@@ -154,16 +165,17 @@
    if(view.consumer&&view.consumer.active)view.consumer.api.Dispose();
    var consumer={active:true,options:callbacks||{},api:null};view.consumer=consumer;
    function alive(){return active&&consumer.active&&view.consumer===consumer;}
-   function setDesired(next){if(!alive())return {sent:false,error:"disposed"};if(view.desired!==next){if(next!=="open"){view.closedEpoch=view.epoch;if(view.client)view.client.Abort();}view.desired=next;view.resyncPending=false;view.lastError="";}if(!ready){requestHello(1,false);return {sent:false,error:helloFailed?"schema_mismatch":"not_ready"};}return desiredControl(view);}
+   function setDesired(next){if(!alive())return {sent:false,error:"disposed"};if(view.desired!==next){if(next!=="open"){view.closedEpoch=view.epoch;abortBulk(view);if(view.client)view.client.Abort();}view.desired=next;view.resyncPending=false;view.lastError="";}if(!ready){requestHello(1,false);return {sent:false,error:helloFailed?"schema_mismatch":"not_ready"};}return desiredControl(view);}
    function open(){return setDesired("open");}function probe(){return setDesired("probe");}function close(){return setDesired("closed");}
    function read(rec,field){return alive()&&view.client?view.client.Read(rec,field):undefined;}
    function intent(action,args){
     if(!alive())return {sent:false,error:"disposed"};if(!ready||view.desired!=="open")return {sent:false,error:"not_ready"};args=args||{};var code=ACTIONS[action];if(!code)return {sent:false,error:"action_unknown"};
-    if((code<=3&&id!==3)||((code===4||code===7)&&(id<201||id>204))||((code===5||code===6)&&(id<101||id>120))||(code>=8&&id!==7))return {sent:false,error:"action_view_mismatch"};
+    if((code<=3&&id!==3)||((code===4||code===7)&&(id<201||id>204))||((code===5||code===6)&&(id<101||id>120))||(code>=8&&code<=11&&id!==7)||(code===12&&id!==9)||(code===13&&id!==10))return {sent:false,error:"action_view_mismatch"};
     var a=args.arg_a,b=args.arg_b,c=args.arg_c;if(code===1)a=args.target_day;else if(code===2)a=args.tier_record;else if(code===4){a=args.pool_record;b=args.count;c=args.skip_animation===undefined?0:args.skip_animation===true?1:args.skip_animation===false?0:args.skip_animation;}else if(code===7){a=args.pool_record;b=args.read_action;if(!integer(b,1,3))return {sent:false,error:"intent_argument_invalid"};}
-    else if(code>=8){a=args.entity;b=code===11?args.job_handle:args.definition_record;c=args.selection;
+    else if(code>=8&&code<=11){a=args.entity;b=code===11?args.job_handle:args.definition_record;c=args.selection;
      if(!integer(a,1,4294967295)||!integer(b,1,code===11?4294967295:65535)||!integer(c,1,4294967295))return {sent:false,error:"intent_argument_invalid"};}
-    if(code!==3&&!integer(a,0,4294967295)||b!==undefined&&!integer(b,0,4294967295)||c!==undefined&&!integer(c,0,4294967295))return {sent:false,error:"intent_argument_invalid"};
+    else if(code>=12&&Object.keys(args).length)return {sent:false,error:"intent_arguments_forbidden"};
+    if(code!==3&&code<12&&!integer(a,0,4294967295)||b!==undefined&&!integer(b,0,4294967295)||c!==undefined&&!integer(c,0,4294967295))return {sent:false,error:"intent_argument_invalid"};
     if(memo.intent_token>=16383){notify(view,"token_exhausted");return {sent:false,error:"token_exhausted"};}
     var token=++memo.intent_token,values={action_code:code,request_token:token};if(a!==undefined)values.arg_a=a;if(b!==undefined)values.arg_b=b;if(c!==undefined)values.arg_c=c;
     var result=emitControl(view,values);result.request_token=token;if(result.sent)counters.intents++;return result;
@@ -182,13 +194,37 @@
     return emitControl(view,values,rec);
    }
    function inspect(){return {key:key,id:id,active:alive(),ready:ready,session:session,epoch:view.epoch,desired:view.desired,resync_pending:view.resyncPending,error:view.lastError,receiver:view.client&&view.client.Inspect()};}
-   consumer.api={Open:open,Probe:probe,Close:close,Dispose:dispose,Read:read,SendIntent:intent,SendInput:input,Resync:function(reason){return alive()?resync(view,reason):{sent:false,error:"disposed"};},Inspect:inspect};
+   consumer.api={Open:open,Probe:probe,Close:close,Dispose:dispose,Read:read,SendIntent:intent,SendInput:input,
+    AbortBulk:function(){if(!alive())return false;abortBulk(view);return true;},
+    Resync:function(reason){return alive()?resync(view,reason):{sent:false,error:"disposed"};},Inspect:inspect};
    if(helloFailed)notify(view,"schema_mismatch");return consumer.api;
   }
-  function dispose(){if(!active)return;allViews.slice().forEach(function(v){if(v.consumer&&v.consumer.active)v.consumer.api.Dispose();if(v.client)v.client.Dispose();});active=false;generation++;cancelHello();if(subscription!==null&&options.unsubscribe)options.unsubscribe(subscription);if(loadingSubscription!==null&&options.unsubscribeLoading)options.unsubscribeLoading(loadingSubscription);subscription=null;loadingSubscription=null;}
-  function inspect(){return {active:active,generation:generation,ready:ready,admitted:admitted,session:session,schema_sha256:C.sha256,upgrade_required:helloFailed,error:lastError,error_text:errorText(lastError),views:allViews.length,intent_token:memo.intent_token,retired_sessions:memo.retired.slice(),counters:Object.assign({},counters)};}
-  subscription=options.subscribe("cw",receive);if(options.subscribeLoading)loadingSubscription=options.subscribeLoading(loadingChanged);loadingChanged();
-  return {BuildVersion:BUILD,CreateView:createView,Dispose:dispose,Inspect:inspect,ErrorText:errorText};
+  function receiveBulk(packet){
+   if(!active||!admitted||!ready||!B)return;counters.bulk_received++;
+   var h;try{h=B.PeekHeader(packet);}catch(error){counters.bulk_rejected++;return;}
+   var v=views[6],consumer=v&&v.consumer;
+   if(h.schema!==1||h.view!==6||h.session!==session||retired(h.session)||!v||!consumer||!consumer.active||v.desired!=="open"||h.epoch!==v.epoch||!v.client){counters.stale++;return;}
+   var rx=v.client.Inspect().receiver;
+   if(!rx||h.base_revision>rx.revision){counters.bulk_rejected++;resync(v,1);return;}
+   try{if(!consumer.options.onBulk||!consumer.options.acceptBulk||consumer.options.acceptBulk(h)!==true){counters.stale++;return;}}
+   catch(error){counters.bulk_rejected++;return;}
+   if(v.bulkBase!==null&&v.bulkBase!==undefined&&h.base_revision<v.bulkBase){counters.stale++;return;}
+   if(!v.bulkReceiver||v.bulkBase!==h.base_revision){
+    abortBulk(v);v.bulkBase=h.base_revision;var own=generation,receiver;
+    receiver=B.NewReceiver({schema:1,schema_sha256:C.sha256,session:session,epoch:v.epoch,view:6,base_revision:h.base_revision},{
+     now:options.now,schedule:options.schedule,cancel:options.cancel,
+     acceptHeader:function(header){return active&&generation===own&&v.bulkReceiver===receiver&&v.consumer===consumer&&consumer.active&&v.desired==="open"&&consumer.options.acceptBulk(header)===true;},
+     onComplete:function(header,raw){if(active&&generation===own&&v.bulkReceiver===receiver&&v.consumer===consumer&&consumer.active&&v.desired==="open"){consumer.options.onBulk(header,raw);counters.bulk_commits++;}},
+     onError:function(code){if(active&&generation===own&&v.bulkReceiver===receiver&&v.consumer===consumer&&consumer.active&&v.desired==="open"){counters.bulk_rejected++;notify(v,code);resync(v,2);}}
+    });v.bulkReceiver=receiver;
+   }
+   v.bulkReceiver.Accept(packet);
+  }
+  function dispose(){if(!active)return;allViews.slice().forEach(function(v){abortBulk(v);if(v.consumer&&v.consumer.active)v.consumer.api.Dispose();if(v.client)v.client.Dispose();});active=false;generation++;cancelHello();if(subscription!==null&&options.unsubscribe)options.unsubscribe(subscription);if(bulkSubscription!==null&&options.unsubscribe)options.unsubscribe(bulkSubscription);if(loadingSubscription!==null&&options.unsubscribeLoading)options.unsubscribeLoading(loadingSubscription);subscription=null;bulkSubscription=null;loadingSubscription=null;}
+  function inspect(){return {active:active,generation:generation,ready:ready,admitted:admitted,session:session,schema_sha256:C.sha256,bulk_enabled:!!B,upgrade_required:helloFailed,error:lastError,error_text:errorText(lastError),views:allViews.length,intent_token:memo.intent_token,retired_sessions:memo.retired.slice(),counters:Object.assign({},counters)};}
+  subscription=options.subscribe("cw",receive);if(B)bulkSubscription=options.subscribe("gb",receiveBulk);if(options.subscribeLoading)loadingSubscription=options.subscribeLoading(loadingChanged);loadingChanged();
+  return {BuildVersion:BUILD,CreateView:createView,Dispose:dispose,Inspect:inspect,ErrorText:errorText,
+   ScopeIdentity:function(){return {active:active,ready:active&&ready,loading_identity:loadingIdentity,session:session};}};
  }
  return {BuildVersion:BUILD,CreateRuntime:create,ErrorText:errorText};
 }));
