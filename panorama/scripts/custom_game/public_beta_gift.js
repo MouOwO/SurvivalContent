@@ -79,7 +79,7 @@
     cfg.SurvivalPublicBetaGiftGeneration = generation;
     var disposed = false, timer = null, subscription = null, loadingSubscription = null, shell = null, api;
     var lastRequest = -100, hadAdmission = false, hasFreshSnapshot = false;
-    var compactView=null,compactModel=null;
+    var compactView=null,compactModel=null,compactRuntime=null,compactSerial=0;
     function valid(panel) { return !!panel && (!panel.IsValid || panel.IsValid()); }
     function alive() { return !disposed && cfg.SurvivalPublicBetaGiftGeneration === generation && valid(context) && valid(root); }
     function now() { return Date.now() / 1000; }
@@ -95,9 +95,30 @@
         var ui = cfg.SurvivalUI, layers = cfg.SurvivalUILayers;
         return ui && ui.ModalShell && (!ui.IsAlive || ui.IsAlive()) && layers && (!layers.IsAlive || layers.IsAlive());
     }
+    // The XML owns these dependencies. Loading/world notifications also admit
+    // a late legacy-to-compact transition without a dependency polling timer.
+    // Stable notification: O(1) identity checks, no reconstruction or request.
+    function ensureCompact() {
+        if (!alive()) return false;
+        var runtime=cfg.SurvivalCompactRuntime, factory=cfg.SurvivalCompactPublicBetaModel, catalog=cfg.SurvivalUICatalog;
+        if (!runtime) return false;
+        if (subscription !== null && GameEvents.Unsubscribe) { GameEvents.Unsubscribe(subscription); subscription=null; }
+        if (!factory || !catalog) return false;
+        if (compactView && compactRuntime===runtime) return true;
+        if (compactView) compactView.Dispose();
+        compactRuntime=runtime; var serial=++compactSerial;
+        hasFreshSnapshot=false; hadAdmission=false;
+        compactModel=factory.Create(catalog,{memo:cfg.SurvivalPublicBetaGiftWireMemo||(cfg.SurvivalPublicBetaGiftWireMemo={}),scope:function(){return runtime.ScopeIdentity&&runtime.ScopeIdentity();}});
+        compactView=runtime.CreateView("public_beta",{onCommit:function(tx,changed,read){
+            if(!alive()||serial!==compactSerial||cfg.SurvivalCompactRuntime!==runtime)return;
+            var result=compactModel.Apply(tx,changed,read);
+            if(result.known)receive(result.snapshot);else{hasFreshSnapshot=false;render();}
+        },onError:function(){if(alive()&&serial===compactSerial&&cfg.SurvivalCompactRuntime===runtime){hasFreshSnapshot=false;render();}}});
+        return true;
+    }
     function request(force) {
         if (!alive() || !admitted() || (!force && now() - lastRequest < 5)) return false;
-        if(cfg.SurvivalCompactRuntime&&!compactView)return false;
+        if(cfg.SurvivalCompactRuntime&&!ensureCompact())return false;
         lastRequest = now();
         if(compactView){var result=force?compactView.Open():compactView.Resync(5);return !!(result.sent||result.unchanged);}
         GameEvents.SendCustomGameEventToServer("survival_public_beta_gift_request", {});
@@ -149,6 +170,7 @@
     }
     function claim() {
         if (!alive() || !shell || !shell.IsOpen() || !admitted()) return;
+        if(cfg.SurvivalCompactRuntime&&(!ensureCompact()||!hasFreshSnapshot))return;
         if (state.snapshot && yes(state.snapshot.claimed) && !busy(state)) { close(); return; }
         state.serial = Number(state.serial || 0) + 1;
         var requestId = "beta_" + Date.now().toString(36) + "_" + state.serial.toString(36);
@@ -175,6 +197,7 @@
     function dispose() {
         if (disposed) return;
         disposed = true;
+        compactSerial++;
         if (timer !== null && $.CancelScheduled) $.CancelScheduled(timer);
         if (subscription !== null && GameEvents.Unsubscribe) GameEvents.Unsubscribe(subscription);
         if (loadingSubscription !== null && CustomNetTables.UnsubscribeNetTableListener) CustomNetTables.UnsubscribeNetTableListener(loadingSubscription);
@@ -199,14 +222,18 @@
     }
     button.SetPanelEvent("onactivate", claim);
     closeButton.SetPanelEvent("onactivate", function () { if (shell) shell.RequestClose("button"); });
-    if(cfg.SurvivalCompactRuntime&&cfg.SurvivalCompactPublicBetaModel&&cfg.SurvivalUICatalog){
-        compactModel=cfg.SurvivalCompactPublicBetaModel.Create(cfg.SurvivalUICatalog,{memo:cfg.SurvivalPublicBetaGiftWireMemo||(cfg.SurvivalPublicBetaGiftWireMemo={}),scope:function(){return cfg.SurvivalCompactRuntime.ScopeIdentity&&cfg.SurvivalCompactRuntime.ScopeIdentity();}});
-        compactView=cfg.SurvivalCompactRuntime.CreateView("public_beta",{onCommit:function(tx,changed,read){
-            if(!alive())return;var result=compactModel.Apply(tx,changed,read);
-            if(result.known)receive(result.snapshot);else{hasFreshSnapshot=false;render();}
-        },onError:function(){if(alive()){hasFreshSnapshot=false;render();}}});
-    }else if(!cfg.SurvivalCompactRuntime)subscription = GameEvents.Subscribe("survival_public_beta_gift_snapshot", receive);
-    if (CustomNetTables.SubscribeNetTableListener) loadingSubscription = CustomNetTables.SubscribeNetTableListener("survival_loading", function () { if (alive()) { render(); } });
+    if(!ensureCompact()&&!cfg.SurvivalCompactRuntime)subscription = GameEvents.Subscribe("survival_public_beta_gift_snapshot", function(payload){
+        if(!cfg.SurvivalCompactRuntime&&!compactView)receive(payload);
+    });
+    if (CustomNetTables.SubscribeNetTableListener) loadingSubscription = CustomNetTables.SubscribeNetTableListener("survival_loading", function (table,key) {
+        if (!alive()||(key!==undefined&&key!=="state")) return;
+        ensureCompact();
+        var admission=admitted();
+        if(admission&&!hadAdmission)request(true);
+        hadAdmission=admission;
+        if(!admission)hasFreshSnapshot=false;
+        render();
+    });
     api = cfg.SurvivalPublicBetaGift = {Dispose:dispose, Inspect:function () {
         return {open:!!shell && shell.IsOpen(), login_key:state.login_key, sequence:state.sequence,
             day_key:state.snapshot && state.snapshot.day_key, dismissed:state.dismissed,
