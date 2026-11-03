@@ -16,6 +16,7 @@
     var canvas=null,gridHost=null,sidebar=null,filterMenu=null,headerIcon=null,tip=null,tooltip=null,viewScale=1;
     var active=false,disposed=false,current="",rows=[],categoryRows=[],filters={},balances=[],moved=[],subscriptions=[],sidebarKey="",hover=null,displayKey="";
     var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="",panelCache={};
+    var incrementalSlots={},incrementalPositions={},incrementalMode="",incrementalOwned=0,incrementalKnown=0;
     var order=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","commerce_goods","shop","endless","fishing","building","starjoy_points","titles"];
     var names={clear:"通关存档",shadow:"破碎之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"动漫挑战",ex:"二次元挑战",wife:"二次元挑战2",concubine:"我的侍妾",beast:"祥瑞挑战",starjoy_points:"曙光积分",titles:"称号"};
     var layers=D.layers;layers.forEach(function(layer){if(layer.kind==="text")textSpecs[layer.id]=layer;});
@@ -225,10 +226,11 @@
         filters.unlocked.text.text=ownership?"已拥有":"已解锁";filters.locked.text.text=ownership?"未拥有":"未解锁";
         p("ArchiveV10FilterText").text=mode==="unlocked"?filters.unlocked.text.text:mode==="locked"?filters.locked.text.text:"全部存档";
         Object.keys(filters).forEach(function(key){filters[key].panel.SetHasClass("ArchiveV10Selected",key===(mode||"all"));});
-        rows=data?list(data.rows):S.Normalize(null,current);var slot=0;
-        p("ArchiveGrid").Children().forEach(function(card){if(card.BHasClass("ArchiveCard")&&card.visible&&card.__archiveCategory===current)decorate(card,card.__archiveItem,slot++);});
+        rows=data?list(data.rows):S.Normalize(null,current);var slot=0;incrementalSlots={};incrementalPositions={};incrementalMode=mode||"all";
+        rows.forEach(function(item,index){incrementalPositions[item.id]=index;});
+        p("ArchiveGrid").Children().forEach(function(card){if(card.BHasClass("ArchiveCard")&&card.visible&&card.__archiveCategory===current){incrementalSlots[card.__archiveItem.id]=slot;decorate(card,card.__archiveItem,slot++);}});
         if(!data){p("ArchiveGrid").Children().forEach(function(card){card.visible=false;});slot=0;}
-        var known=rows.filter(function(item){return S.State(item,current)!==null;}).length,owned=rows.filter(function(item){return S.State(item,current)===true;}).length;
+        var known=rows.filter(function(item){return S.State(item,current)!==null;}).length,owned=rows.filter(function(item){return S.State(item,current)===true;}).length;incrementalKnown=known;incrementalOwned=owned;
         p("ArchiveV10Overview").text=!data?"正在读取…":Number(data.unavailable)===1?"分类尚未启用":(ownership?"已拥有 ":"已解锁 ")+owned+" / "+rows.length+" 项"+(known<rows.length?" · 同步中":"");
         var draw=["friend","ex","wife","concubine","beast"].indexOf(current)>=0,context=p("ArchiveV10Context"),details="";
         if(current==="map_level"&&data&&data.online)details="当前地图等级 "+data.online.level;
@@ -252,6 +254,22 @@
         if(Game.IsInToolsMode&&Game.IsInToolsMode()&&lastReportedCategory!==current){lastReportedCategory=current;$.Schedule(.15,function(){if(alive()&&active)$.Msg("ARCHIVE_V10_VIEW "+JSON.stringify(api.Inspect()));});}
         return true;
     }
+    // This receives direct changed-card references from the controller index.
+    // No grid Children(), catalogue stringify, font walk or full row filter.
+    function update(data,category,changes,summary){
+        if(!alive()||!active||current!==category)return false;
+        (changes||[]).forEach(function(entry){var item=entry.item,index=incrementalPositions[item.id];if(index!==undefined)rows[index]=item;
+            if(valid(entry.card)&&entry.card.visible&&incrementalSlots[item.id]!==undefined)decorate(entry.card,item,incrementalSlots[item.id]);
+        });
+        incrementalKnown=summary.known;incrementalOwned=summary.owned;
+        var ownership=["shadow","pet","fishing","friend","ex","wife","concubine","beast","commerce_goods","shop"].indexOf(current)>=0;
+        var overview=(ownership?"已拥有 ":"已解锁 ")+incrementalOwned+" / "+summary.total+" 项"+(incrementalKnown<summary.total?" · 同步中":"");
+        if(p("ArchiveV10Overview").text!==overview)p("ArchiveV10Overview").text=overview;
+        var details=current==="map_level"&&data.online?"当前地图等级 "+data.online.level:current==="work"&&data.online?"软妹币："+data.online.coins:current==="building"&&data.buildings?"信仰值："+data.buildings.faith:current==="starjoy_points"&&data.starjoy?"累计曙光积分 "+data.starjoy.earned+" · 仅累计，不可兑换":current==="commerce_goods"?"购买或兑换后自动点亮 · 悬停查看效果与解锁条件":current==="points"?"唯一道具重复转为商城积分 · 可叠加道具按各自规则累计":"";
+        if(p("ArchiveV10Context").text!==details)p("ArchiveV10Context").text=details;
+        if(valid(hover)&&hover.visible&&hover.__archiveItem&&(changes||[]).some(function(entry){return entry.card===hover;}))showTooltip(hover.__archiveItem,current,hover);
+        return true;
+    }
     function buildTooltip(){
         tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"ArchiveV10Tooltip",isAlive:alive,isActive:function(){return active;},getScale:function(){return viewScale;},getBounds:function(){return size.slice();},maxHeight:778,categoryName:categoryName,currencySourceText:function(){var source=p("ArchiveCurrencySource");return source&&source.__archivePlainText||"";},onHide:function(){hover=null;},
             getHoverSources:function(){return p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__archiveCategory===current&&card.__archiveItem;});},
@@ -270,7 +288,7 @@
     A.ShowEffectOnly=function(item,card){if(active)return showTooltip(item,current,card,true);return originalEffect(item,card);};
     A.Hide=function(){hideTooltip();return originalHide();};
     var api=cfg.SurvivalArchiveV10={
-        Render:render,Fit:fit,IsAlive:alive,RequestTooltipHide:queueTooltipHide,Leave:function(){hideTooltip();active=false;displayKey="";if(cfg.SurvivalEndlessLeaderboard)cfg.SurvivalEndlessLeaderboard.Hide();if(valid(filterMenu))filterMenu.visible=false;if(valid(canvas))canvas.visible=false;},
+        Render:render,Update:update,Fit:fit,IsAlive:alive,RequestTooltipHide:queueTooltipHide,Leave:function(){hideTooltip();active=false;displayKey="";if(cfg.SurvivalEndlessLeaderboard)cfg.SurvivalEndlessLeaderboard.Hide();if(valid(filterMenu))filterMenu.visible=false;if(valid(canvas))canvas.visible=false;},
         RegisterToolsProbe:function(){if(api.__consistencyProbe||!Game.IsInToolsMode||!Game.IsInToolsMode()||!Game.AddCommand)return;api.__consistencyProbe="archive_consistency_"+Date.now();Game.AddCommand(api.__consistencyProbe,function(){if(!alive())return;var data=api.Inspect(),legacy=p("ArchiveV10CategoryIcon"),glyph=legacy&&legacy.__archiveBlackGoldSymbol;$.Msg("ARCHIVE_CONSISTENCY "+JSON.stringify({build:data.build,category:current,layout:data.layout,rows:rows.length,owned:rows.filter(function(item){return S.State(item,current)===true;}).length,tooltip:tooltip?tooltip.Inspect():null,dismiss:cfg.SurvivalTooltipDismiss?cfg.SurvivalTooltipDismiss.Inspect():null,hoverTargets:p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;}).slice(0,40).map(function(card){var at=card.GetPositionWithinWindow();return {id:card.__archiveItem&&card.__archiveItem.id,x:at.x,y:at.y,width:card.actuallayoutwidth*viewScale,height:card.actuallayoutheight*viewScale};}),firstCards:p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;}).slice(0,2).map(function(card){return {position:card.style.position,width:card.style.width,height:card.style.height};}),headerGlyph:valid(glyph)?glyph.style.position:null,legacyHeader:valid(legacy)?legacy.style.position:null,headerRings:valid(canvas)?canvas.Children().filter(function(node){return node.BHasClass("ArchiveParchmentIconRing")&&node.visible;}).length:0}));},"",0);$.Msg("ARCHIVE_CONSISTENCY_COMMAND "+api.__consistencyProbe);},
         ApplyTypography:function(){if(cfg.SurvivalArchiveFontV36){cfg.SurvivalArchiveFontV36.Scope(canvas);cfg.SurvivalArchiveFontV36.Render(p("ArchiveStatus"));}},
         Inspect:function(){var win=p("ArchiveWindow"),cp=valid(canvas)?canvas.GetPositionWithinWindow():null,cards=valid(p("ArchiveGrid"))?p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;}):[];return {build:"archive-consistency-20261020-v1",active:active,category:current,categories:order.slice(),shellIdentity:canvas&&canvas.id,layout:current==="commerce_goods"?"commerce_goods_grid":current==="points"?"points_grid":"parchment_rows",rows:rows.map(function(item){return {id:item.id,count:item.count,quantity:S.Quantity(item,current),unlocked:S.State(item,current),name:item.name};}),geometry:{canvas:cp,window:valid(win)?win.GetPositionWithinWindow():null,width:valid(win)?win.actuallayoutwidth:0,height:valid(win)?win.actuallayoutheight:0,firstCount:cards.length?{position:cards[0].__v10.count.GetPositionWithinWindow(),width:cards[0].__v10.count.actuallayoutwidth,textAlign:cards[0].__v10.count.style.textAlign,font:cards[0].__v10.count.style.fontFamily,weight:cards[0].__v10.count.style.fontWeight}:null},tooltipVisible:valid(tip)&&tip.visible,missingIcons:Object.keys(missingIcons)};},

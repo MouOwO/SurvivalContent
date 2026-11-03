@@ -17,6 +17,29 @@ var canvas,grid,gridBody,empty,draw,drawText,drawCost,tickets,currencyName,summa
 var filterOpen=false,filterDismiss,filterMenu,filterItems=[];
 var rewardHighlight=null;
 var scale=1,cardsKey="",visibleRows=[],slots=[],tabs={},nodes={},api,createdRoots=[];
+var compactHandle=null,compactModel=null,compactCategory="",compactFields=null,collectionIndex=null,slotById={},compactHover=null,pendingProbe=null;
+function compactEnabled(){return !!(cfg.SurvivalCompactRuntime&&cfg.SurvivalCompactArchiveModel&&cfg.SurvivalUICatalog);}
+function closeCompact(){if(compactHandle)compactHandle.Dispose();if(compactModel)compactModel.Dispose();if(pendingProbe)pendingProbe.Dispose();compactHandle=null;compactModel=null;compactCategory="";pendingProbe=null;}
+function openCompact(){
+ if(!compactEnabled()||!opened)return;if(compactHandle&&compactCategory===current)return;
+ closeCompact();var category=current,model=cfg.SurvivalCompactArchiveModel.Create(cfg.SurvivalUICatalog,category);compactModel=model;compactCategory=category;
+ if(!compactFields){compactFields={};cfg.SurvivalUICatalog.Data.fields.forEach(function(f){compactFields[f.name]=f.id;});}
+ compactHandle=cfg.SurvivalCompactRuntime.CreateView("archive:"+category,{onCommit:function(tx,changed,read){
+  if(!alive()||!opened||current!==category||compactModel!==model)return;
+  var value=model.Apply(tx,changed,read);shared.pages[category]=value.snapshot;shared.versions[category]=tx.revision;
+  if(tx.full||!collectionIndex||collectionIndex.category!==category){cardsKey="";render();}else renderCompact(value.changes,model);
+  finishCompactDraw(read,value.snapshot);
+ },onError:function(code){if(alive()&&opened&&current===category)result.text=cfg.SurvivalCompactRuntime.ErrorText(code);}});
+ compactHandle.Open();
+}
+function probePending(){
+ var intent=shared.pending;if(!compactEnabled()||!opened||!intent||intent.pool_id===current||intent.request_token===undefined||pendingProbe)return;
+ var category=intent.pool_id;pendingProbe=cfg.SurvivalCompactRuntime.CreateView("archive:"+category,{onCommit:function(tx,changed,read){
+  if(!alive()||!opened||shared.pending!==intent)return;var record=cfg.SurvivalUICatalog.ByKey["archive:category:"+category];
+  if(read(record,compactFields.request_token)!==intent.request_token||read(record,compactFields.terminal)!==1)return;
+  shared.pending=null;shared.outcome={pool_id:category,ok:read(record,compactFields.success)===1,error:"抽取未完成，请稍后重试"};renderHeader();var handle=pendingProbe;pendingProbe=null;if(handle)handle.Dispose();
+ }});pendingProbe.Probe();
+}
 var names={beast:"祥瑞挑战",ex:"二次元挑战",friend:"动漫挑战",wife:"二次元挑战2",concubine:"我的侍妾"};
 var filterNames=["全部收藏","已拥有","未拥有"];
 var rarityColors={UR:"#ef5350",SSR:"#f5c65e",SR:"#b680ee",R:"#74c8f2",N:"#8fc47b"};
@@ -128,9 +151,9 @@ tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"Col
 tipPanel=tooltip.panel;tipPanel.AddClass("CollectionGW2Tooltip");
 function hideFilterMenu(){filterOpen=false;if(valid(filterMenu))filterMenu.visible=false;if(valid(filterDismiss))filterDismiss.visible=false;if(valid(filter))filter.RemoveClass("CollectionGW2FilterExpanded");if(valid(nodes.CollectionGW2FilterArrow))nodes.CollectionGW2FilterArrow.text="▾";}
 function showFilterMenu(){hideTooltip();$.DispatchEvent("DOTAHideTextTooltip");filterOpen=true;filterMenu.visible=true;filterDismiss.visible=true;filter.AddClass("CollectionGW2FilterExpanded");nodes.CollectionGW2FilterArrow.text="▴";}
-function hideTooltip(){if(tooltip)tooltip.Hide();}
+function hideTooltip(){compactHover=null;if(tooltip)tooltip.Hide();}
 function leaveTooltip(card){if(tooltip)tooltip.QueueHide(card);}
-function showTooltip(card,item){if(alive()&&opened&&valid(card))tooltip.Show(item,current,card,false);}
+function showTooltip(card,item){if(alive()&&opened&&valid(card)){compactHover=card;tooltip.Show(item,current,card,false);}}
 function rewardIcon(card,item){
  var host=make("Panel",card,"","CollectionGW2Portrait");rect(host,1,1,portraitSize,portraitSize);host.hittest=false;host.hittestchildren=false;
  // Dedicated, prefiltered thumbnails avoid loading large originals into the grid.
@@ -154,25 +177,26 @@ function rewardIcon(card,item){
 }
 // Item-local feedback only: no particle scene, toast or success label.
 function setRewardHighlight(card,on){
+ if(on&&rewardHighlight)rewardHighlight.card=card;
  if(on&&valid(card.__collectionRewardGlow)&&!valid(card.__collectionRewardSweep)){
   var sweep=make("Panel",card.__collectionRewardGlow,"","RewardGlassSweep");sweep.hittest=false;sweep.hittestchildren=false;card.__collectionRewardSweep=sweep;
  }
  card.SetHasClass("CollectionGW2RewardHighlight",on);
 }
 function clearRewardHighlight(){
- highlightLife.Cancel();rewardHighlight=null;
- slots.forEach(function(card){if(valid(card))card.SetHasClass("CollectionGW2RewardHighlight",false);});
+ highlightLife.Cancel();var previous=rewardHighlight;rewardHighlight=null;
+ if(previous&&valid(previous.card))previous.card.SetHasClass("CollectionGW2RewardHighlight",false);
 }
 function highlightReward(itemId){
  clearRewardHighlight();
- var card=slots.filter(function(slot){return slot.__collectionItem&&slot.__collectionItem.id===itemId;})[0];
+ var card=slotById[itemId];
  if(!valid(card)||card.visible===false)return;
- rewardHighlight={pool_id:current,item_id:itemId};
+ rewardHighlight={pool_id:current,item_id:itemId,card:card};
  setRewardHighlight(card,true);
  highlightLife.Later(0.65,function(){if(alive())clearRewardHighlight();});
 }
 function renderCards(rows){
- var signature=JSON.stringify([current,ownershipFilter,rows]);if(signature===cardsKey)return;cardsKey=signature;hideTooltip();gridBody.RemoveAndDeleteChildren();slots=[];
+ var signature=compactEnabled()?current+":"+ownershipFilter:JSON.stringify([current,ownershipFilter,rows]);if(signature===cardsKey)return;cardsKey=signature;hideTooltip();gridBody.RemoveAndDeleteChildren();slots=[];slotById={};
  visibleRows=rows.filter(function(item){return ownershipFilter===0||countKnown(item)&&(ownershipFilter===1?Number(item.count)>0:Number(item.count)===0);});
  var count=visibleRows.length,rowCount=Math.ceil(count/columns);rect(grid,80,108,gridWidth+(rowCount>rowsPerPage?8:0),gridHeight);rect(gridBody,0,0,gridWidth,Math.max(gridHeight,rowCount?(rowCount-1)*pitch+slotSize:0));
  for(var i=0;i<count;i++){
@@ -189,32 +213,65 @@ function renderCards(rows){
   var glow=make("Panel",card,"","CollectionGW2RewardGlow");glow.AddClass("RewardGlassSurface");rect(glow,2,2,slotSize-4,slotSize-4);glow.hittest=false;glow.hittestchildren=false;
   card.__collectionRewardGlow=glow;
   setRewardHighlight(card,!!rewardHighlight&&rewardHighlight.pool_id===current&&rewardHighlight.item_id===item.id);
-  slots.push(card);
+  card.__collectionQuantity=quantity;slots.push(card);slotById[item.id]=card;
  }
 }
-function bindCard(card,item){card.__collectionItem=item;card.SetPanelEvent("onmouseover",function(){showTooltip(card,item);});card.SetPanelEvent("onmouseout",function(){leaveTooltip(card);});card.SetPanelEvent("onactivate",function(){if(!alive()||!opened)return;showTooltip(card,item);});}
+function bindCard(card,item){card.__collectionItem=item;card.SetPanelEvent("onmouseover",function(){showTooltip(card,card.__collectionItem);});card.SetPanelEvent("onmouseout",function(){leaveTooltip(card);});card.SetPanelEvent("onactivate",function(){if(!alive()||!opened)return;showTooltip(card,card.__collectionItem);});}
 function canDraw(){var data=shared.pages[current],s=data&&data.social;return opened&&!shared.pending&&s&&Number(data.pending)!==1&&known(s.tickets)&&known(s.draw_cost)&&Number(s.draw_cost)>0&&Number(s.tickets)>=Number(s.draw_cost)&&known(s.remaining)&&Number(s.remaining)>0;}
 function render(){
  if(!alive()||!opened)return;var data=shared.pages[current],s=data&&data.social,rows=array(data&&data.rows);
+ if(compactEnabled()&&collectionIndex&&collectionIndex.category===current&&cardsKey===current+":"+ownershipFilter){renderHeader();return;}
  Object.keys(tabs).forEach(function(id){tabs[id].SetHasClass("CollectionGW2Selected",id===current);});nodes.CollectionGW2Category.text=names[current];nodes.CollectionGW2FilterText.text=filterNames[ownershipFilter];
  filterItems.forEach(function(item,index){item.panel.SetHasClass("CollectionGW2FilterSelected",index===ownershipFilter);style(item.text,{color:index===ownershipFilter?"#ffe2a0":"#d9d1bd"});});
- renderCards(rows);empty.visible=!data||!visibleRows.length;
- empty.text=!data?"正在读取收藏…":ownershipFilter===1?"暂无已拥有的收藏":ownershipFilter===2?"暂无未拥有的收藏":"暂无收藏";
- summary.text=data?(rows.every(countKnown)?rows.filter(function(item){return Number(item.count)>0;}).length:"—")+" / "+rows.length+" 已收集":"等待服务端同步";
- currencyName.text=s?String(s.currency_name||"抽取券"):"抽取券";tickets.text=s?number(s.tickets):"—";nodes.CollectionGW2DrawCostText.text=s?number(s.draw_cost):"—";
- draw.enabled=!!canDraw();draw.SetHasClass("CollectionGW2Disabled",!draw.enabled);drawText.text=shared.pending?"结算中…":s&&Number(s.remaining)===0?"已全部集满":"抽取";
- drawCost.visible=drawText.text==="抽取";rect(drawText,drawCost.visible?24:0,9,drawCost.visible?64:176,24);
+ renderCards(rows);collectionIndex={category:current,entries:{},known:0,owned:0,total:rows.length};
+ rows.forEach(function(item){collectionIndex.entries[item.id]={item:item,known:countKnown(item),owned:countKnown(item)&&Number(item.count)>0};if(countKnown(item))collectionIndex.known++;if(countKnown(item)&&Number(item.count)>0)collectionIndex.owned++;});renderHeader();
+}
+function renderHeader(){
+ if(!alive()||!opened)return;var data=shared.pages[current],s=data&&data.social,stats=collectionIndex,changed=[];
+ function text(node,value){value=String(value);if(node.text!==value){node.text=value;changed.push(node);}}
+ var noRows=!data||!visibleRows.length;if(empty.visible!==noRows)empty.visible=noRows;
+ text(empty,!data?"正在读取收藏…":ownershipFilter===1?"暂无已拥有的收藏":ownershipFilter===2?"暂无未拥有的收藏":"暂无收藏");
+ text(summary,data?(stats&&stats.known===stats.total?stats.owned:"—")+" / "+(stats?stats.total:0)+" 已收集":"等待服务端同步");
+ text(currencyName,s?String(s.currency_name||"抽取券"):"抽取券");text(tickets,s?number(s.tickets):"—");text(nodes.CollectionGW2DrawCostText,s?number(s.draw_cost):"—");
+ var enabled=!!canDraw();if(draw.enabled!==enabled){draw.enabled=enabled;draw.SetHasClass("CollectionGW2Disabled",!enabled);}text(drawText,shared.pending?"结算中…":s&&Number(s.remaining)===0?"已全部集满":"抽取");
+ var costVisible=drawText.text==="抽取";if(drawCost.visible!==costVisible){drawCost.visible=costVisible;rect(drawText,costVisible?24:0,9,costVisible?64:176,24);}
  var outcome=shared.outcome&&shared.outcome.pool_id===current?shared.outcome:null;
- result.text=shared.pending?"奖励正在结算，请稍候…":outcome&&!outcome.ok?outcome.error||"抽取未完成，请稍后重试":"";
- if(cfg.SurvivalArchiveFontV36)[monthlyNote,currencyName,tickets,result,summary,drawText,nodes.CollectionGW2Category,nodes.CollectionGW2FilterText].forEach(cfg.SurvivalArchiveFontV36.Render);
+ text(result,shared.pending?"奖励正在结算，请稍候…":outcome&&!outcome.ok?outcome.error||"抽取未完成，请稍后重试":"");
+ if(cfg.SurvivalArchiveFontV36)changed.forEach(cfg.SurvivalArchiveFontV36.Render);
+}
+function renderCompact(impact,model){
+ if(!alive()||!opened||!collectionIndex)return;var reflow=false;
+ impact.rows.forEach(function(id){var item=model.Row(id),entry=item&&collectionIndex.entries[item.id];if(!entry){reflow=true;return;}var wasVisible=ownershipFilter===0||entry.known&&(ownershipFilter===1?entry.owned:!entry.owned),isKnown=countKnown(item),owned=isKnown&&Number(item.count)>0,visible=ownershipFilter===0||isKnown&&(ownershipFilter===1?owned:!owned);
+  if(wasVisible!==visible)reflow=true;collectionIndex.known+=(isKnown?1:0)-(entry.known?1:0);collectionIndex.owned+=(owned?1:0)-(entry.owned?1:0);
+  var card=slotById[item.id];if(valid(card)){card.__collectionItem=item;
+   if(entry.known!==isKnown)card.SetHasClass("CollectionGW2Unknown",!isKnown);
+   if(entry.known!==isKnown||entry.owned!==owned)card.SetHasClass("CollectionGW2Unowned",isKnown&&!owned);
+   var quantity=card.__collectionQuantity,value=isKnown?number(item.count):"—",show=!isKnown||Number(item.count)>0;if(quantity.text!==value)quantity.text=value;if(quantity.visible!==show)quantity.visible=show;
+   if(compactHover===card&&tooltip&&tooltip.IsVisible())showTooltip(card,item);
+  }
+  entry.item=item;entry.known=isKnown;entry.owned=owned;
+ });
+ if(reflow){cardsKey="";render();}else renderHeader();
+}
+function finishCompactDraw(read,data){
+ var intent=shared.pending;if(!intent||!compactFields||intent.pool_id!==current)return;
+ var rootId=cfg.SurvivalUICatalog.ByKey["archive:category:"+current],token=read(rootId,compactFields.request_token);
+ if(intent.request_token===undefined||token!==intent.request_token||read(rootId,compactFields.terminal)!==1)return;
+ if(read(rootId,compactFields.success)!==1){shared.pending=null;shared.outcome={pool_id:current,ok:false,error:"抽取未完成，请稍后重试"};renderHeader();return;}
+ var revision=read(rootId,compactFields.arg_a);if(Number(data.pending)===1||revision!==undefined&&Number(data.revision)<revision)return;
+ shared.pending=null;shared.outcome={pool_id:current,ok:true};renderHeader();
+ var target=read(rootId,compactFields.target_record),record=cfg.SurvivalUICatalog.ById[target],item=record&&collectionIndex.entries[record.business_id];
+ if(record&&record.category===current&&item&&intent.counts&&known(intent.counts[record.business_id])&&Number(item.item.count)>Number(intent.counts[record.business_id]))highlightReward(record.business_id);
 }
 function request(full,category){
  if(!alive())return;fetching=true;category=category||current;
+ if(compactEnabled()){openCompact();probePending();return;}
  GameEvents.SendCustomGameEventToServer("survival_archive_request",{category_id:category,prefetch:full?1:0});
  if(!fetchJob&&opened){fetchJob=life.Later(.8,function(){fetchJob=null;if(!alive())return;if(opened&&(!shared.pages[current]||Object.keys(resync).length))request(true);});}
 }
 function queueResync(category){resync[category]=true;if(!opened||fetchJob)return;fetchJob=life.Later(.2,function(){fetchJob=null;if(alive()&&opened)request(true);});}
 function snapshot(packet){
+ if(compactEnabled())return;
  if(!alive()||!packet||!Object.prototype.hasOwnProperty.call(names,packet.category_id))return;
  var category=packet.category_id,sequence=Number(packet.sequence)||0;if(sequence<=Number(shared.versions[category]||0)||!(packet.ok===true||Number(packet.ok)===1))return;
  var group=assemblies[category];if(!group||sequence>group.sequence)group=assemblies[category]={sequence:sequence,header:copy(packet),chunks:{},count:Number(packet.chunks)||1};
@@ -246,9 +303,14 @@ function drawOne(){
  if(!alive()||!canDraw())return;var requestId="collection_"+Date.now()+"_"+(++shared.serial);
  var counts={};array(shared.pages[current]&&shared.pages[current].rows).forEach(function(item){if(countKnown(item))counts[item.id]=Number(item.count);});
  shared.pending={pool_id:current,request_id:requestId,counts:counts};shared.outcome=null;render();
+ if(compactEnabled()){
+  openCompact();var sent=compactHandle&&compactHandle.SendIntent("archive_action",{arg_a:cfg.SurvivalUICatalog.ByKey["archive:category:"+current]});
+  if(sent&&sent.sent)shared.pending.request_token=sent.request_token;else{shared.pending=null;shared.outcome={pool_id:current,ok:false,error:"抽取请求未发送，请稍后重试"};renderHeader();}return;
+ }
  GameEvents.SendCustomGameEventToServer("survival_archive_social_draw",{pool_id:current,request_id:requestId});
 }
 function drawResult(message){
+ if(compactEnabled())return;
  if(!alive()||!message||!shared.pending)return;var intent=shared.pending;
  if(message.request_id!==intent.request_id||message.pool_id!==intent.pool_id)return;
  // Transient persistence failures remain queued server-side: never issue a new intent.
@@ -258,6 +320,7 @@ function drawResult(message){
 }
 function recoverIntent(){
  var intent=shared.pending;if(!intent)return;
+ if(compactEnabled()){probePending();return;}
  if(intent.acknowledged){if(current!==intent.pool_id)request(true,intent.pool_id);return;}
  var pool=intent.pool_id,requestId=intent.request_id;
  // One delayed replay per closed-to-open transition repairs an ACK lost during
@@ -268,9 +331,9 @@ function recoverIntent(){
   GameEvents.SendCustomGameEventToServer("survival_archive_social_draw",{pool_id:pool,request_id:requestId});
  });
 }
-function select(id){if(!alive()||!names[id])return;hideFilterMenu();clearRewardHighlight();current=id;ownershipFilter=0;grid.ScrollToTop();hideTooltip();render();if(opened&&!shared.pages[id])request(true);}
+function select(id){if(!alive()||!names[id])return;hideFilterMenu();clearRewardHighlight();if(current!==id)closeCompact();current=id;ownershipFilter=0;grid.ScrollToTop();hideTooltip();render();if(opened&&(compactEnabled()||!shared.pages[id]))request(true);}
 function open(id){if(!alive())return;hideFilterMenu();var wasOpen=opened;if(id&&names[id]&&id!==current){clearRewardHighlight();current=id;ownershipFilter=0;grid.ScrollToTop();}if(cfg.SurvivalArchive&&cfg.SurvivalArchive.IsOpen&&cfg.SurvivalArchive.IsOpen())cfg.SurvivalArchive.Close();opened=true;win.RemoveClass("ArchiveHidden");scrim.RemoveClass("ArchiveHidden");shell.Open();scale=Number(U.Fit(win,root,size[0],size[1],fitOptions))||1;render();request(!shared.pages[current]||Object.keys(resync).length>0);if(!wasOpen)recoverIntent();}
-function close(){if(!active)return;hideFilterMenu();opened=false;clearRewardHighlight();hideTooltip();viewLife.Cancel();if(valid(win)){shell.Close();win.AddClass("ArchiveHidden");}if(valid(scrim))scrim.AddClass("ArchiveHidden");$.DispatchEvent("DOTAHideTextTooltip");}
+function close(){if(!active)return;closeCompact();hideFilterMenu();opened=false;clearRewardHighlight();hideTooltip();viewLife.Cancel();if(valid(win)){shell.Close();win.AddClass("ArchiveHidden");}if(valid(scrim))scrim.AddClass("ArchiveHidden");$.DispatchEvent("DOTAHideTextTooltip");}
 function dispose(){if(!active)return;close();active=false;highlightLife.Dispose();life.Dispose();viewLife.Dispose();shell.Dispose();if(tooltip)tooltip.Dispose();if(valid(canvas))canvas.DeleteAsync(0);createdRoots.forEach(function(n){if(valid(n))n.DeleteAsync(0);});if(valid(win))win.RemoveClass("CollectionGW2Page");}
 api=cfg.SurvivalCollection={Open:open,Close:close,Toggle:function(){if(alive()){if(opened)close();else open();}},Select:select,IsOpen:function(){return alive()&&opened;},Dispose:dispose,Inspect:function(){return {open:opened,layout:"collection_gw2",canvas:size.slice(),columns:columns,portraitSize:portraitSize,category:current,search:"",ownershipFilter:["all","owned","unowned"][ownershipFilter],filterMenuOpen:filterOpen,rows:visibleRows.map(function(item){return {id:item.id,name:item.name,count:item.count,target:item.target};}),slots:slots.length,drawEnabled:!!draw.enabled,pending:shared.pending?copy(shared.pending):null,versions:copy(shared.versions),tooltipVisible:tooltip&&tooltip.IsVisible()};}};
 life.Subscribe("survival_archive_snapshot",snapshot);life.Subscribe("survival_archive_social_result",drawResult);

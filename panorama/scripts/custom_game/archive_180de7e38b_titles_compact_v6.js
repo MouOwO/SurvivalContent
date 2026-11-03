@@ -22,8 +22,39 @@
     var filterMode = "all", lastData = null, fitGeneration = 0;
     var navIcons = {clear:"clear",shadow:"void",points:"points",fragment:"weapon",pet:"spell",endless:"endless",friend:"friends",ex:"ex",wife:"ex",concubine:"ex",beast:"blessing"};
     var categories = [], tooltipVisible = false, requestGeneration = 0, tooltipGeneration = 0;
-    var pageCache = {}, pageAssemblies = {}, pageVersions = {};
+    var pageCache = {}, pageAssemblies = {}, pageVersions = {}, pageLoads = {}, fullSyncPending = {};
     var rowCards = {};
+    var compactHandle=null,compactModel=null,compactCategory="",compactIndex=null,compactIntents={},compactFieldCatalogue=null,compactFieldMap=null;
+    function compactEnabled(){return !!(cfg.SurvivalCompactRuntime&&cfg.SurvivalUICatalog&&cfg.SurvivalCompactArchiveModel);}
+    function compactClose(){if(compactHandle)compactHandle.Dispose();if(compactModel)compactModel.Dispose();compactHandle=null;compactModel=null;compactCategory="";compactIntents={};}
+    function finishCompactIntent(read){
+        var C=cfg.SurvivalUICatalog;
+        if(compactFieldCatalogue!==C){compactFieldMap={};C.Data.fields.forEach(function(f){compactFieldMap[f.name]=f.id;});compactFieldCatalogue=C;}
+        var fields=compactFieldMap;
+        var record=C.ByKey["archive:category:"+current],token=read(record,fields.request_token),intent=compactIntents[token];
+        if(!intent||read(record,fields.terminal)!==1)return;
+        delete compactIntents[token];titleSubmitting=false;
+        var definition=C.ById[intent.record],entry=definition&&compactIndex&&compactIndex.entries[definition.business_id];
+        if(entry&&valid(entry.card)){entry.card.__archiveSubmitted=false;entry.card.SetHasClass("ArchiveWorkAvailable",Number(entry.card.__archiveItem.can_upgrade)===1);}
+        if(read(record,fields.success)!==1)compactText("ArchiveStatus","操作未完成，请重试");
+    }
+    function compactOpen(){
+        if(!compactEnabled()||!opened||current==="shop")return;
+        if(compactHandle&&compactCategory===current)return;
+        compactClose();var category=current,model=cfg.SurvivalCompactArchiveModel.Create(cfg.SurvivalUICatalog,category);compactModel=model;compactCategory=category;
+        compactHandle=cfg.SurvivalCompactRuntime.CreateView("archive:"+category,{onCommit:function(tx,changed,read){
+            if(!active()||!opened||current!==category||compactModel!==model)return;
+            var result=model.Apply(tx,changed,read);pageCache[category]=result.snapshot;
+            if(tx.full||!compactIndex||compactIndex.category!==category)render(result.snapshot);
+            else renderCompactDelta(result.snapshot,result.changes,model);
+            finishCompactIntent(read);
+        },onError:function(code){if(active()&&opened&&current===category)panel("ArchiveStatus").text=cfg.SurvivalCompactRuntime.ErrorText(code);}});
+        compactHandle.Open();
+    }
+    function compactIntent(action,id,level){
+        if(!compactEnabled())return null;compactOpen();if(!compactHandle)return {sent:false};
+        var result=compactHandle.SendIntent(action,{arg_a:id,arg_b:level});if(result&&result.sent)compactIntents[result.request_token]={record:id};return result;
+    }
     var titleSubmitting = false;
     var renderedTabs = null, tabsSignature = "", lastPaletteKey = "";
     var latestEndlessState = null, endlessStatusPanel = null;
@@ -73,24 +104,46 @@
         panel("ArchiveTooltip").AddClass("ArchiveHidden");
     }
     function tooltip(item, card) { if(active()&&valid(card))A.Show(item, current, card); }
-    function needsSync(){return !pageCache[current]||Object.keys(resyncPages).length>0;}
+    function needsSync(){return !pageCache[current]||!!resyncPages[current];}
+    function endArchiveLoad(category){
+        var job=pageLoads[category];if(!job)return;
+        delete pageLoads[category];delete fullSyncPending[category];
+        if(job.timer!==undefined && job.timer!==null){if($.CancelScheduled)$.CancelScheduled(job.timer);timers=timers.filter(function(id){return id!==job.timer;});}
+    }
+    function beginArchiveLoad(category){
+        if(pageLoads[category])return;
+        var job=pageLoads[category]={};
+        // One absolute deadline per load, never one timer per chunk or retry.
+        // Background pages are repaired when selected, without a closed HUD
+        // continuously downloading the catalogue after a missing fragment.
+        job.timer=later(8,function(){
+            if(pageLoads[category]!==job)return;
+            delete pageLoads[category];delete fullSyncPending[category];delete pageAssemblies[category];
+            resyncPages[category]=true;
+            if(opened && current===category)queueFullSync(category);
+        });
+    }
     function retrySync(){
         if(syncRetry)return;
-        syncRetry=later(.75,function(){syncRetry=null;if(opened&&needsSync())request(true);});
+        syncRetry=later(.75,function(){syncRetry=null;if(opened&&needsSync()&&!pageAssemblies[current])request(true);});
     }
     function queueFullSync(category){
         resyncPages[category]=true;
+        if(!opened || category!==current)return;
         if(resyncQueued)return;
         resyncQueued=true;
-        later(.2,function(){resyncQueued=false;request(true);});
+        later(.2,function(){resyncQueued=false;if(opened&&resyncPages[current])request(true);});
     }
     function request(prefetch) {
         if(!active())return;
+        if(compactEnabled()){compactOpen();return;}
         if(cfg.SurvivalArchiveV10 && current === "shop")return;
-        GameEvents.SendCustomGameEventToServer("survival_archive_request", { category_id: current, prefetch:prefetch===true?1:0 });
+        var payload={category_id:current,prefetch:prefetch===true?1:0};
+        if(resyncPages[current]&&!fullSyncPending[current]){payload.resync=1;fullSyncPending[current]=true;}
+        GameEvents.SendCustomGameEventToServer("survival_archive_request",payload);
         // The server silently throttles requests on game time, which can stand
         // still while paused. Keep one retry until a real baseline arrives.
-        if(prefetch===true)retrySync();
+        if(needsSync()){beginArchiveLoad(current);retrySync();}
     }
     var archiveFit={reference:[1672,941]},voidView=cfg.SurvivalArchiveV10Factory?cfg.SurvivalArchiveV10Factory():cfg.SurvivalArchiveVoidV1;
     function renderVoid(data){return voidView&&voidView.Render(data,current,filterMode,categories,archiveFit);}
@@ -125,7 +178,10 @@
                 if (cfg.SurvivalArchiveV10 && Number(category.disabled) === 1) {
                     render({ok:1,category_id:current,categories:categories,rows:[],unavailable:1});return;
                 }
-                if(lastData){tabs();render(lastData);if(current==="commerce_goods")request();return;}
+                // A cached switch still tells the server which page the user
+                // needs first. Repeated clicks on this tab return above.
+                request(false);
+                if(lastData){tabs();render(lastData);return;}
                 hideTooltip();
                 Object.keys(rowCards).forEach(function(key){rowCards[key].panel.visible=false;});
                 panel("ArchiveEmpty").RemoveClass("ArchiveHidden");
@@ -142,9 +198,8 @@
                 panel("ArchiveDrawResult").text = "";
                 tabs();
                 renderVoid(null);
-                // Coalesce fast toggle changes and respect the server throttle.
-                var generation = ++requestGeneration;
-                request(true);
+                // The normal category-change request owns this cold load;
+                // only a missing reply/deadline can request a retry/full page.
             };
             toggle.SetPanelEvent("onactivate", toggle.__archiveActivate);
         });
@@ -241,20 +296,25 @@
                 status.SetImage(GameUI.CustomUIConfig().ArchiveHandoffAssets[unlocked?"icon_check_light.png":"icon_lock_light.png"]);
                 status.hittest=false;
             }
-            card.SetPanelEvent("onmouseover", function () { tooltip(item, card); });
+            card.SetPanelEvent("onmouseover", function () { tooltip(card.__archiveItem, card); });
             card.SetPanelEvent("onmouseout",function(){if(voidView&&voidView.RequestTooltipHide)voidView.RequestTooltipHide(card);else hideTooltip();});
             if (current === "titles") {
                 var equipped=Number(item.equipped)===1;
                 var actionLabel=label(card,unlocked!==true?"未解锁":equipped?"已穿戴 · 恢复自动":Number(item.preview_only)===1?"点击试穿":"点击穿戴","ArchiveTitleAction");
                 card.SetPanelEvent("onactivate",function() {
                     if(!active()||!valid(card))return;
+                    item=card.__archiveItem;unlocked=A.Unlocked(item,current);equipped=Number(item.equipped)===1;
                     if (unlocked!==true || titleSubmitting) return;
-                    if (Number(data.pending)===1 && Number(data.title_preview)!==1) {
+                    if (Number(lastData.pending)===1 && Number(lastData.title_preview)!==1) {
                         panel("ArchiveStatus").text="正在保存进度，请稍候再试";return;
                     }
                     titleSubmitting=true;actionLabel.text="正在切换…";
                     panel("ArchiveStatus").text="正在切换称号…";
                     rowCards[key].fingerprint=null;
+                    if(compactEnabled()){
+                        var titleId=equipped?0:cfg.SurvivalUICatalog.ByKey["archive:titles:"+item.id],sent=compactIntent("archive_title",titleId);
+                        if(!sent||!sent.sent)titleSubmitting=false;return;
+                    }
                     GameEvents.SendCustomGameEventToServer("survival_archive_title_equip",{title_id:equipped?"":item.id});
                     // Server result releases rejected/unchanged actions as well.
                     later(2,function(){titleSubmitting=false;request(true);});
@@ -270,9 +330,11 @@
                 card.SetHasClass("ArchiveWorkAvailable", canUpgrade);
                 var costLabel = label(card, Number(item.completed) === 1 ? (current === "building" ? "已满级" : "已激活") : item.cost + (current === "building" ? "信仰值" : "软妹币"), "ArchiveWorkCost");
                 var submitted = false;
+                card.__archiveSubmitted=false;
                 card.SetPanelEvent("onactivate", function () {
                     if(!active()||!valid(card))return;
-                    if (submitted) return;
+                    item=card.__archiveItem;upgradePending=Number(lastData.upgrade_pending)===1;canUpgrade=Number(item.can_upgrade)===1&&!upgradePending;
+                    if (compactEnabled()?card.__archiveSubmitted:submitted) return;
                     if (!canUpgrade) {
                         if (!upgradePending && Number(item.completed) !== 1) {
                             var nativeError = cfg.SurvivalTooltipPosition,
@@ -286,6 +348,7 @@
                         return;
                     }
                     submitted = true;
+                    card.__archiveSubmitted=true;
                     // A rejected request may return unchanged data: rebind the
                     // cached handler after the next authoritative snapshot.
                     rowCards[key].fingerprint = null;
@@ -294,6 +357,10 @@
                     card.RemoveClass("ArchiveWorkAvailable");
                     panel("ArchiveStatus").text = cardCategory === "building" ? "正在保存神器升级…" : "正在激活福利…";
                     hideTooltip();
+                    if(compactEnabled()){
+                        var sent=compactIntent("archive_action",cfg.SurvivalUICatalog.ByKey["archive:"+cardCategory+":"+item.id],Number(item.level)||0);
+                        if(!sent||!sent.sent)card.__archiveSubmitted=false;return;
+                    }
                     GameEvents.SendCustomGameEventToServer(cardCategory === "building" ? "survival_archive_building_upgrade" : "survival_archive_work_upgrade", {
                         item_id: item.id, expected_level: Number(item.level) || 0
                     });
@@ -421,8 +488,51 @@
             A.ApplyPalette(); lastPaletteKey = paletteKey;
         }
         if(cfg.SurvivalArchiveV10)renderVoid(data);
+        buildCompactIndex(data);
+    }
+    function buildCompactIndex(data){
+        if(!compactEnabled())return;
+        var entries={},stats={category:current,total:0,done:0,owned:0,known:0,entries:entries,rows:array(data.rows)},slot=0;
+        stats.rows.forEach(function(item,index){var state=A.Unlocked(item,current),visible=filterMode==="all"||state!==null&&state===(filterMode==="unlocked"),cached=rowCards[current+":"+index];
+            entries[item.id]={item:item,index:index,slot:visible?slot++:-1,card:cached&&cached.panel,state:state,owned:Number(item.count)>0};
+            stats.total++;if(state===true)stats.done++;if(state!==null)stats.known++;if(Number(item.count)>0)stats.owned++;
+        });compactIndex=stats;
+    }
+    function compactText(id,text){var node=panel(id);if(node&&node.text!==String(text))node.text=String(text);}
+    function compactRows(data,changed,model){
+        var list=changed.map(function(id){return model.Row(id);}).filter(function(row){return !!row;});
+        if(!cfg.SurvivalArchiveV10||!cfg.ArchiveV10Semantics)return list;
+        if(current!=="shadow")return cfg.ArchiveV10Semantics.Normalize({rows:list,online:data.online},current);
+        return list.map(function(source){var old=compactIndex.entries[source.id],item=Object.assign({},old&&old.item||{},source);item.count_known=cfg.ArchiveV10Semantics.Known(item)?1:0;item.unlocked=item.count_known===1&&Number(item.count)>0?1:0;if(item.max_owned!==undefined)item.target=item.max_owned;return item;});
+    }
+    function renderCompactDelta(data,impact,model){
+        if(!active()||!opened||current!==data.category_id)return;
+        var stats=compactIndex,changed=compactRows(data,impact.rows,model),entries=[],reflow=false;
+        changed.forEach(function(item){var entry=stats.entries[item.id],state=A.Unlocked(item,current),visible=filterMode==="all"||state!==null&&state===(filterMode==="unlocked");
+            if(!entry||visible!==(entry.slot>=0)){reflow=true;return;}
+            stats.done+=(state===true?1:0)-(entry.state===true?1:0);stats.known+=(state!==null?1:0)-(entry.state!==null?1:0);stats.owned+=(Number(item.count)>0?1:0)-(entry.owned?1:0);
+            entry.item=item;entry.state=state;entry.owned=Number(item.count)>0;stats.rows[entry.index]=item;
+            var card=entry.card;if(valid(card)){card.__archiveItem=item;card.__archiveUnlocked=state;card.__archiveSubmitted=false;card.SetHasClass("ArchiveContentLocked",state!==true);card.SetHasClass("ArchiveTitleEquipped",Number(item.equipped)===1);card.SetHasClass("ArchiveWorkAvailable",Number(item.can_upgrade)===1&&Number(data.upgrade_pending)!==1);entries.push({card:card,item:item,slot:entry.slot});}
+        });
+        // Real filter/membership changes rebuild this current container once.
+        // A numeric refresh retaining its membership keeps every other card.
+        if(reflow){render(data);return;}
+        lastData=Object.assign({},data,{rows:stats.rows});A.Observe(lastData);if(Number(data.pending)!==1)titleSubmitting=false;
+        compactText("ArchiveFilterAllLabel","全部（"+stats.done+"/"+stats.total+"）");
+        var summary=current==="clear"?"已完成 "+stats.done+" / "+stats.total:current==="endless"?"累计积分 "+(stats.rows.length?Number(stats.rows[0].count)||0:0)+" · 已完成 "+stats.done+" / "+stats.total:"已拥有 "+stats.owned+" 种";
+        if(current==="boss")summary="波次BOSS击杀 "+(stats.rows.length?stats.rows[0].count:0)+" 次 · 已激活 "+stats.done+" / "+stats.total;
+        if(current==="building"&&data.buildings)summary="信仰值："+data.buildings.faith+" · 今日获取 "+data.buildings.earned_today+"/"+data.buildings.daily_cap;
+        if(current==="work"&&data.online)summary="软妹币："+data.online.coins+" · 已激活 "+stats.done+" / "+stats.total;
+        if(current==="map_level"&&data.online)summary="等级 "+data.online.level+" / "+data.online.max_level;
+        if(current==="starjoy_points"&&data.starjoy)summary="星悦 LV"+data.starjoy.level+" / 24";
+        if(current==="fishing"&&data.fishing)summary=Number(data.fishing.ready)===1?"已拥有 "+data.fishing.owned+" / "+data.fishing.types+" 种 · 共 "+data.fishing.total+" 件":"库存待同步";
+        if(current==="gift")summary="福利礼包 · 已解锁 "+stats.done+" / "+stats.total;
+        compactText("ArchiveSummary",summary);
+        if(data.social){compactText("ArchiveTickets",data.social.currency_name+"："+data.social.tickets);compactText("ArchiveDrawResult",data.last_draw&&data.last_draw.pool_id===current?"获得："+data.last_draw.name:"每次消耗 "+data.social.draw_cost+" 张 · 重复获得叠加效果");var enabled=Number(data.social.tickets)>=Number(data.social.draw_cost)&&Number(data.social.remaining)>0&&Number(data.pending)!==1;if(panel("ArchiveDraw").enabled!==enabled)panel("ArchiveDraw").enabled=enabled;}
+        if(cfg.SurvivalArchiveV10&&voidView&&voidView.Update)voidView.Update(lastData,current,entries,{known:stats.known,owned:stats.done,total:stats.total});
     }
     function onArchiveSnapshot(data) {
+        if(compactEnabled())return;
         var sequence = Number(data.sequence) || 0;
         var category = data.category_id;
         if(sequence <= (pageVersions[category]||0))return;
@@ -434,6 +544,7 @@
         var assembly=pageAssemblies[category];
         if (!assembly || sequence > Number(assembly.header.sequence)) {
             assembly = pageAssemblies[category] = { header: data, chunks: {}, count: Number(data.chunks) || 1 };
+            beginArchiveLoad(category);
         }
         if(sequence!==Number(assembly.header.sequence))return;
         assembly.chunks[Number(data.chunk) || 1] = array(data.rows);
@@ -442,6 +553,7 @@
         complete.rows = [];
         for (var i = 1; i <= assembly.count; i++) complete.rows = complete.rows.concat(assembly.chunks[i]);
         delete pageAssemblies[category];
+        endArchiveLoad(category);
         if(Number(complete.delta)===1){
             if(!pageCache[category]||pageVersions[category]!==Number(complete.base_sequence)){queueFullSync(category);return;}
             complete=GameUI.CustomUIConfig().SurvivalSnapshotCache.Apply(pageCache[category],complete.rows);
@@ -527,6 +639,7 @@
         }
     });
     function close() {
+        compactClose();
         opened = false; fitGeneration++;
         if(voidView)voidView.Leave();
         if(A.HideCardText)A.HideCardText();
@@ -603,12 +716,16 @@
                 render({ok:1,category_id:current,categories:categories,rows:[]});
                 if(cfg.SurvivalEndlessLeaderboard)cfg.SurvivalEndlessLeaderboard.Open();return;
             }
+            if(compactEnabled()){
+                if(pageCache[current])render(pageCache[current]);else renderVoid(null);
+                compactOpen();return;
+            }
             if(pageCache[current]){render(pageCache[current]);if(needsSync())request(true);else if(current==="commerce_goods")request();}else {renderVoid(null);request(true);}
         },
         Filter: function(mode){if(!active()||["all","unlocked","locked"].indexOf(mode)<0)return;filterMode=mode;if(lastData)render(lastData);else renderVoid(null);},
         Close: close,
         Dispose: dispose,
-        Refresh: request,
+        Refresh: function(){if(compactEnabled()){compactOpen();if(compactHandle)compactHandle.Resync(5);}else request();},
         RegisterToolsProbe: registerToolsProbe
     };
     $.RegisterEventHandler("Cancelled", panel("ArchiveWindow"), function () {
@@ -618,6 +735,6 @@
         close();
         return true;
     });
-    later(0.2,function(){if(!pageCache[current])request(true);});
+    if(!compactEnabled())later(0.2,function(){if(!pageCache[current])request(true);});
     registerToolsProbe();
 })();

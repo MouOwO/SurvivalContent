@@ -4,6 +4,74 @@
     "use strict";
     var cfg = GameUI.CustomUIConfig(), version = "lottery_cache_v1";
     if (cfg.SurvivalLotteryCache && cfg.SurvivalLotteryCache.Dispose) cfg.SurvivalLotteryCache.Dispose();
+    if (cfg.SurvivalCompactRuntime && cfg.SurvivalCompactLotteryModel && cfg.SurvivalUICatalog) {
+        cfg.SurvivalLotteryCache = compactCache();
+        return;
+    }
+    function compactCache() {
+        var runtime=cfg.SurvivalCompactRuntime,catalogue=cfg.SurvivalUICatalog,C=catalogue.Data;
+        var states=Object.create(null),listeners=Object.create(null),listenerSerial=0,revision=0,activePool=null,disposed=false,redemptionSubscription=null,loadingSubscription=null,namespace="",redemptions=Object.create(null),redemptionRing=[];
+        var publicRows=C.auxiliary.lottery_public.snapshots,poolIds=[];
+        publicRows.forEach(function(seed){
+            var id=String(seed.selected_pool_id),preview=JSON.parse(JSON.stringify(seed));preview.authoritative_ready=false;preview.tickets=undefined;preview.draws=undefined;
+            preview.pools.forEach(function(pool){pool.tickets=undefined;pool.draws=undefined;pool.unlocked=undefined;});
+            preview.selected_pool=preview.pools.filter(function(pool){return pool.id===id;})[0]||preview.selected_pool;
+            states[id]={id:id,preview:preview,model:null,view:null,snapshot:null,known:false,error:"",revision:0,opened:false};poolIds.push(id);
+        });
+        function notify(id,packet){Object.keys(listeners).forEach(function(key){try{listeners[key](id||"",packet);}catch(error){if($.Msg)$.Msg("[LOTTERY_CACHE_LISTENER] "+String(error));}});}
+        function entry(id){var state=states[String(id||"map")];if(!state)throw new Error("lottery_pool_unknown");return state;}
+        function ensure(id){
+            var state=entry(id);if(state.view)return state;
+            state.model=cfg.SurvivalCompactLotteryModel.Create(catalogue,state.id);
+            state.view=runtime.CreateView("lottery:"+state.id,{
+                onCommit:function(tx,changed,read){
+                    if(disposed)return false;var projected=state.model.Apply(tx,changed,read);
+                    var meaningful=tx.full||state.known!==projected.known||projected.result||projected.changes.summary||projected.changes.items.length||projected.changes.pools.length;
+                    if(!meaningful)return;
+                    state.known=projected.known===true;state.snapshot=projected.snapshot;state.error=projected.error_code?"lottery_error_"+projected.error_code:"";state.revision=++revision;
+                    if(state.snapshot){state.snapshot.authoritative_ready=state.known;state.snapshot.cache_sequence=state.revision;state.snapshot.sequence=state.revision;}
+                    notify(state.id,{compact:true,snapshot:state.snapshot,changes:projected.changes,result:projected.result,error_code:projected.error_code,error_text:projected.error});
+                },
+                onError:function(code){if(disposed)return;state.error=code;state.known=false;state.revision=++revision;notify(state.id,{compact:true,error:code});}
+            });return state;
+        }
+        function authoritative(id){var state=entry(id);return !disposed&&state.known&&!state.error&&!!state.snapshot&&(!runtime.Inspect||runtime.Inspect().ready===true);}
+        function snapshot(id){var state=entry(id),value=state.snapshot||state.preview;value.authoritative_ready=authoritative(state.id);return value;}
+        function open(id){
+            var state=ensure(id);if(activePool&&activePool!==state.id){var old=states[activePool];if(old.view){old.view.Close();old.opened=false;}}
+            activePool=state.id;state.opened=true;return state.view.Open();
+        }
+        function close(){if(activePool){var state=states[activePool];if(state.view)state.view.Close();state.opened=false;}activePool=null;}
+        function resync(id){var state=ensure(id);return state.opened?state.view.Resync(5):{sent:false,unchanged:true};}
+        function draw(id,count,requestId,skip){
+            var state=ensure(id);if(!state.opened||!authoritative(id)||(count!==1&&count!==10))return {sent:false,error:"not_ready"};
+            var sent=state.view.SendIntent("lottery_draw",{pool_record:state.model.PoolRecord(),count:count,skip_animation:skip===true?1:0});
+            if(sent&&sent.sent)state.model.BindIntent(sent.request_token,String(requestId));return sent;
+        }
+        function readAck(pool,action){
+            if(!pool||!pool.id)return {sent:false,error:"pool_required"};var state=ensure(pool.id),code={visit:1,details:2,notice:3}[action];
+            if(!code||!state.opened||!authoritative(pool.id))return {sent:false,error:"not_ready"};
+            return state.view.SendIntent("lottery_read",{pool_record:state.model.PoolRecord(),read_action:code});
+        }
+        function invalidate(id){var state=ensure(id);state.known=false;state.error="authoritative_snapshot_unavailable";state.revision=++revision;notify(state.id,{compact:true,error:state.error});return resync(id);}
+        function observeLoading(){
+            if(disposed)return;var loading=CustomNetTables.GetTableValue("survival_loading","state"),next=String(loading&&loading.session_id||"")+"|"+String(loading&&loading.setup&&loading.setup.mode_id||"");
+            if(namespace&&namespace!==next){poolIds.forEach(function(id){states[id].known=false;states[id].error="";states[id].revision=++revision;});redemptions=Object.create(null);redemptionRing=[];notify("",{compact:true,reset:true});}namespace=next;
+        }
+        function redeemed(packet){
+            if(disposed||!packet||packet.action!=="redeem"||!(packet.ok===true||packet.ok===1)||typeof packet.request_id!=="string")return;
+            if(redemptions[packet.request_id])return;redemptions[packet.request_id]=true;redemptionRing.push(packet.request_id);if(redemptionRing.length>32)delete redemptions[redemptionRing.shift()];
+            poolIds.forEach(function(id){states[id].known=false;states[id].revision=++revision;});notify("",{compact:true,redemption:true});if(activePool)resync(activePool);
+        }
+        if(typeof GameEvents!=="undefined"&&GameEvents.Subscribe)redemptionSubscription=GameEvents.Subscribe("survival_commerce_result",redeemed);
+        if(typeof CustomNetTables!=="undefined"&&CustomNetTables.SubscribeNetTableListener){loadingSubscription=CustomNetTables.SubscribeNetTableListener("survival_loading",function(table,key){if(key==="state")observeLoading();});observeLoading();}
+        return {Version:"compact_lottery_cache_20261103_v1",Compact:true,Snapshot:snapshot,IsAuthoritative:authoritative,Revision:function(id){return entry(id).revision;},Open:open,Close:close,Draw:draw,
+            Ingest:function(){return false;},Subscribe:function(fn){var id=++listenerSerial;listeners[id]=fn;return function(){delete listeners[id];};},
+            Refresh:function(){if(activePool)notify(activePool,{compact:true});},Resync:resync,Invalidate:invalidate,ReadAck:readAck,
+            Catalog:function(){return {config_hash:C.auxiliary.lottery_config_hash,md5:"",pools:poolIds.slice()};},
+            Dispose:function(){if(disposed)return;close();disposed=true;poolIds.forEach(function(id){var state=states[id];if(state.view)state.view.Dispose();if(state.model)state.model.Dispose();});listeners=Object.create(null);if(redemptionSubscription!==null&&GameEvents.Unsubscribe)GameEvents.Unsubscribe(redemptionSubscription);if(loadingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(loadingSubscription);}
+        };
+    }
     var memo = cfg.SurvivalLotteryCacheState;
     if (!memo || memo.version !== version) memo = cfg.SurvivalLotteryCacheState = {
         version:version, catalog:{}, md5:"", configHash:"", raw:{}, sequences:{}, errors:{},
@@ -15,6 +83,8 @@
     var ticketPools=["map","cultivation","dragon_knight","summer"];
     memo.errors=memo.errors || {};
     memo.oldHashes=memo.oldHashes || {};
+    memo.viewVersions=memo.viewVersions || {};
+    memo.rawSignatures=memo.rawSignatures || {};
     function integer(value) {return isFinite(value) && Math.floor(value)===value;}
     function rows(value) { return Array.isArray(value) ? value : Object.keys(value || {}).sort(function (a,b) { return Number(a)-Number(b); }).map(function (key) { return value[key]; }); }
     function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
@@ -89,7 +159,7 @@
             if(memo.identity && (memo.identity.session!==next.session || memo.identity.account!==next.account)) {
                 memo.catalogSequence=0;memo.retired={};memo.oldHashes={};catalogAssembly=null;
             }
-            memo.identity=next;memo.raw={};memo.sequences={};memo.errors={};memo.pendingHash="";memo.pendingMd5="";assemblies={};resyncPending={};
+            memo.identity=next;memo.raw={};memo.sequences={};memo.errors={};memo.viewVersions={};memo.rawSignatures={};memo.pendingHash="";memo.pendingMd5="";assemblies={};resyncPending={};
             if(changed) notify("");
         }
         return next;
@@ -150,6 +220,19 @@
     }
     function revisionMatches(packet,base) {
         return String(packet && packet.selected_pool && packet.selected_pool.revision || "")===String(base && base.selected_pool && base.selected_pool.revision || "");
+    }
+    // Delivery counters identify packets, not changes to the displayed state.
+    // Compare only received wire content; a repeated reply never traverses or
+    // clones the public catalogue and never notifies a renderer.
+    function contentSignature(value) {
+        var content={};
+        Object.keys(value).forEach(function(key){if(key!=="cache_sequence" && key!=="snapshot_scope" && key!=="snapshot_request_id")content[key]=value[key];});
+        return JSON.stringify(content);
+    }
+    function viewRevision(id) {
+        var current=syncIdentity();id=String(id || "map");
+        return [current.account,current.session,current.mode,memo.md5,memo.configHash,memo.pendingHash,memo.pendingMd5,
+            memo.errors[id] || "",memo.viewVersions[id] || 0].join("|");
     }
     function catalogue(packet) {
         if(!packet || packet.ok===false || Number(packet.ok)===0) return;
@@ -215,7 +298,10 @@
             copyFields(receipt.selected_pool,packet.selected_pool,flags);
             var readPools={};rows(packet.pools).forEach(function(pool){readPools[pool.id]=pool;});
             rows(receipt.pools).forEach(function(pool){copyFields(pool,readPools[pool.id],flags);});
-            memo.raw[id]=receipt;notify(id,packet);return true;
+            var readSignature=contentSignature(receipt);
+            if(readSignature===memo.rawSignatures[id])return true;
+            memo.raw[id]=receipt;memo.rawSignatures[id]=readSignature;
+            memo.viewVersions[id]=(memo.viewVersions[id] || 0)+1;notify(id,packet);return true;
         }
         if(scope==="cache" || scope==="cache_patch") {
             if(!integer(seq) || seq<1)return false;
@@ -244,9 +330,18 @@
             if(memo.md5 && memo.sequences[id] && !seq){resync(id);return false;}
         }
         if(base && !revisionMatches(snapshot,base)){resync(id);return false;}
+        var signature=contentSignature(snapshot),changed=signature!==memo.rawSignatures[id],recovered=!!memo.errors[id];
+        if(!changed) {
+            delete memo.errors[id];if(seq)memo.sequences[id]=seq;
+            if(assemblies[id] && assemblies[id].sequence<=seq)delete assemblies[id];
+            delete resyncPending[id];
+            if(recovered)notify(id,packet);
+            return true;
+        }
         snapshot=clone(snapshot);snapshot.snapshot_scope="main";
         delete snapshot.cache_sequence;
         memo.raw[id]=snapshot;delete memo.errors[id];
+        memo.rawSignatures[id]=signature;memo.viewVersions[id]=(memo.viewVersions[id] || 0)+1;
         if(seq)memo.sequences[id]=seq;
         if(assemblies[id] && assemblies[id].sequence<=seq)delete assemblies[id];
         delete resyncPending[id];
@@ -285,7 +380,7 @@
     // Keep a verified hot catalogue when a controller/layout reload re-executes
     // the packed seed. The login handshake determines which version is current.
     if(!memo.md5 && seed)staticCatalog(seed.catalog_json,seed.md5,seed.config_hash);
-    var api={Version:version,MD5:md5,Snapshot:snapshot,Ingest:ingest,IsAuthoritative:authoritative,
+    var api={Version:version,MD5:md5,Snapshot:snapshot,Ingest:ingest,IsAuthoritative:authoritative,Revision:viewRevision,
         Subscribe:function(fn){memo.listeners.push(fn);return function(){memo.listeners=memo.listeners.filter(function(candidate){return candidate!==fn;});};},
         Refresh:function(){syncIdentity();notify("");},Resync:resync,
         Invalidate:function(pool){pool=String(pool || "map");memo.errors[pool]="authoritative_snapshot_unavailable";notify(pool);resync(pool);},

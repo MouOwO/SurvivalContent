@@ -11,6 +11,8 @@
     var builderRecoveryUntil = recoveryUntil, builderRetryPending = false;
     var recoveryTask = null, startupSignature = "";
     var lifecycleConfig = GameUI.CustomUIConfig(), lifecycleContext = $.GetContextPanel();
+    var compactHUDSource = lifecycleConfig.SurvivalCompactHUDSource || null, compactHUDSubscription = null;
+    var hudPanelIndex = Object.create(null), lastShopUnlocked;
     var disposed = false, scheduledJobs = [], subscriptions = [];
     var counters = {polls:0, startupReads:0, legacyReads:0, requests:0,
         requestCoalesced:0, retryTimeouts:0, received:0, applied:0, builderSteps:0};
@@ -24,6 +26,8 @@
         Dispose:function(){
             if (disposed) return;
             disposed = true;
+            if (compactHUDSource && compactHUDSubscription !== null) compactHUDSource.Unsubscribe(compactHUDSubscription);
+            compactHUDSubscription = null;
             scheduledJobs.slice().forEach(cancelHUDJob);
             recoveryTask = null; snapshotRequest = null; builderRetryPending = false;
             subscriptions.forEach(function(item){
@@ -87,6 +91,7 @@
     }
     function scheduleRecovery(delay) {
         if (!syncActive()) return;
+        if (compactHUDSource) return; // Admission/identity events and compact failure recovery own this path.
         if (recoveryTask) {
             if (delay !== 0) return;
             cancelHUDJob(recoveryTask);
@@ -124,13 +129,15 @@
     };
 
     function panel(id) {
-        return $("#" + id);
+        var cached = hudPanelIndex[id];
+        if (cached && (!cached.IsValid || cached.IsValid())) return cached;
+        return hudPanelIndex[id] = $("#" + id);
     }
 
     function setText(id, value) {
         var target = panel(id);
         if (target) {
-            target.text = String(value);
+            if (target.text !== String(value)) target.text = String(value);
             if (id === "DifficultySelectionError") target.visible = target.text !== "";
         }
     }
@@ -593,7 +600,7 @@
         renderProfileError(ui);
     }
 
-    function update(snapshot, receipt) {
+    function update(snapshot, receipt, changedSections) {
         if (!syncActive() || !snapshot) return;
         if (snapshot.session_id && setupSession && snapshot.session_id !== setupSession) return;
         if (snapshot.player_id !== undefined && playerId >= 0 && Number(snapshot.player_id) !== playerId) return;
@@ -613,23 +620,33 @@
         counters.applied++;
         if (firstSnapshot) scheduleRecovery(0);
 
+        var all = !changedSections || changedSections.full;
+        var resourcesChanged = all || changedSections.resources;
+        var waveChanged = all || changedSections.wave;
         var resources = snapshot.resources || {};
         var actionResources = GameUI.CustomUIConfig().SurvivalActionResources;
-        if (actionResources) actionResources.Update(snapshot.resources || null);
+        if (resourcesChanged && actionResources) actionResources.Update(snapshot.resources || null);
         var wave = snapshot.wave || {};
-        renderDifficultySelection(wave);
+        if (all || changedSections.wave_setup) renderDifficultySelection(wave);
+        if (resourcesChanged) {
         setText("WoodValue", compactNumber(resources.wood));
         setText("GoldValue", compactNumber(resources.gold));
         setText("PopulationValue", compactNumber(resources.population) + "/" + compactNumber(resources.max_population));
+        }
+        if (all || changedSections.city)
         setText("CityLevelValue", "Lv." + numberValue(snapshot.city_level));
         var unlocks = {
             shop: Number(snapshot.shop_unlocked || 0) === 1
         };
+        if ((all || changedSections.unlocks) && lastShopUnlocked !== unlocks.shop) {
+        lastShopUnlocked = unlocks.shop;
         GameUI.CustomUIConfig().SurvivalShopUnlocks = unlocks;
         var shopButton = panel("CustomShopButton");
         if (shopButton) shopButton.SetHasClass("Locked", !unlocks.shop);
         var shopApi = GameUI.CustomUIConfig().SurvivalShop;
         if (shopApi && shopApi.SetUnlocks) shopApi.SetUnlocks(unlocks);
+        }
+        if (resourcesChanged) {
         var resourceTooltip = "木材 " + numberValue(resources.wood) + "\n金币 " + numberValue(resources.gold)
             + "\n人口 " + numberValue(resources.population) + "/" + numberValue(resources.max_population);
         ["WoodField", "GoldField", "PopulationField"].forEach(function (fieldId) {
@@ -649,6 +666,8 @@
                 });
             }
         });
+        }
+        if (waveChanged) {
         setText(
             "WaveNumber",
             wave.game_mode === "fishing" || wave.status === "fishing" ? "摸鱼模式" : (isDifficultySelected(wave)
@@ -661,6 +680,7 @@
         setText("WaveTimer", wave.game_mode === "fishing" || wave.status === "fishing" ? "" : "倒计时 " + Math.max(0, Math.ceil(Number(wave.timer || 0))) + "秒");
         setText("AliveValue", "存活 " + numberValue(wave.alive));
         setText("PendingValue", "待生成 " + numberValue(wave.pending));
+        }
     }
 
     function handleDifficultyResult(payload) {
@@ -695,6 +715,7 @@
     }
 
     function readSnapshot() {
+        if (compactHUDSource) return;
         counters.legacyReads++;
         update(CustomNetTables.GetTableValue(tableName, tableKey), false);
     }
@@ -708,6 +729,12 @@
     }
     function requestSnapshot(recovery) {
         if (!syncActive()) return false;
+        if (compactHUDSource) {
+            if (recovery === true) return false;
+            var compactResult = compactHUDSource.Resync(5);
+            if (compactResult && compactResult.sent) counters.requests++;
+            return !!compactResult && compactResult.sent === true;
+        }
         var now = Date.now() / 1000;
         expireSnapshotRequest(now);
         if (snapshotRequest) { counters.requestCoalesced++; return false; }
@@ -977,8 +1004,11 @@
             }
         }
     );
-    subscribeHUD("event", "survival_ui_private_snapshot", update);
-    subscribeHUD("event", "ui_state_snapshot", update);
+    if (compactHUDSource) compactHUDSubscription = compactHUDSource.Subscribe("survival_ui", ["resources", "city", "unlocks", "wave"], function(snapshot, sections){update(snapshot, true, sections);});
+    else {
+        subscribeHUD("event", "survival_ui_private_snapshot", update);
+        subscribeHUD("event", "ui_state_snapshot", update);
+    }
 
     subscribeHUD("event", "ui_notification", showNotification);
     subscribeHUD("event", "ui_difficulty_select_result", handleDifficultyResult);
@@ -1010,8 +1040,7 @@
     scheduleInitialBuilderSelection("hud_ready");
     scheduleHUD(0.10, function () {
         readStartup();
-        readSnapshot();
-        requestSnapshot();
+        if (!compactHUDSource) { readSnapshot(); requestSnapshot(); }
         scheduleRecovery(0);
     });
     // Explicit Tools console bridge: no UI refresh, request or timer is started.

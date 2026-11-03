@@ -1,6 +1,11 @@
 (function () {
     "use strict";
     var cfg = GameUI.CustomUIConfig(), ctx = $.GetContextPanel(), root = ctx;
+    var compactHUDSource = cfg.SurvivalCompactHUDSource || null;
+    if (cfg.SurvivalTopnavCompactSubscription) {
+        cfg.SurvivalTopnavCompactSubscription.source.Unsubscribe(cfg.SurvivalTopnavCompactSubscription.id);
+        cfg.SurvivalTopnavCompactSubscription = null;
+    }
     while (root.GetParent && root.GetParent()) root = root.GetParent();
     var host = ctx.FindChildTraverse("HandoffHUD"), assets = cfg.HandoffAssets;
     if(cfg.HandoffDecoration && cfg.HandoffDecoration.IsValid())cfg.HandoffDecoration.DeleteAsync(0);
@@ -1542,27 +1547,31 @@
         var time=next===null||waiting?"—":(Math.floor(t/60)<10?"0":"")+Math.floor(t/60)+":"+(t%60<10?"0":"")+(t%60);
         return "下一波次 "+(next===null?"—":String(next))+"  倒计时 "+time;
     }
-    function data(next) {
+    function data(next, changedSections) {
         if(!valid(ctx)||cfg.HandoffGeneration!==generation||!next)return;var incoming=Number(next.sequence);if(isFinite(incoming)&&incoming<=sequence)return;if(isFinite(incoming))sequence=incoming;
-        var r=next.resources||{},wave=next.wave||{},t=Math.max(0,Math.ceil(Number(wave.timer)||0));
+        var all=!changedSections||changedSections.full,r=next.resources||{},wave=next.wave||{};
+        if(all||changedSections.resources){
         text("HandoffResource_gold",compact(r.gold));text("HandoffResource_wood",compact(r.wood));text("HandoffResource_population",compact(r.population)+" / "+compact(r.max_population));
+        }
+        if(!(all||changedSections.wave))return;
         var fishing=fishingWave(wave),selected=!fishing&&(wave.difficulty_selected===true||Number(wave.difficulty_selected)===1);
         var difficulty=String(wave.difficulty_id||"").toUpperCase();
         text("HandoffDifficulty",selected&&/^N[1-9][0-9]*$/.test(difficulty)?difficulty:"");
         countdownWave=wave;renderCountdowns();
-        finishArchive.visible=(wave.status==="archive_challenges"||wave.status==="archive_challenges_pending")
+        var showFinish=(wave.status==="archive_challenges"||wave.status==="archive_challenges_pending")
             && Number(wave.challenge_ended)!==1 && Number(wave.challenge_saving)!==1
             && Number(wave.challenge_player_finished)!==1;
+        if(finishArchive.visible!==showFinish)finishArchive.visible=showFinish;
         var alive=Math.max(0,Math.floor(Number(wave.alive)||0)),limit=Number(wave.alive_limit);
         if(cfg.SurvivalEnemyPopulationWarning)cfg.SurvivalEnemyPopulationWarning.Render(wave);
-        enemyCounter.visible=!fishing&&isFinite(limit)&&limit>0;
+        var showEnemy=!fishing&&isFinite(limit)&&limit>0;if(enemyCounter.visible!==showEnemy)enemyCounter.visible=showEnemy;
         var defeated=!fishing&&(wave.player_defeated===true||Number(wave.player_defeated)===1);
         text("HandoffEnemyTitle",fishing?"":defeated?"本局失败":"进攻怪物");
         text("HandoffEnemyValue",fishing?"":defeated?"可继续观战":String(alive)+" / "+(limit>0?Math.floor(limit):"—"));
         var overflow=!fishing&&!defeated&&(wave.overflow_active===true||Number(wave.overflow_active)===1);
-        enemyCounter.SetHasClass("EnemyOverflow",overflow);
-        enemyCounter.SetHasClass("EnemyDefeated",defeated);
-        enemyCountdown.visible=overflow;
+        if(enemyCounter.__compactOverflow!==overflow){enemyCounter.SetHasClass("EnemyOverflow",overflow);enemyCounter.__compactOverflow=overflow;}
+        if(enemyCounter.__compactDefeated!==defeated){enemyCounter.SetHasClass("EnemyDefeated",defeated);enemyCounter.__compactDefeated=defeated;}
+        if(enemyCountdown.visible!==overflow)enemyCountdown.visible=overflow;
         // Only a number is rendered. The server owns both time and defeat.
         text("HandoffEnemyCountdown",overflow?String(remaining(wave.overflow_deadline,wave.overflow_remaining)):"");
     }
@@ -1616,7 +1625,7 @@
         if(refreshQueued)return;refreshQueued=true;
         $.Schedule(0,function(){refreshQueued=false;refreshFromEvent();});
     });});
-    GameEvents.Subscribe("survival_ui_private_snapshot",data);
+    if(!compactHUDSource)GameEvents.Subscribe("survival_ui_private_snapshot",data);
     cfg.SurvivalMainHUD={Inspect:function(){return {nativeReady:ready,presented:presented,missing:missing,geometry:geometry,unit:selectedUnit(),abilities:currentEntries.map(function(e){return e.name;}),name:nodes.HandoffName.text,hp:nodes.Handoff_hp_value.text,keys:skillPanels.map(function(p,i){var b=nodes["HandoffKey_"+i+"Bounds"];return b&&b.visible?nodes["HandoffKey_"+i].text:"";}),version:"compact_workers_20260928",sequence:sequence};}};
     cfg.SurvivalMainHUD.HotkeyMirrorInspect=function(){return {attempts:hotkeyMirrorRecovery.attempts,
         finished:hotkeyMirrorRecovery.finished,failures:hotkeyMirrorRecovery.failures,limit:4};};
@@ -1795,10 +1804,11 @@
         },"Inspect bonus hit paths and map layout",0);
         $.Msg("[HUD_BONUS_COMMAND] ",inspectCommand);
     }
-    data(CustomNetTables.GetTableValue("survival_ui_state","player_"+Game.GetLocalPlayerID()));tick();
+    if(compactHUDSource){var compactSubscription=compactHUDSource.Subscribe("topnav",["resources","wave"],data);cfg.SurvivalTopnavCompactSubscription={source:compactHUDSource,id:compactSubscription};}
+    else data(CustomNetTables.GetTableValue("survival_ui_state","player_"+Game.GetLocalPlayerID()));tick();
     // Initial load/reload needs one authoritative deadline snapshot, not a polling loop.
     $.Schedule(0,function(){
-        if(valid(ctx)&&cfg.HandoffGeneration===generation&&Game.GetLocalPlayerID()>=0)
+        if(!compactHUDSource&&valid(ctx)&&cfg.HandoffGeneration===generation&&Game.GetLocalPlayerID()>=0)
             GameEvents.SendCustomGameEventToServer("ui_request_full_snapshot",{request_id:"hud_clock_init_"+generation});
     });
 })();

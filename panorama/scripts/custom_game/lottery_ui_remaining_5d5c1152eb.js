@@ -15,6 +15,7 @@
     function active(fn){return function(){if(alive())return fn.apply(null,arguments);};}
     var presentationVersion="lottery_current_20261018",openRequested=false,activePresenter=null,openIntentSerial=0;
     var cache=cfg.SurvivalLotteryCache,cacheSubscription=null;
+    var mainViewRevision="",detailViewRevision="",renderSerial=0;
     function currentPresentation(){
         var view=cfg.SurvivalPurpleLottery;
         return view&&view.Version===presentationVersion&&typeof view.IsAlive==="function"&&view.IsAlive()
@@ -59,7 +60,7 @@
         return node;
     }
     function rootClass(name, on) { var root = panel("LotteryWindow"); if (root) root.SetHasClass(name, on); }
-    function closeInfo() { if(!alive())return;detailRequestSerial++; activeFeature = ""; infoShell.Close(); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); var presenter=currentPresentation();if(presenter&&presenter.CloseInfo)presenter.CloseInfo();if(presenter&&presenter.Pools)presenter.Pools(rows(knownPools),selectedPoolId); }
+    function closeInfo() { if(!alive())return;detailRequestSerial++; activeFeature = ""; infoShell.Close(); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); var presenter=currentPresentation();if(presenter&&presenter.CloseInfo)presenter.CloseInfo();if(presenter&&presenter.Pools)presenter.Pools(rows(knownPools),selectedPoolId);if(opened&&cache&&cache.Compact&&cache.Open)cache.Open(selectedPoolId); }
     function updateButtons() {
         var selected = state && (state.selected_pool || state);
         var locked = pending || animating || switchingPool || !selected || !cache || !cache.IsAuthoritative(selectedPoolId) || selected.unlocked===false || !!activeFeature;
@@ -369,18 +370,29 @@
         if (!dot) { dot = $.CreatePanel("Panel",button,"LotteryUpdateDot"); dot.AddClass("LotteryUpdateDot"); dot.hittest=false; }
         dot.visible = knownPools.some(function(p){return String(p.id) === selectedPoolId && detailsUnread(p);});
     }
-    function refreshLocal(poolId) {
-        if(!cache)return;
-        var main=cache.Snapshot(selectedPoolId);
+    function refreshLocal(poolId,force) {
+        // Login/profile pushes keep the shared cache current while this window
+        // is closed. Only the visible selected pool may materialize a view.
+        if(!cache || !opened)return;
         if(!poolId || poolId===selectedPoolId) {
-            if(main)render(main);else {state=null;updateButtons();}
+            var revision=selectedPoolId+":"+(cache.Revision?cache.Revision(selectedPoolId):"");
+            if(force || !cache.Revision || revision!==mainViewRevision) {
+                mainViewRevision=revision;
+                var main=cache.Snapshot(selectedPoolId);
+                if(main)render(main);else {state=null;renderDrawStage();updateButtons();}
+            }
         }
         if(activeFeature==="details" && (!poolId || poolId===detailPoolId) && detailPoolId!==selectedPoolId) {
-            detailState=cache.Snapshot(detailPoolId);feature("details");
+            var detailRevision=detailPoolId+":"+(cache.Revision?cache.Revision(detailPoolId):"");
+            if(force || !cache.Revision || detailRevision!==detailViewRevision){detailViewRevision=detailRevision;detailState=cache.Snapshot(detailPoolId);feature("details");}
         }
     }
     function acceptSnapshot(snapshot) {
-        if(cache && !cache.Ingest(snapshot))refreshLocal("");
+        if(!cache)return;
+        var before=renderSerial;cache.Ingest(snapshot);
+        // A transaction can carry unchanged wallet data but new result cards.
+        // An accepted cache notification may already have rendered those cards.
+        if(before===renderSerial)refreshLocal("",true);
     }
 
     function resetDrawStage() {
@@ -404,10 +416,10 @@
             return true;
         }
         opened = true;
-        showPresentation(presenter);
-        renderDrawStage();
-        updateButtons();
-        refreshLocal("");
+        mainViewRevision="";detailViewRevision="";
+        showPresentation(presenter,true);
+        if(cache&&cache.Compact&&cache.Open)cache.Open(selectedPoolId);
+        refreshLocal("",true);
         markRead(state&&state.selected_pool,"visit");
         return true;
     }
@@ -421,13 +433,13 @@
         var layers=cfg.SurvivalUILayers;if(layers){layers.Close("lottery_info");layers.Close("lottery");}
     }
 
-    function showPresentation(presenter){
+    function showPresentation(presenter,deferSnapshot){
         activePresenter=presenter;
         LH.Prepare();
         LH.Background(selectedPoolId);
         presenter.Open();
         if(presenter.Pools)presenter.Pools(rows(knownPools),selectedPoolId);
-        if(state&&presenter.Snapshot)presenter.Snapshot(state);
+        if(!deferSnapshot&&state&&presenter.Snapshot)presenter.Snapshot(state);
         if(presenter.Compact)presenter.Compact(panel("LotteryItemList"));
         var root=panel("LotteryWindow");root.visible=true;
         var layers = GameUI.CustomUIConfig().SurvivalUILayers;
@@ -456,6 +468,7 @@
         if(!alive())return;
         openRequested=false;activePresenter=null;openIntentSerial++;
         opened = false;
+        if(cache&&cache.Compact&&cache.Close)cache.Close();
         feedbackRequest = null; clearRewardFeedback();
         var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery");
         finishReveal(); closeInfo();
@@ -474,6 +487,7 @@
 
     function selectDetailPool(poolId) {
         detailPoolId = String(poolId || "map"); detailState = cache && cache.Snapshot(detailPoolId); selectedRewardId = null;
+        if(cache&&cache.Compact&&cache.Open)cache.Open(detailPoolId);
         feature("details");
     }
 
@@ -482,9 +496,10 @@
         if (pending || animating || switchingPool) return;
         clearRewardFeedback();
         selectedPoolId = String(poolId || "map");
+        if(cache&&cache.Compact&&cache.Open)cache.Open(selectedPoolId);
         LH.Background(selectedPoolId);
         selectedRewardId=null;visibleResults=[];closeInfo();
-        refreshLocal("");
+        refreshLocal("",true);
         markRead(state&&state.selected_pool,"visit");
     }
 
@@ -527,9 +542,11 @@
     }
 
     function render(snapshot) {
+        if(!opened)return;
         if (!snapshot) return;
         if (snapshot.selected_pool_id && String(snapshot.selected_pool_id) !== selectedPoolId) return;
         state = snapshot;
+        renderSerial++;
         if(opened)markRead(snapshot.selected_pool,"visit");
         if (activeFeature === "details" && detailPoolId === selectedPoolId) detailState = snapshot;
         knownPools = rows(snapshot.pools);
@@ -587,7 +604,10 @@
             ? "十连抽进行中……" : "单抽进行中……");
         activeRequest = requestId();
         feedbackRequest = opened ? activeRequest : null;
-        GameEvents.SendCustomGameEventToServer("ui_lottery_draw_request", {
+        if(cache.Compact&&cache.Draw){
+            var sent=cache.Draw(selectedPoolId,count,activeRequest,skipAnimation);
+            if(!sent||!sent.sent){pending=false;activeRequest=null;feedbackRequest=null;setText("LotteryStatus","抽奖请求未发送，请重试");updateButtons();}
+        }else GameEvents.SendCustomGameEventToServer("ui_lottery_draw_request", {
             request_id: activeRequest,
             pool_id: selectedPoolId,
             count: count,
@@ -605,17 +625,17 @@
         pending = false;
         activeRequest = null;
         if (!payload || !succeeded(payload.ok)) {
-            setText("LotteryStatus", "抽奖失败："
-                + errorText(payload && payload.error));
             if (payload && payload.snapshot) acceptSnapshot(payload.snapshot);
             else if(cache)cache.Invalidate(selectedPoolId);
+            if(!opened)return;
+            setText("LotteryStatus", "抽奖失败："
+                + errorText(payload && payload.error));
             updateButtons();
             return;
         }
         if (payload.request_id) seenResults[payload.request_id] = true;
         refreshRewardWallet(payload.request_id);
-        clearRewardFeedback();
-        finishReveal();
+        if(opened){clearRewardFeedback();finishReveal();}
         visibleResults = rows(payload.results);
         lastDrawCount = visibleResults.length > 1 ? 10 : 1;
         if (payload.pool_id) selectedPoolId = String(payload.pool_id);
@@ -627,7 +647,8 @@
             + " guarantee=" + String(payload.guarantee_quality || "none")
             + " satisfied=" + String(payload.guarantee_satisfied));
         if (payload.snapshot) acceptSnapshot(payload.snapshot);
-        else renderDrawStage();
+        else if(opened)renderDrawStage();
+        if(!opened)return;
         $.Msg("[SURVIVAL_LOTTERY_UI] stage=cards_ready count=" + resultCards.length);
         setText("LotteryStatus", "本次获得 "
             + Number(payload.count || visibleResults.length) + " 件物品");
@@ -639,6 +660,7 @@
     function renderExchangeResult(payload) {
         pending = false;
         if (!payload || !succeeded(payload.ok)) {
+            if(!opened)return;
             setText("LotteryStatus", "兑换失败："
                 + errorText(payload && payload.error));
             return;
@@ -646,7 +668,8 @@
         visibleResults = [payload.item];
         lastDrawCount = 1;
         if (payload.snapshot) acceptSnapshot(payload.snapshot);
-        else renderDrawStage();
+        else if(opened)renderDrawStage();
+        if(!opened)return;
         setText("LotteryStatus", "兑换成功");
         updateButtons();
     }
@@ -777,8 +800,8 @@
     }
 
     close();
-    if(cache){cacheSubscription=cache.Subscribe(active(function(id,packet){if(packet && packet.read_error){readsPending={};return;}refreshLocal(id);}));refreshLocal("");}
-    subscriptions.push(GameEvents.Subscribe("ui_lottery_result", active(renderResult)));
+    if(cache){cacheSubscription=cache.Subscribe(active(function(id,packet){if(packet && packet.read_error){readsPending={};return;}if(packet&&packet.result&&!packet.result.pending){renderResult(packet.result);return;}refreshLocal(id);if(opened&&packet&&packet.error_text&&(!id||id===selectedPoolId))setText("LotteryStatus",packet.error_text);}));refreshLocal("");}
+    if(!cache||!cache.Compact)subscriptions.push(GameEvents.Subscribe("ui_lottery_result", active(renderResult)));
     subscriptions.push(GameEvents.Subscribe("ui_lottery_exchange_result", active(renderExchangeResult)));
     var api={
         SkipCinematic: completeReveal,
@@ -797,7 +820,7 @@
         SetSkipAnimation: function () { skipAnimation = !!panel("LotterySkipAnimation").checked; if (skipAnimation && animating) completeReveal(); },
         SelectPool: selectPool,
         SelectHistoryPool: function(id){if(pending||animating)return;historyPoolId=String(id||selectedPoolId);feature("history");},
-        Refresh: function () { if (!pending && !animating) refreshLocal(""); }
+        Refresh: function () { if (!pending && !animating) refreshLocal("",true); }
     };
     Object.keys(api).forEach(function(key){api[key]=active(api[key]);});
     api.IsAlive=alive;
