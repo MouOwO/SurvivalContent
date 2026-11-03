@@ -270,6 +270,26 @@
         style(node,{backgroundImage:uri?'url("'+uri+'")':"none",backgroundSize:"contain",backgroundPosition:"center",backgroundRepeat:"no-repeat",backgroundColor:"transparent",opacityMask:"none",washColor:"none",saturation:"1",brightness:"1",opacity:"1"});
     }
     function quantity(item) {var current=number(item&&item.owned_count),max=Number(item&&item.max_owned);return current+(current!=="—"&&isFinite(max)&&max>0?"/"+max:"");}
+    function hasOwnership(item) {
+        if(!item)return false;
+        // These are server-owned inventory/receipt fields. Count/quantity are
+        // the award size, not proof that the item was already held.
+        var raw=item.owned_count,value=Number(raw);
+        if(raw!==undefined&&raw!==null&&raw!==""&&isFinite(value)&&value>=0)return value>0;
+        return item.owned===true||item.owned===1||item.owned==="1"||item.duplicate===true||item.duplicate===1||item.duplicate==="1";
+    }
+    function ownershipLabel(parent,node,item,box,size) {
+        if(!valid(node)){
+            node=label(parent,"","",0,0,0,0,size,"#d7edc7");node.AddClass("LotteryGW2Ownership");node.hittestchildren=false;
+            style(node,{backgroundColor:"#07110ee6",border:"0px",fontFamily:'"Source Han Sans SC"',fontWeight:"bold",textAlign:"center",whiteSpace:"nowrap",textOverflow:"clip",textShadow:"none",zIndex:"6"});
+        }
+        var held=hasOwnership(item),geometry=box.join(":")+":"+size;
+        if(node.__lotteryOwnershipState!==held){node.text=held?"已拥有":"";node.visible=held;node.__lotteryOwnershipState=held;}
+        // Existing card render paths own these updates. An unchanged card does
+        // no extra text/style bridge writes, subscriptions or timer work.
+        if(node.__lotteryOwnershipGeometry!==geometry){place(node,box[0],box[1],box[2],box[3]);style(node,{fontSize:size+"px",lineHeight:box[3]+"px"});node.__lotteryOwnershipGeometry=geometry;}
+        return node;
+    }
     function previews() {
         if(!alive()||!view||!valid(view.previewItems))return;
         var rows=snapshot&&snapshot.items,items=Array.isArray(rows)?rows:rows&&typeof rows==="object"?Object.keys(rows).map(function(k){return rows[k];}):[];
@@ -287,6 +307,7 @@
             var resources=cfg.SurvivalItemResources;if(resources&&resources.ApplyBackground)resources.ApplyBackground(well,item);
             style(well,{border:"0px",boxShadow:"none"});
             var icon=presentation&&presentation.CreateIcon(b,item,"LotteryGW2PreviewIcon");if(icon){place(icon,20.5,10,91,91);fillItemIcon(icon,item);}
+            b.__lotteryOwnership=ownershipLabel(b,b.__lotteryOwnership,item,[11.5,89,109,21],14);
             var itemName=label(b,"",displayName(item,item.name||item.id||""),0,120,132,30,19.5,"#dddccf");style(itemName,{whiteSpace:"nowrap",textOverflow:"ellipsis",textShadow:"#000000 0px 0px 2px 2.0"});
             var cardWidth=132;
             var nameAt=String(itemName.style.position).split(" "),nameHeight=parseFloat(itemName.style.height),nameHost=make("Panel",b,"","LotteryGW2PreviewNameHost");
@@ -309,7 +330,11 @@
         return {content:content,cost:costHost,ticket:ticket};
     }
     function action(id,primary) {
-        var b=p(id);if(!valid(b))return;b.AddClass("LotteryGW2Action");b.AddClass("LotteryGW2NativeButton");b.SetHasClass("LotteryGW2Primary",!!primary);style(b,{backgroundImage:"none",backgroundColor:"transparent",boxShadow:"none",flowChildren:"none",borderRadius:"0px",border:"0px",overflow:"noclip"});
+        var b=p(id);if(!valid(b))return;b.AddClass("LotteryGW2Action");b.AddClass("LotteryGW2NativeButton");b.SetHasClass("LotteryGW2Primary",!!primary);style(b,{backgroundImage:"none",backgroundColor:id==="LotteryConfirm"?"#172b20":"transparent",boxShadow:"none",flowChildren:"none",borderRadius:"0px",border:"0px",overflow:"noclip"});
+        // The stock secondary texture contains transparent outer pixels. Give
+        // confirmation its own full hit-area backing instead of exposing the
+        // result scene through those pixels; keep the original button/callback.
+        if(id==="LotteryConfirm"&&!b.__lotteryConfirmBacking){style(b,{minWidth:"0px",minHeight:"0px",padding:"0px"});b.__lotteryConfirmBacking=true;}
         b.AddClass("LotteryGW2ForestButton");
         var busy=!!(p("LotteryWindow")&&p("LotteryWindow").BHasClass("LotteryWaiting"));b.SetHasClass("LotteryGW2ForestBusy",busy);
         var draw=id==="LotterySingleButton"||id==="LotteryTenButton";
@@ -317,7 +342,8 @@
         if(!valid(surface)){surface=skins[id]=make("Panel",b,"","LotteryGW2ButtonSurface");surface.hittest=false;surface.hittestchildren=false;var first=b.Children()[0];if(first!==surface&&b.MoveChildBefore)b.MoveChildBefore(surface,first);
             var glass=make("Panel",surface,"","LotteryGW2ButtonGlass");style(glass,{width:"100%",height:"100%",overflow:"clip"});glass.hittest=false;glass.hittestchildren=false;
             var shine=make("Panel",glass,"","LotteryGW2ButtonShine");place(shine,-100,-42,50,168);shine.hittest=false;style(shine,{backgroundColor:"#f0ffe51f"});}
-        place(surface,0,0,0,0);style(surface,{width:"100%",height:"100%",zIndex:"0",backgroundImage:'url("'+(primary?forest.primary:forest.secondary)+'")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",backgroundColor:"transparent"});
+        place(surface,0,0,0,0);style(surface,{width:"100%",height:"100%",zIndex:"0",backgroundImage:'url("'+(primary?forest.primary:forest.secondary)+'")',backgroundSize:"100% 100%",backgroundRepeat:"no-repeat",backgroundColor:id==="LotteryConfirm"?"#172b20":"transparent"});
+        if(id==="LotteryConfirm"&&!surface.__lotteryConfirmBacking){style(surface,{backgroundPosition:"center",minWidth:"0px",minHeight:"0px"});surface.__lotteryConfirmBacking=true;}
         walk(b,function(n){if(n.paneltype==="Label")style(n,{color:busy?"#d6e4d2":b.enabled===false?"#b2beb2":"#f1eadb",fontSize:"28px",lineHeight:"32px",textShadow:"#000000 0px 1px 2px 2.0"});if(n.BHasClass("ZXActionSkin")||n.BHasClass("LHDrawVisual"))n.visible=false;});
         var focusNodes=view.actionFocus||(view.actionFocus={}),focus=focusNodes[id];
         if(!valid(focus)){focus=focusNodes[id]=make("Panel",b,"","LotteryGW2DrawFocus");focus.hittest=false;focus.hittestchildren=false;style(focus,{border:"2px solid #d0ebba",backgroundColor:"transparent",zIndex:"3"});}
@@ -386,7 +412,9 @@
             // Native fixed-width Labels align the glyph run differently from
             // browsers. Center its natural box inside a fixed, clipped row.
             place(cell.name,0,0,cardWidth,nameHeight);style(cell.name,{width:"fit-children",maxWidth:cardWidth+"px",horizontalAlign:"center",fontSize:result?(one?22:15)+"px":"17px",lineHeight:result?(one?35.2:24)+"px":"26px",textOverflow:"clip",whiteSpace:"nowrap",textShadow:result?"#000000 0px 0px 2px 2.0":"none"});
-            place(cell.count,iconLeft+4,result?iconSize-21:88,iconSize-12,result?22:24);style(cell.count,{fontSize:result?"14px":"16px"});
+            var ownershipHeight=result&&one?24:22,ownershipY=3+iconSize-ownershipHeight-1;
+            cell.ownership=ownershipLabel(cell.host,cell.ownership,item,[iconLeft+1,ownershipY,iconSize-2,ownershipHeight],result&&one?18:14);
+            place(cell.count,iconLeft+4,cell.ownership.__lotteryOwnershipState?ownershipY-24:(result?iconSize-21:88),iconSize-12,result?22:24);style(cell.count,{fontSize:result?"14px":"16px"});
             if(result){
                 var quality=String(item.quality||"n").toLowerCase(),presentation=cfg.SurvivalRewardPresentation,color=presentation&&presentation.NameColor?presentation.NameColor(quality):"#a7c9a3";
                 style(cell.well,{backgroundImage:"none",backgroundColor:"#07101bcf",border:"1px solid "+color,boxShadow:"#00000088 0px 0px 15px 0px"});
@@ -486,6 +514,7 @@
                 }
                 if(!valid(face.well))face.well=face.host.Children().filter(function(child){return child.BHasClass("LotteryGW2ItemWell");})[0];
                 qualityWell(face.well,item);
+                face.ownership=ownershipLabel(face.host,face.ownership,item,[1,51,70,20],12);
                 card.Children().forEach(function(child){child.visible=child===face.host;});face.count.text=model.Quantity(item);card.AddClass("LotteryGW2PrizeSlot");card.AddClass("LotteryQuality_"+String(item.quality||"n").toUpperCase());card.SetHasClass("LotteryGW2PrizeUnowned",model.Quantity(item).split("/")[0]==="0");
                 style(card,{flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",boxShadow:"none",overflow:"noclip",transform:"none"});entries.push(card);
             });
