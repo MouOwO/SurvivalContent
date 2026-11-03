@@ -13,6 +13,7 @@
         <include src="file://{resources}/scripts/custom_game/common/compact_lottery_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_grid_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_selected_model.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_production_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/network50_diagnostics.js" />
 
         <include src="file://{resources}/scripts/custom_game/survival_static_grid.js" />

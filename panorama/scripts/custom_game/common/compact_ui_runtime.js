@@ -23,8 +23,8 @@
  }
 }(function(){
  "use strict";
- var BUILD="compact_ui_runtime_20261103_v5";
- var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7};
+ var BUILD="compact_ui_runtime_20261103_v6";
+ var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7,production_train:8,production_research:9,production_auto:10,production_cancel:11};
  var ERRORS={schema_mismatch:"界面版本与服务器不一致，请更新游戏后重新进入。",schema_unknown:"界面协议不一致，请更新游戏后重新进入。",not_ready:"正在核对界面版本，请稍后。",token_exhausted:"本次会话的操作编号已用完，请重新进入游戏。",revision_exhausted:"本次会话的消息编号已用完，请重新进入游戏。",native_send_failed:"同步消息未能发送，请重新打开界面。",application_rejected:"界面数据校验失败，正在重新同步。"};
  function need(ok,code){if(!ok)throw new Error(code);}
  function integer(n,min,max){return typeof n==="number"&&isFinite(n)&&Math.floor(n)===n&&n>=min&&n<=max;}
@@ -37,7 +37,7 @@
   var control=records["wire:control"],helloWords=[],helloByRecord=Object.create(null),word;
   need(control&&F.count&&F.visible&&F.known&&F.action_code&&F.arg_a&&F.arg_b&&F.arg_c&&F.request_token,"compact_control_schema_missing");
   for(word=1;word<=8;word++){var rec=records["wire:hello:"+word];need(rec,"compact_hello_schema_missing");helloWords.push(rec);helloByRecord[rec]=word-1;}
-  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;
+  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;keys.production=7;keys.vip=8;
   var categories=C.auxiliary&&C.auxiliary.archive_projection&&C.auxiliary.archive_projection.categories||[];
   categories.forEach(function(row,index){keys["archive:"+row.id]=101+index;});
   var pools=C.auxiliary&&C.auxiliary.lottery_public&&C.auxiliary.lottery_public.snapshots||[];
@@ -159,8 +159,10 @@
    function read(rec,field){return alive()&&view.client?view.client.Read(rec,field):undefined;}
    function intent(action,args){
     if(!alive())return {sent:false,error:"disposed"};if(!ready||view.desired!=="open")return {sent:false,error:"not_ready"};args=args||{};var code=ACTIONS[action];if(!code)return {sent:false,error:"action_unknown"};
-    if((code<=3&&id!==3)||((code===4||code===7)&&(id<201||id>204))||((code===5||code===6)&&(id<101||id>120)))return {sent:false,error:"action_view_mismatch"};
+    if((code<=3&&id!==3)||((code===4||code===7)&&(id<201||id>204))||((code===5||code===6)&&(id<101||id>120))||(code>=8&&id!==7))return {sent:false,error:"action_view_mismatch"};
     var a=args.arg_a,b=args.arg_b,c=args.arg_c;if(code===1)a=args.target_day;else if(code===2)a=args.tier_record;else if(code===4){a=args.pool_record;b=args.count;c=args.skip_animation===undefined?0:args.skip_animation===true?1:args.skip_animation===false?0:args.skip_animation;}else if(code===7){a=args.pool_record;b=args.read_action;if(!integer(b,1,3))return {sent:false,error:"intent_argument_invalid"};}
+    else if(code>=8){a=args.entity;b=code===11?args.job_handle:args.definition_record;c=args.selection;
+     if(!integer(a,1,4294967295)||!integer(b,1,code===11?4294967295:65535)||!integer(c,1,4294967295))return {sent:false,error:"intent_argument_invalid"};}
     if(code!==3&&!integer(a,0,4294967295)||b!==undefined&&!integer(b,0,4294967295)||c!==undefined&&!integer(c,0,4294967295))return {sent:false,error:"intent_argument_invalid"};
     if(memo.intent_token>=16383){notify(view,"token_exhausted");return {sent:false,error:"token_exhausted"};}
     var token=++memo.intent_token,values={action_code:code,request_token:token};if(a!==undefined)values.arg_a=a;if(b!==undefined)values.arg_b=b;if(c!==undefined)values.arg_c=c;
@@ -170,10 +172,11 @@
    function input(code,args){
     if(!alive())return {sent:false,error:"disposed"};
     if(!ready||view.desired!=="open")return {sent:false,error:"not_ready"};
-    if(id!==4&&id!==5)return {sent:false,error:"input_view_mismatch"};
+    if(id!==4&&id!==5&&id!==7)return {sent:false,error:"input_view_mismatch"};
     if(!integer(code,1,id===4?5:2))return {sent:false,error:"input_action_invalid"};
-    var rec=records[id===4?"grid:input":"selected:input"],values={},allowed=id===4?{grid_session:1,grid_request:1,grid_profile:1,grid_actor:1,grid_ability:1,grid_x_hi:1,grid_x_lo:1,grid_y_hi:1,grid_y_lo:1,grid_z_hi:1,grid_z_lo:1}:{selected_entity:1,selected_token:1};
-    values[id===4?"grid_action":"selected_action"]=code;
+    var prefix=id===4?"grid":id===5?"selected":"production";
+    var rec=records[prefix+":input"],values={},allowed=id===4?{grid_session:1,grid_request:1,grid_profile:1,grid_actor:1,grid_ability:1,grid_x_hi:1,grid_x_lo:1,grid_y_hi:1,grid_y_lo:1,grid_z_hi:1,grid_z_lo:1}:id===5?{selected_entity:1,selected_token:1}:{production_entity:1,production_selection:1};
+    values[prefix+"_action"]=code;
     if(!rec)return {sent:false,error:"input_schema_missing"};args=args||{};
     var names=Object.keys(args);for(var n=0;n<names.length;n++){var name=names[n];if(!allowed[name]||!integer(args[name],0,4294967295))return {sent:false,error:"input_argument_invalid"};values[name]=args[name];}
     return emitControl(view,values,rec);

@@ -6,7 +6,7 @@
     if(previous&&previous.Dispose)previous.Dispose();
     if(cfg.SurvivalVIP&&cfg.SurvivalVIP.Dispose)cfg.SurvivalVIP.Dispose();
     else if(cfg.SurvivalVIP&&cfg.SurvivalVIP.Close)cfg.SurvivalVIP.Close();
-    var disposed=false,subscription=null,hosts=[],known=!!(retained&&retained.known),current=known?retained.level:0;
+    var disposed=false,subscription=null,compactView=null,hosts=[],known=!!(retained&&retained.known),current=known?retained.level:0;
     var positions=[[5,8],[49,40],[12,39],[53,14],[25,3],[35,43],[1,27],[59,29],[17,13],[43,4],[23,45],[48,25],[8,23],[35,10]];
     function valid(panel){return panel&&(!panel.IsValid||panel.IsValid());}
     function level(value){
@@ -125,6 +125,7 @@
     function dispose(){
         if(disposed)return;disposed=true;
         if(subscription!==null&&GameEvents.Unsubscribe)GameEvents.Unsubscribe(subscription);
+        if(compactView)compactView.Dispose();compactView=null;
         hosts.forEach(function(button){
             var badge=button&&button.__survivalVIPStatus;
             if(badge&&valid(badge.host))badge.host.DeleteAsync(0);
@@ -139,8 +140,19 @@
     cfg.SurvivalVIP={IsAvailable:function(){return false;},IsOpen:function(){return false;},IsPreview:function(){return false;},
         Open:function(){return false;},Toggle:function(){return false;},Close:hideWindow,Refresh:function(){},Dispose:dispose};
     hideWindow();
+    var catalogue=cfg.SurvivalUICatalog,record=catalogue&&catalogue.ByKey&&catalogue.ByKey['vip:state'];
+    if(record&&cfg.SurvivalCompactRuntime){
+        var fields=catalogue.FieldIds;
+        compactView=cfg.SurvivalCompactRuntime.CreateView('vip',{onCommit:function(tx,ids,read){
+            if(disposed||!valid(context))return;
+            if(read(record,fields.known)!==1){if(known){known=false;current=0;refreshHosts();}return;}
+            receive({ok:true,level:read(record,fields.count)});
+        }});
+        compactView.Open();
+    }else{
     subscription=GameEvents.Subscribe("survival_vip_snapshot",receive);
     // This one read also registers the existing server-side push subscription.
     // Account load and later recharge updates then arrive without HUD polling.
     GameEvents.SendCustomGameEventToServer("survival_vip_request",{action:"view"});
+    }
 })();

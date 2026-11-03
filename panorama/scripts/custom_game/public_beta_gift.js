@@ -78,23 +78,25 @@
     var generation = Number(cfg.SurvivalPublicBetaGiftGeneration || 0) + 1;
     cfg.SurvivalPublicBetaGiftGeneration = generation;
     var disposed = false, timer = null, subscription = null, loadingSubscription = null, shell = null, api;
-    var lastRequest = -100, requestedLogin = "", hadAdmission = false, hasFreshSnapshot = false;
+    var lastRequest = -100, hadAdmission = false, hasFreshSnapshot = false;
     function valid(panel) { return !!panel && (!panel.IsValid || panel.IsValid()); }
     function alive() { return !disposed && cfg.SurvivalPublicBetaGiftGeneration === generation && valid(context) && valid(root); }
     function now() { return Date.now() / 1000; }
     function setText(panel, value) { if (valid(panel) && panel.text !== value) panel.text = value; }
     function admitted() {
         var loading = CustomNetTables.GetTableValue("survival_loading", "state");
-        return !!loading && yes(loading.admission_complete === undefined ? loading.all_ready : loading.admission_complete);
+        return !!loading && yes(loading.admission_complete === undefined ? loading.all_ready : loading.admission_complete)
+            && yes(loading.profiles_ready);
     }
     function readyUI() {
         var ui = cfg.SurvivalUI, layers = cfg.SurvivalUILayers;
         return ui && ui.ModalShell && (!ui.IsAlive || ui.IsAlive()) && layers && (!layers.IsAlive || layers.IsAlive());
     }
     function request(force) {
-        if (!alive() || !admitted() || (!force && now() - lastRequest < 5)) return;
+        if (!alive() || !admitted() || (!force && now() - lastRequest < 5)) return false;
         lastRequest = now();
         GameEvents.SendCustomGameEventToServer("survival_public_beta_gift_request", {});
+        return true;
     }
     function close() {
         if (!alive()) return;
@@ -151,7 +153,7 @@
     }
     function receive(payload) {
         if (!alive() || !accept(state, payload)) return;
-        hasFreshSnapshot = true; requestedLogin = state.login_key; render();
+        hasFreshSnapshot = true; render();
     }
     function dispose() {
         if (disposed) return;
@@ -168,7 +170,13 @@
         var admission = admitted();
         if (admission && !hadAdmission) request(true);
         hadAdmission = admission;
-        if (admission && (!state.snapshot || busy(state) || requestedLogin !== state.login_key)) request(false);
+        // Profile readiness and the original authoritative ACK push drive this
+        // view. A slow explicit claim may query its status once after10s; it
+        // never repeats a claim or polls an unavailable profile every5s.
+        if (admission && state.pending && !state.pending.status_requested
+            && now() - Number(state.pending.started_at) >= 10 && request(false)) {
+            state.pending.status_requested = true;
+        }
         render(); timer = $.Schedule(.25, loop);
     }
     button.SetPanelEvent("onactivate", claim);

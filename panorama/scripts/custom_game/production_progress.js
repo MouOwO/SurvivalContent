@@ -76,6 +76,7 @@
     if (typeof module !== "undefined" && module.exports) { module.exports = model; return; }
 
     var cfg = GameUI.CustomUIConfig(), ctx = $.GetContextPanel();
+    if(cfg.SurvivalProductionHUD&&cfg.SurvivalProductionHUD.Dispose)cfg.SurvivalProductionHUD.Dispose();
     var generation = Number(cfg.SurvivalProductionGeneration || 0) + 1;
     cfg.SurvivalProductionGeneration = generation;
     var panel = ctx.FindChildTraverse("SurvivalProductionPanel");
@@ -84,10 +85,41 @@
     var pendingTraining = {}, trainingBases = {};
     var buttons = [], queueSlots = [], autoMarkers = [], nodes = {}, serial = 0, lastGeometry = null;
     var lastReady = false, lastEntries = [], lastGeometryUnit = -1, status = "", statusUntil = 0;
+    var presentationRevision=0,lastPaint=null,currentUnitName="",bindingNames={},bindingSubscription=null;
+    var compactModel=null,compactView=null,compactSelection=Number(cfg.SurvivalProductionSelectionSerial||0),compactDesired=-1,compactObserved=-1,compactRelevant=false,compactSent=0,compactDisposed=false;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
     function active() { return valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
     function blocked() { return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top && cfg.SurvivalUILayers.Top(); }
     function gameTime() { return Number(Game.GetGameTime ? Game.GetGameTime() : 0); }
+    function compactMode(){return !!cfg.SurvivalCompactRuntime;}
+    function compactSelect(unit){
+        if(!compactView||!active()||compactDisposed)return;
+        if(unit!==compactObserved){compactObserved=unit;compactRelevant=relevant(unit);}
+        if(!compactRelevant){compactDesired=-1;compactSent=0;compactView.Close();return;}
+        if(compactDesired===unit&&compactSent===compactSelection)return;
+        if(compactDesired!==unit){if(compactSelection>=4294967295){notify("生产选择代际已耗尽，请重新进入游戏");return;}compactDesired=unit;compactSelection++;cfg.SurvivalProductionSelectionSerial=compactSelection;compactSent=0;compactModel.Select(unit,compactSelection);delete snapshots[unit];}
+        compactView.Open();
+        if(compactView.Inspect().ready&&compactSent!==compactSelection){var sent=compactView.SendInput(1,{production_entity:unit,production_selection:compactSelection});if(sent.sent)compactSent=compactSelection;}
+    }
+    function compactIntent(action,key,unit,id){
+        if(!compactMode())return false;
+        function failed(message){
+            var pending=pendingTraining[id];if(pending){delete pendingTraining[id];var key=unit+':'+pending.training_id;
+                var remains=Object.keys(pendingTraining).some(function(k){var other=pendingTraining[k];return other.unit===unit&&other.training_id===pending.training_id;});
+                if(!remains)delete trainingBases[key];presentationRevision++;
+            }
+            notify(message);return true;
+        }
+        if(!compactView||compactDesired!==unit||compactSent!==compactSelection)return failed("正在同步生产信息");
+        if(compactModel.Inspect().pending>=7)return failed("操作处理中，请稍候");
+        var target=action==="production_cancel"?Number(key):compactModel.DefinitionRecord(key);
+        if(!target)return failed("生产配置尚未就绪");
+        var args={entity:unit,selection:compactSelection};args[action==="production_cancel"?"job_handle":"definition_record"]=target;
+        var sent=compactView.SendIntent(action,args);
+        if(sent.sent)compactModel.BindIntent(sent.request_token,id,unit);
+        else failed("请求未发出，请稍后重试");
+        return true;
+    }
     function selectedUnit() {
         var selection = cfg.SurvivalSelectionResolver;
         return Number(selection && selection.ResolveDisplayUnit ? selection.ResolveDisplayUnit()
@@ -144,7 +176,9 @@
         return result;
     }
     function label(parent, id, className) { return create("Label", parent, id, className || ""); }
-    function text(target, value) { if (target.text !== String(value)) target.text = String(value); }
+    function text(target, value) { value=String(value);if(target.__productionText===value)return;target.text=value;target.__productionText=value; }
+    function visible(target,value){value=!!value;if(target.__productionVisible===value)return;target.visible=value;target.__productionVisible=value;}
+    function classed(target,name,value){var cache=target.__productionClasses||(target.__productionClasses={});value=!!value;if(cache[name]===value)return;target.SetHasClass(name,value);cache[name]=value;}
     function formatResource(value) {
         var formatter = cfg.SurvivalNumberFormatter;
         return formatter && formatter.Format ? formatter.Format(value) : String(Number(value || 0));
@@ -180,8 +214,10 @@
         var snapshot = snapshots[unit] || {}, prior = snapshot.training;
         if (prior && Number(training.queue_revision || 0) < Number(prior.queue_revision || 0)) return;
         snapshot.training = training; snapshots[unit] = snapshot;
+        presentationRevision++;
     }
     function trainingReceipt(result) {
+        presentationRevision++;
         var receipt = pendingTraining[String(result.request_id || "")];
         var unit = receipt ? receipt.unit : Number(result.source_entindex);
         if (receipt) {
@@ -206,7 +242,7 @@
         }
         if (isFinite(unit) && unit >= 0) acceptTraining(unit, result.training);
     }
-    function notify(message) { status = reason({reason: message || "操作未完成"}); statusUntil = gameTime() + 4; }
+    function notify(message) { status = reason({reason: message || "操作未完成"}); statusUntil = gameTime() + 4; presentationRevision++; }
     function escape(value) {
         return String(value === undefined ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
@@ -242,7 +278,7 @@
     }
     if (!valid(panel) || !valid(markers)) return;
     panel.RemoveAndDeleteChildren(); markers.RemoveAndDeleteChildren();
-    panel.visible = false;
+    visible(panel,false);
     var title = label(panel, "ProductionTitle", "ProductionTitle");
     var badge = label(panel, "ProductionMode", "ProductionMode");
     function workerName(job) {
@@ -278,7 +314,7 @@
     var cancelCurrentLabel = label(cancelCurrent, "", "ProductionQueueLevel");
     text(cancelCurrentLabel, "取消");
     style(cancelCurrentLabel, { width: "100%", height: "100%", textAlign: "center", verticalAlign: "center" });
-    cancelCurrent.visible = false;
+    visible(cancelCurrent,false);
     cancelCurrent.SetPanelEvent("onactivate", function () { cancelResearch(cancelCurrent.job); });
     cancelCurrent.SetPanelEvent("onmouseover", function () {
         if (cancelCurrent.job) $.DispatchEvent("DOTAShowTextTooltip", cancelCurrent,
@@ -342,8 +378,9 @@
             var key = unit + ":" + trainingId;
             if (!trainingBases[key]) trainingBases[key] = {unit:unit, training_id:trainingId, used:quotaUsed(entry.option)};
             pendingTraining[id] = {unit:unit, training_id:trainingId, order:serial};
+            presentationRevision++;
             repaint();
-            GameEvents.SendCustomGameEventToServer("ui_worker_train_request", {
+            if(!compactIntent("production_train",trainingId,unit,id))GameEvents.SendCustomGameEventToServer("ui_worker_train_request", {
                 request_id: id, source_entindex: unit, training_id: trainingId
             });
         });
@@ -425,7 +462,7 @@
         var id = requestId("auto");
         researchDiagnostic("SEND", "auto_research", ability, unit,
             "request_id=" + id + " group=" + String(personal.technology_group));
-        GameEvents.SendCustomGameEventToServer("ui_shop_auto_research_toggle_request", {
+        if(!compactIntent("production_auto",personal.technology_group,unit,id))GameEvents.SendCustomGameEventToServer("ui_shop_auto_research_toggle_request", {
             request_id: id, technology_group: personal.technology_group, source_entindex: Number(unit)
         });
         return true;
@@ -446,7 +483,7 @@
         var id = requestId("research");
         researchDiagnostic("SEND", "research_queue", ability, unit,
             "request_id=" + id + " group=" + String(personal.technology_group));
-        GameEvents.SendCustomGameEventToServer("ui_research_queue_request", {
+        if(!compactIntent("production_research",personal.technology_group,unit,id))GameEvents.SendCustomGameEventToServer("ui_research_queue_request", {
             request_id: id, technology_group: personal.technology_group, source_entindex: Number(unit)
         });
         return true;
@@ -455,8 +492,9 @@
         var unit = selectedUnit(), snapshot = snapshots[unit];
         if (!active() || blocked() || unit !== currentUnit || !snapshot || !snapshot.research
             || !/^building_(advanced_)?research_lab$/.test(unitType(unit)) || !job || !job.job_id) return false;
-        GameEvents.SendCustomGameEventToServer("ui_research_cancel_request", {
-            request_id: requestId("cancel"), source_entindex: unit, job_id: String(job.job_id)
+        var cancelId=requestId("cancel");
+        if(!compactIntent("production_cancel",job.job_id,unit,cancelId))GameEvents.SendCustomGameEventToServer("ui_research_cancel_request", {
+            request_id: cancelId, source_entindex: unit, job_id: String(job.job_id)
         });
         return true;
     }
@@ -474,13 +512,13 @@
         var trainingQueue = !research;
         place(queue, 16, trainingQueue ? 90 : 172, 122, 36);
         text(queue, "等待 " + pending.length + "/" + Math.max(0, Number(capacity || 7) - 1));
-        currentCell.visible = trainingQueue;
+        visible(currentCell,trainingQueue);
         if (trainingQueue) {
             place(currentCell, 140, 78, 58, 58);
             currentCell.job = head || null; currentCell.training = !!training;
-            currentCell.SetHasClass("Current", !!(head && training));
-            currentCell.SetHasClass("Empty", !head);
-            currentCell.workerIcon.visible = !!head;
+            classed(currentCell,"Current",!!(head&&training));
+            classed(currentCell,"Empty",!head);
+            visible(currentCell.workerIcon,!!head);
             if (head) {
                 image(currentCell.workerIcon, workerIcon(head));
                 tintWorkerIcon(currentCell.workerIcon, head);
@@ -489,12 +527,12 @@
         }
         queueSlots.forEach(function (cell, index) {
             // Six waiting cells fit the minimum panel width without shrinking their labels.
-            cell.visible = true; place(cell, (trainingQueue ? 204 : 146) + 64 * index, trainingQueue ? 78 : 160, 58, 58);
+            visible(cell,true); place(cell, (trainingQueue ? 204 : 146) + 64 * index, trainingQueue ? 78 : 160, 58, 58);
             var entry = pending[index];
             cell.job = entry || null; cell.research = !!research;
-            cell.cancel.visible = !!(entry && research && entry.job_id);
-            cell.SetHasClass("Empty", !entry); cell.icon.visible = !!entry && !!research;
-            cell.workerIcon.visible = !!entry && !research;
+            visible(cell.cancel,!!(entry&&research&&entry.job_id));
+            classed(cell,"Empty",!entry); visible(cell.icon,!!entry&&!!research);
+            visible(cell.workerIcon,!!entry&&!research);
             if (entry && research) abilityImage(cell.icon, researchAbility(entry, research));
             if (entry && !research) {
                 image(cell.workerIcon, workerIcon(entry));
@@ -503,14 +541,14 @@
             text(cell.level, entry ? "LV" + Number(entry.target_level || entry.level || 1) : "·");
         });
     }
-    function updateMarkers(g, entries, visible) {
+    function updateMarkers(g, entries, showMarkers) {
         var total = entries.length;
         for (var index = 0; index < Math.max(total, autoMarkers.length); index++) {
-            var entry = entries[index], runtime = entry && visible
+            var entry = entries[index], runtime = entry && showMarkers
                 ? CustomNetTables.GetTableValue("survival_ability_runtime", String(entry.ability)) || {} : {};
             var ownResearch = snapshots[currentUnit] && snapshots[currentUnit].research;
             var ownAuto = ownResearch && ownResearch.auto_research || {};
-            var enabled = !!(entry && visible && /^ability_research_/.test(entry.name || "")
+            var enabled = !!(entry && showMarkers && /^ability_research_/.test(entry.name || "")
                 && Number(ownAuto[runtime.technology_group]) === 1);
             var marker = autoMarkers[index];
             if (enabled && !valid(marker)) {
@@ -519,7 +557,7 @@
                 autoMarkers[index] = marker;
             }
             if (!valid(marker)) continue;
-            marker.visible = enabled;
+            visible(marker,enabled);
             if (!enabled) continue;
             place(marker, g.x + ((typeof g.actionOffset === "number" ? g.actionOffset : g.heroWidth + 10) + 120 * index) * g.scale,
                 g.y + 61 * g.scale, 116 * g.scale, 116 * g.scale);
@@ -528,21 +566,27 @@
     }
     function refresh(g, unit, ready, entries) {
         if (!active()) return 0;
+        compactSelect(Number(unit));
         lastGeometry = g; lastReady = !!ready; lastEntries = entries || []; lastGeometryUnit = Number(unit);
         unit = Number(unit);
         if (unit !== currentUnit) {
             currentUnit = unit; status = "";
+            currentUnitName=unitType(unit);presentationRevision++;
             $.DispatchEvent("DOTAHideTextTooltip");
-            if (relevant(unit)) GameEvents.SendCustomGameEventToServer("ui_selected_unit_stats_request", { entindex: unit });
+            if (relevant(unit)&&!compactMode()) GameEvents.SendCustomGameEventToServer("ui_selected_unit_stats_request", { entindex: unit });
         }
+        var signature=g?[unit,!!ready,g.x,g.y,g.scale,g.height,g.minimapSize,g.heroWidth,g.centerWidth,g.actionOffset,g.windowWidth,g.windowHeight].join(':'):String(unit)+':none';
+        var tick=gameTime();
+        if(lastPaint&&lastPaint.statusVisible&&tick>=statusUntil)presentationRevision++;
+        if(lastPaint&&lastPaint.signature===signature&&lastPaint.revision===presentationRevision){if(lastPaint.clock)paintClock(lastPaint.clock,tick);return 0;}
         var snapshot = snapshots[unit] || {}, training = snapshot.training, research = snapshot.research;
-        var showTraining = unitType(unit) === "building_main_city" && training && training.options;
-        var showResearch = /^building_(advanced_)?research_lab$/.test(unitType(unit)) && research;
+        var showTraining = currentUnitName === "building_main_city" && training && training.options;
+        var showResearch = /^building_(advanced_)?research_lab$/.test(currentUnitName) && research;
         var placement = panelGeometry(g, !!showTraining);
         var show = !!(ready && placement && (showTraining || showResearch));
-        panel.visible = show;
+        visible(panel,show);
         updateMarkers(g, lastEntries, !!(ready && placement && showResearch));
-        if (!show) return 0;
+        if (!show){lastPaint={signature:signature,revision:presentationRevision};return 0;}
         // Dense research ability rows shrink the native HUD. Keep production
         // text legible while aligning this attachment's right edge to that row.
         var panelScale = placement.scale, width = placement.width;
@@ -555,14 +599,14 @@
         panel.__survivalWindowWidth = width * panelScale * (Number(ctx.actualuiscale_x) || 1);
         panel.__survivalWindowHeight = placement.height * panelScale * (Number(ctx.actualuiscale_y) || 1);
         place(title, 16, 8, width - 182, 44);
-        currentIcon.visible = false;
-        cancelCurrent.job = null; cancelCurrent.visible = false;
-        currentWorkerIcon.visible = false;
+        if(showTraining){visible(currentIcon,false);visible(cancelCurrent,false);}
+        cancelCurrent.job = null;
+        visible(currentWorkerIcon,false);
         place(currentWorkerIcon, 16, 66, 50, 50);
         place(currentIcon, 16, 66, 50, 50);
         place(footer, 16, height - 42, width - 32, 36);
-        title.visible = !showTraining; jobName.visible = !showTraining;
-        footer.visible = !showTraining;
+        visible(title,!showTraining); visible(jobName,!showTraining);
+        visible(footer,!showTraining);
         if (showTraining) {
             place(badge, 16, 8, 220, 36);
             style(badge, { textAlign:"left" });
@@ -574,7 +618,7 @@
             place(remaining, width - 108, 67, 92, 44);
             place(track, 16, 139, width - 32, 13);
         }
-        text(title, showTraining ? "伐木工训练" : unitType(unit) === "building_advanced_research_lab" ? "高级科技研究" : "科技研究");
+        text(title, showTraining ? "伐木工训练" : currentUnitName === "building_advanced_research_lab" ? "高级科技研究" : "科技研究");
         var now = gameTime(), job, blockedJob = null, waitUntil = 0, autoEnabled = false;
         if (showTraining) {
             place(jobName, 76, 70, width - 192, 66);
@@ -588,14 +632,14 @@
             var cellWidth = (width - 56) / 4;
             buttons.forEach(function (button, slot) {
                 var option = byId[citySlots[unit][slot]];
-                button.option = option || null; button.panel.visible = !!option;
+                button.option = option || null; visible(button.panel,!!option);
                 if (!option) return;
                 image(button.icon, workerIcon(option));
                 tintWorkerIcon(button.icon, option);
                 style(button.panel, { borderColor:workerTier(option).color });
                 place(button.panel, 16 + slot * (cellWidth + 8), 152, cellWidth, 108);
                 place(button.icon, 0, 0, cellWidth, 108);
-                button.level.visible = false; button.lock.visible = false;
+                visible(button.level,false); visible(button.lock,false);
                 place(button.count, 8, 47, cellWidth - 16, 26);
                 var cost = String(formatResource(option.cost_wood));
                 var costWidth = Math.min(cellWidth - 56, Math.max(28, cost.length * 16));
@@ -605,7 +649,7 @@
                 style(button.cost, { textAlign:"left" });
                 var locked = option.prerequisite_met !== undefined
                     ? Number(option.prerequisite_met) === 0 : Number(option.available) !== 1;
-                button.panel.SetHasClass("Unavailable", locked);
+                classed(button.panel,"Unavailable",locked);
                 text(button.level, "LV" + Number(option.level || 1));
                 text(button.count, (quotaUsed(option) + Number(option.pending_count || 0)) + "/"
                     + (Number(option.max_count) >= 0 ? option.max_count : "∞"));
@@ -616,13 +660,13 @@
             text(badge, blockedJob ? (trainingBlockedText.match(/(?:木材|金币|人口|资源)不足/) || ["等待"])[0] : job ? "训练中" : "空闲");
             text(footer, "");
         } else {
-            buttons.forEach(function (button) { button.panel.visible = false; button.option = null; });
+            buttons.forEach(function (button) { visible(button.panel,false); button.option = null; });
             job = Number(research.researching) === 1 ? research : null;
             blockedJob = !job && research.blocked_head && research.blocked_head.technology_group ? research.blocked_head : null;
             renderQueue(rows(research.queued), research.queue_capacity || research.capacity, research);
-            currentIcon.visible = !!(job || blockedJob);
+            visible(currentIcon,!!(job||blockedJob));
             cancelCurrent.job = (job && research.active_job) || blockedJob;
-            cancelCurrent.visible = !!(cancelCurrent.job && cancelCurrent.job.job_id);
+            visible(cancelCurrent,!!(cancelCurrent.job&&cancelCurrent.job.job_id));
             if (cancelCurrent.visible) {
                 place(cancelCurrent, width - 194, 70, 78, 38);
                 place(jobName, 76, 52, width - 280, 82);
@@ -642,8 +686,15 @@
                 : blockedJob ? blockedText
                 : autoEnabled ? "自动：完成后间隔 1 秒 · 队列图标可取消" : "左键加入队列 · 右键自动研究 · 队列图标可取消");
         }
-        badge.SetHasClass("Automatic", autoEnabled);
-        track.visible = !!job;
+        classed(badge,"Automatic",autoEnabled);
+        visible(track,!!job);
+        var clockState={job:job,blockedJob:blockedJob,showTraining:showTraining,autoEnabled:autoEnabled,waitUntil:waitUntil};
+        paintClock(clockState,now);
+        lastPaint={signature:signature,revision:presentationRevision,clock:clockState,statusVisible:!!(status&&now<statusUntil)};
+        return 0; // This attachment leaves buffs at their normal action-bar positions.
+    }
+    function paintClock(state,now){
+        var job=state.job,blockedJob=state.blockedJob,showTraining=state.showTraining,autoEnabled=state.autoEnabled,waitUntil=state.waitUntil;
         if (job) {
             var clock = progress(job, now);
             text(jobName, (showTraining ? "正在训练：伐木工" : "正在研究：" + (job.display_name || job.name || "科技"))
@@ -662,20 +713,20 @@
             text(jobName, showTraining ? "选择伐木工等级加入队列" : autoEnabled ? "自动待命 · 等待资源或前置条件" : "请选择要研究的科技");
             text(remaining, ""); style(fill, { width: "0%" });
         }
-        return 0; // This attachment leaves buffs at their normal action-bar positions.
     }
     function repaint() {
         var unit = selectedUnit();
         // Private snapshots and selection events may arrive before the main HUD
         // has laid out the newly selected unit. Never reuse another unit's anchor.
         if (unit !== lastGeometryUnit) {
-            panel.visible = false;
+            visible(panel,false);
             updateMarkers(null, [], false);
             return;
         }
         refresh(lastGeometry, unit, lastReady, lastEntries);
     }
     GameEvents.Subscribe("ui_selected_unit_stats_snapshot", function (snapshot) {
+        if(compactMode())return;
         if (!active() || !snapshot || Number(snapshot.success) !== 1) return;
         if (snapshot.player_id !== undefined && Number(snapshot.player_id) !== Number(Game.GetLocalPlayerID())) return;
         var unit = Number(snapshot.entindex);
@@ -692,18 +743,21 @@
             if (snapshot.research === undefined) snapshot.research = prior.research;
         }
         snapshots[unit] = snapshot;
+        presentationRevision++;
         if (unit === selectedUnit()) repaint();
     });
     GameEvents.Subscribe("dota_player_update_selected_unit", function (payload) {
         if (!active()) return;
         var pid = payload && (payload.PlayerID !== undefined ? payload.PlayerID : payload.player_id !== undefined ? payload.player_id : payload.playerid);
         if (pid !== undefined && Number(pid) !== Number(Game.GetLocalPlayerID())) return;
+        currentUnitName=unitType(selectedUnit());presentationRevision++;
         $.Schedule(0, function () {
             if (!active()) return;
             repaint();
         });
     });
     GameEvents.Subscribe("ui_operation_result", function (result) {
+        if(compactMode())return;
         if (!active() || !result || (result.operation !== "worker_train" && result.operation !== "shop_auto_research_toggle" && result.operation !== "research_queue" && result.operation !== "research_cancel")) return;
         if (String(result.request_id || "").indexOf("production_") !== 0) return;
         if (result.operation === "worker_train") trainingReceipt(result);
@@ -715,13 +769,33 @@
         if (Number(result.success) !== 1) notify(result.error || result.message || "操作未完成");
         repaint();
     });
+    if(compactMode()&&cfg.SurvivalCompactProductionModel&&cfg.SurvivalUICatalog){
+        compactModel=cfg.SurvivalCompactProductionModel.Create(cfg.SurvivalUICatalog);
+        compactView=cfg.SurvivalCompactRuntime.CreateView("production",{onCommit:function(tx,changed,read){
+            if(!active()||compactDisposed)return;
+            compactSelect(selectedUnit());
+            var result=compactModel.Apply(tx,changed,read);
+            if(result.stale)return;
+            if(result.snapshot){snapshots[result.snapshot.entindex]=result.snapshot;if(tx.full||changed.length)presentationRevision++;}
+            (result.receipts||[]).forEach(function(receipt){
+                if(receipt.operation==="worker_train")trainingReceipt(receipt);
+                if(receipt.success!==1)notify(receipt.error||"操作未完成");
+            });
+            repaint();
+        },onError:function(){if(active())notify("生产数据尚未同步，请重新选择建筑");}});
+    }
+    if(CustomNetTables.SubscribeNetTableListener)bindingSubscription=CustomNetTables.SubscribeNetTableListener("survival_ability_runtime",function(table,key,row){
+        if(!active()||!row||Number(row.owner_entindex)!==currentUnit||!row.ability_name)return;
+        if(bindingNames[key]!==row.ability_name){bindingNames[key]=row.ability_name;presentationRevision++;}
+    });
     cfg.SurvivalProductionHUD = {
         Refresh: refresh, QueueResearch: queueResearch, CancelResearch: cancelResearch, ToggleResearch: toggleResearch, GetResearchRuntime: getResearchRuntime,
         CacheInspect: function () {
             var counters = {}; Object.keys(presentationWrites).forEach(function (key) { counters[key] = presentationWrites[key]; });
             return {generation:generation, counters:counters, scope:"owned production style/image/ability assignments; callbacks and native HUD excluded"};
         },
-        Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; }
+        Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; },
+        Dispose:function(){compactDisposed=true;if(compactView)compactView.Dispose();if(bindingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(bindingSubscription);bindingSubscription=null;}
     };
     if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
         var inspectCommand = "survival_production_inspect_" + Date.now();
