@@ -1,7 +1,7 @@
 // Static catalogue is local. Only changed integer records cross this model.
 (function(factory){"use strict";var api=factory();if(typeof module!=="undefined"&&module.exports)module.exports=api;if(typeof GameUI!=="undefined"&&GameUI.CustomUIConfig)GameUI.CustomUIConfig().SurvivalCompactLotteryModel=api;}(function(){
 "use strict";
-var ERRORS=["","抽奖未完成，请重试","档案尚未载入","抽奖券不足","奖池尚未解锁","操作处理中，请稍后重试","奖池版本已更新，请重新进入","到账尚未确认，请稍后查询"],QUALITY=["","n","r","sr","ssr","ur"];
+var ERRORS=["","抽奖未完成，请重试","档案尚未载入","抽奖券不足","奖池尚未解锁","操作处理中，请稍后重试","奖池版本已更新，请重新进入","到账尚未确认，请稍后查询","奖池配置尚未同步，请稍候"],QUALITY=["","n","r","sr","ssr","ur"];
 function need(ok,e){if(!ok)throw new Error(e);}
 function clone(v){if(v===null||typeof v!=="object")return v;if(Array.isArray(v))return v.map(clone);var o={};Object.keys(v).forEach(function(k){o[k]=clone(v[k]);});return o;}
 function create(catalogue,poolId){

@@ -4,6 +4,9 @@
     if(cfg.LotteryCinematic && cfg.LotteryCinematic.Dispose)cfg.LotteryCinematic.Dispose();
     var generation=0,timers=[],surface=null,movie=null,complete=null;
     var fallback=null,fallbackImage=null,fallbackPool='',activePool='map',playing=false,previewMode=false;
+    var decoderProbe=null,probeSerial=0;
+    var DECODER_PROBE_MOVIE='file://{resources}/styles/custom_game/lottery_cinematic_v1.vcss_c';
+    function probeLog(stage,detail){if(decoderProbe)$.Msg('[LOTTERY_DECODER_PROBE] stage='+stage+' probe='+decoderProbe.id+' pool=map'+(detail?' '+detail:''));}
     // A decoder failure belongs to one presentation, not every later draw.
     var pools={map:'星门寻宝',cultivation:'云海龙吟',dragon_knight:'龙脊觉醒',summer:'潮汐秘藏'};
     var qualities=['n','r','sr','ssr','ur'];
@@ -20,7 +23,9 @@
         if($.CancelScheduled)pending.forEach(function(entry){try{$.CancelScheduled(entry.id);}catch(e){}});
     }
     function highest(results){var best=0;(results||[]).forEach(function(r){best=Math.max(best,qualities.indexOf(String(r.quality||'n').toLowerCase()));});return qualities[best];}
-    function cancel(){
+    function cancel(completedProbe){
+        if(decoderProbe&&!completedProbe)probeLog('aborted','outcome=inconclusive');
+        decoderProbe=null;
         clearTimers();complete=null;playing=false;previewMode=false;
         releaseMovie();
         if(valid(fallback)){fallback.RemoveClass('LCFallbackActive');fallback.visible=false;}
@@ -31,7 +36,11 @@
         var previous=movie;movie=null;
         if(valid(previous)){try{previous.Stop();}catch(error){}try{previous.DeleteAsync(0);}catch(error){}}
     }
-    function finish(){var callback=complete,preview=previewMode,pool=activePool;cancel();if(preview)$.Msg('[LOTTERY_CINEMATIC] stage=complete pool='+pool+' preview=true');if(callback)callback();}
+    function finish(){
+        var callback=complete,preview=previewMode,pool=activePool,probe=decoderProbe;
+        if(probe)probeLog('complete','outcome='+(probe.failure&&probe.fallbackShown?probe.failure:'inconclusive'));
+        cancel(true);if(preview)$.Msg('[LOTTERY_CINEMATIC] stage=complete pool='+pool+' preview=true');if(callback)callback();
+    }
     function buildFallback(){
         if(!valid(surface))return false;
         if(valid(fallback)){try{fallback.DeleteAsync(0);}catch(error){}}
@@ -46,7 +55,8 @@
         clearTimers();releaseMovie();
         try{
             if(!buildFallback())return false;
-            if(previewMode)$.Msg('[LOTTERY_CINEMATIC] stage=fallback pool='+pool+' reason='+reason+' preview=true');
+            if(decoderProbe){decoderProbe.fallbackShown=true;probeLog('fallback','reason='+reason);}
+            else if(previewMode)$.Msg('[LOTTERY_CINEMATIC] stage=fallback pool='+pool+' reason='+reason+' preview=true');
             if(fallbackPool!==pool){fallbackImage.SetImage('file://{images}/custom_game/lottery_cinematic_v1/'+pool+'.png');fallbackPool=pool;}
             fallback.RemoveClass('LCFallbackActive');fallback.visible=true;
             // A fresh fixed five-node layer cannot retain a previous CSS timeline.
@@ -54,18 +64,21 @@
             later(.01,function(){if(valid(fallback))fallback.AddClass('LCFallbackActive');});
             later(3.65,finish);
             return true;
-        }catch(error){$.Msg('[LOTTERY_CINEMATIC] themed presentation unavailable');return false;}
+        }catch(error){if(decoderProbe){decoderProbe.fallbackShown=false;probeLog('unavailable','outcome=inconclusive');}else $.Msg('[LOTTERY_CINEMATIC] themed presentation unavailable');return false;}
     }
     function checkPlayback(target,remaining){
         if(target!==movie)return;
-        var failed=!valid(target);
-        if(!failed&&target.BHasClass){try{failed=target.BHasClass('MovieError');}catch(error){failed=true;}}
+        var failed=!valid(target),nativeError=false;
+        if(!failed&&target.BHasClass){try{nativeError=target.BHasClass('MovieError');failed=nativeError;}catch(error){failed=true;}}
         if(failed){
             // Valve's stock movie.vcss uses .MovieError #ErrorMessage for
             // asynchronous decoder failure. This is a native class, not a
             // guessed JS event; animate the current theme before the already
             // received draw results. No new draw or reward request is sent.
-            $.Msg('[LOTTERY_CINEMATIC] native playback failed; using themed presentation');
+            if(decoderProbe){
+                if(!nativeError){probeLog('inconclusive','cause=panel_or_class_read');finish();return;}
+                decoderProbe.failure='native_error';probeLog('error','cause=native_error native_class=MovieError');
+            }else $.Msg('[LOTTERY_CINEMATIC] native playback failed; using themed presentation');
             if(!playFallback(activePool,'native_error'))finish();return;
         }
         if(remaining>1)later(.10,function(){checkPlayback(target,remaining-1);});
@@ -81,7 +94,7 @@
         var caption=$.CreatePanel('Label',surface,'LotteryCinematicCaption');caption.AddClass('LotteryCinematicCaption');caption.hittest=false;
         var skip=$.CreatePanel('Button',surface,'LotteryCinematicSkip');skip.AddClass('LotteryCinematicSkip');skip.hittestchildren=false;
         var text=$.CreatePanel('Label',skip,'');text.text='跳过演出  ›';
-        skip.SetPanelEvent('onactivate',function(){if(!playing)return;var cb=cfg.SurvivalLottery;if(cb&&cb.SkipCinematic){cancel();cb.SkipCinematic();}else finish();});
+        skip.SetPanelEvent('onactivate',function(){if(!playing)return;if(decoderProbe){cancel();return;}var cb=cfg.SurvivalLottery;if(cb&&cb.SkipCinematic){cancel();cb.SkipCinematic();}else finish();});
         return true;
     }
     function resize(w,h){
@@ -113,16 +126,27 @@
         previewMode=true;$.Msg('[LOTTERY_CINEMATIC] stage=preview pool='+pool);
         if(playFallback(pool,'tools_preview'))return true;cancel();return false;
     }
-    function play(pool,results,onDone,preview){
+    function playMedia(pool,results,onDone,preview,probe){
         pool=prepare(pool,results,onDone);if(pool===null)return false;
-        previewMode=!!preview;if(previewMode)$.Msg('[LOTTERY_CINEMATIC] stage=preview pool='+pool);
+        previewMode=!!preview;
+        if(probe){decoderProbe={id:++probeSerial,failure:'',fallbackShown:false};probeLog('begin','resource=panorama/styles/custom_game/lottery_cinematic_v1.vcss_c no_consumption=true');}
+        else if(previewMode)$.Msg('[LOTTERY_CINEMATIC] stage=preview pool='+pool);
+        var mediaApi=null;
         try{
             // A fresh native Movie owns both the video and its original synchronized soundtrack.
             movie=$.CreatePanel('Movie',surface,'LotteryCinematicMovie');movie.AddClass('LotteryCinematicMovie');movie.hittest=false;movie.hittestchildren=false;
             movie.SetControls('none');movie.SetRepeat(false);movie.SetPlaybackVolume(.85);
             resize();
-            movie.SetMovie('file://{resources}/videos/custom_game/lottery_cinematic_v1/'+pool+'.webm');movie.Play();
-        }catch(error){$.Msg('[LOTTERY_CINEMATIC] playback unavailable; using themed presentation');if(playFallback(pool,'sync_error'))return true;cancel();return false;}
+            if(decoderProbe)probeLog('set_movie','resource=panorama/styles/custom_game/lottery_cinematic_v1.vcss_c');
+            mediaApi='SetMovie';movie.SetMovie(decoderProbe?DECODER_PROBE_MOVIE:'file://{resources}/videos/custom_game/lottery_cinematic_v1/'+pool+'.webm');
+            mediaApi='Play';movie.Play();mediaApi=null;
+        }catch(error){
+            if(decoderProbe){
+                if(!mediaApi){probeLog('inconclusive','cause=setup_error');finish();return false;}
+                decoderProbe.failure='sync_error';probeLog('error','cause=sync_error api='+mediaApi);
+            }else $.Msg('[LOTTERY_CINEMATIC] playback unavailable; using themed presentation');
+            if(playFallback(pool,'sync_error'))return true;cancel();return false;
+        }
         // Asset length is exactly 7 seconds. Watchdog also handles a decoder that never sends its ending event.
         later(7.05,finish);
         // At most70 O(1) native-class reads; only this poll and the watchdog
@@ -130,10 +154,18 @@
         var currentMovie=movie;later(.10,function(){checkPlayback(currentMovie,70);});
         return true;
     }
-    cfg.LotteryCinematic={Play:play,Resize:resize,Cancel:cancel,Finish:finish,Highest:highest,Dispose:function(){cancel();if(valid(surface))surface.DeleteAsync(0);surface=null;fallback=null;fallbackImage=null;fallbackPool='';},
+    function play(pool,results,onDone,preview){return playMedia(pool,results,onDone,preview,false);}
+    function previewDecoderProbe(){
+        // No draw/read/grant call, no arbitrary URL, and no interruption of an active presentation.
+        var root=$('#LotteryWindow'),idle=$('#LotteryRefreshButton');
+        if(playing||!valid(root)||!root.visible||!valid(idle)||idle.enabled!==true){$.Msg('[LOTTERY_DECODER_PROBE] stage=rejected cause=window_not_idle');return false;}
+        return playMedia('map',[],function(){},false,true);
+    }
+    cfg.LotteryCinematic={PreviewDecoderProbe:previewDecoderProbe,Play:play,Resize:resize,Cancel:cancel,Finish:finish,Highest:highest,Dispose:function(){cancel();if(valid(surface))surface.DeleteAsync(0);surface=null;fallback=null;fallbackImage=null;fallbackPool='';},
         Preview:function(pool){if(cfg.SurvivalLottery)cfg.SurvivalLottery.Open();play(pool,[],function(){},true);},PreviewNative:previewNative};
     if(typeof Game!=='undefined'&&Game.AddCommand){
         var stamp=Date.now();Object.keys(pools).forEach(function(pool){Game.AddCommand('lottery_film_'+pool+'_'+stamp,function(){cfg.LotteryCinematic.Preview(pool);},'Preview cinematic only; no draw, ticket consumption or reward grant',0);});
+        Game.AddCommand('lottery_film_decoder_probe_map_'+stamp,previewDecoderProbe,'Zero-consumption native decoder failure preview; fixed existing non-video resource only',0);
         $.Msg('[LOTTERY_CINEMATIC_READY] version=v1 commands='+stamp);
         if(Game.IsInToolsMode&&Game.IsInToolsMode()){
             Object.keys(pools).forEach(function(pool){Game.AddCommand('lottery_film_native_'+pool+'_'+stamp,function(){previewNative(pool);},'Tools-only native theme preview; no draw, ticket use or reward',0);});
