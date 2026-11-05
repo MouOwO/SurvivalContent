@@ -51,6 +51,7 @@
         <include src="file://{resources}/scripts/custom_game/ability_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/inventory_tooltip.js" />
         <include src="file://{resources}/scripts/custom_game/reference_windows.js"/><include src="file://{resources}/scripts/custom_game/remaining_5d5c1152eb.js"/><include src="file://{resources}/scripts/custom_game/shop_tooltip_remaining_5d5c1152eb.js" />
+        <include src="file://{resources}/scripts/custom_game/common/shop_wallet_model.js" />
         <include src="file://{resources}/scripts/custom_game/shop_remaining_5d5c1152eb.js" />
         <include src="file://{resources}/scripts/custom_game/shop_debug.js" />
         <include src="file://{resources}/scripts/custom_game/multiselect_portraits.js" />

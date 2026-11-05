@@ -11,9 +11,36 @@
     var unlocks = { shop: false, research: false };
     var entryCardsById = {};
     var renderedStructureSignature = "";
-    var renderedCategorySignature = "";
     var cooldownAnimationSerial = 0;
     var pendingTechnologyPurchases = {};
+    var entriesById={}, drawerOpened=false, renderedSnapshotSignature="";
+    var snapshotRequest=null,snapshotRequestFailed=false,rejectedPatchSequence=-1;
+    var entryPositions = {}, entryContents = {}, entryShapes = {}, dirtyEntries = {};
+    var entryOrder={},nextEntryOrder=0;
+    var rootContents = {}, contentRevision = 0, structureRevision = 0;
+    var cooldownGroups = {}, technologyCards = {}, earlyCooldownCards = {}, previousCooldownCards = {};
+    var cooldownLocksActive = false;
+    var costs = {full_rows:0,delta_rows:0,root_fields:0,render_rows:0,cooldown_rows:0,container_builds:0};
+    var walletFactory=GameUI.CustomUIConfig().SurvivalShopWalletModel;
+    var previousShop=GameUI.CustomUIConfig().SurvivalShop;
+    if(previousShop&&previousShop.DisposeWallet)previousShop.DisposeWallet();
+    var walletLane=walletFactory&&walletFactory.Connect({
+        config:GameUI.CustomUIConfig(),owner:$.GetContextPanel(),
+        onChange:function(data,changed){
+            if(snapshot!==data)return;
+            renderResources();
+            changed.forEach(function(entry){
+                var card=entryCardsById[entry.entry_id];
+                if(card&&(!card.IsValid||card.IsValid()))updateEntryCard(card,entry);
+                var tooltip=GameUI.CustomUIConfig().SurvivalShopTooltip;
+                if(tooltip&&tooltip.UpdateEntry)tooltip.UpdateEntry(entry);
+            });
+        }
+    });
+    try { $.RegisterEventHandler("PanelDeleted",$.GetContextPanel(),function(){
+        drawerOpened=false;cooldownAnimationSerial++;
+        if(walletLane)walletLane.Close();
+    }); } catch(ignored) {}
 
     function byId(id) { return $("#" + id); }
 
@@ -27,7 +54,97 @@
 
     function setText(id, value) {
         var panel = byId(id);
-        if (panel) panel.text = String(value === undefined ? "" : value);
+        setProperty(panel,"text",String(value===undefined?"":value));
+    }
+
+    function setProperty(panel, property, value) {
+        if (panel && panel[property] !== value) panel[property] = value;
+    }
+
+    function setClass(panel, name, enabled) {
+        if (panel && panel.BHasClass(name) !== !!enabled) panel.SetHasClass(name, !!enabled);
+    }
+
+    // Transport counters do not change presentation. Absolute cooldown deadlines
+    // drive the existing local animation; their periodically reported remainder
+    // must not redraw every item or the hovered tooltip.
+    function contentSignature(value, snapshotRoot) {
+        if (value === null || typeof value !== "object") return JSON.stringify(value);
+        if (Array.isArray(value)) return "[" + value.map(function (item) {
+            return contentSignature(item, false);
+        }).join(",") + "]";
+        return "{" + Object.keys(value).sort().filter(function (key) {
+            if (snapshotRoot && (key === "sequence" || key === "base_sequence"
+                || key === "full" || key === "reason")) return false;
+            if (key === "technology_cooldown_remaining" && Number(value.technology_cooldown_until) > 0) return false;
+            if (key === "early_final_cooldown_remaining" && Number(value.early_final_cooldown_until) > 0) return false;
+            return true;
+        }).map(function (key) {
+            return JSON.stringify(key) + ":" + contentSignature(value[key], false);
+        }).join(",") + "}";
+    }
+
+    function snapshotMatchesContext(data) {
+        if (!data) return false;
+        var mode = data.ui_mode || "shop";
+        if (mode !== currentMode) return false;
+        return mode !== "research" || Number(data.research_source_entindex) === researchSourceEntindex;
+    }
+
+    // Full input is ingested once. Delta ingestion touches only supplied IDs;
+    // the dense row array uses swap removal, while presentation has its own
+    // configured order. Never reconstruct a shelf map from old rows per delta.
+    function entryShape(entry) {
+        return JSON.stringify([entry.visible,entryCompleted(entry),entry.shop_id,entry.category_id,
+            entry.sort_order,entry.content_type,entry.technology_track,entry.technology_group,entry.content_id,
+            entry.icon_type,entry.icon,entry.technology_id]);
+    }
+    function rememberEntry(entry, position, full) {
+        if (!entry || !entry.entry_id) return;
+        var id=entry.entry_id, signature=contentSignature(entry,false), shape=entryShape(entry);
+        if (entryContents[id] !== signature) { dirtyEntries[id]=true; contentRevision++; }
+        if (entryShapes[id] !== shape) structureRevision++;
+        if(entryOrder[id]===undefined)entryOrder[id]=++nextEntryOrder;
+        entriesById[id]=entry; entryPositions[id]=position;
+        entryContents[id]=signature; entryShapes[id]=shape;
+        costs[full?"full_rows":"delta_rows"]++;
+    }
+    function indexEntries(rows) {
+        var previous=entriesById, seen={};
+        entriesById={}; entryPositions={};
+        rows.forEach(function(entry,index){
+            if (!entry || !entry.entry_id) return;
+            seen[entry.entry_id]=true; rememberEntry(entry,index,true);
+        });
+        Object.keys(previous).forEach(function(id){
+            if (seen[id]) return;
+            delete entryContents[id]; delete entryShapes[id]; delete entryOrder[id];
+            dirtyEntries[id]=true; contentRevision++; structureRevision++;
+        });
+    }
+    function removeEntry(id) {
+        if (!Object.prototype.hasOwnProperty.call(entryPositions,id)) return;
+        var rows=snapshot.entries, position=entryPositions[id], last=rows.pop();
+        if (position<rows.length) { rows[position]=last; entryPositions[last.entry_id]=position; }
+        delete entriesById[id]; delete entryPositions[id]; delete entryContents[id]; delete entryShapes[id]; delete entryOrder[id];
+        dirtyEntries[id]=true; contentRevision++; structureRevision++; costs.delta_rows++;
+    }
+    function rememberRoot(payload, full) {
+        var seen={};
+        Object.keys(payload).forEach(function(key){
+            if (key==="entries"||key==="changed_entries"||key==="removed_entry_ids"
+                ||key==="sequence"||key==="base_sequence"||key==="full"||key==="reason") return;
+            var until=key==="technology_cooldown_remaining"?"technology_cooldown_until":
+                key==="early_final_cooldown_remaining"?"early_final_cooldown_until":null;
+            var deadline=until&&(payload[until]===undefined?snapshot&&snapshot[until]:payload[until]);
+            if (until&&Number(deadline)>0) return;
+            seen[key]=true; costs.root_fields++;
+            var signature=contentSignature(payload[key],false);
+            if(rootContents[key]!==signature){rootContents[key]=signature;contentRevision++;}
+        });
+        if(full)Object.keys(rootContents).forEach(function(key){
+            if(!seen[key]){delete rootContents[key];contentRevision++;}
+        });
     }
 
     function formatNumber(value) {
@@ -37,17 +154,18 @@
     }
 
     function setStatus(text, error) {
+        if(!drawerOpened)return;
         var target = byId("ShopStatus");
         if (!target) return;
-        target.text = text || "";
-        target.SetHasClass("error", !!error);
+        setProperty(target,"text",text||"");
+        setClass(target,"error",!!error);
     }
 
     function setLoading(loading) {
         var loadingPanel = byId("ShopLoading");
         var itemList = byId("ShopItemList");
-        if (loadingPanel) loadingPanel.SetHasClass("Hidden", !loading);
-        if (itemList) itemList.SetHasClass("Hidden", loading);
+        setClass(loadingPanel,"Hidden",!loading);
+        setClass(itemList,"Hidden",loading);
     }
 
     function disableValveShop() {
@@ -78,10 +196,16 @@
             + Math.floor(Math.random() * 100000);
     }
 
-    function requestSnapshot() {
+    function requestSnapshot(resync) {
+        if (!drawerOpened) return;
+        var context = currentMode + ":" + researchSourceEntindex;
+        if (snapshotRequest && snapshotRequest.context === context
+            && Date.now() - snapshotRequest.started < 10000) return;
+        snapshotRequestFailed = false;
+        snapshotRequest = {context: context, started: Date.now(), id: requestId("shop_open"), resync: !!resync};
         // Keep existing cards alive during an in-place refresh. Hiding the list
         // dismisses Panorama hover state even when the server changes only gold.
-        setLoading(!snapshot || snapshot.ui_mode !== currentMode);
+        setLoading(!snapshotMatchesContext(snapshot));
         setStatus(
             currentMode === "research" ? "正在同步科技……"
                 : (currentMode === "challenge" ? "正在同步挑战……"
@@ -89,10 +213,11 @@
             false
         );
         GameEvents.SendCustomGameEventToServer("ui_shop_open_request", {
-            request_id: requestId("shop_open"),
+            request_id: snapshotRequest.id,
             known_sequence: latestSequence,
             mode: currentMode,
-            source_entindex: researchSourceEntindex
+            source_entindex: researchSourceEntindex,
+            hud_wallet: walletLane ? walletLane.RequestFlag() : 0
         });
     }
 
@@ -120,6 +245,7 @@
     }
 
     function setOpenState(opened) {
+        drawerOpened=opened;if(!opened)cooldownAnimationSerial++;
         if(shopShell){if(opened)shopShell.Open();else shopShell.Close();}
         var windowPanel = byId("CustomShopWindow");
         var backdrop = byId("ShopBackdrop");
@@ -144,6 +270,7 @@
         if (!byId("CustomShopWindow")) return;
         updateModeText();
         setOpenState(true);
+        renderSnapshot(true);
         requestSnapshot();
     }
 
@@ -155,6 +282,7 @@
         if (!byId("CustomShopWindow")) return;
         updateModeText();
         setOpenState(true);
+        renderSnapshot(true);
         requestSnapshot();
     }
 
@@ -167,10 +295,12 @@
         if (!byId("CustomShopWindow")) return;
         updateModeText();
         setOpenState(true);
+        renderSnapshot(true);
         requestSnapshot();
     }
 
     function close() {
+        if(walletLane)walletLane.Close();
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (tooltip) tooltip.Hide();
         setOpenState(false);
@@ -304,13 +434,16 @@
     }
 
     function entryById(entryId) {
-        var entries = asArray(snapshot && snapshot.entries);
-        for (var index = 0; index < entries.length; index++) {
-            if (entries[index] && entries[index].entry_id === entryId) return entries[index];
-        }
-        return null;
+        return entriesById[entryId] || null;
     }
 
+    function earlyFinalCooldownRemaining(entry) {
+        if (!entry || entry.content_id !== "service_early_final_boss") return 0;
+        var until = Number(entry.early_final_cooldown_until || 0);
+        return Math.max(0, until > 0
+            ? until - Number(Game.GetGameTime())
+            : Number(entry.early_final_cooldown_remaining || 0));
+    }
     function technologyCooldownRemaining() {
         var remaining = Number(snapshot && snapshot.technology_cooldown_remaining || 0);
         var until = Number(snapshot && snapshot.technology_cooldown_until || 0);
@@ -343,80 +476,97 @@
         var isSource = !!source && (String(entry.entry_id) === source
             || String(entry.technology_group || "") === source);
         var active = isSource && remaining > 0;
-        card.SetHasClass("CooldownSource", active);
-        mask.visible = active;
+        setClass(card,"CooldownSource",active);
+        setProperty(mask,"visible",active);
         if (!active) return;
         var progress = Math.max(0, Math.min(1, remaining / Math.max(0.01, total)));
         var endAngle = Math.max(0, Math.min(360, progress * 360));
-        mask.style.clip = "radial(50% 50%, 0deg, " + endAngle.toFixed(2) + "deg)";
+        setProperty(mask.style,"clip","radial(50% 50%, 0deg, "+endAngle.toFixed(2)+"deg)");
     }
 
     function updateAllCooldownOverlays() {
+        if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
+        var serial = ++cooldownAnimationSerial;
         var remaining = technologyCooldownRemaining();
+        var animationRemaining = 0;
         var source = technologyCooldownSource();
         var total = Number(snapshot && snapshot.technology_cooldown_total || 2);
-        Object.keys(entryCardsById).forEach(function (entryId) {
+        var next={}, visit={}, locked=remaining>0;
+        if(locked){
+            if(entryCardsById[source])next[source]=true;
+            Object.keys(cooldownGroups[source]||{}).forEach(function(id){next[id]=true;});
+        }
+        Object.keys(earlyCooldownCards).forEach(function(id){next[id]=true;});
+        Object.keys(previousCooldownCards).forEach(function(id){visit[id]=true;});
+        Object.keys(next).forEach(function(id){visit[id]=true;});
+        // A global lock transition changes all technology buttons once. The
+        // 20Hz animation itself visits only source/previous active masks.
+        if(cooldownLocksActive!==locked){
+            cooldownLocksActive=locked;
+            Object.keys(technologyCards).forEach(function(id){
+                var entry=entryById(id),card=entryCardsById[id];
+                if(card&&entry)setClass(card,"PurchaseCooldownLocked",locked&&!queuedTechnology(entry));
+            });
+        }
+        Object.keys(visit).forEach(function (entryId) {
             var card = entryCardsById[entryId];
             var entry = entryById(entryId);
-            if (card && entry) updateCooldownOverlay(card, entry, remaining, total, source);
+            if (card && entry) {
+                costs.cooldown_rows++;
+                updateCooldownOverlay(card, entry, remaining, total, source);
+                if (card.__survivalCooldownMask && card.__survivalCooldownMask.visible) {
+                    animationRemaining = Math.max(animationRemaining, remaining, earlyFinalCooldownRemaining(entry));
+                } else if(entry.content_id==="service_early_final_boss")delete earlyCooldownCards[entryId];
+            }
         });
-        if (remaining <= 0) return;
-        var serial = ++cooldownAnimationSerial;
+        previousCooldownCards=next;
+        if (animationRemaining <= 0) return;
         $.Schedule(0.05, function tick() {
-            if (serial !== cooldownAnimationSerial) return;
+            if (!drawerOpened || serial !== cooldownAnimationSerial) return;
             updateAllCooldownOverlays();
         });
     }
 
     function updateEntryCard(card, entry) {
         if (!card || !entry) return;
-        card.SetHasClass("Unavailable", entryUnavailable(entry));
-        card.SetHasClass("Technology", entry.content_type === "technology");
-        card.SetHasClass("AutoResearchAvailable", entry.auto_research_available === 1);
-        card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
+        costs.render_rows++;
+        var signature=contentSignature(entry,false)+"|"+(technologyCooldownRemaining()>0&&!queuedTechnology(entry));
+        if(card.__survivalEntrySignature===signature)return;
+        card.__survivalEntrySignature=signature;
+        setClass(card, "Unavailable", entryUnavailable(entry));
+        setClass(card, "Technology", entry.content_type === "technology");
+        setClass(card, "AutoResearchAvailable", entry.auto_research_available === 1);
+        setClass(card, "AutoResearchActive", entry.auto_research_enabled === 1);
         var code = String(entry.disabled_reason_code || "");
-        card.SetHasClass("PrerequisiteLocked", usesTechnologyPrerequisites(entry)
+        setClass(card, "PrerequisiteLocked", usesTechnologyPrerequisites(entry)
             ? Number(entry.prerequisite_met) === 0 : (code === "prerequisite_not_met"
                 || code === "rebirth_level_not_met" || code === "research_access_not_met"));
-        card.SetHasClass("ResourceLocked", !usesTechnologyPrerequisites(entry)
+        setClass(card, "ResourceLocked", !usesTechnologyPrerequisites(entry)
             && (code === "insufficient_gold" || code === "insufficient_wood"));
-        card.SetHasClass("MaxLevel", code === "max_level_reached");
-        card.SetHasClass("PurchaseCooldownLocked", technologyCooldownRemaining() > 0
+        setClass(card, "MaxLevel", code === "max_level_reached");
+        setClass(card, "PurchaseCooldownLocked", technologyCooldownRemaining() > 0
             && entry.content_type === "technology" && !queuedTechnology(entry));
-        card.visible = !entryCompleted(entry);
-        card.hittest = true;
+        setProperty(card,"visible",!entryCompleted(entry));
+        setProperty(card,"hittest",true);
         if (card.__survivalLockBadge) {
-            card.__survivalLockBadge.text = lockBadgeText(entry);
-            card.__survivalLockBadge.visible = card.__survivalLockBadge.text !== "";
+            setProperty(card.__survivalLockBadge,"text",lockBadgeText(entry));
+            setProperty(card.__survivalLockBadge,"visible",card.__survivalLockBadge.text!=="");
         }
         if (card.__survivalStockLabel) {
             card.__survivalStockLabel.text = "库存 " + Number(entry.stock || 0)
                 + "/" + Number(entry.stock_max || 0);
         }
+        setProperty(card.__survivalNameLabel,"text",entry.name||"");
+        setProperty(card.__survivalLevelLabel,"text",entry.level_text||("Lv."+Number(entry.technology_level||0)));
+        var tooltip=GameUI.CustomUIConfig().SurvivalShopTooltip;if(tooltip&&tooltip.UpdateEntry)tooltip.UpdateEntry(entry);
         updateCooldownOverlay(card, entry, technologyCooldownRemaining(),
             Number(snapshot && snapshot.technology_cooldown_total || 2),
             technologyCooldownSource());
     }
 
-    function updateVisibleEntryCards(changedIds) {
-        Object.keys(changedIds || {}).forEach(function (entryId) {
-            var card = entryCardsById[entryId];
-            if (card && card.IsValid && card.IsValid()) {
-                updateEntryCard(card, entryById(entryId));
-            }
-        });
-        updateAllCooldownOverlays();
-    }
 
-    function entriesFor(data, shopId) {
-        var entries = asArray(data && data.entries).filter(function (entry) {
-            return entry && entry.visible === 1 && !entryCompleted(entry);
-        });
-        entries.sort(function (a, b) {
-            return (a.sort_order || 0) - (b.sort_order || 0);
-        });
-        return entries;
-    }
+
+
 
     function visibleEntries() {
         var entries = asArray(snapshot && snapshot.entries).filter(function (entry) {
@@ -434,72 +584,31 @@
                 return entry.content_type === "weapon" ? 10 : 20;
             };
             return sectionOrder(a) - sectionOrder(b)
-                || (a.sort_order || 0) - (b.sort_order || 0);
+                || (a.sort_order || 0) - (b.sort_order || 0)
+                || entryOrder[a.entry_id]-entryOrder[b.entry_id];
         });
         return entries;
     }
 
-    function structureSignature(entries) {
-        return currentMode + "|" + entries.map(function (entry) {
-            return [
-                entry.entry_id,
-                entry.shop_id,
-                entry.sort_order,
-                entry.content_type,
-                entry.technology_track,
-                entry.content_id,
-                entry.icon_type,
-                entry.icon,
-                entry.level_text,
-                entry.name,
-                entry.stock,
-                entry.refresh_remaining
-            ].join(":");
-        }).join("|");
-    }
 
-    function categorySignature(categoriesValue) {
-        var categories = asArray(categoriesValue);
-        categories.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-        return categories.map(function (category) {
-            return category.shopid + ":" + category.shopname + ":" + category.order;
-        }).join("|");
-    }
 
-    function compareFullSnapshot(previous, current) {
-        var previousById = {};
-        var changedIds = {};
-        asArray(previous.entries).forEach(function (entry) {
-            if (entry && entry.entry_id) previousById[entry.entry_id] = entry;
-        });
-        asArray(current.entries).forEach(function (entry) {
-            if (!entry || !entry.entry_id) return;
-            if (!previousById[entry.entry_id]
-                || JSON.stringify(previousById[entry.entry_id]) !== JSON.stringify(entry)) {
-                changedIds[entry.entry_id] = true;
-            }
-            delete previousById[entry.entry_id];
-        });
-        Object.keys(previousById).forEach(function (entryId) {
-            changedIds[entryId] = true;
-        });
-        return {
-            categories: categorySignature(previous.categories)
-                !== categorySignature(current.categories),
-            structural: structureSignature(entriesFor(previous, ""))
-                !== structureSignature(entriesFor(current, "")),
-            changedIds: changedIds
-        };
-    }
+
+
+
 
     function renderItems() {
         var list = byId("ShopItemList");
         if (!list || !snapshot) return;
-        var entries = visibleEntries();
-        var nextSignature = structureSignature(entries);
-        if (nextSignature === renderedStructureSignature) return;
+        if (!drawerOpened) return;
+        var nextSignature=currentMode+"|"+structureRevision;
+        if(nextSignature===renderedStructureSignature){
+            Object.keys(dirtyEntries).forEach(function(id){updateEntryCard(entryCardsById[id],entriesById[id]);});
+            updateAllCooldownOverlays();return;
+        }
+        var entries=visibleEntries();costs.container_builds++;
         renderedStructureSignature = nextSignature;
         entryCardsById = {};
+        cooldownGroups={};technologyCards={};earlyCooldownCards={};previousCooldownCards={};cooldownLocksActive=false;
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (tooltip) tooltip.Hide();
         list.RemoveAndDeleteChildren();
@@ -537,6 +646,10 @@
             card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
             card.SetAttributeString("entry_id", entry.entry_id || "");
             entryCardsById[entry.entry_id] = card;
+            if(entry.content_type==="technology"){
+                technologyCards[entry.entry_id]=true;var group=String(entry.technology_group||"");
+                if(group){if(!cooldownGroups[group])cooldownGroups[group]={};cooldownGroups[group][entry.entry_id]=true;}
+            }
 
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
@@ -552,7 +665,7 @@
                 lockBadge.hittest = false;
                 card.__survivalLockBadge = lockBadge;
                 var level = $.CreatePanel("Label", frame, "");
-                level.AddClass("ShopTechnologyLevel");
+                level.AddClass("ShopTechnologyLevel");card.__survivalLevelLabel=level;
                 level.text = entry.level_text || ("Lv." + Number(entry.technology_level || 0));
                 if (entry.technology_id) {
                     var code = $.CreatePanel("Label", frame, "");
@@ -562,7 +675,7 @@
             } else if (currentMode === "challenge"
                 || entry.content_id === "service_early_final_boss") {
                 var name = $.CreatePanel("Label", frame, "");
-                name.AddClass("ShopCardName");
+                name.AddClass("ShopCardName");card.__survivalNameLabel=name;
                 name.text = entry.name || "";
             }
             if (Number(entry.stock_max || 0) > 0) {
@@ -604,10 +717,7 @@
         updateAllCooldownOverlays();
     }
 
-    function renderCategories() {
-        renderedCategorySignature = categorySignature(snapshot && snapshot.categories);
-        renderItems();
-    }
+
 
     function renderResources() {
         var resources = snapshot && snapshot.resources || {};
@@ -620,97 +730,72 @@
 
     function mergePatch(payload) {
         if (!snapshot || Number(payload.base_sequence || 0) !== latestSequence) {
-            requestSnapshot();
+            if (drawerOpened && rejectedPatchSequence !== Number(payload.sequence || 0)) {
+                rejectedPatchSequence = Number(payload.sequence || 0);
+                if (snapshotRequest && snapshotRequest.resync && Date.now() - snapshotRequest.started < 10000) return null;
+                snapshotRequest = null;
+                requestSnapshot(true);
+            }
             return null;
         }
-        var previousById = {};
-        asArray(snapshot.entries).forEach(function (entry) {
-            if (entry && entry.entry_id) previousById[entry.entry_id] = entry;
-        });
-        var structural = false;
-        var changedIds = {};
         asArray(payload.removed_entry_ids).forEach(function (entryId) {
-            var previous = previousById[entryId];
-            if (previous) structural = true;
-            delete previousById[entryId];
+            removeEntry(entryId);
         });
         asArray(payload.changed_entries).forEach(function (entry) {
             if (!entry || !entry.entry_id) return;
-            var previous = previousById[entry.entry_id];
-            if (!previous
-                || previous.shop_id !== entry.shop_id
-                || previous.sort_order !== entry.sort_order
-                || previous.content_type !== entry.content_type
-                || previous.technology_track !== entry.technology_track
-                || previous.level_text !== entry.level_text
-                || previous.name !== entry.name
-                || previous.icon !== entry.icon) {
-                structural = true;
+            var position=entryPositions[entry.entry_id];
+            if(position===undefined)position=snapshot.entries.length;
+            snapshot.entries[position]=entry;rememberEntry(entry,position,false);
+        });
+        // Omitted fields retain their previous values. Carry all supplied business
+        // fields, including research queues and purchase cooldowns, without a
+        // second hand-maintained projection that can silently lose new fields.
+        rememberRoot(payload,false);
+        Object.keys(payload).forEach(function (key) {
+            if (key !== "changed_entries" && key !== "removed_entry_ids"
+                && key !== "entries" && key !== "full" && key !== "base_sequence") {
+                snapshot[key] = payload[key];
             }
-            previousById[entry.entry_id] = entry;
-            changedIds[entry.entry_id] = true;
         });
-        snapshot.entries = Object.keys(previousById).map(function (entryId) {
-            return previousById[entryId];
-        });
-        if (payload.resources) snapshot.resources = payload.resources;
-        if (payload.refresh_stock) snapshot.refresh_stock = payload.refresh_stock;
-        if (payload.categories) snapshot.categories = payload.categories;
-        snapshot.technology_cooldown_remaining = payload.technology_cooldown_remaining;
-        snapshot.technology_cooldown_total = payload.technology_cooldown_total;
-        snapshot.technology_cooldown_until = payload.technology_cooldown_until;
-        snapshot.technology_cooldown_source_group = payload.technology_cooldown_source_group;
-        snapshot.technology_cooldown_source_entry = payload.technology_cooldown_source_entry;
-        snapshot.technology_cooldown_sequence = payload.technology_cooldown_sequence;
-        snapshot.research_scope = payload.research_scope || snapshot.research_scope;
-        snapshot.research_source_entindex = payload.research_source_entindex === undefined
-            ? snapshot.research_source_entindex : payload.research_source_entindex;
-        snapshot.sequence = payload.sequence;
-        snapshot.reason = payload.reason;
-        snapshot.ui_mode = payload.ui_mode || snapshot.ui_mode;
-        return {
-            structural: structural,
-            categories: !!payload.categories,
-            changedIds: changedIds
-        };
+        return snapshot;
     }
 
-    function onSnapshot(payload) {
-        if (!payload) return;
-        var sequence = Number(payload.sequence || 0);
-        if (sequence > 0 && sequence <= latestSequence) return;
-        var patchResult = null;
-        if (payload.full === 0) {
-            patchResult = mergePatch(payload);
-            if (!patchResult) return;
-        } else {
-            if (snapshot && snapshot.ui_mode === payload.ui_mode) {
-                patchResult = compareFullSnapshot(snapshot, payload);
-            }
-            snapshot = payload;
-            if (!patchResult) {
-                renderedCategorySignature = "";
-                renderedStructureSignature = "";
-            }
-        }
-        latestSequence = Math.max(latestSequence, sequence);
-        currentMode = payload.ui_mode === "research" ? "research"
-            : (payload.ui_mode === "challenge" ? "challenge" : "shop");
-        if (currentMode === "research") {
-            researchSourceEntindex = Number(
-                snapshot && snapshot.research_source_entindex || researchSourceEntindex
-            );
-        }
+    function renderSnapshot(force) {
+        if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
+        var signature = currentMode + "|" + "legacy" + "|" + contentRevision;
+        if (!force && signature === renderedSnapshotSignature) return;
+        renderedSnapshotSignature = signature;
         updateModeText();
         setLoading(false);
-        if (!patchResult || payload.resources) renderResources();
-        if (!patchResult || patchResult.categories) {
-            renderCategories();
-        } else if (patchResult.structural) {
-            renderItems();
-        } else {
-            updateVisibleEntryCards(patchResult.changedIds);
+        renderResources();
+        renderItems();
+        dirtyEntries={};
+    }
+    function onSnapshot(payload) {
+        if (!payload) return;
+        if (drawerOpened) {
+            var mode = payload.ui_mode || (snapshot && snapshot.ui_mode) || "shop";
+            var source = payload.research_source_entindex === undefined
+                ? snapshot && snapshot.research_source_entindex : payload.research_source_entindex;
+            if (mode !== currentMode || (mode === "research" && Number(source) !== researchSourceEntindex)) return;
         }
+        var sequence = Number(payload.sequence || 0);
+        if (sequence > 0 && sequence <= latestSequence) return;
+        if (payload.full === 0) {
+            if (!mergePatch(payload)) return;
+        } else {
+            rememberRoot(payload,true);
+            snapshot = payload;
+            snapshot.entries=asArray(payload.entries);
+            indexEntries(snapshot.entries);
+        }
+        latestSequence = Math.max(latestSequence, sequence);
+        rejectedPatchSequence=-1;
+        if(walletLane)walletLane.Apply(snapshot,payload.full===0?[]:asArray(snapshot.entries),payload.full===0?
+            {changed:asArray(payload.changed_entries),removed:asArray(payload.removed_entry_ids)}:null);
+        if (!drawerOpened) return;
+        snapshotRequest=null;snapshotRequestFailed=false;
+        renderSnapshot(false);
         setStatus(
             currentMode === "research"
                 ? "科技已同步"
@@ -733,6 +818,7 @@
         updateModeText();
         setOpenState(true);
         onSnapshot(payload.snapshot || {});
+        if(walletLane&&walletLane.RequestFlag()&&!(payload.snapshot&&payload.snapshot.hud_wallet===1))requestSnapshot();
     }
 
     function focusHero(payload) {
@@ -842,6 +928,7 @@
     GameEvents.Subscribe("ui_shop_force_open", onForceOpen);
     GameEvents.Subscribe("ui_operation_result", onResult);
     GameUI.CustomUIConfig().SurvivalShop = {
+        DisposeWallet:function(){drawerOpened=false;cooldownAnimationSerial++;if(walletLane)walletLane.Close();},
         Open: open,
         Close: close,
         Toggle: toggle,
@@ -850,7 +937,8 @@
         OpenResearch: openResearch,
         ToggleChallenge: toggleChallenge,
         SetUnlocks: setUnlocks,
-        Refresh: refresh
+        Refresh: refresh,
+        InspectPerformance:function(){var result={};Object.keys(costs).forEach(function(key){result[key]=costs[key];});return result;}
     };
     var shopShell=U.ModalShell.Adopt({id:"shop",panel:byId("CustomShopWindow"),root:$.GetContextPanel(),header:byId("ShopHeader"),titlePanel:byId("ShopTitle"),scrim:byId("ShopBackdrop"),scrimButton:byId("ShopBackdropClick"),closeButton:byId("ShopCloseButton"),width:1208,height:806,onClose:close});
     ["ShopModeShop","ShopModeChallenge","ShopModeLottery"].forEach(function(id){if(byId(id))U.TabBar.Adopt(byId(id));});

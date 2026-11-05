@@ -15,6 +15,7 @@
     var researchSourceEntindex = -1;
     var unlocks = { shop: false, research: false };
     var entryCardsById = {};
+    var autoBookButtons = {};
     var renderedStructureSignature = "";
     var cooldownAnimationSerial = 0;
     var pendingTechnologyPurchases = {};
@@ -22,8 +23,32 @@
     var snapshotRequestFailed = false;
     var renderedSnapshotSignature = "";
     var entriesById = {};
+    var entryPositions = {}, entryContents = {}, entryShapes = {}, dirtyEntries = {};
+    var entryOrder={},nextEntryOrder=0;
+    var rootContents = {}, contentRevision = 0, structureRevision = 0;
+    var cooldownGroups = {}, technologyCards = {}, earlyCooldownCards = {}, previousCooldownCards = {};
+    var cooldownLocksActive = false;
+    var costs = {full_rows:0,delta_rows:0,root_fields:0,render_rows:0,cooldown_rows:0,container_builds:0};
     var cooldownRefreshDeadlines = {};
     var rejectedPatchSequence = -1;
+    var walletFactory=GameUI.CustomUIConfig().SurvivalShopWalletModel;
+    var previousShop=GameUI.CustomUIConfig().SurvivalShop;
+    if(previousShop&&previousShop.DisposeWallet)previousShop.DisposeWallet();
+    var walletLane=walletFactory&&walletFactory.Connect({
+        config:GameUI.CustomUIConfig(),owner:$.GetContextPanel(),
+        onChange:function(data,changed){
+            if(snapshot!==data)return;
+            renderResources();
+            changed.forEach(function(entry){
+                var card=entryCardsById[entry.entry_id];
+                if(card&&(!card.IsValid||card.IsValid()))updateEntryCard(card,entry);
+            });
+        }
+    });
+    try { $.RegisterEventHandler("PanelDeleted",$.GetContextPanel(),function(){
+        drawerOpened=false;cooldownAnimationSerial++;
+        if(walletLane)walletLane.Close();
+    }); } catch(ignored) {}
 
     function byId(id) { return $("#" + id); }
 
@@ -74,10 +99,59 @@
         return mode !== "research" || Number(data.research_source_entindex) === researchSourceEntindex;
     }
 
-    function indexEntries() {
-        entriesById = {};
-        asArray(snapshot && snapshot.entries).forEach(function (entry) {
-            if (entry && entry.entry_id) entriesById[entry.entry_id] = entry;
+    // Full input is ingested once. Delta ingestion touches only supplied IDs;
+    // the dense row array uses swap removal, while presentation has its own
+    // configured order. Never reconstruct a shelf map from old rows per delta.
+    function entryShape(entry) {
+        return JSON.stringify([entry.visible,entryCompleted(entry),entry.shop_id,entry.category_id,
+            entry.sort_order,entry.content_type,entry.technology_track,entry.technology_group,entry.content_id,
+            entry.icon_type,entry.icon,entry.technology_id]);
+    }
+    function rememberEntry(entry, position, full) {
+        if (!entry || !entry.entry_id) return;
+        var id=entry.entry_id, signature=contentSignature(entry,false), shape=entryShape(entry);
+        if (entryContents[id] !== signature) { dirtyEntries[id]=true; contentRevision++; }
+        if (entryShapes[id] !== shape) structureRevision++;
+        if(entryOrder[id]===undefined)entryOrder[id]=++nextEntryOrder;
+        entriesById[id]=entry; entryPositions[id]=position;
+        entryContents[id]=signature; entryShapes[id]=shape;
+        costs[full?"full_rows":"delta_rows"]++;
+    }
+    function indexEntries(rows) {
+        var previous=entriesById, seen={};
+        entriesById={}; entryPositions={};
+        rows.forEach(function(entry,index){
+            if (!entry || !entry.entry_id) return;
+            seen[entry.entry_id]=true; rememberEntry(entry,index,true);
+        });
+        Object.keys(previous).forEach(function(id){
+            if (seen[id]) return;
+            delete entryContents[id]; delete entryShapes[id]; delete entryOrder[id];
+            dirtyEntries[id]=true; contentRevision++; structureRevision++;
+        });
+    }
+    function removeEntry(id) {
+        if (!Object.prototype.hasOwnProperty.call(entryPositions,id)) return;
+        var rows=snapshot.entries, position=entryPositions[id], last=rows.pop();
+        if (position<rows.length) { rows[position]=last; entryPositions[last.entry_id]=position; }
+        delete entriesById[id]; delete entryPositions[id]; delete entryContents[id]; delete entryShapes[id]; delete entryOrder[id];
+        dirtyEntries[id]=true; contentRevision++; structureRevision++; costs.delta_rows++;
+    }
+    function rememberRoot(payload, full) {
+        var seen={};
+        Object.keys(payload).forEach(function(key){
+            if (key==="entries"||key==="changed_entries"||key==="removed_entry_ids"
+                ||key==="sequence"||key==="base_sequence"||key==="full"||key==="reason") return;
+            var until=key==="technology_cooldown_remaining"?"technology_cooldown_until":
+                key==="early_final_cooldown_remaining"?"early_final_cooldown_until":null;
+            var deadline=until&&(payload[until]===undefined?snapshot&&snapshot[until]:payload[until]);
+            if (until&&Number(deadline)>0) return;
+            seen[key]=true; costs.root_fields++;
+            var signature=contentSignature(payload[key],false);
+            if(rootContents[key]!==signature){rootContents[key]=signature;contentRevision++;}
+        });
+        if(full)Object.keys(rootContents).forEach(function(key){
+            if(!seen[key]){delete rootContents[key];contentRevision++;}
         });
     }
 
@@ -152,7 +226,8 @@
             request_id: snapshotRequest.id,
             known_sequence: latestSequence,
             mode: currentMode,
-            source_entindex: researchSourceEntindex
+            source_entindex: researchSourceEntindex,
+            hud_wallet: walletLane ? walletLane.RequestFlag() : 0
         });
     }
 
@@ -273,6 +348,7 @@
 
     function close() {
         if (!drawerOpened) return;
+        if(walletLane)walletLane.Close();
         cooldownAnimationSerial++;
         snapshotRequest = null;
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
@@ -494,18 +570,35 @@
         var animationRemaining = 0;
         var source = technologyCooldownSource();
         var total = Number(snapshot && snapshot.technology_cooldown_total || 2);
-        Object.keys(entryCardsById).forEach(function (entryId) {
+        var next={}, visit={}, locked=remaining>0;
+        if(locked){
+            if(entryCardsById[source])next[source]=true;
+            Object.keys(cooldownGroups[source]||{}).forEach(function(id){next[id]=true;});
+        }
+        Object.keys(earlyCooldownCards).forEach(function(id){next[id]=true;});
+        Object.keys(previousCooldownCards).forEach(function(id){visit[id]=true;});
+        Object.keys(next).forEach(function(id){visit[id]=true;});
+        // A global lock transition changes all technology buttons once. The
+        // 20Hz animation itself visits only source/previous active masks.
+        if(cooldownLocksActive!==locked){
+            cooldownLocksActive=locked;
+            Object.keys(technologyCards).forEach(function(id){
+                var entry=entryById(id),card=entryCardsById[id];
+                if(card&&entry)setClass(card,"PurchaseCooldownLocked",locked&&!queuedTechnology(entry));
+            });
+        }
+        Object.keys(visit).forEach(function (entryId) {
             var card = entryCardsById[entryId];
             var entry = entryById(entryId);
             if (card && entry) {
+                costs.cooldown_rows++;
                 updateCooldownOverlay(card, entry, remaining, total, source);
-                setClass(card, "PurchaseCooldownLocked", remaining > 0
-                    && entry.content_type === "technology" && !queuedTechnology(entry));
                 if (card.__survivalCooldownMask && card.__survivalCooldownMask.visible) {
                     animationRemaining = Math.max(animationRemaining, remaining, earlyFinalCooldownRemaining(entry));
-                }
+                } else if(entry.content_id==="service_early_final_boss")delete earlyCooldownCards[entryId];
             }
         });
+        previousCooldownCards=next;
         if (animationRemaining <= 0) return;
         $.Schedule(0.05, function tick() {
             if (!drawerOpened || serial !== cooldownAnimationSerial) return;
@@ -515,6 +608,7 @@
 
     function updateEntryCard(card, entry) {
         if (!card || !entry) return;
+        costs.render_rows++;
         var entrySignature = contentSignature(entry, false);
         var signature = entrySignature + "|" + (technologyCooldownRemaining() > 0 && !queuedTechnology(entry));
         if (card.__survivalEntrySignature === signature) return;
@@ -562,6 +656,8 @@
             technologyCooldownSource());
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (entryChanged && tooltip && tooltip.UpdateEntry) tooltip.UpdateEntry(entry);
+        if(entry.content_id==="service_early_final_boss"&&earlyFinalCooldownRemaining(entry)>0)
+            earlyCooldownCards[entry.entry_id]=true;
     }
 
     function visibleEntries() {
@@ -585,28 +681,14 @@
                 return entry.content_type === "weapon" ? 10 : 20;
             };
             return sectionOrder(a) - sectionOrder(b)
-                || (a.sort_order || 0) - (b.sort_order || 0);
+                || (a.sort_order || 0) - (b.sort_order || 0)
+                || entryOrder[a.entry_id]-entryOrder[b.entry_id];
         });
         return entries;
     }
 
-    function structureSignature(entries) {
-        return currentMode + "|" + shopCategory + "|" + entries.map(function (entry) {
-            return [
-                entry.entry_id,
-                entry.shop_id,
-                entry.sort_order,
-                entry.content_type,
-                entry.technology_track,
-                entry.content_id,
-                entry.icon_type,
-                entry.icon,
-                entry.technology_id
-            ].join(":");
-        }).join("|");
-    }
 
-    var autoBookButtons = {};
+
     function updateAutoBookButtons() {
         if (!drawerOpened) return;
         var values = CustomNetTables.GetTableValue("survival_shop_config", "auto_purchase_" + Game.GetLocalPlayerID()) || {};
@@ -631,21 +713,24 @@
         if (currentMode === "shop" || currentMode === "challenge") lastShopMode = currentMode;
         var list = byId("ShopItemList");
         if (!list || !snapshot || !drawerOpened) return;
-        var entries = visibleEntries();
-        var nextSignature = structureSignature(entries);
+        var nextSignature = currentMode+"|"+shopCategory+"|"+structureRevision;
         if (nextSignature === renderedStructureSignature) {
             // A category refresh can leave the layout unchanged after a purchase.
             // Still apply availability/stock updates to the existing cards.
-            entries.forEach(function(entry) {
-                updateEntryCard(entryCardsById[entry.entry_id], entry);
+            Object.keys(dirtyEntries).forEach(function(id) {
+                updateEntryCard(entryCardsById[id], entriesById[id]);
             });
             updateAllCooldownOverlays();
             return;
         }
+        var entries = visibleEntries();
+        costs.container_builds++;
         updateShopLayout(entries);
         autoBookButtons = {};
         renderedStructureSignature = nextSignature;
         entryCardsById = {};
+        cooldownGroups={}; technologyCards={}; earlyCooldownCards={}; previousCooldownCards={};
+        cooldownLocksActive=false;
         var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
         if (tooltip) tooltip.Hide();
         list.RemoveAndDeleteChildren();
@@ -683,6 +768,11 @@
             card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
             card.SetAttributeString("entry_id", entry.entry_id || "");
             entryCardsById[entry.entry_id] = card;
+            if(entry.content_type==="technology"){
+                technologyCards[entry.entry_id]=true;
+                var group=String(entry.technology_group||"");
+                if(group){if(!cooldownGroups[group])cooldownGroups[group]={};cooldownGroups[group][entry.entry_id]=true;}
+            }
 
             var frame = $.CreatePanel("Panel", card, "");
             frame.AddClass("ShopItemFrame");
@@ -800,23 +890,19 @@
             }
             return null;
         }
-        var previousById = {};
-        asArray(snapshot.entries).forEach(function (entry) {
-            if (entry && entry.entry_id) previousById[entry.entry_id] = entry;
-        });
         asArray(payload.removed_entry_ids).forEach(function (entryId) {
-            delete previousById[entryId];
+            removeEntry(entryId);
         });
         asArray(payload.changed_entries).forEach(function (entry) {
             if (!entry || !entry.entry_id) return;
-            previousById[entry.entry_id] = entry;
-        });
-        snapshot.entries = Object.keys(previousById).map(function (entryId) {
-            return previousById[entryId];
+            var position=entryPositions[entry.entry_id];
+            if(position===undefined)position=snapshot.entries.length;
+            snapshot.entries[position]=entry;rememberEntry(entry,position,false);
         });
         // Omitted fields retain their previous values. Carry all supplied business
         // fields, including research queues and purchase cooldowns, without a
         // second hand-maintained projection that can silently lose new fields.
+        rememberRoot(payload,false);
         Object.keys(payload).forEach(function (key) {
             if (key !== "changed_entries" && key !== "removed_entry_ids"
                 && key !== "entries" && key !== "full" && key !== "base_sequence") {
@@ -828,7 +914,7 @@
 
     function renderSnapshot(force) {
         if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
-        var signature = currentMode + "|" + shopCategory + "|" + contentSignature(snapshot, true);
+        var signature = currentMode + "|" + shopCategory + "|" + contentRevision;
         if (!force && signature === renderedSnapshotSignature) return;
         renderedSnapshotSignature = signature;
         updateModeText();
@@ -836,6 +922,7 @@
         renderResources();
         renderItems();
         updateAutoBookButtons();
+        dirtyEntries={};
     }
 
     function onSnapshot(payload) {
@@ -851,11 +938,15 @@
         if (payload.full === 0) {
             if (!mergePatch(payload)) return;
         } else {
+            rememberRoot(payload,true);
             snapshot = payload;
+            snapshot.entries=asArray(payload.entries);
+            indexEntries(snapshot.entries);
         }
         latestSequence = Math.max(latestSequence, sequence);
         rejectedPatchSequence = -1;
-        indexEntries();
+        if(walletLane)walletLane.Apply(snapshot,payload.full===0?[]:asArray(snapshot.entries),payload.full===0?
+            {changed:asArray(payload.changed_entries),removed:asArray(payload.removed_entry_ids)}:null);
         if (!drawerOpened) return;
         snapshotRequest = null;
         snapshotRequestFailed = false;
@@ -883,6 +974,9 @@
         setOpenState(true);
         onSnapshot(payload.snapshot || {});
         renderSnapshot(true);
+        if(walletLane&&walletLane.RequestFlag()&&!(payload.snapshot&&payload.snapshot.hud_wallet===1)){
+            snapshotRequest=null;requestSnapshot();
+        }
     }
 
     function focusHero(payload) {
@@ -995,6 +1089,7 @@
     GameEvents.Subscribe("ui_shop_force_open", onForceOpen);
     GameEvents.Subscribe("ui_operation_result", onResult);
     GameUI.CustomUIConfig().SurvivalShop = {
+        DisposeWallet:function(){drawerOpened=false;cooldownAnimationSerial++;if(walletLane)walletLane.Close();},
         Open: open,
         SelectShop: selectShop,
         SelectOther: selectOther,
@@ -1011,7 +1106,8 @@
             GameEvents.SendCustomGameEventToServer("ui_shop_auto_purchase_toggle_request", {entry_id:id});
         },
         Refresh: refresh,
-        Inspect: function () { return {mode:currentMode,category:shopCategory,height:shopLayoutHeight}; }
+        Inspect: function () { return {mode:currentMode,category:shopCategory,height:shopLayoutHeight}; },
+        InspectPerformance:function(){var result={};Object.keys(costs).forEach(function(key){result[key]=costs[key];});return result;}
     };
     var shopWindow = byId("CustomShopWindow");
     var purple = GameUI.CustomUIConfig().SurvivalPurpleShell;
