@@ -60,6 +60,8 @@
     var latestEndlessState = null, endlessStatusPanel = null;
     var endlessStatusText = "", endlessStatusHidden = null, endlessRequestKey = "";
     var endlessTipTimer = null, endlessTipGeneration = 0, endlessTipKey = "";
+    var overflowSource=null,overflowSubscription=null,overflowTimer=null,overflowGeneration=0;
+    var overflowActive=false,overflowDeadline=0,overflowScope=null;
     var panelCache = {};
     // Match the actual archive definitions, not the example names in the style reference.
     var buildingIcons = {
@@ -582,6 +584,81 @@
             panel("ArchiveStatus").text=data.error || "称号切换失败，请重试";
         }
     });
+    // The existing owner HUD stream already carries the absolute personal
+    // deadline. One subscription and one panel reference replace 20 full-text
+    // network events; the paused game clock owns all countdown presentation.
+    function overflowIdentity() {
+        if(!active()||!overflowSource||cfg.SurvivalCompactHUDSource!==overflowSource
+            ||!overflowSource.IsAlive())return null;
+        var runtime=overflowSource.Runtime;
+        if(!runtime||runtime!==cfg.SurvivalCompactRuntime||!runtime.ScopeIdentity)return null;
+        var scope=runtime.ScopeIdentity();
+        return scope&&scope.active&&scope.ready?scope:null;
+    }
+    function sameOverflowScope(scope) {
+        return scope&&overflowScope&&scope.session===overflowScope.session
+            &&scope.loading_identity===overflowScope.loading_identity;
+    }
+    function cancelOverflowCountdown() {
+        overflowGeneration++;
+        if(overflowTimer!==null&&$.CancelScheduled)$.CancelScheduled(overflowTimer);
+        overflowTimer=null;overflowActive=false;overflowDeadline=0;overflowScope=null;
+    }
+    function renderOverflowCountdown() {
+        if(!overflowActive)return;
+        if(!sameOverflowScope(overflowIdentity())){
+            cancelOverflowCountdown();hideEndlessTip();return;
+        }
+        var remaining=Math.max(0,Math.ceil(overflowDeadline-Game.GetGameTime()));
+        if(remaining<=0){hideEndlessTip();return;}
+        var status=valid(endlessStatusPanel)?endlessStatusPanel:panel("EndlessStatus");
+        if(!status){cancelOverflowCountdown();return;}
+        var text="您需在"+remaining+"s内清理怪物";
+        if(status!==endlessStatusPanel||endlessStatusHidden!==false)status.SetHasClass("ArchiveHidden",false);
+        if(status!==endlessStatusPanel||text!==endlessStatusText)status.text=text;
+        endlessStatusPanel=status;endlessStatusHidden=false;endlessStatusText=text;
+        if(overflowTimer!==null)return;
+        var generation=overflowGeneration;
+        overflowTimer=$.Schedule(0.25,function(){
+            if(generation!==overflowGeneration)return;
+            overflowTimer=null;renderOverflowCountdown();
+        });
+    }
+    function observeOverflowHUD(snapshot) {
+        var scope=overflowIdentity();
+        if(!scope){
+            if(overflowActive){cancelOverflowCountdown();hideEndlessTip();}
+            return;
+        }
+        var wave=snapshot&&snapshot.wave;
+        if(!wave)return;
+        function flag(value){return value===true||Number(value)===1;}
+        var ended=flag(wave.player_defeated)||flag(wave.defeat_settled)||flag(wave.post_clear_frozen)
+            ||flag(wave.victory_settled)||wave.status==="defeat"||wave.status==="victory";
+        var deadline=Number(wave.overflow_deadline),warning=flag(wave.overflow_active)
+            &&!ended&&isFinite(deadline)&&deadline>0;
+        if(warning){
+            if(overflowActive&&overflowDeadline===deadline&&sameOverflowScope(scope))return;
+            cancelOverflowCountdown();cancelEndlessTipTimer();endlessTipGeneration++;
+            overflowActive=true;overflowDeadline=deadline;
+            overflowScope={session:scope.session,loading_identity:scope.loading_identity};
+            renderOverflowCountdown();return;
+        }
+        var recovered=overflowActive&&sameOverflowScope(scope)&&!ended;
+        if(overflowActive){cancelOverflowCountdown();hideEndlessTip();}
+        if(recovered)showEndlessTip("怪物数量已恢复，警报解除");
+    }
+    function bindOverflowHUD() {
+        var source=cfg.SurvivalCompactHUDSource;
+        if(!source||!source.IsAlive||!source.IsAlive()||!source.Subscribe)return;
+        overflowSource=source;
+        overflowSubscription=source.Subscribe(root,["wave"],observeOverflowHUD);
+    }
+    function disposeOverflowHUD() {
+        cancelOverflowCountdown();
+        if(overflowSource&&overflowSubscription!==null)overflowSource.Unsubscribe(overflowSubscription);
+        overflowSource=null;overflowSubscription=null;
+    }
     function cancelEndlessTipTimer() {
         if (endlessTipTimer === null) return;
         if ($.CancelScheduled) $.CancelScheduled(endlessTipTimer);
@@ -596,6 +673,7 @@
         endlessStatusHidden = true;
     }
     function showEndlessTip(text) {
+        if(overflowActive)return;
         if (!text || !String(text).trim()) return;
         var status = valid(endlessStatusPanel) ? endlessStatusPanel : panel("EndlessStatus");
         if (!status) return;
@@ -611,6 +689,7 @@
         });
     }
     function refreshEndlessStatus() {
+        if(overflowActive)return;
         if (!latestEndlessState) return;
         var data = latestEndlessState;
         if (data.status === "idle") { endlessTipKey = ""; hideEndlessTip(); return; }
@@ -625,6 +704,7 @@
         showEndlessTip(text);
     }
     subscribe("ui_notification", function(data){
+        if(data&&data.kind==="wave_overflow_tip"&&overflowSource)return;
         if (!data || (data.kind !== "endless_tip" && data.kind !== "wave_overflow_tip")
             || Number(data.player_id) !== Game.GetLocalPlayerID()) return;
         showEndlessTip(String(data.message || ""));
@@ -652,7 +732,7 @@
     }
     function dispose(){
         if(disposed)return;
-        hideEndlessTip();
+        disposeOverflowHUD();hideEndlessTip();
         close();disposed=true;
         timers.forEach(function(timer){if($.CancelScheduled)$.CancelScheduled(timer);});timers=[];
         subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];
@@ -737,4 +817,6 @@
     });
     if(!compactEnabled())later(0.2,function(){if(!pageCache[current])request(true);});
     registerToolsProbe();
+    bindOverflowHUD();
+    try{$.RegisterEventHandler("PanelDeleted",root,dispose);}catch(ignored){}
 })();
