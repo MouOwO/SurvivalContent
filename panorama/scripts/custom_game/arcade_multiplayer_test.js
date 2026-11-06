@@ -3,7 +3,7 @@
     var cfg = GameUI.CustomUIConfig(), previous = cfg.SurvivalArcadeReadOnlyShop;
     if (previous && typeof previous.Dispose === "function") previous.Dispose();
     var root = $.GetContextPanel(), state = null, collapsed = false, listener = null;
-    var disposed = false, timer = null, api = null, bound = false, hook = null, leaseView = null;
+    var disposed = false, timer = null, monitorGeneration = 0, api = null, bound = false, hook = null, leaseView = null;
     var catalog = null, catalogSource = null;
     var table = "survival_arcade_multiplayer_test";
     var diagnostics = Object.create(null), mapName = "<not_read>", mapType = "undefined";
@@ -62,8 +62,13 @@
         var old = leaseView; leaseView = null;
         if (old) { try { old.CloseReadonly(api); } catch (ignore) {} }
     }
+    function stopMonitor() {
+        monitorGeneration++;
+        if (timer !== null && $.CancelScheduled) { try { $.CancelScheduled(timer); } catch (ignore) {} }
+        timer = null;
+    }
     function hide() {
-        state = null; closeModal(); releaseHook();
+        stopMonitor(); state = null; closeModal(); releaseHook();
         if (valid(root)) { root.hittest = false; root.hittestchildren = false; }
         show("ArcadeTestCard", false);
     }
@@ -189,33 +194,39 @@
     function receive(name, key, raw) {
         if (!current() || name !== table || key !== "state") return;
         diagnostic("state_received", raw);
-        if (!exactMap()) { diagnostic("map_rejected", raw); hide(); return; }
         var reason = rejected(raw); if (reason) { diagnostic("reject_" + reason, raw); hide(); return; }
+        if (!exactMap()) { diagnostic("map_rejected", raw); hide(); return; }
         state = {}; keys.forEach(function (key) { state[key] = raw[key]; });
-        try { bind(); render(); } catch (ignore) { diagnostic("render_error", state); hide(); }
+        try { bind(); render(); startMonitor(); } catch (ignore) { diagnostic("render_error", state); hide(); }
     }
     function dispose() {
         if (disposed) return;
         disposed = true; hide();
-        if (timer !== null && $.CancelScheduled) { try { $.CancelScheduled(timer); } catch (ignore) {} }
-        timer = null;
         if (listener !== null) { try { CustomNetTables.UnsubscribeNetTableListener(listener); } catch (ignore) {} listener = null; }
         if (cfg.SurvivalArcadeReadOnlyShop === api) cfg.SurvivalArcadeReadOnlyShop = null;
     }
-    function monitor() {
+    function monitor(generation) {
+        // Cancelled callbacks may still be delivered by a retired layout.
+        // They must not clear a newer timer or revive a hidden diagnostic HUD.
+        if (generation !== monitorGeneration) return;
         timer = null;
         if (!current()) { dispose(); return; }
-        try {
-            if (!exactMap()) { diagnostic("map_rejected", state); hide(); }
-            else if (state) { bind(); render(); }
-        } catch (ignore) { diagnostic("monitor_error", state); hide(); }
-        if (current()) timer = $.Schedule(0.1, monitor);
+        try { if (state) { bind(); render(); } }
+        catch (ignore) { diagnostic("monitor_error", state); hide(); }
+        if (current() && state) startMonitor();
+    }
+    function startMonitor() {
+        // Ordinary games never publish a valid diagnostic state: no idle
+        // timer or native map query. Marked sessions retain one recovery timer
+        // for their existing late catalog/view/layer and lease checks.
+        if (!state || timer !== null || !current()) return;
+        var generation = monitorGeneration;
+        timer = $.Schedule(0.1, function () { monitor(generation); });
     }
     api = {Open:openShop, Close:function () { if (!current()) return; closeModal(); }, IsAvailable:function () { return enabled() && readCatalog() && !!layers() && !!shopView(); }, Dispose:dispose};
     cfg.SurvivalArcadeReadOnlyShop = api;
-    hide(); exactMap(); diagnostic("script_loaded", null);
+    hide(); diagnostic("script_loaded", null);
     // Cached table values cannot activate this layout. The catalog is a signed
     // public build projection, never a live balance, ownership or order quote.
     try { listener = CustomNetTables.SubscribeNetTableListener(table, receive); diagnostic("listener_ready", null); } catch (ignore) { diagnostic("listener_error", null); }
-    monitor();
 })();
