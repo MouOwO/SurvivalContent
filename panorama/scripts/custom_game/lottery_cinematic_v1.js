@@ -2,7 +2,7 @@
     'use strict';
     var cfg=GameUI.CustomUIConfig();
     if(cfg.LotteryCinematic && cfg.LotteryCinematic.Dispose)cfg.LotteryCinematic.Dispose();
-    var generation=0,timers=[],surface=null,movie=null,complete=null;
+    var generation=0,timers=[],surface=null,movie=null,complete=null,previewLease=null,disposed=false;
     var fallback=null,fallbackImage=null,fallbackPool='',activePool='map',playing=false,previewMode=false;
     var decoderProbe=null,probeSerial=0;
     var playerProbe=null,directMovieHost=null;
@@ -38,6 +38,8 @@
         if(valid(fallback)){fallback.RemoveClass('LCFallbackActive');fallback.visible=false;}
         if(valid(surface))surface.visible=false;
         var root=$('#LotteryWindow');if(valid(root))root.RemoveClass('LotteryCinematicPlaying');
+        var lease=previewLease;previewLease=null;
+        if(lease)lease.Release();
     }
     function releaseMovie(){
         var previous=movie;movie=null;
@@ -104,7 +106,7 @@
         var caption=$.CreatePanel('Label',surface,'LotteryCinematicCaption');caption.AddClass('LotteryCinematicCaption');caption.hittest=false;
         var skip=$.CreatePanel('Button',surface,'LotteryCinematicSkip');skip.AddClass('LotteryCinematicSkip');skip.hittestchildren=false;
         var text=$.CreatePanel('Label',skip,'');text.text='跳过演出  ›';
-        skip.SetPanelEvent('onactivate',function(){if(!playing)return;if(decoderProbe||playerProbe){cancel();return;}var cb=cfg.SurvivalLottery;if(cb&&cb.SkipCinematic){cancel();cb.SkipCinematic();}else finish();});
+        skip.SetPanelEvent('onactivate',function(){if(!playing)return;if(previewLease||decoderProbe||playerProbe){cancel();return;}var cb=cfg.SurvivalLottery;if(cb&&cb.SkipCinematic){cancel();cb.SkipCinematic();}else finish();});
         return true;
     }
     function resize(w,h){
@@ -120,8 +122,9 @@
         var scale=Math.min(w/1280,h/720);
         movie.style.width=(1280*scale)+"px";movie.style.height=(720*scale)+"px";
     }
-    function prepare(pool,results,onDone){
-        cancel();if(!build())return null;
+    function prepare(pool,results,onDone,lease){
+        cancel();previewLease=lease||null;
+        if(disposed||!build()){cancel();return null;}
         pool=Object.prototype.hasOwnProperty.call(pools,pool)?pool:'map';
         activePool=pool;complete=onDone;playing=true;surface.visible=true;
         var caption=$('#LotteryCinematicCaption');caption.text=pools[pool];
@@ -131,13 +134,13 @@
     }
     function previewNative(pool){
         if(typeof Game==='undefined'||!Game.IsInToolsMode||!Game.IsInToolsMode())return false;
-        if(cfg.SurvivalLottery)cfg.SurvivalLottery.Open();
-        pool=prepare(pool,[],function(){});if(pool===null)return false;
+        var lease=beginPreview();if(!lease)return false;
+        pool=prepare(pool,[],function(){},lease);if(pool===null)return false;
         previewMode=true;$.Msg('[LOTTERY_CINEMATIC] stage=preview pool='+pool);
         if(playFallback(pool,'tools_preview'))return true;cancel();return false;
     }
-    function playMedia(pool,results,onDone,preview,probe){
-        pool=prepare(pool,results,onDone);if(pool===null)return false;
+    function playMedia(pool,results,onDone,preview,probe,lease){
+        pool=prepare(pool,results,onDone,lease);if(pool===null)return false;
         previewMode=!!preview;
         if(probe){decoderProbe={id:++probeSerial,failure:'',fallbackShown:false};probeLog('begin','resource=panorama/styles/custom_game/lottery_cinematic_v1.vcss_c no_consumption=true');}
         else if(previewMode)$.Msg('[LOTTERY_CINEMATIC] stage=preview pool='+pool);
@@ -165,11 +168,20 @@
         return true;
     }
     function play(pool,results,onDone,preview){return playMedia(pool,results,onDone,preview,false);}
+    function beginPreview(){
+        var controller=cfg.SurvivalLottery;
+        if(disposed||playing||!controller||!controller.CanPreviewCinematic||!controller.OpenForCinematicPreview||!controller.CanPreviewCinematic())return null;
+        return controller.OpenForCinematicPreview();
+    }
+    function preview(pool){
+        var lease=beginPreview();if(!lease)return false;
+        return playMedia(pool,[],function(){},true,false,lease);
+    }
     function previewDecoderProbe(){
         // No draw/read/grant call, no arbitrary URL, and no interruption of an active presentation.
-        var root=$('#LotteryWindow'),idle=$('#LotteryRefreshButton');
-        if(playing||!valid(root)||!root.visible||!valid(idle)||idle.enabled!==true){$.Msg('[LOTTERY_DECODER_PROBE] stage=rejected cause=window_not_idle');return false;}
-        return playMedia('map',[],function(){},false,true);
+        var lease=beginPreview();
+        if(!lease){$.Msg('[LOTTERY_DECODER_PROBE] stage=rejected cause=controller_not_idle');return false;}
+        return playMedia('map',[],function(){},false,true,lease);
     }
     function previewPlayerAB(mode){
         // Explicit visual-only comparison, never a draw or an automatic fallback.
@@ -179,11 +191,12 @@
         // Buffered comparison explicitly requests native buffer-async loading;
         // at most one 3,014,654-byte map film is active. It is a diagnostic only:
         // native file/decoder behavior must be observed, never inferred here.
-        var root=$('#LotteryWindow'),idle=$('#LotteryRefreshButton');
-        if((mode!=='wrapper'&&mode!=='direct'&&mode!=='buffered')||playing||!valid(root)||!root.visible||!valid(idle)||idle.enabled!==true){
-            $.Msg('[LOTTERY_MOVIE_AB] stage=rejected cause=invalid_mode_or_window_not_idle');return false;
+        if(mode!=='wrapper'&&mode!=='direct'&&mode!=='buffered'){
+            $.Msg('[LOTTERY_MOVIE_AB] stage=rejected cause=invalid_mode');return false;
         }
-        if(prepare('map',[],function(){})===null)return false;
+        var lease=beginPreview();
+        if(!lease){$.Msg('[LOTTERY_MOVIE_AB] stage=rejected cause=controller_not_idle');return false;}
+        if(prepare('map',[],function(){},lease)===null)return false;
         playerProbe={id:++probeSerial,mode:mode,failure:''};
         playerProbeLog('begin','resource=panorama/videos/custom_game/lottery_cinematic_v1/map.webm no_consumption=true fallback=false');
         try{
@@ -219,8 +232,8 @@
         });});
         later(7.15,finish);return true;
     }
-    cfg.LotteryCinematic={PreviewPlayerAB:previewPlayerAB,PreviewDecoderProbe:previewDecoderProbe,Play:play,Resize:resize,Cancel:cancel,Finish:finish,Highest:highest,Dispose:function(){cancel();if(valid(surface))surface.DeleteAsync(0);surface=null;fallback=null;fallbackImage=null;fallbackPool='';},
-        Preview:function(pool){if(cfg.SurvivalLottery)cfg.SurvivalLottery.Open();play(pool,[],function(){},true);},PreviewNative:previewNative};
+    cfg.LotteryCinematic={PreviewPlayerAB:previewPlayerAB,PreviewDecoderProbe:previewDecoderProbe,Play:play,Resize:resize,Cancel:cancel,Finish:finish,Highest:highest,Dispose:function(){cancel();disposed=true;if(valid(surface))surface.DeleteAsync(0);surface=null;fallback=null;fallbackImage=null;fallbackPool='';},
+        Preview:preview,PreviewNative:previewNative};
     if(typeof Game!=='undefined'&&Game.AddCommand){
         var stamp=Date.now();Object.keys(pools).forEach(function(pool){Game.AddCommand('lottery_film_'+pool+'_'+stamp,function(){cfg.LotteryCinematic.Preview(pool);},'Preview cinematic only; no draw, ticket consumption or reward grant',0);});
         Game.AddCommand('lottery_film_decoder_probe_map_'+stamp,previewDecoderProbe,'Zero-consumption native decoder failure preview; fixed existing non-video resource only',0);

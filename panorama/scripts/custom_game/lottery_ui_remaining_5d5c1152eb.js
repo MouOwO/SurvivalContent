@@ -41,7 +41,7 @@
     var visibleResults = [];
     var animating = false, animationSerial = 0, skipAnimation = !!$("#LotterySkipAnimation").checked;
     var resultCards = [], lastDrawCount = 1, history = [], seenResults = {};
-    var activeRequest = null, opened = false, switchingPool = false;
+    var activeRequest = null, opened = false, switchingPool = false, cinematicPreview = null;
     var feedbackRequest = null, rewardReceipt = null, rewardFX = null, rewardFXRoot = null;
     var walletRefreshes={};
     var motion = { single: {enter:650, flip:1250, ready:2000}, ten: {enter:800, enterStep:40, flip:1350, flipStep:110, ready:2800}, flipHalf:100 };
@@ -60,10 +60,10 @@
         return node;
     }
     function rootClass(name, on) { var root = panel("LotteryWindow"); if (root) root.SetHasClass(name, on); }
-    function closeInfo() { if(!alive())return;detailRequestSerial++; activeFeature = ""; infoShell.Close(); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); var presenter=currentPresentation();if(presenter&&presenter.CloseInfo)presenter.CloseInfo();if(presenter&&presenter.Pools)presenter.Pools(rows(knownPools),selectedPoolId);if(opened&&cache&&cache.Compact&&cache.Open)cache.Open(selectedPoolId); }
+    function closeInfo() { if(!alive()||cinematicPreview)return;detailRequestSerial++; activeFeature = ""; infoShell.Close(); var info = panel("LotteryInfoOverlay"); if (info) info.AddClass("LotteryInfoHidden"); hideTooltip(); reopenDetails = false; updateButtons(); var presenter=currentPresentation();if(presenter&&presenter.CloseInfo)presenter.CloseInfo();if(presenter&&presenter.Pools)presenter.Pools(rows(knownPools),selectedPoolId);if(opened&&cache&&cache.Compact&&cache.Open)cache.Open(selectedPoolId); }
     function updateButtons() {
         var selected = state && (state.selected_pool || state);
-        var locked = pending || animating || switchingPool || !selected || !cache || !cache.IsAuthoritative(selectedPoolId) || selected.unlocked===false || !!activeFeature;
+        var locked = !!cinematicPreview || pending || animating || switchingPool || !selected || !cache || !cache.IsAuthoritative(selectedPoolId) || selected.unlocked===false || !!activeFeature;
         [["LotterySingleButton", 1], ["LotteryTenButton", 10], ["LotteryAgain", lastDrawCount]].forEach(function (entry) {
             var button = panel(entry[0]);
             if (!button) return;
@@ -72,8 +72,8 @@
             button.enabled = !locked && Number(selected.tickets || 0) >= cost;
             button.SetHasClass("Disabled", !button.enabled);
         });
-        var confirm = panel("LotteryConfirm"); if (confirm) confirm.enabled = !pending && !animating;
-        var refresh = panel("LotteryRefreshButton"); if (refresh) refresh.enabled = !pending && !animating;
+        var confirm = panel("LotteryConfirm"); if (confirm) confirm.enabled = !cinematicPreview && !pending && !animating;
+        var refresh = panel("LotteryRefreshButton"); if (refresh) refresh.enabled = !cinematicPreview && !pending && !animating;
         rootClass("LotteryWaiting", pending);
         setText("LotterySingleText", pending && lastDrawCount === 1 ? "请求中…" : (selected && drawCost(selected,1) === 0 ? "免费单抽" : "单抽"));
         setText("LotteryTenText", pending && lastDrawCount === 10 ? "请求中…" : "10连");
@@ -357,6 +357,7 @@
         });
     }
     function markRead(pool, action) {
+        if(cinematicPreview)return;
         if (!pool || !pool.revision || !cache || !cache.IsAuthoritative(pool.id)) return;
         var key = pool.id + ':' + action + ':' + pool.revision;
         if (readsPending[key]) return;
@@ -370,16 +371,17 @@
         if (!dot) { dot = $.CreatePanel("Panel",button,"LotteryUpdateDot"); dot.AddClass("LotteryUpdateDot"); dot.hittest=false; }
         dot.visible = knownPools.some(function(p){return String(p.id) === selectedPoolId && detailsUnread(p);});
     }
-    function refreshLocal(poolId,force) {
+    function refreshLocal(poolId,force,readOnly) {
         // Login/profile pushes keep the shared cache current while this window
         // is closed. Only the visible selected pool may materialize a view.
+        if(cinematicPreview){cinematicPreview.dirty=true;return;}
         if(!cache || !opened)return;
         if(!poolId || poolId===selectedPoolId) {
             var revision=selectedPoolId+":"+(cache.Revision?cache.Revision(selectedPoolId):"");
             if(force || !cache.Revision || revision!==mainViewRevision) {
                 mainViewRevision=revision;
                 var main=cache.Snapshot(selectedPoolId);
-                if(main)render(main);else {state=null;renderDrawStage();updateButtons();}
+                if(main)render(main,readOnly);else {state=null;renderDrawStage();updateButtons();}
             }
         }
         if(activeFeature==="details" && (!poolId || poolId===detailPoolId) && detailPoolId!==selectedPoolId) {
@@ -396,7 +398,7 @@
     }
 
     function resetDrawStage() {
-        if (pending) return;
+        if (pending || cinematicPreview) return;
         clearRewardFeedback();
         finishReveal();
         visibleResults = [];
@@ -404,8 +406,42 @@
         setText("LotteryStatus", "请选择开启数量");
     }
 
+    // A diagnostic uses the controller's real state, never a skin-only button.
+    // One explicit start checks O(1) transaction state and the existing modal
+    // stack. No polling, cache read/open, acknowledgement or draw is issued.
+    function canPreviewCinematic() {
+        if(!alive() || cinematicPreview || pending || animating || switchingPool || activeRequest || activeFeature || openRequested || visibleResults.length)return false;
+        var root=panel("LotteryWindow");
+        if(!root || (root.IsValid&&!root.IsValid()) || !currentPresentation())return false;
+        var layers=cfg.SurvivalUILayers,top=layers&&layers.Top?layers.Top():null;
+        return !top || top==="lottery";
+    }
+
+    function openForCinematicPreview() {
+        if(!canPreviewCinematic())return null;
+        var presenter=currentPresentation(),lease={openedHere:!opened};
+        cinematicPreview=lease;
+        lease.Release=function(){
+            if(cinematicPreview!==lease)return;
+            cinematicPreview=null;
+            if(!alive())return;
+            if(lease.openedHere){
+                opened=false;openRequested=false;activePresenter=null;
+                hideUnreadyWindow();LH.Close();
+                if(presenter.Close)presenter.Close();
+            } else if(lease.dirty)refreshLocal("",true,true);
+            updateButtons();
+        };
+        try {
+            if(lease.openedHere){opened=true;showPresentation(presenter,true);}
+            else updateButtons();
+        } catch(error) { lease.Release();return null; }
+        return lease;
+    }
+
     function open() {
         if(!alive())return;
+        if(cinematicPreview)return true;
         var root = panel("LotteryWindow");
         if (!root) return;
         var presenter=currentPresentation();
@@ -466,9 +502,11 @@
 
     function close() {
         if(!alive())return;
+        var localPreview=cinematicPreview&&cinematicPreview.openedHere;
+        cinematicPreview=null;
         openRequested=false;activePresenter=null;openIntentSerial++;
         opened = false;
-        if(cache&&cache.Compact&&cache.Close)cache.Close();
+        if(!localPreview&&cache&&cache.Compact&&cache.Close)cache.Close();
         feedbackRequest = null; clearRewardFeedback();
         var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery");
         finishReveal(); closeInfo();
@@ -492,6 +530,7 @@
     }
 
     function selectPool(poolId) {
+        if(cinematicPreview)return;
         if (activeFeature === "details") { selectDetailPool(poolId); return; }
         if (pending || animating || switchingPool) return;
         clearRewardFeedback();
@@ -541,13 +580,13 @@
         setText("LotteryGuaranteeValue", text); LH.Guarantee(rules);
     }
 
-    function render(snapshot) {
+    function render(snapshot,readOnly) {
         if(!opened)return;
         if (!snapshot) return;
         if (snapshot.selected_pool_id && String(snapshot.selected_pool_id) !== selectedPoolId) return;
         state = snapshot;
         renderSerial++;
-        if(opened)markRead(snapshot.selected_pool,"visit");
+        if(opened&&!readOnly)markRead(snapshot.selected_pool,"visit");
         if (activeFeature === "details" && detailPoolId === selectedPoolId) detailState = snapshot;
         knownPools = rows(snapshot.pools);
         switchingPool = false;
@@ -584,7 +623,7 @@
     }
 
     function draw(count) {
-        if (!opened || !currentPresentation() || pending || animating || switchingPool || !state || activeFeature || !cache || !cache.IsAuthoritative(selectedPoolId)) return;
+        if (cinematicPreview || !opened || !currentPresentation() || pending || animating || switchingPool || !state || activeFeature || !cache || !cache.IsAuthoritative(selectedPoolId)) return;
         if (count !== 1 && count !== 10) return;
         var selected = state.selected_pool || state;
         if(selected.unlocked===false){setText("LotteryStatus","地图宝箱累计开启 "+Number(selected.unlock_progress||0)+" / "+Number(selected.unlock_required||100)+" 次后解锁");return;}
@@ -704,6 +743,7 @@
     }
 
     function feature(name) {
+        if(cinematicPreview)return;
         var presenter=currentPresentation();
         if (!presenter || pending || animating) return;
         if (name === "purchase") {
@@ -802,6 +842,7 @@
     close();
     if(cache){cacheSubscription=cache.Subscribe(active(function(id,packet){
         if(packet&&packet.reset){
+            if(cinematicPreview)cancelAnimation();
             // A new world retires the old operation. Closing a panel in the
             // same world deliberately keeps it for read-only receipt recovery.
             pending=false;activeRequest=null;feedbackRequest=null;readsPending={};
@@ -819,6 +860,8 @@
     subscriptions.push(GameEvents.Subscribe("ui_lottery_exchange_result", active(renderExchangeResult)));
     var api={
         SkipCinematic: completeReveal,
+        CanPreviewCinematic: canPreviewCinematic,
+        OpenForCinematicPreview: openForCinematicPreview,
         Open: open,
         PresentationReady: presentationReady,
         OpenFromShop: openFromShop,
@@ -833,8 +876,8 @@
         SkipReveal: completeReveal,
         SetSkipAnimation: function () { skipAnimation = !!panel("LotterySkipAnimation").checked; if (skipAnimation && animating) completeReveal(); },
         SelectPool: selectPool,
-        SelectHistoryPool: function(id){if(pending||animating)return;historyPoolId=String(id||selectedPoolId);feature("history");},
-        Refresh: function () { if (!pending && !animating) refreshLocal("",true); }
+        SelectHistoryPool: function(id){if(cinematicPreview||pending||animating)return;historyPoolId=String(id||selectedPoolId);feature("history");},
+        Refresh: function () { if (!cinematicPreview && !pending && !animating) refreshLocal("",true); }
     };
     Object.keys(api).forEach(function(key){api[key]=active(api[key]);});
     api.IsAlive=alive;
