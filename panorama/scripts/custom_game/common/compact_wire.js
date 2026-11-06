@@ -93,6 +93,15 @@
         if(field.kind==="bool" && typeof value==="boolean")value=value?1:0;
         need(integer(value,field.min,field.max),"field_value_range");need(!field.enum || field.enum[value],"field_enum_unknown");return value;
     }
+    // One typed validator for framed cw and trusted, decoded bulk operations.
+    // Copy only K changed fields; callbacks cannot retain caller-owned objects.
+    function normalizeChanges(data,changes){
+        dense(changes,65535);var out=[],seen=Object.create(null),n,c,field,key,copy;
+        for(n=0;n<changes.length;n++){c=changes[n];need(c&&typeof c==="object"&&!Array.isArray(c),"change_required");Object.keys(c).forEach(function(k){need(k==="record"||k==="field"||k==="value"||k==="remove","change_key_unknown");});
+            need(integer(c.record,1,65535)&&data.records[c.record],"record_unknown");need(integer(c.field,1,255),"field_unknown");field=data.fields[c.field];need(!!field,"field_unknown");key=c.record*256+c.field;need(!seen[key],"duplicate_changed_index");seen[key]=true;need(c.remove===undefined||c.remove===true,"remove_flag_invalid");copy={record:c.record,field:c.field};
+            if(c.remove){need(c.value===undefined,"removed_value_present");copy.remove=true;}else copy.value=fieldValue(field,c.value);out.push(copy);
+        }return out;
+    }
     function decodeChanges(data,raw){
         var out=[],seen=Object.create(null),cursor={at:0},record,tag,id,field,value,key,change;
         while(cursor.at<raw.length){record=readUint(raw,cursor);tag=readUint(raw,cursor);need(data.records[record],"record_unknown");id=Math.floor(tag/2);field=data.fields[id];need(!!field,"field_unknown");key=record*256+id;need(!seen[key],"duplicate_changed_index");seen[key]=true;change={record:record,field:id};
@@ -119,11 +128,9 @@
     function header(binding,revision,tag,index,count){return String.fromCharCode(tag)+uint(binding.schema)+uint(binding.session)+uint(binding.epoch)+uint(binding.view)+uint(revision)+uint(index)+uint(count);}
     function encode(schema,binding,revision,changes,options){
         options=options||{};binding=bindingData(schema,binding);need(integer(revision,1,MAX_REV),"revision_requires_new_epoch");
-        var budget=valueBudget(options),data=dataOf(schema),raw="",seen=Object.create(null),n,c,field,key,value;
-        dense(changes,65535);
-        for(n=0;n<changes.length;n++){c=changes[n];need(c&&typeof c==="object","change_required");Object.keys(c).forEach(function(k){need(k==="record"||k==="field"||k==="value"||k==="remove","change_key_unknown");});
-            need(data.records[c.record],"record_unknown");field=data.fields[c.field];need(!!field,"field_unknown");key=c.record*256+c.field;need(!seen[key],"duplicate_changed_index");seen[key]=true;need(c.remove===undefined||c.remove===true,"remove_flag_invalid");
-            raw+=uint(c.record)+uint(c.field*2+(c.remove?1:0));if(c.remove)need(c.value===undefined,"removed_value_present");else{value=fieldValue(field,c.value);if(field.kind==="sint")value=value<0?-value*2-1:value*2;raw+=uint(value);}
+        var budget=valueBudget(options),data=dataOf(schema),raw="",n,c,field,value;changes=normalizeChanges(data,changes);
+        for(n=0;n<changes.length;n++){c=changes[n];field=data.fields[c.field];
+            raw+=uint(c.record)+uint(c.field*2+(c.remove?1:0));if(!c.remove){value=c.value;if(field.kind==="sint")value=value<0?-value*2-1:value*2;raw+=uint(value);}
         }
         if(!raw.length&&!options.full)return {packets:[],report:{changes:0,business_bytes:0,protocol_bytes:0,ascii_bytes:0,native_bytes:null}};
         var rawLimit=Math.floor(budget*3/4),count=1,capacity,next,tag=options.full===true?17:16;
@@ -159,12 +166,17 @@
             try{changes=decodeChanges(data,parts.join(""));}catch(error){assembly=null;throw error;}
             var transaction={full:assembly.full,revision:assembly.revision,changes:changes,generation:generation};pending={transaction:transaction,revision:assembly.revision};assembly=null;return transaction;
         }
+        function stageExternal(base,next,changes){
+            need(!disposed,"disposed");need(!pending,"commit_required");need(integer(base,1,MAX_REV)&&integer(next,1,MAX_REV)&&next===base+1,"external_revision_invalid");
+            need(next>revision,"stale_revision");need(initialized&&base===revision,"missing_base");need(!assembly,"external_assembly_conflict");
+            var transaction={full:false,revision:next,changes:normalizeChanges(data,changes),generation:generation};pending={transaction:transaction,revision:next};return transaction;
+        }
         function commit(transaction){need(!disposed,"disposed");need(pending && pending.transaction===transaction,"transaction_not_pending");revision=pending.revision;initialized=true;pending=null;return true;}
         function abort(){assembly=null;pending=null;}
         function inspect(){return {revision:revision,initialized:initialized,assembling:!!assembly,commit_pending:!!pending,received:assembly?assembly.received:0,buffered_bytes:assembly?assembly.bytes:0,generation:generation,disposed:disposed};}
         function rebind(next){need(!disposed,"disposed");binding=bindingData(schema,next);revision=0;initialized=false;abort();generation++;return generation;}
         function dispose(){abort();disposed=true;generation++;}
-        return {Accept:accept,Commit:commit,Abort:abort,Inspect:inspect,Rebind:rebind,Dispose:dispose,accept:accept,commit:commit,abort:abort,inspect:inspect};
+        return {Accept:accept,StageExternal:stageExternal,Commit:commit,Abort:abort,Inspect:inspect,Rebind:rebind,Dispose:dispose,accept:accept,commit:commit,abort:abort,inspect:inspect};
     }
     // Transport integration is injected. Failed/stale frames never become model
     // values. Resync is latched until a valid full commit or trusted rebind.
@@ -191,6 +203,14 @@
             if(started!==null && clock()-started>=deadline)failure("assembly_deadline");
             var tx;try{tx=receiver.Accept(packet);}catch(error){return failure(error.message);}
             if(tx.pending){armDeadline();return tx;}
+            return applyTransaction(tx);
+        }
+        function applyExternal(base,next,changes){
+            if(disposed)return {error:"disposed"};var tx;
+            try{tx=receiver.StageExternal(base,next,changes);}catch(error){return failure(error.message);}
+            return applyTransaction(tx);
+        }
+        function applyTransaction(tx){
             cancelDeadline();var next=tx.full?Object.create(null):state,changed=[],seen=Object.create(null),n,c,row;
             // Stage copies only of changed dynamic records. No catalogue clone.
             var staged=Object.create(null);
@@ -221,7 +241,7 @@
         function rebind(next){need(!disposed,"disposed");next=bindingData(schema,next);receiver.Rebind(next);binding=next;state=Object.create(null);resyncPending=false;generation++;cancelDeadline();clearQueue();return generation;}
         function dispose(){if(disposed)return;disposed=true;generation++;cancelDeadline();clearQueue();state=Object.create(null);receiver.Dispose();}
         function inspect(){return {receiver:receiver.Inspect(),generation:generation,disposed:disposed,resync_pending:resyncPending,queued:queued,deadline_active:started!==null,counters:{frames:counters.frames,commits:counters.commits,changed_fields:counters.changed_fields,resyncs:counters.resyncs,stale:counters.stale,queued:counters.queued}};}
-        return {Accept:accept,Read:read,Enqueue:enqueue,Drain:drain,Expire:expire,Abort:abort,Rebind:rebind,Dispose:dispose,Inspect:inspect};
+        return {Accept:accept,ApplyExternal:applyExternal,Read:read,Enqueue:enqueue,Drain:drain,Expire:expire,Abort:abort,Rebind:rebind,Dispose:dispose,Inspect:inspect};
     }
     return {EVENT:"cw",KEY:"d",VERSION:1,DEFAULT_VALUE_BUDGET:24,CompileSchema:compileSchema,CompileLookup:compileLookup,PeekHeader:peekHeader,DecodePacket:decodePacket,DecodeResync:decodeResync,Encode:encode,EncodeResync:encodeResync,NewReceiver:newReceiver,NewClient:newClient,
         compile_schema:compileSchema,compile_lookup:compileLookup,decode_packet:decodePacket,encode_resync:encodeResync,new_receiver:newReceiver,

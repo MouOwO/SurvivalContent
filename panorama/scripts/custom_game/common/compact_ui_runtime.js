@@ -6,7 +6,7 @@
  if(typeof GameUI!=="undefined"&&GameUI.CustomUIConfig){
   var cfg=GameUI.CustomUIConfig();
   var existing=cfg.SurvivalCompactRuntime,catalogue=cfg.SurvivalUICatalog&&cfg.SurvivalUICatalog.Data;
-  if(existing&&existing.BuildVersion===api.BuildVersion&&catalogue&&existing.Inspect){var state=existing.Inspect();if(state.active&&state.schema_sha256===catalogue.sha256&&state.bulk_enabled===!!cfg.SurvivalCompactGridBulkWire)return;}
+  if(existing&&existing.BuildVersion===api.BuildVersion&&catalogue&&existing.Inspect){var state=existing.Inspect(),lotteryCapability=!!cfg.SurvivalCompactGridBulkWire&&!!cfg.SurvivalCompactLotteryReceiptWire&&!!catalogue.auxiliary&&catalogue.auxiliary.lottery_receipt_wire_version===1;if(state.active&&state.schema_sha256===catalogue.sha256&&state.bulk_enabled===!!cfg.SurvivalCompactGridBulkWire&&state.bulk_lottery_enabled===lotteryCapability)return;}
   if(existing&&existing.Dispose)existing.Dispose();
   if(cfg.SurvivalCompactWire&&cfg.SurvivalUICatalog){
    var owner=$.GetContextPanel(),marker=$.CreatePanel("Panel",owner,"");
@@ -24,7 +24,7 @@
    }
    var memo=cfg.SurvivalCompactRuntimeMemo||(cfg.SurvivalCompactRuntimeMemo={intent_token:0,sessions:{},retired:[]});
    try{
-    var created=api.CreateRuntime({wire:cfg.SurvivalCompactWire,bulk:cfg.SurvivalCompactGridBulkWire,catalogue:cfg.SurvivalUICatalog,memo:memo,
+    var created=api.CreateRuntime({wire:cfg.SurvivalCompactWire,bulk:cfg.SurvivalCompactGridBulkWire,lotteryReceiptWire:cfg.SurvivalCompactLotteryReceiptWire,catalogue:cfg.SurvivalUICatalog,memo:memo,
      ownerAlive:ownerAlive,onDispose:releaseOwner,
      send:function(event,packet){GameEvents.SendCustomGameEventToServer(event,packet);return true;},
      subscribe:function(event,fn){return GameEvents.Subscribe(event,fn);},unsubscribe:function(id){GameEvents.Unsubscribe(id);},
@@ -41,7 +41,7 @@
  }
 }(function(){
  "use strict";
- var BUILD="compact_ui_runtime_20261105_v8";
+ var BUILD="compact_ui_runtime_20261106_v9";
  var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7,production_train:8,production_research:9,production_auto:10,production_cancel:11,payment_capability:12,public_beta_claim:13};
  var ERRORS={schema_mismatch:"界面版本与服务器不一致，请更新游戏后重新进入。",schema_unknown:"界面协议不一致，请更新游戏后重新进入。",not_ready:"正在核对界面版本，请稍后。",token_exhausted:"本次会话的操作编号已用完，请重新进入游戏。",revision_exhausted:"本次会话的消息编号已用完，请重新进入游戏。",native_send_failed:"同步消息未能发送，请重新打开界面。",application_rejected:"界面数据校验失败，正在重新同步。"};
  function need(ok,code){if(!ok)throw new Error(code);}
@@ -50,6 +50,7 @@
  function create(options){
   options=options||{};var W=options.wire,B=options.bulk,C=options.catalogue&&options.catalogue.Data||options.catalogue;
   need(W&&W.Encode&&W.PeekHeader&&C&&C.sha256,"compact_runtime_dependencies_required");
+  var lotteryBulk=!!B&&!!options.lotteryReceiptWire&&!!C.auxiliary&&C.auxiliary.lottery_receipt_wire_version===1;
   var schema=W.CompileLookup(C,1),F=Object.create(null),records=Object.create(null),views=Object.create(null),keys=Object.create(null),allViews=[],memo=options.memo||{intent_token:0,sessions:{},retired:[]};
   C.fields.forEach(function(f){F[f.name]=f.id;});C.records.forEach(function(r){if(!r.tombstone)records[r.key]=r.id;});
   var control=records["wire:control"],helloWords=[],helloByRecord=Object.create(null),word;
@@ -77,7 +78,7 @@
   function current(view,consumer,client,own){return live()&&generation===own&&view.consumer===consumer&&consumer&&consumer.active&&view.client===client;}
   function cleanup(fn){try{fn();}catch(ignored){counters.cleanup_failures++;}}
   function subscribeOwned(register,unregister){var id=register();if(!live()){if(unregister)cleanup(function(){unregister(id);});return null;}return id;}
-  function abortBulk(view){if(view.bulkReceiver)view.bulkReceiver.Dispose();view.bulkReceiver=null;view.bulkBase=null;}
+  function abortBulk(view){if(view.bulkReceiver)view.bulkReceiver.Dispose();view.bulkReceiver=null;view.bulkBase=null;view.bulkScope=null;}
   function recordSession(value){var key=String(value);if(!memo.sessions[key])memo.sessions[key]={};return memo.sessions[key];}
   function binding(view,epoch,token){return {schema:1,schema_sha256:C.sha256,session:token===undefined?session:token,epoch:epoch,view:view};}
   function bootstrap(){return binding(1,1,1);}
@@ -134,6 +135,7 @@
    if(!live()||!ready||!view.consumer||!view.consumer.active||view.desired===null||view.sentDesired===view.desired)return {sent:false,unchanged:true};
    var values={visible:view.desired==="open"?1:0,known:view.desired==="probe"?1:0};
    if(view.id===6&&view.desired==="open"&&B)values.types=1;
+   if(lotteryBulk&&view.id>=201&&view.id<=204&&view.desired==="open"&&view.consumer.options.bulkLottery===true)values.types=2;
    var result=emitControl(view,values);if(result.sent)view.sentDesired=view.desired;return result;
   }
   function resync(view,reason,epoch){
@@ -237,21 +239,32 @@
   function receiveBulk(packet){
    if(!live()||!admitted||!ready||!B)return;counters.bulk_received++;
    var h;try{h=B.PeekHeader(packet);}catch(error){counters.bulk_rejected++;return;}
-   var v=views[6],consumer=v&&v.consumer,client=v&&v.client,entryGeneration=generation;
-   if(h.schema!==1||h.view!==6||h.session!==session||retired(h.session)||!v||!consumer||!consumer.active||v.desired!=="open"||h.epoch!==v.epoch||!v.client){counters.stale++;return;}
+   var isLottery=h.view>=201&&h.view<=204,v=views[h.view],consumer=v&&v.consumer,client=v&&v.client,entryGeneration=generation;
+   if(h.schema!==1||h.session!==session||retired(h.session)||!v||!consumer||!consumer.active||v.desired!=="open"||h.epoch!==v.epoch||!v.client||isLottery&&(!lotteryBulk||consumer.options.bulkLottery!==true)){counters.stale++;return;}
    var rx=v.client.Inspect().receiver;
-   if(!rx||h.base_revision>rx.revision){counters.bulk_rejected++;resync(v,1);return;}
-   try{var accepted=!!consumer.options.onBulk&&!!consumer.options.acceptBulk&&consumer.options.acceptBulk(h)===true;}
-   catch(error){if(current(v,consumer,client,entryGeneration))counters.bulk_rejected++;return;}
+   if(isLottery&&rx&&h.base_revision<rx.revision){counters.stale++;return;}
+   if(!isLottery&&(!rx||h.base_revision>rx.revision)){counters.bulk_rejected++;resync(v,1);return;}
+   try{var accepted=!!(isLottery?consumer.options.onBulkDecode:consumer.options.onBulk)&&!!consumer.options.acceptBulk&&consumer.options.acceptBulk(h)===true;}
+   catch(error){if(current(v,consumer,client,entryGeneration)){counters.bulk_rejected++;if(isLottery)resync(v,4);}return;}
    if(!current(v,consumer,client,entryGeneration)||v.desired!=="open")return;
    if(!accepted){counters.stale++;return;}
+   if(isLottery&&(!rx||h.base_revision>rx.revision)){counters.bulk_rejected++;resync(v,1);return;}
    if(v.bulkBase!==null&&v.bulkBase!==undefined&&h.base_revision<v.bulkBase){counters.stale++;return;}
-   if(!v.bulkReceiver||v.bulkBase!==h.base_revision){
-    abortBulk(v);v.bulkBase=h.base_revision;var own=generation,receiver;
-    receiver=B.NewReceiver({schema:1,schema_sha256:C.sha256,session:session,epoch:v.epoch,view:6,base_revision:h.base_revision},{
+   if(!v.bulkReceiver||v.bulkBase!==h.base_revision||isLottery&&v.bulkScope!==h.scope){
+    abortBulk(v);v.bulkBase=h.base_revision;v.bulkScope=h.scope;var own=generation,receiver;
+    receiver=B.NewReceiver({schema:1,schema_sha256:C.sha256,session:session,epoch:v.epoch,view:h.view,base_revision:h.base_revision},{
      now:options.now,schedule:schedule,cancel:cancelScheduled,
+     scope:isLottery?h.scope:undefined,ignoreRejectedHeader:isLottery,
      acceptHeader:function(header){if(!current(v,consumer,client,own)||v.bulkReceiver!==receiver||v.desired!=="open")return false;var accepted=consumer.options.acceptBulk(header)===true;return accepted&&current(v,consumer,client,own)&&v.bulkReceiver===receiver&&v.desired==="open";},
-     onComplete:function(header,raw){if(current(v,consumer,client,own)&&v.bulkReceiver===receiver&&v.desired==="open"){consumer.options.onBulk(header,raw);if(current(v,consumer,client,own)&&v.bulkReceiver===receiver)counters.bulk_commits++;}},
+     onComplete:function(header,raw){if(current(v,consumer,client,own)&&v.bulkReceiver===receiver&&v.desired==="open"){
+      if(isLottery){
+       var decoded=consumer.options.onBulkDecode(header,raw);need(decoded&&decoded.revision===header.base_revision+1&&Array.isArray(decoded.changes),"bulk_lottery_decode_invalid");
+       if(!current(v,consumer,client,own)||v.bulkReceiver!==receiver||v.desired!=="open")return;
+       var result=client.ApplyExternal(header.base_revision,decoded.revision,decoded.changes);
+       if(result.stale)return;need(result.committed,result.error||"bulk_lottery_commit_failed");
+      }else consumer.options.onBulk(header,raw);
+      if(current(v,consumer,client,own)&&v.bulkReceiver===receiver)counters.bulk_commits++;
+     }},
      onError:function(code){if(current(v,consumer,client,own)&&v.bulkReceiver===receiver&&v.desired==="open"){counters.bulk_rejected++;if(notify(v,code)&&current(v,consumer,client,own)&&v.bulkReceiver===receiver)resync(v,2);}}
     });v.bulkReceiver=receiver;
    }
@@ -266,7 +279,7 @@
    if(hello)cleanup(function(){hello.Dispose();});
    allViews.forEach(function(v){
     var consumer=v.consumer,client=v.client,bulk=v.bulkReceiver;
-    v.consumer=null;v.client=null;v.bulkReceiver=null;v.bulkBase=null;v.desired=null;v.sentDesired=null;v.resyncPending=false;
+    v.consumer=null;v.client=null;v.bulkReceiver=null;v.bulkBase=null;v.bulkScope=null;v.desired=null;v.sentDesired=null;v.resyncPending=false;
     if(consumer){consumer.active=false;consumer.options={};}
     if(bulk)cleanup(function(){bulk.Dispose();});if(client)cleanup(function(){client.Dispose();});
    });
@@ -275,7 +288,7 @@
    if(loadingSub!==null&&options.unsubscribeLoading)cleanup(function(){options.unsubscribeLoading(loadingSub);});
    if(options.onDispose)cleanup(options.onDispose);
   }
-  function inspect(){live();return {active:active,generation:generation,ready:ready,admitted:admitted,session:session,schema_sha256:C.sha256,bulk_enabled:!!B,upgrade_required:helloFailed,error:lastError,error_text:errorText(lastError),views:allViews.length,intent_token:memo.intent_token,retired_sessions:memo.retired.slice(),counters:Object.assign({},counters)};}
+  function inspect(){live();return {active:active,generation:generation,ready:ready,admitted:admitted,session:session,schema_sha256:C.sha256,bulk_enabled:!!B,bulk_lottery_enabled:lotteryBulk,upgrade_required:helloFailed,error:lastError,error_text:errorText(lastError),views:allViews.length,intent_token:memo.intent_token,retired_sessions:memo.retired.slice(),counters:Object.assign({},counters)};}
   try{
    subscription=subscribeOwned(function(){return options.subscribe("cw",receive);},options.unsubscribe);
    if(active&&B)bulkSubscription=subscribeOwned(function(){return options.subscribe("gb",receiveBulk);},options.unsubscribe);

@@ -800,7 +800,21 @@
     }
 
     close();
-    if(cache){cacheSubscription=cache.Subscribe(active(function(id,packet){if(packet && packet.read_error){readsPending={};return;}if(packet&&packet.result&&!packet.result.pending){renderResult(packet.result);return;}refreshLocal(id);if(opened&&packet&&packet.error_text&&(!id||id===selectedPoolId))setText("LotteryStatus",packet.error_text);}));refreshLocal("");}
+    if(cache){cacheSubscription=cache.Subscribe(active(function(id,packet){
+        if(packet&&packet.reset){
+            // A new world retires the old operation. Closing a panel in the
+            // same world deliberately keeps it for read-only receipt recovery.
+            pending=false;activeRequest=null;feedbackRequest=null;readsPending={};
+            mainViewRevision="";detailViewRevision="";resetDrawStage();refreshLocal("",true);updateButtons();return;
+        }
+        if(packet&&packet.receipt_waiting&&(!activeRequest||packet.request_id===activeRequest)){
+            pending=false;updateButtons();
+            if(opened&&packet.error_text)setText("LotteryStatus",packet.error_text);return;
+        }
+        if(packet && packet.read_error){readsPending={};return;}
+        if(packet&&packet.result&&!packet.result.pending){renderResult(packet.result);return;}
+        refreshLocal(id);if(opened&&packet&&packet.error_text&&(!id||id===selectedPoolId))setText("LotteryStatus",packet.error_text);
+    }));refreshLocal("");}
     if(!cache||!cache.Compact)subscriptions.push(GameEvents.Subscribe("ui_lottery_result", active(renderResult)));
     subscriptions.push(GameEvents.Subscribe("ui_lottery_exchange_result", active(renderExchangeResult)));
     var api={

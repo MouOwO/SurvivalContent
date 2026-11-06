@@ -11,42 +11,75 @@
     function compactCache() {
         var runtime=cfg.SurvivalCompactRuntime,catalogue=cfg.SurvivalUICatalog,C=catalogue.Data;
         var states=Object.create(null),listeners=Object.create(null),listenerSerial=0,revision=0,activePool=null,disposed=false,redemptionSubscription=null,loadingSubscription=null,namespace="",redemptions=Object.create(null),redemptionRing=[];
+        var receiptCodec=cfg.SurvivalCompactLotteryReceiptWire&&C.auxiliary.lottery_receipt_wire_version===1?
+            cfg.SurvivalCompactLotteryReceiptWire.Create(catalogue):null;
         var publicRows=C.auxiliary.lottery_public.snapshots,poolIds=[];
-        publicRows.forEach(function(seed){
+        publicRows.forEach(function(seed,poolIndex){
             var id=String(seed.selected_pool_id),preview=JSON.parse(JSON.stringify(seed));preview.authoritative_ready=false;preview.tickets=undefined;preview.draws=undefined;
             preview.pools.forEach(function(pool){pool.tickets=undefined;pool.draws=undefined;pool.unlocked=undefined;});
             preview.selected_pool=preview.pools.filter(function(pool){return pool.id===id;})[0]||preview.selected_pool;
-            states[id]={id:id,preview:preview,model:null,view:null,snapshot:null,known:false,error:"",revision:0,opened:false};poolIds.push(id);
+            states[id]={id:id,wireView:201+poolIndex,preview:preview,model:null,view:null,snapshot:null,known:false,error:"",revision:0,opened:false,pendingDraw:null};poolIds.push(id);
         });
         function notify(id,packet){Object.keys(listeners).forEach(function(key){try{listeners[key](id||"",packet);}catch(error){if($.Msg)$.Msg("[LOTTERY_CACHE_LISTENER] "+String(error));}});}
         function entry(id){var state=states[String(id||"map")];if(!state)throw new Error("lottery_pool_unknown");return state;}
+        var receiptWaitingText="抽奖结果尚未确认，正在重新同步。可关闭后重新打开核对，请勿重复抽取。";
+        function cancelReceiptTimer(state){
+            var pending=state.pendingDraw,ticket=pending&&pending.timer;
+            if(!ticket)return;ticket.active=false;pending.timer=null;
+            if(typeof $.CancelScheduled==="function")try{$.CancelScheduled(ticket.handle);}catch(ignored){}
+        }
+        function clearPendingDraw(state){cancelReceiptTimer(state);state.pendingDraw=null;}
+        function watchReceipt(state){
+            var pending=state.pendingDraw;if(!pending||pending.recoveryAsked||pending.timer||!state.opened||typeof $.Schedule!=="function")return;
+            // One finite timeout per outstanding command; no polling and no
+            // automatic draw retry. A completely lost single packet otherwise
+            // never starts the transport's multipart assembly deadline.
+            var ticket={active:true,handle:null};pending.timer=ticket;
+            ticket.handle=$.Schedule(5,function(){
+                if(!ticket.active||disposed||state.pendingDraw!==pending)return;
+                ticket.active=false;pending.timer=null;
+                if(!state.opened)return;
+                pending.recoveryAsked=true;state.error="lottery_receipt_unconfirmed";state.revision=++revision;
+                notify(state.id,{compact:true,receipt_waiting:true,request_id:pending.requestId,error_text:receiptWaitingText});
+                if(!disposed&&state.opened&&state.pendingDraw===pending)state.view.Resync(5);
+            });
+        }
         function ensure(id){
             var state=entry(id);if(state.view)return state;
             state.model=cfg.SurvivalCompactLotteryModel.Create(catalogue,state.id);
             state.view=runtime.CreateView("lottery:"+state.id,{
+                bulkLottery:!!receiptCodec,
+                acceptBulk:function(header){return !disposed&&state.opened&&state.model.HasIntent(header.scope);},
+                onBulkDecode:function(header,raw){
+                    if(!receiptCodec||header.view!==state.wireView||!state.model.HasIntent(header.scope))throw new Error("lottery_receipt_intent_missing");
+                    var decoded=receiptCodec.Decode(header.view,raw);
+                    if(!state.model.HasIntent(header.scope,decoded.receipt.count))throw new Error("lottery_receipt_count_mismatch");
+                    return {revision:decoded.revision,changes:receiptCodec.Operations(header.view,header.scope,decoded)};
+                },
                 onCommit:function(tx,changed,read){
                     if(disposed)return false;var projected=state.model.Apply(tx,changed,read);
+                    if(projected.result&&projected.result.terminal&&state.pendingDraw&&projected.result.request_id===state.pendingDraw.requestId)clearPendingDraw(state);
                     var meaningful=tx.full||state.known!==projected.known||projected.result||projected.changes.summary||projected.changes.items.length||projected.changes.pools.length;
                     if(!meaningful)return;
-                    state.known=projected.known===true;state.snapshot=projected.snapshot;state.error=projected.error_code?"lottery_error_"+projected.error_code:"";state.revision=++revision;
-                    if(state.snapshot){state.snapshot.authoritative_ready=state.known;state.snapshot.cache_sequence=state.revision;state.snapshot.sequence=state.revision;}
-                    notify(state.id,{compact:true,snapshot:state.snapshot,changes:projected.changes,result:projected.result,error_code:projected.error_code,error_text:projected.error});
+                    state.known=projected.known===true;state.snapshot=projected.snapshot;state.error=projected.error_code?"lottery_error_"+projected.error_code:state.pendingDraw&&state.pendingDraw.recoveryAsked?"lottery_receipt_unconfirmed":"";state.revision=++revision;
+                    if(state.snapshot){state.snapshot.authoritative_ready=authoritative(state.id);state.snapshot.cache_sequence=state.revision;state.snapshot.sequence=state.revision;}
+                    notify(state.id,{compact:true,snapshot:state.snapshot,changes:projected.changes,result:projected.result,error_code:projected.error_code,error_text:projected.error||state.pendingDraw&&state.pendingDraw.recoveryAsked&&receiptWaitingText||""});
                 },
                 onError:function(code){if(disposed)return;state.error=code;state.known=false;state.revision=++revision;notify(state.id,{compact:true,error:code});}
             });return state;
         }
-        function authoritative(id){var state=entry(id);return !disposed&&state.known&&!state.error&&!!state.snapshot&&(!runtime.Inspect||runtime.Inspect().ready===true);}
+        function authoritative(id){var state=entry(id);return !disposed&&!state.pendingDraw&&state.known&&!state.error&&!!state.snapshot&&(!runtime.Inspect||runtime.Inspect().ready===true);}
         function snapshot(id){var state=entry(id),value=state.snapshot||state.preview;value.authoritative_ready=authoritative(state.id);return value;}
         function open(id){
-            var state=ensure(id);if(activePool&&activePool!==state.id){var old=states[activePool];if(old.view){old.view.Close();old.opened=false;}}
-            activePool=state.id;state.opened=true;return state.view.Open();
+            var state=ensure(id);if(activePool&&activePool!==state.id){var old=states[activePool];if(old.view){cancelReceiptTimer(old);old.view.Close();old.opened=false;}}
+            activePool=state.id;state.opened=true;var result=state.view.Open();watchReceipt(state);return result;
         }
-        function close(){if(activePool){var state=states[activePool];if(state.view)state.view.Close();state.opened=false;}activePool=null;}
+        function close(){if(activePool){var state=states[activePool];cancelReceiptTimer(state);if(state.view)state.view.Close();state.opened=false;}activePool=null;}
         function resync(id){var state=ensure(id);return state.opened?state.view.Resync(5):{sent:false,unchanged:true};}
         function draw(id,count,requestId,skip){
             var state=ensure(id);if(!state.opened||!authoritative(id)||(count!==1&&count!==10))return {sent:false,error:"not_ready"};
             var sent=state.view.SendIntent("lottery_draw",{pool_record:state.model.PoolRecord(),count:count,skip_animation:skip===true?1:0});
-            if(sent&&sent.sent)state.model.BindIntent(sent.request_token,String(requestId));return sent;
+            if(sent&&sent.sent){state.model.BindIntent(sent.request_token,String(requestId),count);state.pendingDraw={token:sent.request_token,requestId:String(requestId),recoveryAsked:false,timer:null};watchReceipt(state);}return sent;
         }
         function readAck(pool,action){
             if(!pool||!pool.id)return {sent:false,error:"pool_required"};var state=ensure(pool.id),code={visit:1,details:2,notice:3}[action];
@@ -55,8 +88,11 @@
         }
         function invalidate(id){var state=ensure(id);state.known=false;state.error="authoritative_snapshot_unavailable";state.revision=++revision;notify(state.id,{compact:true,error:state.error});return resync(id);}
         function observeLoading(){
-            if(disposed)return;var loading=CustomNetTables.GetTableValue("survival_loading","state"),next=String(loading&&loading.session_id||"")+"|"+String(loading&&loading.setup&&loading.setup.mode_id||"");
-            if(namespace&&namespace!==next){poolIds.forEach(function(id){states[id].known=false;states[id].error="";states[id].revision=++revision;});redemptions=Object.create(null);redemptionRing=[];notify("",{compact:true,reset:true});}namespace=next;
+            if(disposed)return;var loading=CustomNetTables.GetTableValue("survival_loading","state"),next=String(loading&&loading.session_id||"");
+            // Missing transitional metadata is not a new world. Retire a paid
+            // intent only on an explicit different server session identity.
+            if(!next)return;
+            if(namespace&&namespace!==next){poolIds.forEach(function(id){clearPendingDraw(states[id]);states[id].known=false;states[id].error="";states[id].revision=++revision;if(states[id].model)states[id].model.ResetIntents();});redemptions=Object.create(null);redemptionRing=[];notify("",{compact:true,reset:true});}namespace=next;
         }
         function redeemed(packet){
             if(disposed||!packet||packet.action!=="redeem"||!(packet.ok===true||packet.ok===1)||typeof packet.request_id!=="string")return;
@@ -69,7 +105,7 @@
             Ingest:function(){return false;},Subscribe:function(fn){var id=++listenerSerial;listeners[id]=fn;return function(){delete listeners[id];};},
             Refresh:function(){if(activePool)notify(activePool,{compact:true});},Resync:resync,Invalidate:invalidate,ReadAck:readAck,
             Catalog:function(){return {config_hash:C.auxiliary.lottery_config_hash,md5:"",pools:poolIds.slice()};},
-            Dispose:function(){if(disposed)return;close();disposed=true;poolIds.forEach(function(id){var state=states[id];if(state.view)state.view.Dispose();if(state.model)state.model.Dispose();});listeners=Object.create(null);if(redemptionSubscription!==null&&GameEvents.Unsubscribe)GameEvents.Unsubscribe(redemptionSubscription);if(loadingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(loadingSubscription);}
+            Dispose:function(){if(disposed)return;close();disposed=true;poolIds.forEach(function(id){var state=states[id];clearPendingDraw(state);if(state.view)state.view.Dispose();if(state.model)state.model.Dispose();});listeners=Object.create(null);if(redemptionSubscription!==null&&GameEvents.Unsubscribe)GameEvents.Unsubscribe(redemptionSubscription);if(loadingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(loadingSubscription);}
         };
     }
     var memo = cfg.SurvivalLotteryCacheState;

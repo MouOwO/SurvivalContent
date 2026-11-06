@@ -4,6 +4,7 @@
         <include src="file://{resources}/scripts/custom_game/common/ui_static_catalog.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_wire.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_grid_bulk_wire.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_lottery_receipt_wire.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_ui_runtime.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_public_beta_model.js" />
 

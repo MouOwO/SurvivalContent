@@ -57,14 +57,16 @@ function create(catalogue,poolId){
       if(value(slot,"granted_count")!==undefined)reward.granted_count=value(slot,"granted_count");if(value(slot,"overflow_count")!==undefined)reward.overflow_count=value(slot,"overflow_count");result.results.push(reward);
      }
     }
-    if(result.terminal)delete intents[token];
+    if(result.terminal){delete intents[token];delete intentCounts[token];}
    }
   }
   revision=tx.revision;snapshot.cache_sequence=revision;snapshot.sequence=revision;
   return {known:read(rec("lottery:pool:"+poolId),F.known)===1&&snapshot.tickets!==undefined,snapshot:snapshot,result:result,changes:{items:changedItems,pools:changedPools,summary:summary}};
  }
- function bind(token,requestId){need(!disposed&&Number.isInteger(token)&&token>=1&&token<=16383&&typeof requestId==="string"&&requestId.length>0&&!intents[token],"lottery_intent_invalid");intents[token]=requestId;}
- return {Apply:apply,BindIntent:bind,Snapshot:function(){return snapshot;},PoolRecord:function(){return rec("lottery:pool:"+poolId);},Inspect:function(){return {revision:revision,metrics:Object.assign({},metrics)};},Dispose:function(){disposed=true;snapshot=null;intents=Object.create(null);},Record:rec,Field:function(name){return F[name];}};
+ var intentCounts=Object.create(null);
+ function bind(token,requestId,count){need(!disposed&&Number.isInteger(token)&&token>=1&&token<=16383&&typeof requestId==="string"&&requestId.length>0&&!intents[token]&&(count===undefined||count===1||count===10),"lottery_intent_invalid");intents[token]=requestId;intentCounts[token]=count;}
+ function resetIntents(){intents=Object.create(null);intentCounts=Object.create(null);}
+ return {Apply:apply,BindIntent:bind,HasIntent:function(token,count){return !disposed&&intents[token]!==undefined&&(count===undefined||intentCounts[token]===undefined||count===intentCounts[token]);},ResetIntents:resetIntents,Snapshot:function(){return snapshot;},PoolRecord:function(){return rec("lottery:pool:"+poolId);},Inspect:function(){return {revision:revision,metrics:Object.assign({},metrics)};},Dispose:function(){disposed=true;snapshot=null;resetIntents();},Record:rec,Field:function(name){return F[name];}};
 }
 return {Create:create,ErrorText:function(code){return ERRORS[code]||ERRORS[1];}};
 }));
