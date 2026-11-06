@@ -1,0 +1,12 @@
+<root>
+    <!-- Fixed zero-consumption comparison. The shipped native Movie parser
+         names loadbehavior=buffer-async. Success still requires actual frames;
+         this never changes the production player's loading behavior. -->
+    <Panel style="width:100%;height:100%;" hittest="false" hittestchildren="false">
+        <MoviePanel id="LotteryCinematicMovie"
+                    style="width:1280px;height:720px;horizontal-align:center;vertical-align:center;"
+                    src="file://{resources}/videos/custom_game/lottery_cinematic_v1/map.webm"
+                    loadbehavior="buffer-async"
+                    autoplay="onload" hittest="false" hittestchildren="false" />
+    </Panel>
+</root>

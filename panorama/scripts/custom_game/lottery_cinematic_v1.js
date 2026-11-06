@@ -8,6 +8,7 @@
     var playerProbe=null,directMovieHost=null;
     var DECODER_PROBE_MOVIE='file://{resources}/styles/custom_game/lottery_cinematic_v1.vcss_c';
     var PLAYER_PROBE_LAYOUT='file://{resources}/layout/custom_game/lottery_movie_ab_direct.xml';
+    var PLAYER_PROBE_BUFFERED_LAYOUT='file://{resources}/layout/custom_game/lottery_movie_ab_buffered.xml';
     var PLAYER_PROBE_MOVIE='file://{resources}/videos/custom_game/lottery_cinematic_v1/map.webm';
     function probeLog(stage,detail){if(decoderProbe)$.Msg('[LOTTERY_DECODER_PROBE] stage='+stage+' probe='+decoderProbe.id+' pool=map'+(detail?' '+detail:''));}
     function playerProbeLog(stage,detail){if(playerProbe)$.Msg('[LOTTERY_MOVIE_AB] stage='+stage+' probe='+playerProbe.id+' mode='+playerProbe.mode+' pool=map'+(detail?' '+detail:''));}
@@ -175,8 +176,11 @@
         // Fixed two-node direct layout, one lookup at creation. Six finite O(1)
         // samples plus cleanup; idle work/network calls are zero. Cancel/Dispose
         // invalidates every sample through the existing generation token.
+        // Buffered comparison explicitly requests native buffer-async loading;
+        // at most one 3,014,654-byte map film is active. It is a diagnostic only:
+        // native file/decoder behavior must be observed, never inferred here.
         var root=$('#LotteryWindow'),idle=$('#LotteryRefreshButton');
-        if((mode!=='wrapper'&&mode!=='direct')||playing||!valid(root)||!root.visible||!valid(idle)||idle.enabled!==true){
+        if((mode!=='wrapper'&&mode!=='direct'&&mode!=='buffered')||playing||!valid(root)||!root.visible||!valid(idle)||idle.enabled!==true){
             $.Msg('[LOTTERY_MOVIE_AB] stage=rejected cause=invalid_mode_or_window_not_idle');return false;
         }
         if(prepare('map',[],function(){})===null)return false;
@@ -193,7 +197,8 @@
                 directMovieHost=$.CreatePanel('Panel',surface,'LotteryMovieABHost');
                 directMovieHost.style.width='100%';directMovieHost.style.height='100%';directMovieHost.style.zIndex='1';
                 directMovieHost.hittest=false;directMovieHost.hittestchildren=false;
-                if(!directMovieHost.BLoadLayout(PLAYER_PROBE_LAYOUT,false,false))throw new Error('direct_layout_failed');
+                var layout=mode==='buffered'?PLAYER_PROBE_BUFFERED_LAYOUT:PLAYER_PROBE_LAYOUT;
+                if(!directMovieHost.BLoadLayout(layout,false,false))throw new Error('direct_layout_failed');
                 movie=directMovieHost.FindChildTraverse('LotteryCinematicMovie');
                 if(!valid(movie))throw new Error('direct_panel_missing');
                 movie.hittest=false;movie.hittestchildren=false;resize();
@@ -219,9 +224,9 @@
     if(typeof Game!=='undefined'&&Game.AddCommand){
         var stamp=Date.now();Object.keys(pools).forEach(function(pool){Game.AddCommand('lottery_film_'+pool+'_'+stamp,function(){cfg.LotteryCinematic.Preview(pool);},'Preview cinematic only; no draw, ticket consumption or reward grant',0);});
         Game.AddCommand('lottery_film_decoder_probe_map_'+stamp,previewDecoderProbe,'Zero-consumption native decoder failure preview; fixed existing non-video resource only',0);
-        ['wrapper','direct'].forEach(function(mode){Game.AddCommand('lottery_film_ab_'+mode+'_map_'+stamp,function(){previewPlayerAB(mode);},'Fixed zero-consumption player comparison; no automatic fallback, draw or grant',0);});
+        ['wrapper','direct','buffered'].forEach(function(mode){Game.AddCommand('lottery_film_ab_'+mode+'_map_'+stamp,function(){previewPlayerAB(mode);},'Fixed zero-consumption player comparison; no automatic fallback, draw or grant',0);});
         $.Msg('[LOTTERY_CINEMATIC_READY] version=v1 commands='+stamp);
-        $.Msg('[LOTTERY_MOVIE_AB_READY] commands='+stamp+' modes=wrapper,direct fixed_pool=map');
+        $.Msg('[LOTTERY_MOVIE_AB_READY] commands='+stamp+' modes=wrapper,direct,buffered fixed_pool=map');
         if(Game.IsInToolsMode&&Game.IsInToolsMode()){
             Object.keys(pools).forEach(function(pool){Game.AddCommand('lottery_film_native_'+pool+'_'+stamp,function(){previewNative(pool);},'Tools-only native theme preview; no draw, ticket use or reward',0);});
             $.Msg('[LOTTERY_CINEMATIC_NATIVE_READY] commands='+stamp);
