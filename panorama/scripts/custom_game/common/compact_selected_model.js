@@ -1,7 +1,8 @@
 (function(factory){"use strict";var api=factory();if(typeof module!=="undefined"&&module.exports)module.exports=api;if(typeof GameUI!=="undefined"&&GameUI.CustomUIConfig)GameUI.CustomUIConfig().SurvivalCompactSelectedModel=api;}(function(){
 "use strict";
 function need(v,e){if(!v)throw new Error(e);}
-function create(catalogue){
+function create(catalogue,options){
+ options=options||{};
  var C=catalogue.Data||catalogue,F=catalogue.FieldIds||{},R=catalogue.ByKey||{},records=catalogue.ById||{},rows={},layout=C.auxiliary.selected;
  need(layout,"selected_layout_required");if(!catalogue.FieldIds)C.fields.forEach(function(f){F[f.name]=f.id;});if(!catalogue.ByKey)C.records.forEach(function(r){if(!r.tombstone){R[r.key]=r.id;records[r.id]=r;}});
  var root=R["selected:state"],currentEntity=-1,currentToken=0,snapshot=null,visits=0,zeroGroups={},maskCache={};
@@ -28,7 +29,13 @@ function create(catalogue){
    else{var ref=read(id,F.target_record);if(read(id,F.known)===0)value="";else if(ref===0)value="";else if(ref!==undefined){var r=records[ref],d=r&&C.definitions[r.key];need(r&&r.domain==="selected"&&r.kind==="text"&&d&&d.definition,"selected_text_unknown");value=d.definition.value;}}
    staged.push({row:row,value:value,unknown:row.kind==='text'&&read(id,F.known)===0});
   }
-  if(!next._selected_unknown_fields)next._selected_unknown_fields={};staged.forEach(function(w){set(next,w.row.path,w.value);if(w.unknown)next._selected_unknown_fields[w.row.path.join('.')]=true;else delete next._selected_unknown_fields[w.row.path.join('.')];});Object.keys(nextMasks).forEach(function(g){maskCache[g]=nextMasks[g];});next._selected_aux_pending=read(root,F.pending)===1;snapshot=next;return{known:true,entity:entity,token:token,snapshot:snapshot};
+  if(!next._selected_unknown_fields)next._selected_unknown_fields={};staged.forEach(function(w){set(next,w.row.path,w.value);if(w.unknown)next._selected_unknown_fields[w.row.path.join('.')]=true;else delete next._selected_unknown_fields[w.row.path.join('.')];});Object.keys(nextMasks).forEach(function(g){maskCache[g]=nextMasks[g];});if(options.deriveAliases===true){
+   // Restore exact aliases only after the atomic transaction has validated.
+   next.stat_tooltips.attack.minimum=next.attack_min===undefined?0:Number(next.attack_min);
+   next.stat_tooltips.attack.maximum=next.attack_max===undefined?next.stat_tooltips.attack.minimum:Number(next.attack_max);
+   ["strength","agility","intellect"].forEach(function(key){next.stat_tooltips.attributes[key]=next[key]===undefined?0:Number(next[key]);});
+  }
+  next._selected_aux_pending=read(root,F.pending)===1;snapshot=next;return{known:true,entity:entity,token:token,snapshot:snapshot};
  }
  function weaponGrowth(entity,token,content){
   if(typeof content!=="string"||!content||!snapshot||entity!==currentEntity||token!==currentToken||snapshot.entindex!==entity||snapshot.weapon_content_id!==content)return null;

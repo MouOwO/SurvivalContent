@@ -41,7 +41,7 @@
  }
 }(function(){
  "use strict";
- var BUILD="compact_ui_runtime_20261106_v9";
+ var BUILD="compact_ui_runtime_20261107_hero_alias_session_v11";
  var ACTIONS={daily_claim:1,benefit_claim:2,pass_purchase:3,lottery_draw:4,archive_title:5,archive_action:6,lottery_read:7,production_train:8,production_research:9,production_auto:10,production_cancel:11,payment_capability:12,public_beta_claim:13};
  var ERRORS={schema_mismatch:"界面版本与服务器不一致，请更新游戏后重新进入。",schema_unknown:"界面协议不一致，请更新游戏后重新进入。",not_ready:"正在核对界面版本，请稍后。",token_exhausted:"本次会话的操作编号已用完，请重新进入游戏。",revision_exhausted:"本次会话的消息编号已用完，请重新进入游戏。",native_send_failed:"同步消息未能发送，请重新打开界面。",application_rejected:"界面数据校验失败，正在重新同步。"};
  function need(ok,code){if(!ok)throw new Error(code);}
@@ -56,7 +56,7 @@
   var control=records["wire:control"],helloWords=[],helloByRecord=Object.create(null),word;
   need(control&&F.count&&F.visible&&F.known&&F.action_code&&F.arg_a&&F.arg_b&&F.arg_c&&F.request_token,"compact_control_schema_missing");
   for(word=1;word<=8;word++){var rec=records["wire:hello:"+word];need(rec,"compact_hello_schema_missing");helloWords.push(rec);helloByRecord[rec]=word-1;}
-  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;keys.production=7;keys.vip=8;keys.payment=9;keys.public_beta=10;
+  keys.hud=2;keys.daily=3;keys.grid=4;keys.selected=5;keys.grid_static=6;keys.production=7;keys.vip=8;keys.payment=9;keys.public_beta=10;for(var prepSlot=1;prepSlot<5;prepSlot++)keys["research_prepared:"+prepSlot]=11+prepSlot;
   var categories=C.auxiliary&&C.auxiliary.archive_projection&&C.auxiliary.archive_projection.categories||[];
   categories.forEach(function(row,index){keys["archive:"+row.id]=101+index;});
   var pools=C.auxiliary&&C.auxiliary.lottery_public&&C.auxiliary.lottery_public.snapshots||[];
@@ -134,6 +134,7 @@
   function desiredControl(view){
    if(!live()||!ready||!view.consumer||!view.consumer.active||view.desired===null||view.sentDesired===view.desired)return {sent:false,unchanged:true};
    var values={visible:view.desired==="open"?1:0,known:view.desired==="probe"?1:0};
+   if(view.id===5&&view.desired==="open"&&view.consumer.options.deriveAliases===true)values.types=3;
    if(view.id===6&&view.desired==="open"&&B)values.types=1;
    if(lotteryBulk&&view.id>=201&&view.id<=204&&view.desired==="open"&&view.consumer.options.bulkLottery===true)values.types=2;
    var result=emitControl(view,values);if(result.sent)view.sentDesired=view.desired;return result;
@@ -144,9 +145,20 @@
    view.resyncPending=true;var client=view.client,consumer=view.consumer,own=generation,revision=client&&epoch===view.epoch?client.Inspect().receiver.revision:0;
    try{send(W.EncodeResync(schema,binding(view.id,epoch),revision,reason));if(!current(view,consumer,client,own))return {sent:false,error:"disposed"};counters.resyncs++;return {sent:true};}catch(error){if(current(view,consumer,client,own))notify(view,error.message);return {sent:false,error:error.message};}
   }
+  function preparedView(id){return id>=12&&id<=15;}
+  function preparedHint(read){
+   var state=records["production:state"],known=read(state,F.known),entity=read(state,F.production_entity),selection=read(state,F.production_selection);
+   if(known!==true&&known!==false&&known!==0&&known!==1)return null;
+   var present=known===true||known===1;
+   if(!integer(entity,present?1:0,4294967295)||!present&&entity!==0||!integer(selection,1,4294967295))return null;
+   return {known:present,entity:entity,selection:selection};
+  }
   function hint(view,read){
-   if(!live()||view.id!==3)return;var state=records["daily:state"],known=read(state,F.known),claimable=read(state,F.can_claim);if(known===undefined||claimable===undefined)return;
-   var signature=known+":"+claimable;if(signature===view.hintSignature)return;view.hintSignature=signature;var consumer=view.consumer;if(consumer&&consumer.active&&consumer.options.onHint)consumer.options.onHint({known:known,claimable:claimable});
+   if(!live())return;var result,signature;
+   if(preparedView(view.id)){result=preparedHint(read);if(!result)return;signature=result.known+":"+result.entity+":"+result.selection;}
+   else if(view.id===3){var state=records["daily:state"],known=read(state,F.known),claimable=read(state,F.can_claim);if(known===undefined||claimable===undefined)return;result={known:known,claimable:claimable};signature=known+":"+claimable;}
+   else return;
+   if(signature===view.hintSignature)return;view.hintSignature=signature;var consumer=view.consumer;if(consumer&&consumer.active&&consumer.options.onHint)consumer.options.onHint(result);
   }
   function newClient(view,epoch){
    var clientGeneration=generation,client;
@@ -154,6 +166,11 @@
     validate:function(tx){
      if(!live()||clientGeneration!==generation||view.client!==client)return false;
      if(view.desired==="open")return true;
+     if(preparedView(view.id)){
+      if(tx.changes.length!==3)return false;var root=records["production:state"],seen={};
+      for(var h=0;h<tx.changes.length;h++){var d=tx.changes[h];if(d.record!==root||d.remove||seen[d.field]||d.field!==F.known&&d.field!==F.production_entity&&d.field!==F.production_selection)return false;seen[d.field]=true;}
+      return true;
+     }
      if(view.id!==3)return false;var state=records["daily:state"];
      for(var n=0;n<tx.changes.length;n++){var c=tx.changes[n];if(c.record!==state||c.remove||c.field!==F.known&&c.field!==F.can_claim)return false;}return true;
     },

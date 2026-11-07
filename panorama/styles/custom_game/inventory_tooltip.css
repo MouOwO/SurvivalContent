@@ -1,7 +1,7 @@
 #CustomInventoryItemTooltip {
-    width: 350px;
+    width: 430px;
     min-height: 0px;
-    max-height: 390px;
+    max-height: 780px;
     padding: 14px;
     flow-children: down;
     background-color: #101820f8;
@@ -89,7 +89,7 @@
 }
 
 .InventoryItemFieldLabel {
-    width: 155px;
+    width: 130px;
     color: #9db0bf;
     font-size: 16px;
 }
@@ -106,4 +106,25 @@
     color: #8fd28f;
     font-size: 15px;
     margin-top: 8px;
+}
+
+/* Keep complete authored descriptions and effect values. The shared positioner
+   limits this inventory-only panel to the current screen's available space. */
+#CustomInventoryItemTitle,
+#CustomInventoryItemDescription,
+#CustomInventoryItemFields,
+#CustomInventoryItemStatus,
+.InventoryItemFieldRow,
+.InventoryItemFieldLabel,
+.InventoryItemFieldValue {
+    height: fit-children;
+}
+
+#CustomInventoryItemTitle,
+#CustomInventoryItemDescription,
+#CustomInventoryItemStatus,
+.InventoryItemFieldLabel,
+.InventoryItemFieldValue {
+    white-space: normal;
+    text-overflow: clip;
 }

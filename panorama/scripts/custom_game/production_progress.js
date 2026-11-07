@@ -81,11 +81,12 @@
     cfg.SurvivalProductionGeneration = generation;
     var panel = ctx.FindChildTraverse("SurvivalProductionPanel");
     var markers = ctx.FindChildTraverse("SurvivalResearchAutoMarkers");
-    var snapshots = {}, citySlots = {}, currentUnit = -1;
+    var snapshots = {}, citySlots = {}, currentUnit = -1, preparedResearch = null;
     var pendingTraining = {}, trainingBases = {};
     var buttons = [], queueSlots = [], autoMarkers = [], nodes = {}, serial = 0, lastGeometry = null;
     var lastReady = false, lastEntries = [], lastGeometryUnit = -1, status = "", statusUntil = 0;
     var presentationRevision=0,lastPaint=null,currentUnitName="",bindingNames={},bindingSubscription=null;
+    var compactScope=null,compactScopeReady=false;
     var compactModel=null,compactView=null,compactSelection=Number(cfg.SurvivalProductionSelectionSerial||0),compactDesired=-1,compactObserved=-1,compactRelevant=false,compactSent=0,compactDisposed=false;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
     function active() { return valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
@@ -94,6 +95,16 @@
     function compactMode(){return !!cfg.SurvivalCompactRuntime;}
     function compactSelect(unit){
         if(!compactView||!active()||compactDisposed)return;
+        var scope=cfg.SurvivalCompactRuntime.ScopeIdentity ? cfg.SurvivalCompactRuntime.ScopeIdentity() : null;
+        var scopeKey=String(Game.GetLocalPlayerID())+":"+(scope ? String(scope.loading_identity)+":"+String(scope.session) : "legacy_scope");
+        var wasReady=compactScopeReady;
+        compactScopeReady=scope ? scope.active===true&&scope.ready===true : compactView.Inspect().ready===true;
+        if(scopeKey!==compactScope){
+            // Invalidate only on a real viewer/world/session boundary. Never
+            // retain one viewer's private technology snapshot for another.
+            compactScope=scopeKey;snapshots={};compactDesired=-1;compactObserved=-1;compactSent=0;
+        }
+        if(wasReady&&!compactScopeReady){snapshots={};compactDesired=-1;compactObserved=-1;compactSent=0;}
         if(unit!==compactObserved){compactObserved=unit;compactRelevant=relevant(unit);}
         if(!compactRelevant){compactDesired=-1;compactSent=0;compactView.Close();return;}
         if(compactDesired===unit&&compactSent===compactSelection)return;
@@ -398,22 +409,45 @@
         unit = Number(unit);
         if (!/^ability_research_/.test(name) || unit !== selectedUnit()
             || !/^building_(advanced_)?research_lab$/.test(unitType(unit))) return publicRuntime;
+        // Begin the private request on the selection edge, before the HUD's
+        // first gray-state/tooltip paint. Steady calls do not send another input.
+        compactSelect(unit);
         var snapshot = snapshots[unit], research = snapshot && snapshot.research;
         var personal = research && research.abilities_by_name && research.abilities_by_name[name];
+        if (!personal && (!compactMode() || compactScopeReady) && Number(original.research_upgrade) === 1
+            && Number(original.owner_entindex) === unit
+            && Number(original.ability_entindex) === Number(ability)
+            && original.ability_name === name && original.removed !== 1
+            && (original.prerequisite_met === 0 || original.prerequisite_met === 1)
+            && (original.available === 0 || original.available === 1)) {
+            // An owned lab already publishes this player's authoritative native
+            // ability row on creation and real research changes. Shared labs
+            // must still wait for the viewer's private projection.
+            try {
+                if (Entities.IsValidEntity(unit) && Entities.IsAlive(unit)
+                    && Number(Entities.GetPlayerOwnerID(unit)) === Number(Game.GetLocalPlayerID())) personal = original;
+            } catch (error) {}
+        }
         var result = { ability_name: name, owner_entindex: unit,
             ability_entindex: Number(ability),
             technology_group: original.technology_group, research_building_id: original.research_building_id,
             research_slot_order: original.research_slot_order };
-        if (personal) Object.keys(personal).forEach(function (key) { result[key] = personal[key]; });
+        if (personal) { Object.keys(personal).forEach(function (key) { result[key] = personal[key]; }); result.research_prerequisite_known = 1; }
         else {
             result.research_upgrade = 1; result.available = 0; result.can_afford = 1;
-            // Until the viewer's snapshot arrives, no learning prerequisite
-            // has been confirmed. Never flash the building owner's unlocked
-            // state when opening a shared research lab.
-            result.prerequisite_met = 0; result.resource_check_on_cast = 1;
+            // Unknown is neutral pending, not a confirmed locked prerequisite.
+            // Only private prepared learning flags/levels may fill this gap.
+            result.research_prerequisite_known = 0; result.resource_check_on_cast = 1;
             result.current_level = "—"; result.cost_gold = 0; result.cost_wood = 0;
             result.research_status_code = "syncing"; result.status_text = "正在同步科技信息";
             result.upgrade_description = "正在同步科技信息"; result.fields = [];
+            var prepared = preparedResearch && preparedResearch.GetPrerequisite(unit, name);
+            if (prepared) {
+                result.prerequisite_met = prepared.prerequisite_met;
+                result.current_level = prepared.current_level;
+                result.research_prerequisite_known = 1;
+                result._prepared_partial = true;
+            }
         }
         // Private rows describe technology values, not engine entities. Keep
         // the current binding identity so native HUD refreshes do not restore
@@ -750,6 +784,7 @@
         if (!active()) return;
         var pid = payload && (payload.PlayerID !== undefined ? payload.PlayerID : payload.player_id !== undefined ? payload.player_id : payload.playerid);
         if (pid !== undefined && Number(pid) !== Number(Game.GetLocalPlayerID())) return;
+        compactSelect(selectedUnit());
         currentUnitName=unitType(selectedUnit());presentationRevision++;
         $.Schedule(0, function () {
             if (!active()) return;
@@ -784,6 +819,11 @@
             repaint();
         },onError:function(){if(active())notify("生产数据尚未同步，请重新选择建筑");}});
     }
+    if (compactMode() && cfg.SurvivalPreparedResearchModel) preparedResearch = cfg.SurvivalPreparedResearchModel.Create({
+        runtime: cfg.SurvivalCompactRuntime, catalogue: cfg.SurvivalUICatalog,
+        viewerId: function () { return Game.GetLocalPlayerID(); }, current: function () { return active() && !compactDisposed; },
+        onChanged: function (unit) { presentationRevision++; if (unit === selectedUnit()) repaint(); }
+    });
     if(CustomNetTables.SubscribeNetTableListener)bindingSubscription=CustomNetTables.SubscribeNetTableListener("survival_ability_runtime",function(table,key,row){
         if(!active()||!row||Number(row.owner_entindex)!==currentUnit||!row.ability_name)return;
         if(bindingNames[key]!==row.ability_name){bindingNames[key]=row.ability_name;presentationRevision++;}
@@ -795,7 +835,7 @@
             return {generation:generation, counters:counters, scope:"owned production style/image/ability assignments; callbacks and native HUD excluded"};
         },
         Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; },
-        Dispose:function(){compactDisposed=true;if(compactView)compactView.Dispose();if(bindingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(bindingSubscription);bindingSubscription=null;}
+        Dispose:function(){compactDisposed=true;if(preparedResearch)preparedResearch.Dispose();preparedResearch=null;if(compactView)compactView.Dispose();if(bindingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(bindingSubscription);bindingSubscription=null;}
     };
     if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
         var inspectCommand = "survival_production_inspect_" + Date.now();

@@ -94,6 +94,7 @@
     var lastRequestedUnit = -1;
     var selectedUnitSnapshot = null;
     var compactSelectedView=null,compactSelectedModel=null,compactSelectedToken=0;
+    var pendingBuildingRefresh=null;
     var acceptedSnapshotUnit = -1;
     var acceptedSnapshotVersion = 0;
     var officialAttackText = "";
@@ -2299,8 +2300,8 @@
         if (!force && Number(unit) === lastRequestedUnit) return;
         if(customConfig.SurvivalCompactRuntime&&customConfig.SurvivalCompactSelectedModel){
             if(!compactSelectedView){
-                compactSelectedModel=customConfig.SurvivalCompactSelectedModel.Create(customConfig.SurvivalUICatalog);
-                compactSelectedView=customConfig.SurvivalCompactRuntime.CreateView("selected",{onCommit:function(tx,ids,read){
+                compactSelectedModel=customConfig.SurvivalCompactSelectedModel.Create(customConfig.SurvivalUICatalog,{deriveAliases:true});
+                compactSelectedView=customConfig.SurvivalCompactRuntime.CreateView("selected",{deriveAliases:true,onCommit:function(tx,ids,read){
                     if(!contextActive())return;
                     var result=compactSelectedModel.Apply(tx,ids,read);
                     if(compactSelectedToken===0){requestSelectedUnitStats(Number(displayUnit()),true);return;}
@@ -2623,9 +2624,14 @@
         var runtime = abilityRuntime(abilityIndex);
         // Queue capacity, an active job and the wallet are execution state;
         // only the explicit learning prerequisite controls the locked tint.
+        // Unknown private research state is a neutral syncing display, not a
+        // confirmed prerequisite lock. Server availability/cast rules stay intact.
+        var researchPending = runtime.research_prerequisite_known === 0
+            && runtime.research_status_code === "syncing"
+            && runtime.research_upgrade === 1;
         var unavailable = runtime.removed === 1
-            || (runtime.prerequisite_met !== undefined
-                ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0);
+            || (!researchPending && (runtime.prerequisite_met !== undefined
+                ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0));
         setAbilityRuntimeDisabled(panel, unavailable, runtime, abilityIndex);
         var fusion = /^ability_fuse_lumberjack_\d+$/.test(String(runtime.ability_name || ""));
         if (fusion || panel.__survivalFusionTint) {
@@ -4331,13 +4337,13 @@
         && Number(initialCombatSnapshot.entindex) === Number(displayUnit())) {
         update(initialCombatSnapshot);
     }
-    subscribeCombatTable(
-        debugTableName,
-        function (name, key, snapshot) {
-            if (key === tableKey) renderCombatDebug(snapshot);
-        }
-    );
-    renderCombatDebug(CustomNetTables.GetTableValue(debugTableName, tableKey));
+    // Hidden by default. Developer diagnostics opt in before HUD creation.
+    if (customConfig.HandoffShowCombatDebug === true) {
+        subscribeCombatTable(debugTableName, function (name, key, snapshot) {
+            if (key === tableKey && customConfig.HandoffShowCombatDebug === true) renderCombatDebug(snapshot);
+        });
+        renderCombatDebug(CustomNetTables.GetTableValue(debugTableName, tableKey));
+    }
     subscribeCombatEvent("ui_selected_unit_stats_snapshot", function (snapshot) {
         if(customConfig.SurvivalCompactRuntime&&customConfig.SurvivalCompactSelectedModel)return;
         if (!snapshot || snapshot.success !== 1) return;
@@ -4413,12 +4419,23 @@
             || /^ability_tower_class_/.test(abilityName);
         if (!refreshesBuilding) return;
         var unit = Number(result.entindex);
+        if (Number(displayUnit()) !== unit) return;
+        var token = compactSelectedToken;
+        if (pendingBuildingRefresh) {
+            pendingBuildingRefresh.unit = unit;
+            pendingBuildingRefresh.token = token;
+            return;
+        }
+        var ticket = { unit: unit, token: token };
+        pendingBuildingRefresh = ticket;
+        // Authoritative BUILDING_CHANGED pushes remain primary. Keep one
+        // bounded fallback for delayed native updates, not two full resets.
         scheduleActive(0.10, function () {
-            if (Number(displayUnit()) === unit) requestSelectedUnitStats(unit, true);
+            if (pendingBuildingRefresh !== ticket) return;
+            pendingBuildingRefresh = null;
+            if (Number(displayUnit()) === ticket.unit && compactSelectedToken === ticket.token)
+                requestSelectedUnitStats(ticket.unit, true);
         }, "building_refresh_100ms");
-        scheduleActive(0.35, function () {
-            if (Number(displayUnit()) === unit) requestSelectedUnitStats(unit, true);
-        }, "building_refresh_350ms");
     });
     GameUI.CustomUIConfig().HandoffCombat = {
         NativeEntries: nativeAbilityEntries,

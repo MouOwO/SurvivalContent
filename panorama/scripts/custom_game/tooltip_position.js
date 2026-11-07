@@ -337,7 +337,14 @@
         PlaceAbove: placeAbove,
         PlaceAbilityAbove: placeAbilityAbove,
         PlaceInventoryAbove: function(tooltip, source, upperRow) {
-            placeAbilityAbove(tooltip, source, 350, upperRow, 390);
+            if (!tooltip || !source) return;
+            var root = rootPanel(source), parent = tooltip.GetParent ? tooltip.GetParent() : null;
+            var scale = Math.max(.001, numberOr(parent && parent.actualuiscale_x, 1));
+            var availableWidth = (numberOr(root && root.actuallayoutwidth, 1920) - 24) / scale;
+            var width = Math.max(32, Math.min(430, availableWidth));
+            // Inventory descriptions/effect rows may wrap. Retain same-pass
+            // bottom anchoring; constrain both dimensions without a layout poll.
+            placeAbilityAbove(tooltip, source, width, upperRow, 780);
         }
     };
 })();

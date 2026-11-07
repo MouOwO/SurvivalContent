@@ -67,6 +67,7 @@
         <include src="file://{resources}/scripts/custom_game/game_info_panel.js" />
         <include src="file://{resources}/scripts/custom_game/handoff_assets.js" />
         <include src="file://{resources}/scripts/custom_game/geometry_remaining_5d5c1152eb.js" />
+        <include src="file://{resources}/scripts/custom_game/common/compact_research_prepared.js" />
         <include src="file://{resources}/scripts/custom_game/production_progress.js" />
         <include src="file://{resources}/scripts/custom_game/minimap_shortcuts.js" />
         <include src="file://{resources}/scripts/custom_game/enemy_population_warning.js" />
