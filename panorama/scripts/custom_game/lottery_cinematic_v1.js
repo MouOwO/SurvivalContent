@@ -5,11 +5,14 @@
     var generation=0,timers=[],surface=null,movie=null,complete=null,previewLease=null,disposed=false;
     var fallback=null,fallbackImage=null,fallbackPool='',activePool='map',playing=false,previewMode=false;
     var decoderProbe=null,probeSerial=0;
-    var playerProbe=null,directMovieHost=null;
+    var playerProbe=null,directMovieHost=null,nativeRun=null,nativeSerial=0;
     var DECODER_PROBE_MOVIE='file://{resources}/styles/custom_game/lottery_cinematic_v1.vcss_c';
     var PLAYER_PROBE_LAYOUT='file://{resources}/layout/custom_game/lottery_movie_ab_direct.xml';
     var PLAYER_PROBE_BUFFERED_LAYOUT='file://{resources}/layout/custom_game/lottery_movie_ab_buffered.xml';
     var PLAYER_PROBE_MOVIE='file://{resources}/videos/custom_game/lottery_cinematic_v1/map.webm';
+    var BUFFERED_LAYOUTS={map:'lottery_movie_map.xml',cultivation:'lottery_movie_cultivation.xml',dragon_knight:'lottery_movie_dragon_knight.xml',summer:'lottery_movie_summer.xml'};
+    var BUFFERED_BAD_LAYOUT='lottery_movie_bad_media_probe.xml';
+    function nativeLog(stage,run,detail){$.Msg('[LOTTERY_BUFFERED_PLAYBACK] stage='+stage+' attempt='+run.id+' pool='+run.pool+' probe='+run.probe+(detail?' '+detail:''));}
     function probeLog(stage,detail){if(decoderProbe)$.Msg('[LOTTERY_DECODER_PROBE] stage='+stage+' probe='+decoderProbe.id+' pool=map'+(detail?' '+detail:''));}
     function playerProbeLog(stage,detail){if(playerProbe)$.Msg('[LOTTERY_MOVIE_AB] stage='+stage+' probe='+playerProbe.id+' mode='+playerProbe.mode+' pool=map'+(detail?' '+detail:''));}
     // A decoder failure belongs to one presentation, not every later draw.
@@ -22,6 +25,11 @@
             var index=pending.indexOf(entry);if(index>=0)pending.splice(index,1);
             if(token===generation)fn();
         });
+        return entry;
+    }
+    function cancelTimer(entry){
+        var index=timers.indexOf(entry);if(index<0)return;
+        timers.splice(index,1);if($.CancelScheduled){try{$.CancelScheduled(entry.id);}catch(error){}}
     }
     function clearTimers(){
         generation++;var pending=timers;timers=[];
@@ -31,6 +39,8 @@
     function cancel(completedProbe){
         if(decoderProbe&&!completedProbe)probeLog('aborted','outcome=inconclusive');
         if(playerProbe&&!completedProbe)playerProbeLog('aborted','outcome=inconclusive');
+        if(nativeRun&&!completedProbe)nativeLog('aborted',nativeRun,'outcome=inconclusive');
+        nativeRun=null;
         decoderProbe=null;
         playerProbe=null;
         clearTimers();complete=null;playing=false;previewMode=false;
@@ -42,16 +52,16 @@
         if(lease)lease.Release();
     }
     function releaseMovie(){
-        var previous=movie;movie=null;
-        if(valid(previous)){try{previous.Stop();}catch(error){}try{previous.DeleteAsync(0);}catch(error){}}
-        if(valid(directMovieHost)){try{directMovieHost.DeleteAsync(0);}catch(error){}}
-        directMovieHost=null;
+        var previous=movie,owner=directMovieHost;movie=null;directMovieHost=null;
+        if(valid(owner)){try{owner.DeleteAsync(0);}catch(error){}return;}
+        if(valid(previous)){try{if(typeof previous.Stop==='function')previous.Stop();}catch(error){}try{previous.DeleteAsync(0);}catch(error){}}
     }
     function finish(){
-        var callback=complete,preview=previewMode,pool=activePool,probe=decoderProbe;
+        var callback=complete,preview=previewMode,pool=activePool,probe=decoderProbe,skipReveal=!!(nativeRun&&nativeRun.failure);
         if(probe)probeLog('complete','outcome='+(probe.failure&&probe.fallbackShown?probe.failure:'inconclusive'));
         if(playerProbe)playerProbeLog('complete','outcome='+(playerProbe.failure||'visual_review_required')+' fallback=false');
-        cancel(true);if(preview)$.Msg('[LOTTERY_CINEMATIC] stage=complete pool='+pool+' preview=true');if(callback)callback();
+        if(nativeRun)nativeLog('complete',nativeRun,'outcome='+(nativeRun.failure?'skipped_'+nativeRun.failure:nativeRun.acceptedEnd?'native_ended':'unverified_completion'));
+        cancel(true);if(preview)$.Msg('[LOTTERY_CINEMATIC] stage=complete pool='+pool+' preview=true');if(callback)callback(skipReveal);
     }
     function buildFallback(){
         if(!valid(surface))return false;
@@ -167,7 +177,60 @@
         var currentMovie=movie;later(.10,function(){checkPlayback(currentMovie,70);});
         return true;
     }
-    function play(pool,results,onDone,preview){return playMedia(pool,results,onDone,preview,false);}
+    function playBuffered(pool,results,onDone,preview,badProbe,lease){
+        pool=prepare(pool,results,onDone,lease);if(pool===null)return false;
+        previewMode=!!preview;
+        if(previewMode)$.Msg('[LOTTERY_CINEMATIC] stage=preview pool='+pool);
+        var run={id:++nativeSerial,pool:pool,probe:!!badProbe,token:generation,initialized:false,startedAt:0,terminal:false,acceptedEnd:false,failure:'',startup:null};
+        nativeRun=run;nativeLog('begin',run,'loadbehavior=buffer-async source='+(badProbe?'fixed_invalid_media':'pool_movie'));
+        var target=null;
+        function owns(){return nativeRun===run&&run.token===generation&&!run.terminal&&movie===target;}
+        function fail(reason,evidence){
+            if(!owns())return;run.terminal=true;run.failure=reason;nativeLog('failure',run,'reason='+reason+' action='+(preview?'return_to_preview_idle':'return_to_received_results')+(evidence?' '+evidence:''));
+            finish();
+        }
+        try{
+            directMovieHost=$.CreatePanel('Panel',surface,'LotteryBufferedMovieHost');
+            directMovieHost.style.width='100%';directMovieHost.style.height='100%';directMovieHost.style.zIndex='1';
+            directMovieHost.hittest=false;directMovieHost.hittestchildren=false;
+            var layout='file://{resources}/layout/custom_game/'+(badProbe?BUFFERED_BAD_LAYOUT:BUFFERED_LAYOUTS[pool]);
+            if(!directMovieHost.BLoadLayout(layout,false,false))throw new Error('buffered_layout_failed');
+            movie=directMovieHost.FindChildTraverse('LotteryCinematicMovie');
+            if(!valid(movie))throw new Error('buffered_moviepanel_missing');
+            target=movie;movie.hittest=false;movie.hittestchildren=false;resize();
+            // These exact two child-panel events were delivered by the native
+            // probe06 valid and invalid media tests. The native spelling is
+            // Initalized. No global listener, guessed IsPlaying, class poll or
+            // unavailable UnregisterEventHandler is used. Deleting this owned
+            // child retires its handlers; generation/object guards reject late
+            // callbacks from old or cancelled presentations.
+            $.RegisterEventHandler('VideoPlayerInitalized',target,function(){
+                if(!owns()||run.initialized)return;
+                run.initialized=true;run.startedAt=Date.now();cancelTimer(run.startup);nativeLog('initialized',run);
+            });
+            $.RegisterEventHandler('VideoPlayerEnded',target,function(){
+                if(!owns())return;
+                if(!run.initialized){fail('ended_before_initialized','event=VideoPlayerEnded initialized=false');return;}
+                var elapsed=Date.now()-run.startedAt;
+                if(elapsed<6000){fail('early_end','event=VideoPlayerEnded initialized=true elapsed_ms='+elapsed);return;}
+                run.terminal=true;run.acceptedEnd=true;nativeLog('ended',run,'elapsed_ms='+elapsed);finish();
+            });
+        }catch(error){
+            run.terminal=true;run.failure='setup_error';nativeLog('failure',run,'reason=setup_error action='+(preview?'return_to_preview_idle':'return_to_received_results'));
+            finish();return true;
+        }
+        // Two finite O(1) deadlines, not a refresh loop. Healthy native events
+        // complete around the seven-second asset duration and cancel both.
+        // Bad-media Ended-before-Initalized immediately returns to the already
+        // received results. No second animation, retry or server request.
+        if(run.terminal||nativeRun!==run||run.token!==generation)return true;
+        run.startup=later(5,function(){if(!run.initialized)fail('startup_timeout');});
+        later(12,function(){fail('completion_timeout');});
+        if(run.initialized)cancelTimer(run.startup);
+        return true;
+    }
+    function play(pool,results,onDone,preview){return playBuffered(pool,results,onDone,preview,false);}
+
     function beginPreview(){
         var controller=cfg.SurvivalLottery;
         if(disposed||playing||!controller||!controller.CanPreviewCinematic||!controller.OpenForCinematicPreview||!controller.CanPreviewCinematic())return null;
@@ -175,7 +238,11 @@
     }
     function preview(pool){
         var lease=beginPreview();if(!lease)return false;
-        return playMedia(pool,[],function(){},true,false,lease);
+        return playBuffered(pool,[],function(){},true,false,lease);
+    }
+    function previewBufferedDecoderProbe(){
+        var lease=beginPreview();if(!lease)return false;
+        return playBuffered('map',[],function(){},true,true,lease);
     }
     function previewDecoderProbe(){
         // No draw/read/grant call, no arbitrary URL, and no interruption of an active presentation.
@@ -232,11 +299,12 @@
         });});
         later(7.15,finish);return true;
     }
-    cfg.LotteryCinematic={PreviewPlayerAB:previewPlayerAB,PreviewDecoderProbe:previewDecoderProbe,Play:play,Resize:resize,Cancel:cancel,Finish:finish,Highest:highest,Dispose:function(){cancel();disposed=true;if(valid(surface))surface.DeleteAsync(0);surface=null;fallback=null;fallbackImage=null;fallbackPool='';},
+    cfg.LotteryCinematic={PreviewPlayerAB:previewPlayerAB,PreviewDecoderProbe:previewDecoderProbe,PreviewBufferedDecoderProbe:previewBufferedDecoderProbe,Play:play,Resize:resize,Cancel:cancel,Finish:finish,Highest:highest,Dispose:function(){cancel();disposed=true;if(valid(surface))surface.DeleteAsync(0);surface=null;fallback=null;fallbackImage=null;fallbackPool='';},
         Preview:preview,PreviewNative:previewNative};
     if(typeof Game!=='undefined'&&Game.AddCommand){
         var stamp=Date.now();Object.keys(pools).forEach(function(pool){Game.AddCommand('lottery_film_'+pool+'_'+stamp,function(){cfg.LotteryCinematic.Preview(pool);},'Preview cinematic only; no draw, ticket consumption or reward grant',0);});
         Game.AddCommand('lottery_film_decoder_probe_map_'+stamp,previewDecoderProbe,'Zero-consumption native decoder failure preview; fixed existing non-video resource only',0);
+        Game.AddCommand('lottery_film_buffered_decoder_probe_map_'+stamp,previewBufferedDecoderProbe,'Zero-consumption fixed invalid buffered media; native failure and fallback verification',0);
         ['wrapper','direct','buffered'].forEach(function(mode){Game.AddCommand('lottery_film_ab_'+mode+'_map_'+stamp,function(){previewPlayerAB(mode);},'Fixed zero-consumption player comparison; no automatic fallback, draw or grant',0);});
         $.Msg('[LOTTERY_CINEMATIC_READY] version=v1 commands='+stamp);
         $.Msg('[LOTTERY_MOVIE_AB_READY] commands='+stamp+' modes=wrapper,direct,buffered fixed_pool=map');

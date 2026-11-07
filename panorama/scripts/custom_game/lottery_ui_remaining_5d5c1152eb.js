@@ -113,9 +113,10 @@
         animating = true; rootClass("LotteryAnimating", true); rootClass("LotteryCharging", true);
         resultCards.forEach(function (card) { cardState(card,"LotteryCardCovered",true); cardState(card,"LotteryCardEntering",true); });
         updateButtons(); setText("LotteryRevealPhase", "星轨汇聚");
-        function showCards() {
+        function showCards(skipReveal) {
             if(!alive()||generation!==animationSerial || !opened)return;
             rootClass("LotteryCharging",false);
+            if(skipReveal===true){completeReveal();return;}
             var cardTiming=ten?{enter:60,enterStep:70,flip:320,flipStep:100,ready:1550}:{enter:60,flip:350,ready:1000};
             drawSequence.Play(visibleResults,{timing:cardTiming,flipHalf:100,onCharged:function(){},onEnter:function(i){cardState(resultCards[i],"LotteryCardEntering",false);},onFlip:function(i){cardState(resultCards[i],"LotteryCardNarrow",true);},onReveal:function(i){cardState(resultCards[i],"LotteryCardCovered",false);cardState(resultCards[i],"LotteryCardNarrow",false);},onReady:completeReveal});
         }
