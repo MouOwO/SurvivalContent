@@ -5,11 +5,16 @@
     if (cfg.SurvivalMonsterPortraitRenderer) cfg.SurvivalMonsterPortraitRenderer.Shutdown();
     function create() {
         var entries = [], current = null, failed = Object.create(null), serial = 0, stopped = false;
-        var stage = null, warming = null, timer = false, created = 0, loaded = 0;
+        var stage = null, warming = null, timer = false, warmTimer = null, created = 0, loaded = 0;
         var visibleEntries = [];
         var entriesByKey = Object.create(null), specsByAsset = Object.create(null), keysByAsset = Object.create(null);
         var models = Object.create(null), aliases = Object.create(null), unitNames = Object.create(null), owner = {};
         var pendingAsset = "";
+        // A cold map creates a native render world. Admit only the latest
+        // identity after a short quiet window; a warm cache hit never waits.
+        // One pending task, O(1) replacement, <=1 native world per admission.
+        // This bounds work count, not the engine's synchronous load duration.
+        var COLD_SETTLE_MS = 100, admission = null, deferred = 0, superseded = 0;
         // Catalog coverage is independent of native world residency. Cold
         // appearances remain addressable without constructing 188 render worlds.
         var MAX_RESIDENT = 4, lruHead = null, lruTail = null, evictions = 0;
@@ -49,7 +54,7 @@
             var id = payload && (payload.PlayerID !== undefined ? payload.PlayerID : payload.player_id);
             if (id !== undefined && typeof Game !== "undefined" && Game.GetLocalPlayerID
                 && Number(id) !== Number(Game.GetLocalPlayerID())) return;
-            selectionEpoch++; pendingAsset = "";
+            selectionEpoch++; cancelAdmission();
         }
         if (typeof GameEvents !== "undefined" && GameEvents.Subscribe) {
             ["dota_player_update_selected_unit", "dota_player_update_query_unit"].forEach(function (event) {
@@ -173,24 +178,51 @@
             scene.__survivalMonsterPortraitEntry = entry;
             return entry;
         }
+        function cancelAdmission() {
+            var old = admission;
+            admission = null; pendingAsset = "";
+            if (!old) return;
+            superseded++;
+            if (old.timer !== null && typeof $.CancelScheduled === "function") {
+                try { $.CancelScheduled(old.timer); } catch (_) {}
+            }
+        }
+        function armWarm() {
+            if (!timer && warming) { timer = true; warmTimer = $.Schedule(0.05, tickWarm); }
+        }
+        function queueCold(parent, asset, selected) {
+            var key = keysByAsset[asset];
+            if (stopped || !key || !valid(parent) || !mayAttempt(key)) return false;
+            if (admission && admission.key === key) {
+                if (selected) admission.parent = parent;
+                return true;
+            }
+            cancelAdmission();
+            var ticket = {key:key, asset:asset, parent:parent, timer:null};
+            admission = ticket; pendingAsset = asset; deferred++;
+            ticket.timer = $.Schedule(COLD_SETTLE_MS / 1000, function () {
+                if (stopped || admission !== ticket) return;
+                admission = null; pendingAsset = "";
+                // Do not transfer a destroyed overlay's request to a later
+                // HUD. An explicit fresh Prepare owns the replacement.
+                if (!valid(ticket.parent)) return;
+                var entry = ensure(valid(stage) ? stage : ticket.parent, ticket.asset);
+                if (!entry || entry.ready) return;
+                if (warming && warming !== entry && warming !== current) show(warming, false);
+                warming = entry;
+                show(entry, true);
+                armWarm();
+            });
+            return true;
+        }
         function tickWarm() {
-            timer = false;
-            if (stopped || !valid(stage)) return;
+            timer = false; warmTimer = null;
+            if (stopped) return;
             if (warming && (!check(warming) || warming.ready)) {
                 if (warming && warming !== current) show(warming, false);
                 warming = null;
             }
-            if (!warming && pendingAsset) {
-                var asset = pendingAsset; pendingAsset = "";
-                var entry = ensure(stage, asset);
-                if (entry && !entry.ready) {
-                    warming = entry;
-                    entry.started = Date.now();
-                    if (entry !== current) entry.host.SetParent(stage);
-                    show(entry, true);
-                }
-            }
-            if (warming || pendingAsset) { timer = true; $.Schedule(0.05, tickWarm); }
+            armWarm();
         }
         function prewarm(parent, priorityAsset) {
             if (stopped || !valid(parent)) return;
@@ -211,19 +243,23 @@
                 // It must not turn catalog size into startup native work.
             } else if (stage.GetParent() !== parent) stage.SetParent(parent);
             var key = keysByAsset[priorityAsset], priorityEntry = key && entriesByKey[key];
-            if (key && pendingAsset && keysByAsset[pendingAsset] !== key) pendingAsset = "";
-            if (key && mayAttempt(key) && (!priorityEntry || !priorityEntry.ready) && (!warming || warming.key !== key)) {
-                // Only the latest explicit request can wait; no catalog queue.
-                pendingAsset = priorityAsset;
-            }
-            if (!timer && (warming || pendingAsset)) { timer = true; $.Schedule(0.05, tickWarm); }
+            if (key && admission && admission.key !== key) cancelAdmission();
+            if (key && !priorityEntry) queueCold(stage, priorityAsset);
         }
         function prepare(parent, asset) {
             asset = String(asset || "");
             var key = keysByAsset[asset] || "";
             if (key && key !== lastRequestKey) { lastRequestKey = key; selectionEpoch++; }
-            if (pendingAsset && keysByAsset[pendingAsset] !== key) pendingAsset = "";
-            var entry = ensure(valid(stage) ? stage : parent, asset);
+            if (admission && admission.key !== key) cancelAdmission();
+            if (stopped || !key || !valid(parent)) return null;
+            var entry = entriesByKey[key];
+            if (!entry) {
+                if (!queueCold(parent, asset, true)) return null;
+                // Combat's existing !ready branch keeps its transition cover;
+                // it must not treat pending as a missing map or use SetUnit.
+                return {scene:null, ready:false, key:key, presentable:false, pending:true};
+            }
+            if (!check(entry)) return null;
             if (!entry || !valid(parent)) { hide(); return null; }
             touch(entry);
             // The explicit prewarm may start before Prepare observes this
@@ -237,10 +273,10 @@
                     if (warming !== current) show(warming, false);
                 }
                 warming = entry; entry.started = Date.now();
-                if (keysByAsset[pendingAsset] === entry.key) pendingAsset = "";
+                if (admission && admission.key === entry.key) cancelAdmission();
                 if (entry.host.GetParent() !== stage) entry.host.SetParent(stage);
                 show(entry, true);
-                if (!timer) { timer = true; $.Schedule(0.05, tickWarm); }
+                armWarm();
             }
             if (entry.ready || !valid(stage)) {
                 if (current !== entry || entry.host.GetParent() !== parent) entry.mountedAt = Date.now();
@@ -269,7 +305,11 @@
             },
             // Disposal walks only the four resident worlds, never the catalog.
             Shutdown:function () {
-                stopped = true; entries.slice().forEach(remove);
+                stopped = true; cancelAdmission();
+                if (warmTimer !== null && typeof $.CancelScheduled === "function") {
+                    try { $.CancelScheduled(warmTimer); } catch (_) {}
+                }
+                timer = false; warmTimer = null; entries.slice().forEach(remove);
                 subscriptions.forEach(function(handle) {
                     try { if (typeof GameEvents !== "undefined" && GameEvents.Unsubscribe) GameEvents.Unsubscribe(handle); }
                     catch (_) {}
@@ -281,7 +321,8 @@
             Inspect:function () { return {cached:entries.length, loaded:loaded,
                 created:created, queued:pendingAsset ? 1 : 0, warming:warming && warming.asset || "", ready:!!(current && current.ready), map:current && current.spec.map || "",
                 visible:visibleEntries.length, residentLimit:MAX_RESIDENT, evictions:evictions, retries:retries, failures:failures,
-                selectionEpoch:selectionEpoch, movementPauses:0, cooldownPauses:0}; }};
+                selectionEpoch:selectionEpoch, coldSettleMs:COLD_SETTLE_MS, deferred:deferred, superseded:superseded,
+                movementPauses:0, cooldownPauses:0}; }};
     }
     var renderer = create(); renderer.Create = create;
     cfg.SurvivalMonsterPortraitRenderer = renderer;

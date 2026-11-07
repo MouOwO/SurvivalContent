@@ -1578,7 +1578,7 @@
         // Only a number is rendered. The server owns both time and defeat.
         text("HandoffEnemyCountdown",overflow?String(remaining(wave.overflow_deadline,wave.overflow_remaining)):"");
     }
-    function refreshNow() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{
+    function refreshNowScoped() {if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;try{
         var readContext={hasNativeEntries:false,readNativeEntries:function(combat,unit){
             var reader=combat.NativeEntries;
             if(this.hasNativeEntries&&this.unit===unit&&this.combat===combat&&this.reader===reader)return this.nativeEntries;
@@ -1608,6 +1608,13 @@
         }
         if(cfg.SurvivalMinimapShortcuts)cfg.SurvivalMinimapShortcuts.Refresh(geometry,ready);
         mirror();recoverReadyHotkeyMirror();mirrorKeys();revealWhenStable();}catch(e){$.Warning("[HANDOFF_HUD] "+e);}}
+    function refreshNow(){
+        // Share native ability reads only during this synchronous paint. A later
+        // event/tick gets fresh state, including research and runtime changes.
+        var combat=cfg.HandoffCombat;
+        if(combat&&combat.WithAbilitySnapshot)return combat.WithAbilitySnapshot(refreshNowScoped);
+        return refreshNowScoped();
+    }
     function tick(){if(!valid(ctx)||cfg.HandoffGeneration!==generation)return;renderCountdowns();refreshNow();$.Schedule(.1,tick);}
     cfg.HandoffBoundValuesChanged=function(){if(cfg.HandoffGeneration===generation&&valid(ctx))mirror();};
     // HANDOFF_REFRESH_COALESCED: notifications are not geometry invalidations.
@@ -1623,8 +1630,10 @@
         if(cfg.HandoffGeneration!==generation)return;
         var pid=payload&&(payload.PlayerID!==undefined?payload.PlayerID:payload.player_id!==undefined?payload.player_id:payload.playerid);
         if(pid!==undefined&&Number(pid)!==Number(Game.GetLocalPlayerID()))return;
-        // Update real selection immediately; native children may arrive next frame.
-        if(selectedUnit()!==eventUnit)refreshFromEvent();
+        // The resolver and input guards already expose the live selection.
+        // Paint only the latest identity on the next frame, when native children
+        // are available. Rapid A -> B -> C must not lay out all three HUDs here
+        // and then repeat C in the queued callback.
         if(refreshQueued)return;refreshQueued=true;
         $.Schedule(0,function(){refreshQueued=false;refreshFromEvent();});
     });});

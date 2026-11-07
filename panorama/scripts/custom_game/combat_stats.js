@@ -12,7 +12,8 @@
     var contextPanel = $.GetContextPanel();
     var lifecycleGeneration = Number(customConfig.SurvivalInputLifecycleGeneration || 0);
     var contextShutdown = false;
-    var scheduledJobs = [];
+    var scheduledJobs = Object.create(null), scheduledJobSerial = 0;
+    var scheduledJobIds = Object.create(null);
     var combatSubscriptions = [];
     var clientCallbackProbe = null;
     var previousHotkeyController = customConfig.SurvivalAbilityHotkeys;
@@ -29,10 +30,12 @@
 
     function scheduleActive(delay, callback, taskName) {
         if (!contextActive()) return null;
-        var job = { id: null };
+        var job = { id: null, key: ++scheduledJobSerial, active: true };
         job.id = $.Schedule(delay, function () {
-            var index = scheduledJobs.indexOf(job);
-            if (index >= 0) scheduledJobs.splice(index, 1);
+            if (!job.active) return;
+            job.active = false;
+            delete scheduledJobs[job.key];
+            delete scheduledJobIds[job.id];
             if (!contextActive()) {
                 shutdownCombatContext("context_inactive");
                 return;
@@ -50,8 +53,18 @@
                 throw error;
             }
         });
-        scheduledJobs.push(job);
+        scheduledJobs[job.key] = job;
+        scheduledJobIds[job.id] = job;
         return job.id;
+    }
+
+    function cancelActive(id) {
+        var job = scheduledJobIds[id];
+        if (!job) return;
+        job.active = false;
+        delete scheduledJobs[job.key];
+        delete scheduledJobIds[id];
+        if ($.CancelScheduled) { try { $.CancelScheduled(id); } catch (error) {} }
     }
 
     function guardedCombatListener(name, callback) {
@@ -161,6 +174,8 @@
     var lastReturnHomeTime = -100;
     var maxAbilityEngineSlots = 64;
     var abilityRefreshLookup = null, abilityRootsCache = null, abilitySlotIndexes = [];
+    var officialAbilityMappingCache = null;
+    var queuedAbilityRefresh = null;
     var portraitUnitsCatalog = null, portraitUnitNames = Object.create(null);
     var towerRuntimeTrace = {};
     var standardAbilityHotkeys = ["Q", "W", "E", "R", "T", "Y", "U"];
@@ -336,6 +351,7 @@
         // These indexes describe the same native HUD generation.
         abilityRootsCache = null;
         abilitySlotIndexes = [];
+        officialAbilityMappingCache = null;
     }
 
     function watchOfficialHudPath(panel, structural) {
@@ -2373,7 +2389,6 @@
 
     function refreshHeroVitalsTick() {
         refreshHeroVitals(displayUnit());
-        refreshAbilityHotkeysIfChanged(false);
         scheduleActive(0.25, refreshHeroVitalsTick);
     }
 
@@ -2456,25 +2471,30 @@
     }
 
     function beginUnitNameTransition(reason) {
+        if (!contextActive()) return;
+        var transitionUnit = Number(displayUnit()), commandUnit = Number(selectedUnit());
+        // One current identity owns the entire late-native-HUD retry window.
+        // Check before invalidating any indexes or touching native ancestors.
+        if (unitNameTransition && unitNameTransition.unit === transitionUnit
+            && unitNameTransition.commandUnit === commandUnit) return;
+        if (unitNameTransition) cancelActive(unitNameTransition.handle);
+        if (queuedAbilityRefresh !== null) { cancelActive(queuedAbilityRefresh); queuedAbilityRefresh = null; }
         // A real selection may expose a newly created native query subtree.
         // Validate the bounded ancestor set; unchanged selection is not a scan.
         refreshOfficialHudLookup();
         abilityRootsCache = null;
-        var transitionUnit = Number(displayUnit());
-        // Coalesce notifications queued for the same first check. A later
-        // event still gets its full retry window for an asynchronous HUD rebuild.
-        if (unitNameTransition && unitNameTransition.pending
-            && unitNameTransition.unit === transitionUnit) return;
+        officialAbilityMappingCache = null;
         unitNameTransitionSerial += 1;
         refreshMissingPortraitAnchors(true);
         transitionCosmeticPortrait("selection_transition");
         var serial = unitNameTransitionSerial;
-        unitNameTransition = { unit: transitionUnit, pending: true };
-        unitNameRetryDelays.forEach(function (delay, retryIndex) {
-            scheduleActive(delay, function () {
-                if (serial !== unitNameTransitionSerial) return;
-                unitNameTransition.pending = false;
-                if (retryIndex === unitNameRetryDelays.length - 1) unitNameTransition = null;
+        var job = { unit: transitionUnit, commandUnit: commandUnit, handle: null };
+        unitNameTransition = job;
+        function enqueue(retryIndex) {
+            var delay = unitNameRetryDelays[retryIndex] - (retryIndex ? unitNameRetryDelays[retryIndex - 1] : 0);
+            job.handle = scheduleActive(delay, function () {
+                if (serial !== unitNameTransitionSerial || unitNameTransition !== job) return;
+                job.handle = null;
                 refreshMissingPortraitAnchors();
                 var currentUnit = Number(displayUnit());
                 // Keep every late native-HUD check, but only rewrite shortcuts
@@ -2483,22 +2503,26 @@
                 // Probe missing roots only during this bounded retry window.
                 refreshOfficialHudLookup();
                 if (abilityRootsCache && !abilityRootsCache.roots.query) abilityRootsCache = null;
-                refreshAbilityHotkeysIfChanged(false);
-                if (currentUnit < 0) {
-                    return;
-                }
-                if (currentUnit !== observedSelectedUnit) {
+                // Geometry can settle after the entity event without replacing
+                // a node. Only this bounded recovery window forces rediscovery.
+                officialAbilityMappingCache = null;
+                flushAbilityRefresh();
+                if (currentUnit >= 0 && currentUnit !== observedSelectedUnit) {
                     observedSelectedUnit = currentUnit;
                     refreshHeroPanel();
                     $.Msg("[SURVIVAL_UNIT_NAME] selected_unit_changed reason=",
                         String(reason || "unknown"), " unit=", String(currentUnit),
                         " retry=", String(retryIndex), " serial=", String(serial));
-                    return;
+                } else if (currentUnit >= 0) {
+                    writeOfficialAttackText();
+                    writeOfficialSecondaryStats();
                 }
-                writeOfficialAttackText();
-                writeOfficialSecondaryStats();
+                if (serial !== unitNameTransitionSerial || unitNameTransition !== job) return;
+                if (retryIndex + 1 < unitNameRetryDelays.length) enqueue(retryIndex + 1);
+                else unitNameTransition = null;
             }, "unit_name_transition:" + String(reason || "unknown") + ":" + String(retryIndex));
-        });
+        }
+        enqueue(0);
     }
 
     function onUnitSelectionEvent(reason, payload) {
@@ -2523,6 +2547,8 @@
     }
 
     function abilityRuntime(abilityIndex) {
+        var cache = abilityRefreshLookup && abilityRefreshLookup.runtime;
+        if (cache && Object.prototype.hasOwnProperty.call(cache, abilityIndex)) return cache[abilityIndex];
         var runtime = CustomNetTables.GetTableValue(
             "survival_ability_runtime",
             String(abilityIndex)
@@ -2534,7 +2560,9 @@
         runtime = production && production.GetResearchRuntime
             ? production.GetResearchRuntime(abilityIndex, selectedUnit(), runtime) : runtime;
         var queue = GameUI.CustomUIConfig().SurvivalLumberjackFusionQueue;
-        return queue && queue.Decorate ? queue.Decorate(abilityIndex, runtime) : runtime;
+        runtime = queue && queue.Decorate ? queue.Decorate(abilityIndex, runtime) : runtime;
+        if (cache) cache[abilityIndex] = runtime;
+        return runtime;
     }
 
     function setAbilityRuntimeDisabled(panel, unavailable, runtime, abilityIndex) {
@@ -2735,12 +2763,12 @@
     function withAbilityLookup(callback) {
         var previous = abilityRefreshLookup;
         if (previous) return callback();
-        abilityRefreshLookup = {roots:null, indexes:[]};
+        abilityRefreshLookup = {roots:null, indexes:[], runtime:Object.create(null), passive:Object.create(null), entries:Object.create(null)};
         try { return callback(); }
         finally { abilityRefreshLookup = previous; }
     }
 
-    function abilitySlotPanel(root, slot) {
+    function abilitySlotIndex(root) {
         if (!root || !root.FindChildTraverse) return null;
         var localIndexes = abilityRefreshLookup && abilityRefreshLookup.indexes;
         var index = localIndexes && localIndexes.filter(function (item) { return item.root === root; })[0];
@@ -2752,7 +2780,7 @@
                     && (link.count === null || link.panel.GetChildCount() === link.count);
             })) index = null;
             if (!index) {
-                index = {root:root, slots:{}, links:[], fallback:!root.GetChildCount || !root.GetChild};
+                index = {root:root, slots:{}, ordered:[], links:[], fallback:!root.GetChildCount || !root.GetChild};
                 var stack = [root];
                 while (stack.length && !index.fallback) {
                     var panel = stack.pop();
@@ -2776,13 +2804,29 @@
                     return item.root !== root && (item.root === activeRoots.main || item.root === activeRoots.query);
                 });
                 abilitySlotIndexes.push(index);
+                // The fallback exists for native wrappers without child APIs.
+                // Probe its fixed upper bound once per root generation only.
+                if (index.fallback) for (var probe = 0; probe < maxAbilityEngineSlots; probe++) {
+                    var found = root.FindChildTraverse("Ability" + probe);
+                    if (validPortraitPanel(found)) index.slots[probe] = found;
+                }
+                Object.keys(index.slots).map(Number).sort(function (a,b) { return a-b; }).forEach(function (number) {
+                    index.ordered.push({slot:number, panel:index.slots[number]});
+                });
             }
             if (localIndexes) localIndexes.push(index);
         }
-        if (index.fallback && !Object.prototype.hasOwnProperty.call(index.slots, slot)) {
-            index.slots[slot] = root.FindChildTraverse("Ability" + slot);
-        }
-        return index.slots[slot] || null;
+        return index;
+    }
+
+    function abilitySlotPanel(root, slot) {
+        var index = abilitySlotIndex(root);
+        return index && index.slots[slot] || null;
+    }
+
+    function liveAbilitySlots(root) {
+        var index = abilitySlotIndex(root);
+        return index ? index.ordered : [];
     }
 
     function viewingOtherAbilityUnit() {
@@ -2791,8 +2835,9 @@
 
     function queryAbilityHotkeysMatch(query) {
         if (!validPortraitPanel(query) || !query.FindChildTraverse) return true;
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var panel = abilitySlotPanel(query, slot);
+        var slots = liveAbilitySlots(query);
+        for (var slot = 0; slot < slots.length; slot++) {
+            var panel = slots[slot].panel;
             if (!validPortraitPanel(panel)) continue;
             if (nativeAbilityHotkeyContainer(panel) && !nativeAbilityHotkeySuppressed(panel)) return false;
             var label = panel.FindChildTraverse("SurvivalAbilityHotkey") || panel.FindChildTraverse("SurvivalUtilityHotkey");
@@ -2804,8 +2849,9 @@
 
     function clearQueryAbilityHotkeys(query, restore) {
         if (!validPortraitPanel(query) || !query.FindChildTraverse) return;
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var panel = abilitySlotPanel(query, slot);
+        var slots = liveAbilitySlots(query);
+        for (var slot = 0; slot < slots.length; slot++) {
+            var panel = slots[slot].panel;
             if (!validPortraitPanel(panel)) continue;
             if (restore) restoreNativeAbilityHotkey(panel);
             else suppressNativeAbilityHotkey(panel);
@@ -2824,9 +2870,10 @@
         var panels = [];
         var seen = [];
         if (!abilities || !abilities.FindChildTraverse) return panels;
-        for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
-            var panel = abilitySlotPanel(abilities, nodeIndex);
-            if (!panel || seen.indexOf(panel) >= 0 || belongsToLegacyHud(panel)) continue;
+        var slots = liveAbilitySlots(abilities);
+        for (var slot = 0; slot < slots.length; slot++) {
+            var nodeIndex = slots[slot].slot, panel = slots[slot].panel;
+            if (!validPortraitPanel(panel) || seen.indexOf(panel) >= 0 || belongsToLegacyHud(panel)) continue;
             seen.push(panel);
             if (panel.IsValid && !panel.IsValid()) continue;
             if (panel.__survivalCompleted === true) continue;
@@ -2881,9 +2928,30 @@
             }
             return archiveMappings;
         }
+        var index = abilitySlotIndex(abilities), signature = visibleAbilitySignature(unit, visibleAbilities);
+        var cache = officialAbilityMappingCache;
+        var viewport = String(contextPanel.actuallayoutwidth) + ":" + String(contextPanel.actuallayoutheight)
+            + ":" + String(contextPanel.actualuiscale_x) + ":" + String(contextPanel.actualuiscale_y);
+        if (cache && cache.index === index && cache.signature === signature && cache.viewport === viewport
+            && cache.slots.every(function (entry) {
+                var panel = entry.panel;
+                if (!validPortraitPanel(panel)) return false;
+                var anchor = officialAbilityButtonAnchor(panel);
+                return anchor === entry.anchor && (!anchor || validPortraitPanel(anchor))
+                    && panel.visible === entry.visible && (anchor && anchor.visible) === entry.anchorVisible
+                    && panel.__survivalCompleted === entry.completed
+                    && abilityPanelStyleValue(panel, "visibility") === entry.visibility
+                    && abilityPanelStyleValue(anchor, "visibility") === entry.anchorVisibility
+                    && (anchor && anchor.actuallayoutwidth) === entry.width && (anchor && anchor.actuallayoutheight) === entry.height;
+            })) {
+            // Entries contain current passive/order metadata, while the panel
+            // mapping alone is stable. Do not preserve an old shortcut index.
+            cache.mappings.forEach(function (mapping, i) { mapping.entry = visibleAbilities[i]; });
+            return cache.mappings;
+        }
         var panels = collectVisibleOfficialAbilityPanels(abilities);
         if (panels.length !== visibleAbilities.length) return null;
-        return visibleAbilities.map(function (entry, displayIndex) {
+        var mappings = visibleAbilities.map(function (entry, displayIndex) {
             return {
                 entry: entry,
                 panel: panels[displayIndex].panel,
@@ -2891,6 +2959,15 @@
                 nodeIndex: panels[displayIndex].nodeIndex
             };
         });
+        officialAbilityMappingCache = {index:index, signature:signature, viewport:viewport, mappings:mappings,
+            slots:liveAbilitySlots(abilities).map(function (slot) {
+                var panel = slot.panel, anchor = officialAbilityButtonAnchor(panel);
+                return {panel:panel, anchor:anchor, visible:panel.visible, anchorVisible:anchor && anchor.visible,
+                    completed:panel.__survivalCompleted, visibility:abilityPanelStyleValue(panel,"visibility"),
+                    anchorVisibility:abilityPanelStyleValue(anchor,"visibility"),
+                    width:anchor && anchor.actuallayoutwidth, height:anchor && anchor.actuallayoutheight};
+            })};
+        return mappings;
     }
 
     function officialAbilityMappingSignature(mappings) {
@@ -2992,8 +3069,9 @@
         var abilities = roots.main;
         if (!validPortraitPanel(abilities) || !abilities.FindChildTraverse) return false;
         var mappedPanels = mappings.map(function (mapping) { return mapping.panel; });
-        for (var slot = 0; slot < maxAbilityEngineSlots; slot++) {
-            var emptyPanel = abilitySlotPanel(abilities, slot);
+        var slots = liveAbilitySlots(abilities);
+        for (var slot = 0; slot < slots.length; slot++) {
+            var emptyPanel = slots[slot].panel;
             if (!validPortraitPanel(emptyPanel) || belongsToLegacyHud(emptyPanel)
                 || mappedPanels.indexOf(emptyPanel) >= 0) continue;
             if (nativeAbilityHotkeyContainer(emptyPanel) && !nativeAbilityHotkeySuppressed(emptyPanel)) return false;
@@ -3056,7 +3134,7 @@
         // the currently selected unit instead of relying only on NetTable events.
         // The shared check still enumerates current abilities and live native
         // bindings, but clears/rebinds only when either actually changed.
-        refreshAbilityHotkeysIfChanged(false);
+        flushAbilityRefresh();
         // Valve can restore old native hotkeys after the selection event and
         // its short retries. Match the live HUD at the same cadence as portraits.
         scheduleActive(0.10, refreshAbilities);
@@ -3074,8 +3152,9 @@
         if (!abilityRefreshLookup) return withAbilityLookup(function () { return clearOfficialAbilityHotkeys(abilities, keepNativeSuppressed); });
         officialAbilityMappings = [];
         if (!validPortraitPanel(abilities) || !abilities.FindChildTraverse) return;
-        for (var nodeIndex = 0; nodeIndex < maxAbilityEngineSlots; nodeIndex++) {
-            var abilityPanel = abilitySlotPanel(abilities, nodeIndex);
+        var slots = liveAbilitySlots(abilities);
+        for (var nodeIndex = 0; nodeIndex < slots.length; nodeIndex++) {
+            var abilityPanel = slots[nodeIndex].panel;
             if (!validPortraitPanel(abilityPanel) || belongsToLegacyHud(abilityPanel)) continue;
             if(keepNativeSuppressed)suppressNativeAbilityHotkey(abilityPanel);
             else restoreNativeAbilityHotkey(abilityPanel);
@@ -3114,12 +3193,17 @@
             }
         });
         combatSubscriptions = [];
-        scheduledJobs.forEach(function (job) {
+        Object.keys(scheduledJobs).forEach(function (key) {
+            var job = scheduledJobs[key];
+            job.active = false;
             if ($.CancelScheduled) {
                 try { $.CancelScheduled(job.id); } catch (error) {}
             }
         });
-        scheduledJobs = [];
+        scheduledJobs = Object.create(null);
+        scheduledJobIds = Object.create(null);
+        unitNameTransition = null;
+        queuedAbilityRefresh = null;
         if (validPortraitPanel(contextPanel)) {
             hideCosmeticPortrait("context_shutdown");
             var hotkeyRoots = officialHotkeyAbilityRoots();
@@ -3138,6 +3222,7 @@
     customConfig.SurvivalAbilityHotkeys = {
         Refresh: function () {
             if (!contextActive()) return false;
+            officialAbilityMappingCache = null;
             var unit = selectedUnit();
             var visibleAbilities = unit === undefined || unit < 0 || viewingOtherAbilityUnit()
                 ? [] : visibleAbilityEntries(unit);
@@ -3146,11 +3231,15 @@
         Shutdown: shutdownCombatContext
     };
     function isPassiveAbility(abilityIndex) {
+        var cache = abilityRefreshLookup && abilityRefreshLookup.passive;
+        if (cache && Object.prototype.hasOwnProperty.call(cache, abilityIndex)) return cache[abilityIndex];
         var behavior = 0;
         try { behavior = Number(Abilities.GetBehavior(abilityIndex) || 0); } catch (error) {}
-        if ((behavior & 2) !== 0) return true;
-        try { if (Abilities.IsPassive && Abilities.IsPassive(abilityIndex)) return true; } catch (error) {}
-        return Number(abilityRuntime(abilityIndex).passive) === 1;
+        var result = (behavior & 2) !== 0;
+        if (!result) { try { result = !!(Abilities.IsPassive && Abilities.IsPassive(abilityIndex)); } catch (error) {} }
+        if (!result) result = Number(abilityRuntime(abilityIndex).passive) === 1;
+        if (cache) cache[abilityIndex] = result;
+        return result;
     }
     function hotkeyForAbilityEntry(entry, unitName) {
         if(/^npc_archive_challenge_[1-4]$/.test(String(unitName||"")))return "";
@@ -3282,6 +3371,7 @@
     function refreshAbilityHotkeysIfChanged(force) {
         if (!abilityRefreshLookup) return withAbilityLookup(function () { return refreshAbilityHotkeysIfChanged(force); });
         if (!contextActive()) return;
+        if (force) officialAbilityMappingCache = null;
         var unit = selectedUnit();
         var visibleAbilities = unit === undefined || unit < 0 || viewingOtherAbilityUnit()
             ? [] : visibleAbilityEntries(unit);
@@ -3301,6 +3391,26 @@
             // Retry while Valve is rebuilding AbilityN descendants.
             refreshAbilities.signature = "";
         }
+    }
+
+    function flushAbilityRefresh() {
+        if (queuedAbilityRefresh !== null) { cancelActive(queuedAbilityRefresh); queuedAbilityRefresh = null; }
+        refreshAbilityHotkeysIfChanged(false);
+    }
+
+    function queueAbilityRefresh() {
+        if (queuedAbilityRefresh !== null || !contextActive()) return;
+        queuedAbilityRefresh = scheduleActive(0, function () {
+            queuedAbilityRefresh = null;
+            refreshAbilityHotkeysIfChanged(false);
+        }, "ability_selection_refresh");
+    }
+
+    function refreshSelectionHUD() {
+        refreshHeroPanel();
+        // The selection chain already owns the next current-unit ability pass.
+        // A later topnav callback in the same frame must not add a second one.
+        if (!unitNameTransition) queueAbilityRefresh();
     }
 
 
@@ -3357,6 +3467,8 @@
     }
 
     function nativeAbilityEntries(unit) {
+        var cache = abilityRefreshLookup && abilityRefreshLookup.entries;
+        if (cache && Object.prototype.hasOwnProperty.call(cache, unit)) return cache[unit];
         var unitName=String(Entities.GetUnitName(unit)||"");
         var repairer=/^npc_survival_repairer(?:_|$)/.test(unitName);
         var lumberjack=/^npc_survival_(?:super_)?lumberjack(?:_|$)/.test(unitName);
@@ -3376,7 +3488,9 @@
             if(lumberjack && !/^ability_(?:fuse_lumberjack_\d+|lumberjack_personality_.+)$/.test(name))continue;
             entries.push({ ability: ability, name: name, slot: slot });
         }
-        return orderVisibleAbilities(entries);
+        entries = orderVisibleAbilities(entries);
+        if (cache) cache[unit] = entries;
+        return entries;
     }
 
     function visibleAbilityEntries(unit) {
@@ -4438,6 +4552,7 @@
         }, "building_refresh_100ms");
     });
     GameUI.CustomUIConfig().HandoffCombat = {
+        WithAbilitySnapshot: withAbilityLookup,
         NativeEntries: nativeAbilityEntries,
         IsCompleted: function(ability){return Number(abilityRuntime(ability).completed)===1;},
         ApplyRuntime: applyAbilityRuntime,
@@ -4448,13 +4563,18 @@
             if(!contextActive()||unit!==Number(displayUnit())||!compactSelectedModel||!compactSelectedModel.WeaponGrowth)return null;
             return compactSelectedModel.WeaponGrowth(unit,compactSelectedToken,String(content||""));
         },
-        RefreshSelection: function(){refreshHeroPanel();refreshAbilityHotkeysIfChanged(false);}
+        RefreshSelection: refreshSelectionHUD
     };
     installClientCallbackProbe();
     bindHeroPortrait();
     bindHotkeys();
     $.Msg("[SURVIVAL_SCENE_PANEL] READY tower_portrait=true native_non_tower=true");
     subscribeUnitNameSelectionEvents();
+    subscribeCombatEvent("dota_ability_changed", function (payload) {
+        if (!localSelectionEvent(payload)) return;
+        officialAbilityMappingCache = null;
+        queueAbilityRefresh();
+    });
     beginUnitNameTransition("initial_load");
     scheduleActive(1.65, function () {
         if (observedSelectedUnit < 0) beginUnitNameTransition("initial_fallback");
