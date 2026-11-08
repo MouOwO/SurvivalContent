@@ -89,7 +89,7 @@
     var compactScope=null,compactScopeReady=false;
     var compactModel=null,compactView=null,compactSelection=Number(cfg.SurvivalProductionSelectionSerial||0),compactDesired=-1,compactObserved=-1,compactRelevant=false,compactSent=0,compactDisposed=false;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
-    function active() { return valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
+    function active() { return !compactDisposed && valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
     function blocked() { return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top && cfg.SurvivalUILayers.Top(); }
     function gameTime() { return Number(Game.GetGameTime ? Game.GetGameTime() : 0); }
     function compactMode(){return !!cfg.SurvivalCompactRuntime;}
@@ -102,9 +102,13 @@
         if(scopeKey!==compactScope){
             // Invalidate only on a real viewer/world/session boundary. Never
             // retain one viewer's private technology snapshot for another.
-            compactScope=scopeKey;snapshots={};compactDesired=-1;compactObserved=-1;compactSent=0;
+            compactScope=scopeKey;snapshots={};citySlots={};pendingTraining={};trainingBases={};
+            currentUnit=-1;presentationRevision++;compactDesired=-1;compactObserved=-1;compactSent=0;
         }
-        if(wasReady&&!compactScopeReady){snapshots={};compactDesired=-1;compactObserved=-1;compactSent=0;}
+        if(wasReady&&!compactScopeReady){
+            snapshots={};citySlots={};pendingTraining={};trainingBases={};
+            currentUnit=-1;presentationRevision++;compactDesired=-1;compactObserved=-1;compactSent=0;
+        }
         if(unit!==compactObserved){compactObserved=unit;compactRelevant=relevant(unit);}
         if(!compactRelevant){compactDesired=-1;compactSent=0;compactView.Close();return;}
         if(compactDesired===unit&&compactSent===compactSelection)return;
@@ -143,6 +147,16 @@
         var name = unitType(unit);
         return name === "building_main_city" || name === "building_research_lab"
             || name === "building_advanced_research_lab";
+    }
+    function selectProductionUnit(unit) {
+        compactSelect(unit);
+        if (unit === currentUnit) return false;
+        currentUnit = unit; status = "";
+        currentUnitName = unitType(unit); presentationRevision++;
+        $.DispatchEvent("DOTAHideTextTooltip");
+        if (relevant(unit) && !compactMode())
+            GameEvents.SendCustomGameEventToServer("ui_selected_unit_stats_request", {entindex:unit});
+        return true;
     }
     // These custom panels have one presentation owner. Cache successful exact
     // assignments instead of reading Panorama's normalized style every HUD tick.
@@ -553,10 +567,10 @@
         }
         return String(job && job.icon_name || "");
     }
-    function renderQueue(pending, capacity, research, head, training) {
+    function renderQueue(pending, capacity, research, head, training, syncing) {
         var trainingQueue = !research;
         place(queue, 16, trainingQueue ? 90 : 172, 122, 36);
-        text(queue, "等待 " + pending.length + "/" + Math.max(0, Number(capacity || 7) - 1));
+        text(queue, syncing ? "队列同步中" : "等待 " + pending.length + "/" + Math.max(0, Number(capacity || 7) - 1));
         visible(currentCell,trainingQueue);
         if (trainingQueue) {
             place(currentCell, 140, 78, 58, 58);
@@ -568,7 +582,7 @@
                 image(currentCell.workerIcon, workerIcon(head));
                 tintWorkerIcon(currentCell.workerIcon, head);
             }
-            text(currentCell.level, head ? "LV" + Number(head.level || 1) : "·");
+            text(currentCell.level, head ? "LV" + Number(head.level || 1) : syncing ? "…" : "·");
         }
         queueSlots.forEach(function (cell, index) {
             // Six waiting cells fit the minimum panel width without shrinking their labels.
@@ -583,7 +597,7 @@
                 image(cell.workerIcon, workerIcon(entry));
                 tintWorkerIcon(cell.workerIcon, entry);
             }
-            text(cell.level, entry ? "LV" + Number(entry.target_level || entry.level || 1) : "·");
+            text(cell.level, entry ? "LV" + Number(entry.target_level || entry.level || 1) : syncing ? "…" : "·");
         });
     }
     function updateMarkers(g, entries, showMarkers) {
@@ -611,26 +625,21 @@
     }
     function refresh(g, unit, ready, entries) {
         if (!active()) return 0;
-        compactSelect(Number(unit));
+        selectProductionUnit(Number(unit));
         lastGeometry = g; lastReady = !!ready; lastEntries = entries || []; lastGeometryUnit = Number(unit);
         unit = Number(unit);
-        if (unit !== currentUnit) {
-            currentUnit = unit; status = "";
-            currentUnitName=unitType(unit);presentationRevision++;
-            $.DispatchEvent("DOTAHideTextTooltip");
-            if (relevant(unit)&&!compactMode()) GameEvents.SendCustomGameEventToServer("ui_selected_unit_stats_request", { entindex: unit });
-        }
         var signature=g?[unit,!!ready,g.x,g.y,g.scale,g.height,g.minimapSize,g.heroWidth,g.centerWidth,g.actionOffset,g.windowWidth,g.windowHeight].join(':'):String(unit)+':none';
         var tick=gameTime();
         if(lastPaint&&lastPaint.statusVisible&&tick>=statusUntil)presentationRevision++;
         if(lastPaint&&lastPaint.signature===signature&&lastPaint.revision===presentationRevision){if(lastPaint.clock)paintClock(lastPaint.clock,tick);return 0;}
         var snapshot = snapshots[unit] || {}, training = snapshot.training, research = snapshot.research;
-        var showTraining = currentUnitName === "building_main_city" && training && training.options;
-        var showResearch = /^building_(advanced_)?research_lab$/.test(currentUnitName) && research;
+        var showTraining = currentUnitName === "building_main_city";
+        var showResearch = /^building_(advanced_)?research_lab$/.test(currentUnitName);
+        var syncing = showTraining ? !(training && training.options) : showResearch && !research;
         var placement = panelGeometry(g, !!showTraining);
         var show = !!(ready && placement && (showTraining || showResearch));
         visible(panel,show);
-        updateMarkers(g, lastEntries, !!(ready && placement && showResearch));
+        updateMarkers(g, lastEntries, !!(ready && placement && showResearch && !syncing));
         if (!show){lastPaint={signature:signature,revision:presentationRevision};return 0;}
         // Dense research ability rows shrink the native HUD. Keep production
         // text legible while aligning this attachment's right edge to that row.
@@ -664,6 +673,30 @@
             place(track, 16, 139, width - 32, 13);
         }
         text(title, showTraining ? "伐木工训练" : currentUnitName === "building_advanced_research_lab" ? "高级科技研究" : "科技研究");
+        if (syncing) {
+            // Cold selection owns a visible shell immediately. Never portray an
+            // unknown private queue as empty, or reuse the preceding unit's jobs.
+            // At most six queue cells + four training cells, once per state change;
+            // the existing paint signature makes steady refreshes O(1) writes=0.
+            text(badge,"同步中"); classed(badge,"Automatic",false);
+            text(jobName,showTraining ? "正在同步伐木工训练队列" : "正在同步科技队列");
+            text(remaining,""); visible(track,false);
+            visible(currentIcon,false);visible(cancelCurrent,false);
+            renderQueue([],7,showResearch ? {} : null,null,false,true);
+            buttons.forEach(function(button,slot){
+                button.option=null;visible(button.panel,showTraining);
+                if(!showTraining)return;
+                var cellWidth=(width-56)/4;
+                place(button.panel,16+slot*(cellWidth+8),152,cellWidth,108);
+                visible(button.icon,false);visible(button.wood,false);
+                visible(button.level,false);visible(button.lock,false);
+                place(button.count,8,47,cellWidth-16,26);text(button.count,"同步中");
+                text(button.cost,"");classed(button.panel,"Unavailable",true);
+            });
+            text(footer,"正在同步所选建筑的队列信息");
+            lastPaint={signature:signature,revision:presentationRevision};
+            return 0;
+        }
         var now = gameTime(), job, blockedJob = null, waitUntil = 0, autoEnabled = false;
         if (showTraining) {
             place(jobName, 76, 70, width - 192, 66);
@@ -679,6 +712,7 @@
                 var option = byId[citySlots[unit][slot]];
                 button.option = option || null; visible(button.panel,!!option);
                 if (!option) return;
+                visible(button.icon,true);visible(button.wood,true);
                 image(button.icon, workerIcon(option));
                 tintWorkerIcon(button.icon, option);
                 style(button.panel, { borderColor:workerTier(option).color });
@@ -791,17 +825,28 @@
         presentationRevision++;
         if (unit === selectedUnit()) repaint();
     });
-    GameEvents.Subscribe("dota_player_update_selected_unit", function (payload) {
+    function selectionChanged(payload) {
         if (!active()) return;
         var pid = payload && (payload.PlayerID !== undefined ? payload.PlayerID : payload.player_id !== undefined ? payload.player_id : payload.playerid);
         if (pid !== undefined && Number(pid) !== Number(Game.GetLocalPlayerID())) return;
-        compactSelect(selectedUnit());
-        currentUnitName=unitType(selectedUnit());presentationRevision++;
-        $.Schedule(0, function () {
-            if (!active()) return;
-            repaint();
-        });
-    });
+        var unit=Number(selectedUnit()),changed=selectProductionUnit(unit);
+        if(changed && cfg.HandoffGeometry && (currentUnitName==="building_main_city"
+            || /^building_(advanced_)?research_lab$/.test(currentUnitName))) {
+            // Selection initialization only: enumerate this building's ability
+            // slots once through the existing reader, never the scene's units.
+            // Full native HUD work remains coalesced; no new polling or timer.
+            var combat=cfg.HandoffCombat;
+            var entries=combat&&combat.Entries ? combat.Entries(unit) : [];
+            var width=(ctx.actuallayoutwidth||1672)/(ctx.actualuiscale_x||1);
+            var height=(ctx.actuallayoutheight||941)/(ctx.actualuiscale_y||1);
+            var g=cfg.HandoffGeometry(width,height,entries.length,true,false,{production:true});
+            refresh(g,unit,true,entries);
+            return;
+        }
+        repaint();
+    }
+    GameEvents.Subscribe("dota_player_update_selected_unit", selectionChanged);
+    GameEvents.Subscribe("dota_player_update_query_unit", selectionChanged);
     GameEvents.Subscribe("ui_operation_result", function (result) {
         if(compactMode())return;
         if (!active() || !result || (result.operation !== "worker_train" && result.operation !== "shop_auto_research_toggle" && result.operation !== "research_queue" && result.operation !== "research_cancel")) return;

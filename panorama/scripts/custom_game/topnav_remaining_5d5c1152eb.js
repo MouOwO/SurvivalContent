@@ -14,6 +14,7 @@
     $.Msg("[HANDOFF_BUILD] aligned_release_v18 generation=",generation);
     var nodes = {}, natives = {}, slices = {}, slotFrames = [], topButtons = {};
     var ready = false, sequence = -1, geometry = null, lastSignature = "", missing = [], noticeSerial = 0;
+    var productionGeometry = null, productionGeometryUnit = -1;
     var layoutRevision=0,layoutRepairAt=0,layoutPanels=[],layoutNativeWrappers=[];
     var presented=false, stableFrames=0, bootSignature="";
     var keyBindings={}, skillPanels=[], currentEntries=[], eventSerial=0;
@@ -1195,6 +1196,9 @@
             g.centerX=0;g.attributeX=g.centerWidth;g.inventoryX=g.centerWidth;g.width=g.centerWidth;
             g.barWidth=g.centerWidth-30;
         }
+        // Production is our own panel: current-unit numeric geometry is ready
+        // before Valve's rebuilt ability/portrait nodes. No extra engine reads.
+        productionGeometry=g;productionGeometryUnit=Number(unit);
         var signature=[viewportSignature,navHeight,count,g.heroWidth,g.height,g.actionOffset,g.x,g.scale,g.attributeWidth,g.inventoryX,unit,presentation.multi?1:0,
             currentEntries.map(function(e){return e.ability;}).join(",")].join(":");
         var panels=[native("abilities"),native("inventory"),native("PortraitGroup"),native("minimap_container"),native("minimap")];
@@ -1587,6 +1591,7 @@
             this.nativeEntries=entries;this.hasNativeEntries=true;
             return entries;
         }};
+        productionGeometry=null;productionGeometryUnit=-1;
         layout(readContext);
         var portraitPresentation=cfg.SurvivalPortraitPresentation,portraitGroup=ready?native("PortraitGroup"):null;
         // Refresh owns both the selected portrait and the corner shortcut. Avoid
@@ -1600,7 +1605,9 @@
         // Native images can be created one frame AFTER the slot parent. Reacquire them.
         if(ready){fitNativeSkills(geometry,false,readContext);var inv=native("inventory");if(valid(inv))for(var j=0;j<6;j++){var item=inv.FindChildTraverse("inventory_slot_"+j);if(valid(item)){square(item);style(item,{marginRight:"5px"});}}}
         if(cfg.SurvivalProductionHUD){
-            var productionHeight=cfg.SurvivalProductionHUD.Refresh(geometry,selectedUnit(),ready,currentEntries);
+            var productionUnit=Number(selectedUnit());
+            var productionHeight=cfg.SurvivalProductionHUD.Refresh(productionGeometry,productionUnit,
+                !!productionGeometry&&productionGeometryUnit===productionUnit,currentEntries);
             if(ready&&geometry){
                 place(native("buffs"),actionOffset(geometry),(geometry.heroWidth===0?-82:-42)-productionHeight,geometry.centerWidth-20,40);
                 place(native("debuffs"),actionOffset(geometry),(geometry.heroWidth===0?-126:-86)-productionHeight,geometry.centerWidth-20,40);
