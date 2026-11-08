@@ -15,53 +15,16 @@
     var errorOwner = null, errorHost = null, errorLease = [], errorSerial = 0, errorTask = null;
     // Large spacing remains distinct if native z-order passes through float32.
     var errorLayer = 2140000000;
-    // Action failures share one root-level label. First use/HUD reconstruction
-    // walks only the source's ancestors O(depth); later errors are O(1), with
-    // no scene lookup or recurring native-layer recovery. One cancellable
-    // timeout hides the latest message; stable HUDs do no extra work.
-    var actionTip = null, actionTipRoot = null, actionTipTask = null, actionTipSerial = 0, actionTipDisposed = false;
-    function hideActionTip(destroy) {
-        actionTipSerial++;
-        if (actionTipTask !== null && $.CancelScheduled) $.CancelScheduled(actionTipTask);
-        actionTipTask = null;
-        if (valid(actionTip)) {
-            if (actionTip.visible) actionTip.visible = false;
-            if (destroy) actionTip.DeleteAsync(0);
-        }
-        if (destroy) { actionTip = null; actionTipRoot = null; }
-    }
+    // Action failures use the same native error banner as "无法攻击".
+    // Per action: O(message length), one local native event, no scene walk,
+    // panel/style writes or scheduled work. The engine owns its display time.
+    // Disposal rejects callbacks from a prior HUD/script generation.
+    var actionTipDisposed = false;
     function showActionTip(source, message) {
         source = source || $.GetContextPanel();
         var text = String(message || "").trim();
         if (actionTipDisposed || !valid(source) || !text) return false;
-        if (!valid(actionTip) || !valid(actionTipRoot)) {
-            hideActionTip(true);
-            actionTipRoot = rootPanel(source);
-            if (!valid(actionTipRoot)) return false;
-            actionTip = $.CreatePanel("Label", actionTipRoot, "");
-            actionTip.AddClass("SurvivalOperationTip");
-            actionTip.visible = false;
-            actionTip.hittest = false; actionTip.hittestchildren = false; actionTip.html = false;
-            actionTip.style.width = "80%"; actionTip.style.maxWidth = "1000px";
-            actionTip.style.height = "fit-children";
-            actionTip.style.horizontalAlign = "center"; actionTip.style.verticalAlign = "bottom";
-            actionTip.style.marginBottom = "22%"; actionTip.style.textAlign = "center";
-            actionTip.style.fontFamily = '"Source Han Serif SC", Radiance, "Microsoft YaHei", serif';
-            actionTip.style.fontSize = "28px"; actionTip.style.fontWeight = "bold";
-            actionTip.style.color = "#ffb08b";
-            actionTip.style.textShadow = "0px 2px 4px 3 #000000";
-            actionTip.style.whiteSpace = "normal";
-            actionTip.style.zIndex = String(errorLayer);
-        }
-        if (actionTipTask !== null && $.CancelScheduled) $.CancelScheduled(actionTipTask);
-        if (actionTip.text !== text) actionTip.text = text;
-        if (!actionTip.visible) actionTip.visible = true;
-        var serial = ++actionTipSerial;
-        actionTipTask = $.Schedule(3, function () {
-            if (serial !== actionTipSerial) return;
-            actionTipTask = null;
-            if (valid(actionTip) && actionTip.visible) actionTip.visible = false;
-        });
+        GameEvents.SendEventClientSide("dota_hud_error_message", {reason:80, message:text});
         return true;
     }
     function valid(panel) { return panel && (!panel.IsValid || panel.IsValid()); }
@@ -374,12 +337,12 @@
         ShowNativeError: showNativeError,
         HideNativeError: hideNativeError,
         ShowActionTip: showActionTip,
-        HideActionTip: function () { hideActionTip(false); },
+        // Native error lifetime is engine-owned; never dismiss another action.
+        HideActionTip: function () {},
         SuspendTextLayer: function () { restoreErrorLayer(); restoreTextLayer(); },
         ResumeTextLayer: function () { if (textOwner) raiseTextLayer(textOwner); raiseErrorLayer(); },
         DisposeTextLayer: function () {
             actionTipDisposed = true;
-            hideActionTip(true);
             hideNativeError();
             if (textOwner) hideNativeText(textOwner, textHideEvent);
             else { textSerial++; textHideEvent = null; restoreTextLayer(); }
