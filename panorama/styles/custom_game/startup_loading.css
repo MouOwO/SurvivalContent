@@ -18,6 +18,8 @@
     background-color: gradient(linear, 0% 0%, 0% 100%, from(#02071438), color-stop(0.55, #03090d00), to(#03080d55));
 }
 .StartupLoadingHeading {
+    /* The approved promotional artwork already includes its own title. */
+    visibility: collapse;
     width: 100%; height: 110px; horizontal-align: center;
     vertical-align: top; margin-top: 8%;
 }

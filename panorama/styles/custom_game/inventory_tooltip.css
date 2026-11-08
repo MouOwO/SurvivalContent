@@ -16,18 +16,6 @@
 
 #CustomInventoryItemTooltip.Hidden { visibility: visible; opacity: 0; }
 
-#CustomInventoryItemCategory {
-    width: 100%;
-    color: #f0d58f;
-    background-color: #47391ecc;
-    border-left: 3px solid #d6b75f;
-    padding: 3px 7px 3px 8px;
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-}
-
 #CustomInventoryItemHeader {
     width: 100%;
     min-height: 58px;

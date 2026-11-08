@@ -7,7 +7,7 @@
     </scripts>
     <Panel class="SurvivalStartupLoading StartupNativeTeamSetupContext" visible="true" hittest="true" hittestchildren="true">
         <Panel id="StartupLoadingSurface" class="StartupLoadingSurface" visible="true" hittest="true" hittestchildren="true">
-            <Image id="StartupLoadingBackground" class="StartupLoadingBackground" scaling="stretch-to-cover-preserve-aspect" hittest="false" />
+            <Image id="StartupLoadingBackground" class="StartupLoadingBackground" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
             <Image class="StartupLoadingHidden" src="file://{images}/custom_game/loading/dawnward_citadel_background.png" hittest="false" />
             <Panel class="StartupLoadingShade" hittest="false" />
             <Panel class="StartupLoadingHeading" hittest="false">

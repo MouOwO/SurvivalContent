@@ -347,7 +347,6 @@
         </Panel>
 
         <Panel id="CustomInventoryItemTooltip" class="Hidden" hittest="false" hittestchildren="false">
-            <Label id="CustomInventoryItemCategory" text="生存防守 · 物品详情" />
             <Panel id="CustomInventoryItemHeader">
                 <DOTAItemImage id="CustomInventoryItemIcon" itemname="item_ironwood_tree" hittest="false" />
                 <Panel id="CustomInventoryItemTitleBlock">
@@ -360,7 +359,7 @@
             </Panel>
             <Label id="CustomInventoryItemDescription" text="" />
             <Panel id="CustomInventoryItemFields" />
-            <Label id="CustomInventoryItemStatus" text="" />
+            <Label id="CustomInventoryItemStatus" text="" visible="false" />
         </Panel>
 
         <!-- Selective managed actions keep Valve visuals but receive mouse input

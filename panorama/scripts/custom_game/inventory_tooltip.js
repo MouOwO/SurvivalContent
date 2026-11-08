@@ -322,9 +322,13 @@
         if(growthBinding){growthBinding.offset=dynamicOffset;growthBinding.count=dynamicRows.length;growthBinding.signature=growthSignature(dynamicRows);startGrowth();}
         var quantity = Number(dynamic.quantity || 0);
         var formatter = GameUI.CustomUIConfig().SurvivalNumberFormatter;
-        setText("CustomInventoryItemStatus", quantity > 1
-            ? ("持有数量：" + (formatter && formatter.Format ? formatter.Format(quantity) : String(quantity)))
-            : (contentId !== itemName ? "项目物品 · 实例数据已同步" : "背包物品"));
+        var status = byId("CustomInventoryItemStatus");
+        var statusText = quantity > 1
+            ? ("持有数量：" + (formatter && formatter.Format ? formatter.Format(quantity) : String(quantity))) : "";
+        if (status) {
+            if (status.text !== statusText) status.text = statusText;
+            if (status.visible !== (quantity > 1)) status.visible = quantity > 1;
+        }
 
         var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
         if (positioner && positioner.PlaceInventoryAbove) {
