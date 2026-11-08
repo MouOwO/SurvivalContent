@@ -90,6 +90,21 @@
     var compactModel=null,compactView=null,compactSelection=Number(cfg.SurvivalProductionSelectionSerial||0),compactDesired=-1,compactObserved=-1,compactRelevant=false,compactSent=0,compactDisposed=false;
     function valid(value) { return value && (!value.IsValid || value.IsValid()); }
     function active() { return !compactDisposed && valid(ctx) && cfg.SurvivalProductionGeneration === generation; }
+    var productionTooltipSource = null;
+    function showTooltip(source, content) {
+        if (compactDisposed || !active() || !valid(source)) return;
+        productionTooltipSource = source;
+        var position = cfg.SurvivalTooltipPosition;
+        if (position && position.ShowText) position.ShowText(source, content);
+        else $.DispatchEvent("DOTAShowTextTooltip", source, content);
+    }
+    function hideTooltip(source) {
+        if (!productionTooltipSource || (source && source !== productionTooltipSource)) return;
+        source = productionTooltipSource; productionTooltipSource = null;
+        var position = cfg.SurvivalTooltipPosition;
+        if (position && position.HideText) position.HideText(source);
+        else $.DispatchEvent("DOTAHideTextTooltip");
+    }
     function blocked() { return cfg.SurvivalUILayers && cfg.SurvivalUILayers.Top && cfg.SurvivalUILayers.Top(); }
     function gameTime() { return Number(Game.GetGameTime ? Game.GetGameTime() : 0); }
     function compactMode(){return !!cfg.SurvivalCompactRuntime;}
@@ -153,7 +168,7 @@
         if (unit === currentUnit) return false;
         currentUnit = unit; status = "";
         currentUnitName = unitType(unit); presentationRevision++;
-        $.DispatchEvent("DOTAHideTextTooltip");
+        hideTooltip();
         if (relevant(unit) && !compactMode())
             GameEvents.SendCustomGameEventToServer("ui_selected_unit_stats_request", {entindex:unit});
         return true;
@@ -211,9 +226,9 @@
     function fullTextTooltip(target) {
         target.hittest = true;
         target.SetPanelEvent("onmouseover", function () {
-            if (active() && target.text) $.DispatchEvent("DOTAShowTextTooltip", target, escape(target.text));
+            if (active() && target.text) showTooltip(target, escape(target.text));
         });
-        target.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
+        target.SetPanelEvent("onmouseout", function () { hideTooltip(target); });
     }
     function requestId(kind) { serial += 1; return "production_" + kind + "_" + generation + "_" + serial; }
     function quotaUsed(option) {
@@ -353,10 +368,10 @@
     visible(cancelCurrent,false);
     cancelCurrent.SetPanelEvent("onactivate", function () { cancelResearch(cancelCurrent.job); });
     cancelCurrent.SetPanelEvent("onmouseover", function () {
-        if (cancelCurrent.job) $.DispatchEvent("DOTAShowTextTooltip", cancelCurrent,
+        if (cancelCurrent.job) showTooltip(cancelCurrent,
             "取消本任务；已开始的研究退还费用，并关闭该科技的自动研究。");
     });
-    cancelCurrent.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
+    cancelCurrent.SetPanelEvent("onmouseout", function () { hideTooltip(cancelCurrent); });
     var track = create("Panel", panel, "ProductionProgressTrack", "ProductionProgressTrack");
     var fill = create("Panel", track, "ProductionProgressFill", "ProductionProgressFill");
     var queue = label(panel, "ProductionQueue", "ProductionQueue");
@@ -367,10 +382,10 @@
     currentCell.level = label(currentCell, "", "ProductionQueueLevel");
     currentCell.hittest = true;
     currentCell.SetPanelEvent("onmouseover", function () {
-        if (currentCell.job) $.DispatchEvent("DOTAShowTextTooltip", currentCell,
+        if (currentCell.job) showTooltip(currentCell,
             escape(workerName(currentCell.job)) + (currentCell.training ? "<br>正在训练" : "<br>等待资源后开始训练"));
     });
-    currentCell.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
+    currentCell.SetPanelEvent("onmouseout", function () { hideTooltip(currentCell); });
     for (var queueIndex = 0; queueIndex < 6; queueIndex++) {
         var queueCell = create("Button", panel, "ProductionQueueSlot" + queueIndex, "ProductionQueueSlot");
         queueCell.icon = create("DOTAAbilityImage", queueCell, "", "ProductionQueueIcon");
@@ -384,11 +399,11 @@
             cell.SetPanelEvent("onmouseover", function () {
                 if (!cell.job) return;
                 var task = cell.job;
-                $.DispatchEvent("DOTAShowTextTooltip", cell,
+                showTooltip(cell,
                     escape(cell.research ? (task.display_name || task.name || "科技") + " LV" + Number(task.target_level || task.level || 1) : workerName(task))
                     + (cell.research ? "<br>等待研究 · 开始时扣费<br>点击取消本任务" : "<br>等待训练"));
             });
-            cell.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
+            cell.SetPanelEvent("onmouseout", function () { hideTooltip(cell); });
             cell.SetPanelEvent("onactivate", function () { if (cell.research) cancelResearch(cell.job); });
         })(queueCell);
         queueSlots.push(queueCell);
@@ -421,9 +436,9 @@
             });
         });
         button.SetPanelEvent("onmouseover", function () {
-            if (entry.option) $.DispatchEvent("DOTAShowTextTooltip", button, optionTooltip(entry.option));
+            if (entry.option) showTooltip(button, optionTooltip(entry.option));
         });
-        button.SetPanelEvent("onmouseout", function () { $.DispatchEvent("DOTAHideTextTooltip"); });
+        button.SetPanelEvent("onmouseout", function () { hideTooltip(button); });
         buttons.push(entry);
     })(index);
     function getResearchRuntime(ability, unit, publicRuntime) {
@@ -891,7 +906,7 @@
             return {generation:generation, counters:counters, scope:"owned production style/image/ability assignments; callbacks and native HUD excluded"};
         },
         Inspect: function () { return { unit: currentUnit, visible: panel.visible, geometry: lastGeometry, position: panel.style.position, slots: citySlots[currentUnit] || [], snapshot: snapshots[currentUnit] || {} }; },
-        Dispose:function(){compactDisposed=true;if(preparedResearch)preparedResearch.Dispose();preparedResearch=null;if(compactView)compactView.Dispose();if(bindingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(bindingSubscription);bindingSubscription=null;}
+        Dispose:function(){hideTooltip();compactDisposed=true;if(preparedResearch)preparedResearch.Dispose();preparedResearch=null;if(compactView)compactView.Dispose();if(bindingSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(bindingSubscription);bindingSubscription=null;}
     };
     if (Game.IsInToolsMode && Game.IsInToolsMode() && Game.AddCommand) {
         var inspectCommand = "survival_production_inspect_" + Date.now();

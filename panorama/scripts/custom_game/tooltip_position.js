@@ -11,6 +11,7 @@
     var previous = config.SurvivalTooltipPosition;
     if (previous && previous.DisposeTextLayer) previous.DisposeTextLayer();
     var textOwner = null, textHost = null, textLease = [], textSerial = 0, textHideEvent = null;
+    var textIndex = {root:null, host:null, checked:false, retried:false}, textTask = null;
     var tooltipLayer = 2100000000;
     var errorOwner = null, errorHost = null, errorLease = [], errorSerial = 0, errorTask = null;
     // Large spacing remains distinct if native z-order passes through float32.
@@ -121,32 +122,41 @@
         });
         textLease = []; textHost = null;
     }
-    function nativeTextHost(root) {
+    function nativeTextHost(root, discover) {
         if (!valid(root)) return null;
+        // One discovery per native container lifetime; stable hovers use its
+        // identity directly. A destroyed host/root starts a fresh index.
+        if (textIndex.root !== root || (textIndex.host && !valid(textIndex.host)))
+            textIndex = {root:root, host:null, checked:false, retried:false};
+        if (valid(textIndex.host)) return textIndex.host;
+        if (textIndex.checked && !discover) return null;
+        textIndex.checked = true;
         // TextTooltip is defined by the installed engine's core tooltip layout.
         // Some HUD versions expose its manager instead of the text instance.
         var ids = ["Tooltips", "TooltipManager", "TooltipContainer", "TextTooltip", "DOTA_TextTooltip", "DOTATextTooltip",
             "TitleTextTooltip", "DOTA_TitleTextTooltip", "DOTATitleTextTooltip"];
         for (var index = 0; index < ids.length; index++) {
             var candidate = root.FindChildTraverse && root.FindChildTraverse(ids[index]);
-            if (valid(candidate)) return candidate;
+            if (valid(candidate)) { textIndex.host = candidate; return candidate; }
         }
         // Engine-created tooltip instances can have no ID. Inspect only a
-        // bounded breadth of native panels on hover, never on a HUD timer.
+        // bounded breadth only during initial/rebuilt-container discovery.
         var pending = [root], cursor = 0;
         while (cursor < pending.length && cursor < 512) {
             var panel = pending[cursor++];
             var type = String(panel.paneltype || (panel.GetPanelType && panel.GetPanelType()) || "");
-            if (/^(?:DOTA_?)?(?:(?:Title)?TextTooltip|Tooltip(?:Manager|_Text)?)$/i.test(type)) return panel;
+            if (/^(?:DOTA_?)?(?:(?:Title)?TextTooltip|Tooltip(?:Manager|_Text)?)$/i.test(type)) {
+                textIndex.host = panel; return panel;
+            }
             var children = panel.Children ? panel.Children() : [];
             for (var child = 0; child < children.length && pending.length < 512; child++)
                 if (valid(children[child])) pending.push(children[child]);
         }
         return null;
     }
-    function raiseTextLayer(source) {
+    function raiseTextLayer(source, discover) {
         if (textOwner !== source || !valid(source)) return false;
-        var root = rootPanel(source), host = nativeTextHost(root), path = [], panel = host;
+        var root = rootPanel(source), host = nativeTextHost(root, discover), path = [], panel = host;
         for (var depth = 0; valid(panel) && panel !== root && depth < 64; depth++) {
             path.push(panel); panel = panel.GetParent ? panel.GetParent() : null;
         }
@@ -171,25 +181,30 @@
         else $.DispatchEvent(event);
     }
     function showNativeText(source, title, content, titled) {
-        if (!valid(source)) return;
+        if (actionTipDisposed || !valid(source)) return;
+        if (textTask !== null && $.CancelScheduled) $.CancelScheduled(textTask);
+        textTask = null;
         restoreErrorLayer();
         var hideEvent = titled ? "DOTAHideTitleTextTooltip" : "DOTAHideTextTooltip";
         // Text and title tooltips can be separate native instances. Retire the
         // old kind before transferring their shared foreground layer.
         if (textOwner && textHideEvent && textHideEvent !== hideEvent)
             dispatchTextHide(textHideEvent, textOwner);
-        if (textOwner !== source) restoreTextLayer();
+        // Transferring hover ownership does not change the native host's layer.
+        // Reuse its lease instead of restoring/reapplying the same z-index.
         textOwner = source; textHideEvent = hideEvent;
         var serial = ++textSerial;
         if (titled) $.DispatchEvent("DOTAShowTitleTextTooltip", source, title, content);
         else $.DispatchEvent("DOTAShowTextTooltip", source, content);
-        raiseTextLayer(source);
+        var raised = raiseTextLayer(source), index = textIndex;
         raiseErrorLayer();
         // Native tooltip creation/attachment may finish on the next layout
         // pass. Retry once; an intervening hide or new source cancels it.
-        $.Schedule(0, function () {
-            if (serial === textSerial && textOwner === source) {
-                restoreErrorLayer(); raiseTextLayer(source); raiseErrorLayer();
+        if (!raised && !index.retried) textTask = $.Schedule(0, function () {
+            textTask = null;
+            if (serial === textSerial && textOwner === source && index === textIndex) {
+                index.retried = true;
+                restoreErrorLayer(); raiseTextLayer(source, true); raiseErrorLayer();
             }
         });
     }
@@ -198,6 +213,8 @@
         if (textHideEvent && textHideEvent !== hideEvent) return;
         restoreErrorLayer();
         var owner = textOwner || source;
+        if (textTask !== null && $.CancelScheduled) $.CancelScheduled(textTask);
+        textTask = null;
         textSerial++; textOwner = null; textHideEvent = null;
         dispatchTextHide(hideEvent, owner);
         restoreTextLayer();
