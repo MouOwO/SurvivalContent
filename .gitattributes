@@ -62,3 +62,6 @@ panorama/scripts/custom_game/lottery_catalog_seed.js text eol=lf
 panorama/scripts/custom_game/common/ui_static_catalog.js text eol=lf
 panorama/scripts/custom_game/common/compact_lottery_model.js text eol=lf
 panorama/scripts/custom_game/lottery_cinematic_v1.js text eol=lf
+
+# Match authored particle bytes and official compiler input CRCs.
+particles/survival/heroes/keeper/*.vpcf text eol=lf
