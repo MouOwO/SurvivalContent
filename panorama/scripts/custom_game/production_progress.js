@@ -253,7 +253,18 @@
         }
         if (isFinite(unit) && unit >= 0) acceptTraining(unit, result.training);
     }
-    function notify(message) { status = reason({reason: message || "操作未完成"}); statusUntil = gameTime() + 4; presentationRevision++; }
+    function notify(message, serverNotificationOwnsTip) {
+        status = reason({reason: message || "操作未完成"}); statusUntil = gameTime() + 4; presentationRevision++;
+        // Legacy failures also carry ui_notification; only that consumer shows
+        // its tip. Compact receipts and local rejections have no second owner.
+        if (serverNotificationOwnsTip) return;
+        var match = status.match(/(木材不足|金币不足|人口不足|资源不足|研究队列已满|队列研究已满|训练队列已满)/);
+        if (!match) return;
+        var text = match[1] === "队列研究已满" ? "研究队列已满" : match[1];
+        var tip = cfg.SurvivalTooltipPosition;
+        if (tip && tip.ShowActionTip) tip.ShowActionTip(ctx, text);
+        else GameEvents.SendEventClientSide("dota_hud_error_message", {reason:80, message:text});
+    }
     function escape(value) {
         return String(value === undefined ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
@@ -801,7 +812,7 @@
                 "request_id=" + String(result.request_id || "") + " success=" + String(result.success)
                 + " error=" + String(result.error || "") + " status_code=" + String(result.error_code || result.status_code || ""));
         }
-        if (Number(result.success) !== 1) notify(result.error || result.message || "操作未完成");
+        if (Number(result.success) !== 1) notify(result.error || result.message || "操作未完成", true);
         repaint();
     });
     if(compactMode()&&cfg.SurvivalCompactProductionModel&&cfg.SurvivalUICatalog){

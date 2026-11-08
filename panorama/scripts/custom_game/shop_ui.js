@@ -161,6 +161,12 @@
         setClass(target,"error",!!error);
     }
 
+    function showPurchaseFailure(message) {
+        setStatus("", false);
+        var tips = GameUI.CustomUIConfig().SurvivalTooltipPosition;
+        if (tips && tips.ShowActionTip) tips.ShowActionTip($.GetContextPanel(), message || "条件不满足");
+    }
+
     function setLoading(loading) {
         var loadingPanel = byId("ShopLoading");
         var itemList = byId("ShopItemList");
@@ -389,15 +395,12 @@
 
     function purchase(entry) {
         if (entryUnavailable(entry) || entryCompleted(entry)) {
-            setStatus(
-                "当前不可购买：" + ((entry && entry.disabled_reason) || "条件不满足"),
-                true
-            );
+            showPurchaseFailure(entry && entry.disabled_reason);
             return;
         }
         if (entry.content_type === "technology" && !queuedTechnology(entry)
             && technologyCooldownRemaining() > 0) {
-            setStatus("已有科技正在研究中，请稍候", true);
+            showPurchaseFailure("已有科技正在研究中，请稍候");
             return;
         }
         if (entry.content_type === "technology"
@@ -882,20 +885,20 @@
         }
         if (payload.operation !== "shop_purchase") return;
         pendingTechnologyPurchases = {};
+        if (payload.success !== 1) {
+            // The UI request router owns exactly one failure notification.
+            setStatus("", false);
+            return;
+        }
         if (payload.success === 1
             && Number(payload.close_shop_and_focus_hero || 0) === 1) {
             close();
             focusHero(payload);
             return;
         }
-        setStatus(
-            payload.success === 1
-                ? (currentMode === "research"
-                    ? "已开始研究，请等待进度完成……"
-                    : "购买成功，正在刷新商店状态……")
-                : ("购买失败：" + (payload.error || "未知错误")),
-            payload.success !== 1
-        );
+        setStatus(currentMode === "research"
+            ? "已开始研究，请等待进度完成……"
+            : "购买成功，正在刷新商店状态……", false);
     }
 
     function bindNativeShopOpen() {

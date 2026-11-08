@@ -782,12 +782,12 @@
         if (payload.audience === "player" && Number(payload.player_id) !== playerId) return;
         var message = String(payload.message || "");
         if (!message.trim()) return;
-        // Rejected resource/queue actions use the same native feedback as a
-        // failed ability cast. Queue waiting states remain in the queue panel.
+        // Private rejected actions share the visible action tip. Broadcasts,
+        // normal notices and queue waiting states retain their existing UI.
         if (payload.level === "error" && payload.audience !== "all") {
             if (message.trim() === "信仰值不足" || message.trim() === "软妹币不足") {
                 var nativeError = lifecycleConfig.SurvivalTooltipPosition;
-                if (nativeError && nativeError.ShowNativeError) nativeError.ShowNativeError(lifecycleContext, message.trim());
+                if (nativeError && nativeError.ShowActionTip) nativeError.ShowActionTip(lifecycleContext, message.trim());
                 else GameEvents.SendEventClientSide("dota_hud_error_message", {reason:80, message:message.trim()});
                 return;
             }
@@ -795,13 +795,17 @@
                 wood_not_enough: "木材不足", not_enough_wood: "木材不足", insufficient_wood: "木材不足",
                 gold_not_enough: "金币不足", not_enough_gold: "金币不足", insufficient_gold: "金币不足",
                 population_not_enough: "人口不足", not_enough_population: "人口不足", insufficient_population: "人口不足",
-                research_queue_full: "研究队列已满", technology_queue_full: "研究队列已满"
+                population_limit: "人口不足", population_limit_reached: "人口不足", insufficient_resources: "资源不足",
+                research_queue_full: "研究队列已满", technology_queue_full: "研究队列已满",
+                training_queue_full: "训练队列已满"
             };
-            var actionMatch = message.match(/(木材不足|金币不足|人口不足|研究队列已满|队列研究已满)/);
-            var actionError = actionErrors[message.trim()] || (actionMatch && actionMatch[1]);
+            var actionMatch = message.match(/(木材不足|金币不足|人口不足|资源不足|研究队列已满|队列研究已满|训练队列已满)/);
+            var actionError = actionErrors[message.trim()] || (actionMatch && actionMatch[1]) || message.trim();
             if (actionError === "队列研究已满") actionError = "研究队列已满";
             if (actionError) {
-                GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80, message: actionError});
+                var actionTip = lifecycleConfig.SurvivalTooltipPosition;
+                if (actionTip && actionTip.ShowActionTip) actionTip.ShowActionTip(lifecycleContext, actionError);
+                else GameEvents.SendEventClientSide("dota_hud_error_message", {reason: 80, message: actionError});
                 return;
             }
         }
