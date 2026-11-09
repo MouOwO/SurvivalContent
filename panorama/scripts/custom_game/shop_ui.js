@@ -416,6 +416,7 @@
         GameEvents.SendCustomGameEventToServer("ui_shop_purchase_request", {
             request_id: requestId("shop_buy"),
             entry_id: entry.purchase_entry_id || entry.entry_id,
+            mode: currentMode,
             source_entindex: researchSourceEntindex
         });
     }
