@@ -284,7 +284,7 @@
     var top=create("Panel",host,"HandoffTop",true);top.hittest=false;top.AddClass("HandoffCanvas");
     cfg.SurvivalTopNavigation={owner:ctx,host:host,top:top,generation:generation};
     // Status keeps its original centered reference independently of the corner navigation.
-    var topStatus=create("Panel",host,"HandoffTopStatus",false);topStatus.AddClass("HandoffCanvas");
+    var topStatus=create("Panel",host,"HandoffTopStatus",false);topStatus.hittestchildren=true;topStatus.AddClass("HandoffCanvas");
     var nav=[["return","返回"],["treasure","宝物"],["archive","存档"],["lottery","抽奖"],["benefit","福利"],["shop","商城"],["survival_shop","生存商店"],["vip",""]];
     // Shared bounds keep initial creation and resolution refresh equally compact.
     function navBounds(key,index) {
@@ -360,7 +360,7 @@
     style(difficultyLabel,{height:"fit-children",minHeight:"0px",verticalAlign:"center",textAlign:"center",color:"#f0d48a",textShadow:"none"});
     topMetric("HandoffWave","top_wave",780,822,346);
     var finishArchive=create("Button",topStatus,"HandoffArchiveFinish",true);
-    place(finishArchive,1008,58,158,30);
+    place(finishArchive,1024,21,158,30);
     style(finishArchive,{backgroundColor:"#352b20ee",border:"1px solid #c5a35f88",padding:"2px 6px"});
     var finishArchiveText=label(finishArchive,"HandoffArchiveFinishText");
     finishArchiveText.text="结束我的挑战";
