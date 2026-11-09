@@ -826,6 +826,7 @@
         setText("CustomAbilityGoldCost", tooltipNumber(goldCost));
         setText("CustomAbilityWoodCost", tooltipNumber(woodCost));
 
+        var hasHeroLevelRows = false;
         resetFieldRows(fields);
         // Keep only the requested current total. Older matches may still send
         // the removed maximum/prerequisite/fee/automation detail rows.
@@ -853,6 +854,7 @@
                     && (presentation.numeric
                         || /^(目标等级|升级目标|攻击提升|攻击速度|人口消耗|等级|模型状态)$/.test(fieldLabel))) return;
                 var levelMatch = heroMode && /^LV([1-9][0-9]*)$/.exec(String(field.label || ""));
+                if (levelMatch) hasHeroLevelRows = true;
                 addField(fields, field.label, presentation.value, levelMatch
                     ? { current: Number(levelMatch[1]) === Number(displayedLevel) } : null, presentation.numeric);
             });
@@ -895,7 +897,8 @@
         tooltip.hittestchildren = false;
         tooltipAnimationSerial += 1;
         var positioner = GameUI.CustomUIConfig().SurvivalTooltipPosition;
-        if (positioner) positioner.PlaceAbilityAbove(tooltip, sourcePanel, 460, null, 620);
+        if (positioner) positioner.PlaceAbilityAbove(tooltip, sourcePanel,
+            hasHeroLevelRows ? 700 : 460, null, hasHeroLevelRows ? 920 : 620);
         // The panel stays laid out at alpha zero. Position before revealing it;
         // reversing an in-flight fade needs no frame delay or reconstruction.
         tooltip.RemoveClass("Hidden");

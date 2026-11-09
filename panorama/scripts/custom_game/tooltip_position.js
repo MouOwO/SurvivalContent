@@ -13,6 +13,7 @@
     var textOwner = null, textHost = null, textLease = [], textSerial = 0, textHideEvent = null;
     var textIndex = {root:null, host:null, checked:false, retried:false}, textTask = null;
     var tooltipLayer = 2100000000;
+    var abilityPlacementEpoch = {};
     var errorOwner = null, errorHost = null, errorLease = [], errorSerial = 0, errorTask = null;
     // Large spacing remains distinct if native z-order passes through float32.
     var errorLayer = 2140000000;
@@ -243,6 +244,7 @@
 
     function placeRight(tooltip, source, width, height) {
         if (!tooltip || !source) return;
+        tooltip.__survivalAbilityPlacement = null;
         var root = rootPanel(source);
         var rootWidth = numberOr(root && root.actuallayoutwidth, 1920);
         var rootHeight = numberOr(root && root.actuallayoutheight, 1080);
@@ -274,6 +276,7 @@
 
     function placeAbove(tooltip, source, width, height) {
         if (!tooltip || !source) return;
+        tooltip.__survivalAbilityPlacement = null;
         var root = rootPanel(source);
         var parent = tooltip.GetParent ? tooltip.GetParent() : null;
         if (!root || !parent
@@ -328,7 +331,9 @@
         if(!parent||!parent.GetPositionWithinWindow)return;
         var pp=parent.GetPositionWithinWindow(),rp=root.GetPositionWithinWindow(),sp=source.GetPositionWithinWindow();
         var sx=Math.max(.001,numberOr(parent.actualuiscale_x,1)),sy=Math.max(.001,numberOr(parent.actualuiscale_y,1));
-        var w=numberOr(width,337)*sx;
+        var fittedWidth=Math.max(32,Math.min(numberOr(width,337),
+            (numberOr(root.actuallayoutwidth,1920)-24)/sx));
+        var w=fittedWidth*sx;
         var sw=numberOr(source.__survivalWindowWidth,numberOr(source.actuallayoutwidth,64));
         var x=numberOr(sp.x,0)+(sw-w)*.5;
         x=Math.max(numberOr(rp.x,0)+12,Math.min(x,numberOr(rp.x,0)+numberOr(root.actuallayoutwidth,1920)-w-12));
@@ -336,13 +341,18 @@
             ?verticalSource.GetPositionWithinWindow():sp;
         var bottom=numberOr(anchor.y,0)-5;
         var parentBottom=numberOr(pp.y,0)+numberOr(parent.actuallayoutheight,1080);
-        tooltip.style.horizontalAlign="left";
-        tooltip.style.verticalAlign="bottom";
-        tooltip.style.marginTop="0px";
-        tooltip.style.marginBottom=((parentBottom-bottom)/sy)+"px";
-        tooltip.style.position=((x-numberOr(pp.x,0))/sx)+"px 0px 0px";
-        tooltip.style.width=numberOr(width,337)+"px";
-        tooltip.style.maxHeight=Math.max(32,Math.min(heightLimit||360,(bottom-numberOr(rp.y,0)-12)/sy))+"px";
+        var placement={horizontalAlign:"left",verticalAlign:"bottom",marginTop:"0px",
+            marginBottom:((parentBottom-bottom)/sy)+"px",
+            position:((x-numberOr(pp.x,0))/sx)+"px 0px 0px",width:fittedWidth+"px",
+            maxHeight:Math.max(32,Math.min(heightLimit||360,(bottom-numberOr(rp.y,0)-12)/sy))+"px"};
+        var cache=tooltip.__survivalAbilityPlacement;
+        if(!cache||cache.epoch!==abilityPlacementEpoch||cache.parent!==parent)
+            cache=tooltip.__survivalAbilityPlacement={epoch:abilityPlacementEpoch,parent:parent};
+        // These seven assignments have one placement owner. Repeated tooltip
+        // refreshes do not cross the native style bridge for unchanged values.
+        for(var key in placement)if(cache[key]!==placement[key]){
+            tooltip.style[key]=placement[key];cache[key]=placement[key];
+        }
         // Bottom alignment follows content height in the same layout pass.
         // No measurements of the previous skill and no delayed repositioning.
     }
