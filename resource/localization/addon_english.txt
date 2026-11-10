@@ -3,6 +3,8 @@
     "Language" "english"
     "Tokens"
     {
+        "building_endless_training_target" "长青轮纹"
+        "npc_dota_unit_building_endless_training_target" "长青轮纹"
         "DOTA_Tooltip_ability_item_survival_rogue_nuclear_bomb" "Nuclear Bomb"
         "DOTA_Tooltip_ability_item_survival_rogue_nuclear_bomb_Description" "Kill all currently living non-Boss enemy wave and challenge monsters. Consumed after use."
         "DOTA_Tooltip_ability_item_survival_rogue_building_upgrade" "Construction Order"

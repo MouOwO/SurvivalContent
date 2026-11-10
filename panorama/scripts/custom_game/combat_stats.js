@@ -156,6 +156,7 @@
         "building_wall": "城墙",
         "building_arrow_tower": "见习守望",
         "building_gold_mine": "金矿",
+        "building_endless_training_target": "长青轮纹",
         "building_hero_altar": "英雄祭坛",
         "enemy_tree": "树",
         "npc_dota_hero_undying": "建造者",

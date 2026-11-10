@@ -3,6 +3,8 @@
     "Language" "english"
     "Tokens"
     {
+        "building_endless_training_target" "长青轮纹"
+        "npc_dota_unit_building_endless_training_target" "长青轮纹"
 
         "building_research_lab" "Research Lab"
         "npc_dota_unit_building_research_lab" "Research Lab"

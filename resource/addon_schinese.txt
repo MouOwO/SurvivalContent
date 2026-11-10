@@ -3,6 +3,8 @@
     "Language" "schinese"
     "Tokens"
     {
+        "building_endless_training_target" "长青轮纹"
+        "npc_dota_unit_building_endless_training_target" "长青轮纹"
 // BEGIN GENERATED FORMAL WAVE RANGE ALIASES
 // END GENERATED FORMAL WAVE RANGE ALIASES
 
