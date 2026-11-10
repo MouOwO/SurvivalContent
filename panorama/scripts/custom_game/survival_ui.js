@@ -838,7 +838,8 @@
             label.AddClass("NotificationText");
             if (className) label.AddClass(className);
             label.html = rich === true;
-            label.text = value;
+            var archiveText = lifecycleConfig.SurvivalArchiveText;
+            label.text = rich === true && archiveText ? archiveText.Rich(value) : value;
         }
         if (payload.kind === "research_success" && payload.subject) {
             text("研究 ");
@@ -850,7 +851,13 @@
                 text(actor + " ", "NotificationActor");
                 message = message.slice(actor.length).replace(/^\s+/, "");
             }
-            text(message, "", payload.kind === "archive_reward" && payload.rich_text === true);
+            // Engine event flags can arrive as a boolean or a numeric KV value.
+            var archiveReward = payload.kind === "archive_reward";
+            var archiveRich = archiveReward && (payload.rich_text === true
+                || payload.rich_text === 1 || payload.rich_text === "1");
+            var archiveText = lifecycleConfig.SurvivalArchiveText;
+            if (archiveReward && !archiveRich && archiveText) message = archiveText.Plain(message);
+            text(message, "", archiveRich);
         }
         notificationItems.push(item);
         scheduleHUD(broadcast ? 5.0 : 3.5, function () {
