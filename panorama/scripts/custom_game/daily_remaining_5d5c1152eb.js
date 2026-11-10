@@ -377,13 +377,14 @@ function benefitRow(parent,track,row,index,x,y,w,h,weekly){
  var login=benefitLogin(row,track),monthlyOnly=benefitMonthlyOnly(row),automatic=benefitAutomatic(row,track),compact=!weekly&&h<108;
  var title=login?"每日登录":track==="daily_wins"?"胜利 "+required+" 场":"游玩 "+required+" 分钟";
  label(card,title,16,weekly?13:compact?2:8,w-148,compact?26:30,weekly?22:20,"#e8d6ad").style.fontWeight="medium";
- if(login||track==="daily_wins"){var current=label(card,login?"月卡专属":(row.__preview?"—":Math.min(progress,required))+" / "+required+" 场",w-232,compact?4:10,106,25,18,"#acaa90");current.style.textAlign="right";}
+ var buttonY=weekly?13:compact?37:47;
+ if(login||track==="daily_wins"){var current=label(card,login?"月卡专属":(row.__preview?"—":Math.min(progress,required))+" / "+required+" 场",w-232,buttonY+(42-25)/2,106,25,18,"#acaa90");current.style.textAlign="right";}
  var rewardsY=weekly?78:compact?30:38;
  if(!monthlyOnly)benefitRewardStrip(card,benefitRewards(row,false),16,rewardsY,w-(weekly?32:140),false,compact);
  benefitRewardStrip(card,benefitRewards(row,true),16,monthlyOnly?(compact?42:54):rewardsY+(compact?29:37),w-(weekly?32:140),true,compact,monthlyOnly);
  var pass=!!data&&Number(data.has_pass)===1,requiresPass=monthlyOnly&&!pass;
  if(!pass)card.SetHasClass("DailyGW2BenefitNoPass",true);
- var button=make("Button",card,"DailyGW2BenefitClaim_"+track+"_"+row.id,"DailyGW2Button DailyGW2BenefitClaim");rect(button,w-112,weekly?13:compact?37:47,96,42);skin(button,"button");style(button,{backgroundSize:"cover",backgroundPosition:"center",border:"1px solid #b99a5f"});button.hittestchildren=false;
+ var button=make("Button",card,"DailyGW2BenefitClaim_"+track+"_"+row.id,"DailyGW2Button DailyGW2BenefitClaim");rect(button,w-112,buttonY,96,42);skin(button,"button");style(button,{backgroundSize:"cover",backgroundPosition:"center",border:"1px solid #b99a5f"});button.hittestchildren=false;
  var matching=benefitWaiting&&benefitWaiting.track===track&&benefitWaiting.id===String(row.id),busy=!!benefitWaiting||!!waiting||Number(data&&data.pending)===1;
  var text=label(button,matching?"领取中…":state==="claimed"?"已领取":state==="syncing"?"同步中":requiresPass?"需月卡":automatic?"发放中…":state==="claimable"?"领取":"未达成",0,7,96,28,18,"#251c0e");text.style.textAlign="center";
  U.State.Set(button,{enabled:state==="claimable"&&!busy&&!requiresPass&&!automatic,busy:matching});U.State.Bind(button,function(){claimBenefit(track,row.id);});

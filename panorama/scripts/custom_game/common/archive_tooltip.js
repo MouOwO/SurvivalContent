@@ -275,6 +275,7 @@
             var description=String(item.description||"服务端未提供效果说明"), effect=elements.Effect;
             if(cfg.SurvivalItemResources&&cfg.SurvivalItemResources.DisplayDescription)description=cfg.SurvivalItemResources.DisplayDescription(item,description);
             if(archiveText)description=archiveText.Plain(description);
+            if(archiveText&&archiveText.EffectLines)description=archiveText.EffectLines(description,{bonusLines:category==="commerce_goods",collection:options.collectionRarity===true});
             var details=item.unlock_condition||item.condition_text||"";
             if (category==="map_level") {
                 var onlineRequirement=description.match(/^累计有效在线时长[：:][^\r\n]+(?:\r?\n|$)/);

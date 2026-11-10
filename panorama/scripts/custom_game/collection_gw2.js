@@ -20,13 +20,21 @@ var scale=1,cardsKey="",visibleRows=[],slots=[],tabs={},nodes={},api,createdRoot
 var compactHandle=null,compactModel=null,compactCategory="",compactFields=null,collectionIndex=null,slotById={},compactHover=null,pendingProbe=null;
 function compactEnabled(){return !!(cfg.SurvivalCompactRuntime&&cfg.SurvivalCompactArchiveModel&&cfg.SurvivalUICatalog);}
 function closeCompact(){if(compactHandle)compactHandle.Dispose();if(compactModel)compactModel.Dispose();if(pendingProbe)pendingProbe.Dispose();compactHandle=null;compactModel=null;compactCategory="";pendingProbe=null;}
+function cachedEntryPage(){
+ if(!compactEnabled())return;
+ var runtime=cfg.SurvivalCompactRuntime,s=runtime.ScopeIdentity&&runtime.ScopeIdentity();if(!s)return;
+ var scope=s.active&&s.ready&&s.loading_identity&&s.session!==null?String(s.loading_identity)+"/"+s.session:null;
+ if(!scope||shared.cacheScope!==scope){shared.pages={};shared.versions={};shared.cacheScope=scope;cardsKey="";}
+ var archive=cfg.SurvivalArchive,cached=archive&&archive.GetCachedPage&&archive.GetCachedPage(current);
+ if(!shared.pages[current]&&cached)shared.pages[current]=cached;
+}
 function openCompact(){
  if(!compactEnabled()||!opened)return;if(compactHandle&&compactCategory===current)return;
  closeCompact();var category=current,model=cfg.SurvivalCompactArchiveModel.Create(cfg.SurvivalUICatalog,category);compactModel=model;compactCategory=category;
  if(!compactFields){compactFields={};cfg.SurvivalUICatalog.Data.fields.forEach(function(f){compactFields[f.name]=f.id;});}
  compactHandle=cfg.SurvivalCompactRuntime.CreateView("archive:"+category,{onCommit:function(tx,changed,read){
   if(!alive()||!opened||current!==category||compactModel!==model)return;
-  var value=model.Apply(tx,changed,read);shared.pages[category]=value.snapshot;shared.versions[category]=tx.revision;
+  var value=model.Apply(tx,changed,read);cachedEntryPage();shared.pages[category]=value.snapshot;shared.versions[category]=tx.revision;
   if(tx.full||!collectionIndex||collectionIndex.category!==category){cardsKey="";render();}else renderCompact(value.changes,model);
   finishCompactDraw(read,value.snapshot);
  },onError:function(code){if(alive()&&opened&&current===category)result.text=cfg.SurvivalCompactRuntime.ErrorText(code);}});
@@ -331,9 +339,9 @@ function recoverIntent(){
   GameEvents.SendCustomGameEventToServer("survival_archive_social_draw",{pool_id:pool,request_id:requestId});
  });
 }
-function select(id){if(!alive()||!names[id])return;hideFilterMenu();clearRewardHighlight();if(current!==id)closeCompact();current=id;ownershipFilter=0;grid.ScrollToTop();hideTooltip();render();if(opened&&(compactEnabled()||!shared.pages[id]))request(true);}
-function open(id){if(!alive())return;hideFilterMenu();var wasOpen=opened;if(id&&names[id]&&id!==current){clearRewardHighlight();current=id;ownershipFilter=0;grid.ScrollToTop();}if(cfg.SurvivalArchive&&cfg.SurvivalArchive.IsOpen&&cfg.SurvivalArchive.IsOpen())cfg.SurvivalArchive.Close();opened=true;win.RemoveClass("ArchiveHidden");scrim.RemoveClass("ArchiveHidden");shell.Open();scale=Number(U.Fit(win,root,size[0],size[1],fitOptions))||1;render();request(!shared.pages[current]||Object.keys(resync).length>0);if(!wasOpen)recoverIntent();}
-function close(){if(!active)return;closeCompact();hideFilterMenu();opened=false;clearRewardHighlight();hideTooltip();viewLife.Cancel();if(valid(win)){shell.Close();win.AddClass("ArchiveHidden");}if(valid(scrim))scrim.AddClass("ArchiveHidden");$.DispatchEvent("DOTAHideTextTooltip");}
+function select(id){if(!alive()||!names[id])return;hideFilterMenu();clearRewardHighlight();if(current!==id)closeCompact();current=id;cachedEntryPage();ownershipFilter=0;grid.ScrollToTop();hideTooltip();render();if(opened&&(compactEnabled()||!shared.pages[id]))request(true);}
+function open(id){if(!alive())return;hideFilterMenu();var wasOpen=opened;if(id&&names[id]&&id!==current){clearRewardHighlight();current=id;ownershipFilter=0;grid.ScrollToTop();}if(cfg.SurvivalArchive&&cfg.SurvivalArchive.IsOpen&&cfg.SurvivalArchive.IsOpen())cfg.SurvivalArchive.Close();if(cfg.SurvivalArchive&&cfg.SurvivalArchive.PausePreload)cfg.SurvivalArchive.PausePreload();cachedEntryPage();opened=true;win.RemoveClass("ArchiveHidden");scrim.RemoveClass("ArchiveHidden");shell.Open();scale=Number(U.Fit(win,root,size[0],size[1],fitOptions))||1;render();request(!shared.pages[current]||Object.keys(resync).length>0);if(!wasOpen)recoverIntent();}
+function close(){if(!active)return;closeCompact();hideFilterMenu();opened=false;clearRewardHighlight();hideTooltip();viewLife.Cancel();if(valid(win)){shell.Close();win.AddClass("ArchiveHidden");}if(valid(scrim))scrim.AddClass("ArchiveHidden");$.DispatchEvent("DOTAHideTextTooltip");if(cfg.SurvivalArchive&&cfg.SurvivalArchive.ResumePreload)cfg.SurvivalArchive.ResumePreload();}
 function dispose(){if(!active)return;close();active=false;highlightLife.Dispose();life.Dispose();viewLife.Dispose();shell.Dispose();if(tooltip)tooltip.Dispose();if(valid(canvas))canvas.DeleteAsync(0);createdRoots.forEach(function(n){if(valid(n))n.DeleteAsync(0);});if(valid(win))win.RemoveClass("CollectionGW2Page");}
 api=cfg.SurvivalCollection={Open:open,Close:close,Toggle:function(){if(alive()){if(opened)close();else open();}},Select:select,IsOpen:function(){return alive()&&opened;},Dispose:dispose,Inspect:function(){return {open:opened,layout:"collection_gw2",canvas:size.slice(),columns:columns,portraitSize:portraitSize,category:current,search:"",ownershipFilter:["all","owned","unowned"][ownershipFilter],filterMenuOpen:filterOpen,rows:visibleRows.map(function(item){return {id:item.id,name:item.name,count:item.count,target:item.target};}),slots:slots.length,drawEnabled:!!draw.enabled,pending:shared.pending?copy(shared.pending):null,versions:copy(shared.versions),tooltipVisible:tooltip&&tooltip.IsVisible()};}};
 life.Subscribe("survival_archive_snapshot",snapshot);life.Subscribe("survival_archive_social_result",drawResult);

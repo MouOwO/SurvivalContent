@@ -26,6 +26,76 @@
     var rowCards = {};
     var compactHandle=null,compactModel=null,compactCategory="",compactIndex=null,compactIntents={},compactFieldCatalogue=null,compactFieldMap=null;
     function compactEnabled(){return !!(cfg.SurvivalCompactRuntime&&cfg.SurvivalUICatalog&&cfg.SurvivalCompactArchiveModel);}
+    // Entry prefetch uses the same player-bound transport as foreground views.
+    // One category per batch, no hidden grid rendering and no steady-state poll.
+    var warmIdentity=null,cacheScope=null,warmQueue=[],warmCursor=0,warmDone={},warmAttempts={};
+    var warmHandle=null,warmModel=null,warmTimer=null,warmDeadline=null,warmGeneration=0,warmSubscription=null;
+    function cancelWarmTimer(id){if(id===null)return;if($.CancelScheduled)$.CancelScheduled(id);timers=timers.filter(function(value){return value!==id;});}
+    function pausePreload(){
+        warmGeneration++;cancelWarmTimer(warmTimer);cancelWarmTimer(warmDeadline);warmTimer=null;warmDeadline=null;
+        if(warmHandle)warmHandle.Dispose();if(warmModel)warmModel.Dispose();warmHandle=null;warmModel=null;
+    }
+    function compactScope(){
+        var runtime=cfg.SurvivalCompactRuntime,s=runtime&&runtime.ScopeIdentity&&runtime.ScopeIdentity();
+        return s&&s.active&&s.ready&&s.loading_identity&&s.session!==null?String(s.loading_identity)+"/"+s.session:null;
+    }
+    function cachedPage(category){
+        if(!compactEnabled())return pageCache[category]||null;
+        var scope=compactScope();return scope&&scope===cacheScope?pageCache[category]||null:null;
+    }
+    function saveCompactPage(category,result){
+        if(!result.known)return;
+        var scope=compactScope();if(!scope)return;
+        if(scope!==cacheScope){pageCache={};cacheScope=scope;}
+        pageCache[category]=result.snapshot;warmDone[category]=true;
+    }
+    function foregroundOpen(){return opened||!!(cfg.SurvivalCollection&&cfg.SurvivalCollection.IsOpen&&cfg.SurvivalCollection.IsOpen());}
+    function preloadClock(){return typeof performance!=="undefined"&&performance.now?performance.now():Date.now();}
+    function resumePreload(delay){
+        if(!active()||!warmIdentity||warmHandle||warmTimer!==null||foregroundOpen())return;
+        while(warmCursor<warmQueue.length&&warmDone[warmQueue[warmCursor]])warmCursor++;
+        if(warmCursor>=warmQueue.length)return;
+        warmTimer=later(delay===undefined?.1:delay,function(){warmTimer=null;preloadNext();});
+    }
+    function preloadNext(){
+        if(!active()||!compactEnabled()||foregroundOpen()||!warmIdentity)return;
+        var category=warmQueue[warmCursor],model=cfg.SurvivalCompactArchiveModel.Create(cfg.SurvivalUICatalog,category);
+        var generation=++warmGeneration,started=preloadClock();warmModel=model;
+        warmAttempts[category]=(warmAttempts[category]||0)+1;
+        function finish(retry,cost){
+            if(generation!==warmGeneration)return;
+            pausePreload();warmCursor++;
+            if(retry&&warmAttempts[category]<2)warmQueue.push(category);
+            // A slow decode backs off the next batch; foreground always wins.
+            resumePreload(cost>3?.25:.1);
+        }
+        warmHandle=cfg.SurvivalCompactRuntime.CreateView("archive:"+category,{onCommit:function(tx,changed,read){
+            if(!active()||generation!==warmGeneration||foregroundOpen())return;
+            var before=preloadClock(),result=model.Apply(tx,changed,read);
+            if(!result.known)return;
+            saveCompactPage(category,result);finish(false,Math.max(0,preloadClock()-before));
+        },onError:function(){
+            // CreateView may synchronously report a failed Hello. Let it return
+            // its handle before retiring the consumer; coalesce repeated errors.
+            if(generation!==warmGeneration||warmTimer!==null)return;
+            warmTimer=later(0,function(){warmTimer=null;finish(true,Math.max(0,preloadClock()-started));});
+        }});
+        warmDeadline=later(8,function(){warmDeadline=null;finish(true,0);});
+        warmHandle.Open();
+    }
+    function preloadAdmission(){
+        if(!active()||!compactEnabled()||!cfg.SurvivalCompactRuntime.ScopeIdentity)return;
+        var state=CustomNetTables.GetTableValue("survival_loading","state");
+        var identity=state&&(state.session_id||state.match_session_id),admitted=state&&Number(state.admission_complete)===1&&Number(state.profiles_ready)===1;
+        if(!admitted||!identity){pausePreload();warmIdentity=null;cacheScope=null;pageCache={};return;}
+        if(identity!==warmIdentity){
+            pausePreload();warmIdentity=identity;cacheScope=null;pageCache={};warmDone={};warmAttempts={};warmCursor=0;
+            var projection=cfg.SurvivalUICatalog.Data.auxiliary.archive_projection;
+            warmQueue=projection.categories.map(function(row){return row.id;}).filter(function(id){return !!projection.pages[id];});
+            if(voidView&&voidView.Prepare)voidView.Prepare();
+        }
+        resumePreload();
+    }
     function compactClose(){if(compactHandle)compactHandle.Dispose();if(compactModel)compactModel.Dispose();compactHandle=null;compactModel=null;compactCategory="";compactIntents={};}
     function finishCompactIntent(read){
         var C=cfg.SurvivalUICatalog;
@@ -41,10 +111,10 @@
     function compactOpen(){
         if(!compactEnabled()||!opened||current==="shop")return;
         if(compactHandle&&compactCategory===current)return;
-        compactClose();var category=current,model=cfg.SurvivalCompactArchiveModel.Create(cfg.SurvivalUICatalog,category);compactModel=model;compactCategory=category;
+        pausePreload();compactClose();var category=current,model=cfg.SurvivalCompactArchiveModel.Create(cfg.SurvivalUICatalog,category);compactModel=model;compactCategory=category;
         compactHandle=cfg.SurvivalCompactRuntime.CreateView("archive:"+category,{onCommit:function(tx,changed,read){
             if(!active()||!opened||current!==category||compactModel!==model)return;
-            var result=model.Apply(tx,changed,read);pageCache[category]=result.snapshot;
+            var result=model.Apply(tx,changed,read);saveCompactPage(category,result);
             if(tx.full||!compactIndex||compactIndex.category!==category)render(result.snapshot);
             else renderCompactDelta(result.snapshot,result.changes,model);
             finishCompactIntent(read);
@@ -170,7 +240,7 @@
             toggle.__archiveActivate = function () {
                 if(!active()||!valid(toggle))return;
                 if ((!cfg.SurvivalArchiveV10 && Number(category.disabled) === 1) || current === category.id) return;
-                current = category.id; filterMode="all"; lastData=pageCache[current]||null;
+                current = category.id; filterMode="all"; lastData=cachedPage(current);
                 panel("ArchiveGrid").ScrollToTop();
                 hideTooltip();
                 if(cfg.SurvivalArchiveV10 && current === "shop"){
@@ -729,11 +799,13 @@
             panel("ArchiveWindow").AddClass("ArchiveHidden");
             hideTooltip();
         }
+        resumePreload();
     }
     function dispose(){
         if(disposed)return;
         disposeOverflowHUD();hideEndlessTip();
-        close();disposed=true;
+        close();disposed=true;pausePreload();
+        if(warmSubscription!==null&&CustomNetTables.UnsubscribeNetTableListener)CustomNetTables.UnsubscribeNetTableListener(warmSubscription);
         timers.forEach(function(timer){if($.CancelScheduled)$.CancelScheduled(timer);});timers=[];
         subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];
         if(archiveShell&&archiveShell.Dispose)archiveShell.Dispose();
@@ -797,7 +869,7 @@
                 if(cfg.SurvivalEndlessLeaderboard)cfg.SurvivalEndlessLeaderboard.Open();return;
             }
             if(compactEnabled()){
-                if(pageCache[current])render(pageCache[current]);else renderVoid(null);
+                var cached=cachedPage(current);if(cached)render(cached);else renderVoid(null);
                 compactOpen();return;
             }
             if(pageCache[current]){render(pageCache[current]);if(needsSync())request(true);else if(current==="commerce_goods")request();}else {renderVoid(null);request(true);}
@@ -805,6 +877,7 @@
         Filter: function(mode){if(!active()||["all","unlocked","locked"].indexOf(mode)<0)return;filterMode=mode;if(lastData)render(lastData);else renderVoid(null);},
         Close: close,
         Dispose: dispose,
+        GetCachedPage:cachedPage,PausePreload:pausePreload,ResumePreload:resumePreload,
         Refresh: function(){if(compactEnabled()){compactOpen();if(compactHandle)compactHandle.Resync(5);}else request();},
         RegisterToolsProbe: registerToolsProbe
     };
@@ -816,6 +889,10 @@
         return true;
     });
     if(!compactEnabled())later(0.2,function(){if(!pageCache[current])request(true);});
+    else if(cfg.SurvivalCompactRuntime.ScopeIdentity){
+        warmSubscription=CustomNetTables.SubscribeNetTableListener("survival_loading",function(table,key){if(key==="state")preloadAdmission();});
+        later(.1,preloadAdmission);
+    }
     registerToolsProbe();
     bindOverflowHUD();
     try{$.RegisterEventHandler("PanelDeleted",root,dispose);}catch(ignored){}

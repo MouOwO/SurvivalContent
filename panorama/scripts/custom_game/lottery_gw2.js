@@ -150,10 +150,10 @@
         style(tooltip,{zIndex:"100",flowChildren:"none"});
         var tipSkin=cfg.SurvivalBlackLionMarket.SkinTooltip(tooltip);tipSkin.Resize(368,340);
         var tipIconStage=itemWell(tooltip,20,22,48,48,"LotteryGW2TooltipIconStage");
-        var tipTitleRow=make("Panel",tooltip,"LotteryGW2TooltipTitleRow");place(tipTitleRow,80,22,264,48);tipTitleRow.hittest=false;tipTitleRow.hittestchildren=false;
-        var tipName=label(tipTitleRow,"LotteryGW2TooltipName","",0,0,264,48,21,"#f0dfb8");
-        style(tipName,{width:"fit-children",height:"fit-children",maxWidth:"264px",horizontalAlign:"left",verticalAlign:"center",whiteSpace:"nowrap",textOverflow:"shrink"});
-        var tipState=label(tooltip,"LotteryGW2TooltipState","",80,67,264,24,16,"#b5bfbb");
+        var tipTitleRow=make("Panel",tooltip,"LotteryGW2TooltipTitleRow");place(tipTitleRow,80,22,264,26);tipTitleRow.hittest=false;tipTitleRow.hittestchildren=false;
+        var tipName=label(tipTitleRow,"LotteryGW2TooltipName","",0,0,264,26,21,"#f0dfb8");
+        style(tipName,{width:"fit-children",height:"fit-children",maxWidth:"264px",maxHeight:"26px",horizontalAlign:"left",verticalAlign:"top",whiteSpace:"nowrap",textOverflow:"shrink"});
+        var tipState=label(tooltip,"LotteryGW2TooltipState","",80,48,264,22,16,"#b5bfbb");
         var tipScroll=make("Panel",tooltip,"LotteryGW2TooltipScroll"); place(tipScroll,22,116,322,178); style(tipScroll,{flowChildren:"down",overflow:"squish scroll"});
         var tipDescription=label(tipScroll,"LotteryGW2TooltipDescription","",0,0,316,178,18,"#e0d6c5"); style(tipDescription,{height:"fit-children",ignoreParentFlow:"false",whiteSpace:"normal"});
         var tipCount=label(tooltip,"LotteryGW2TooltipQuantity","",22,294,322,24,17,"#b5bfbb");
