@@ -46,7 +46,7 @@
         clearTimers();complete=null;playing=false;previewMode=false;
         releaseMovie();
         if(valid(fallback)){fallback.RemoveClass('LCFallbackActive');fallback.visible=false;}
-        if(valid(surface))surface.visible=false;
+        if(valid(surface)){surface.visible=false;if(surface.hittest!==false)surface.hittest=false;if(surface.hittestchildren!==false)surface.hittestchildren=false;}
         var root=$('#LotteryWindow');if(valid(root))root.RemoveClass('LotteryCinematicPlaying');
         var lease=previewLease;previewLease=null;
         if(lease)lease.Release();
@@ -110,7 +110,7 @@
         // Film owns the whole viewport, outside every scaled menu/content host.
         var canvas=$('#LotteryWindow');
         if(!valid(canvas))return false;
-        surface=$.CreatePanel('Panel',canvas,'LotteryCinematicSurface');surface.AddClass('LotteryCinematicSurface');surface.hittest=true;surface.visible=false;
+        surface=$.CreatePanel('Panel',canvas,'LotteryCinematicSurface');surface.AddClass('LotteryCinematicSurface');surface.hittest=false;surface.hittestchildren=false;surface.visible=false;
         surface.style.position='0px 0px 0px';surface.style.width='100%';surface.style.height='100%';
         var backdrop=$.CreatePanel('Panel',surface,'LotteryCinematicBackdrop');backdrop.AddClass('LotteryCinematicBackdrop');backdrop.hittest=false;
         var caption=$.CreatePanel('Label',surface,'LotteryCinematicCaption');caption.AddClass('LotteryCinematicCaption');caption.hittest=false;
@@ -136,7 +136,7 @@
         cancel();previewLease=lease||null;
         if(disposed||!build()){cancel();return null;}
         pool=Object.prototype.hasOwnProperty.call(pools,pool)?pool:'map';
-        activePool=pool;complete=onDone;playing=true;surface.visible=true;
+        activePool=pool;complete=onDone;playing=true;surface.visible=true;surface.hittest=true;surface.hittestchildren=true;
         var caption=$('#LotteryCinematicCaption');caption.text=pools[pool];
         qualities.forEach(function(q){surface.SetHasClass('LCQuality_'+q,q===highest(results));});
         $('#LotteryWindow').AddClass('LotteryCinematicPlaying');

@@ -133,7 +133,7 @@
         // menu. Their artwork fills every aspect ratio; controls retain one fit.
         var fullscreen=make("Panel",window,"LotteryGW2Fullscreen","LotteryGW2Fullscreen");
         style(fullscreen,{position:"0px 0px 0px",width:"100%",height:"100%",margin:"0px",padding:"0px",horizontalAlign:"left",verticalAlign:"top",flowChildren:"none",overflow:"clip",zIndex:"20",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat"});
-        fullscreen.hittest=true;fullscreen.visible=false;
+        fullscreen.hittest=false;fullscreen.hittestchildren=false;fullscreen.visible=false;
         var resultShade=make("Panel",fullscreen,"LotteryGW2ResultShade");
         // Native Panorama composites these scenes brighter than the HTML
         // preview. Use the native-reviewed opacity, independently of controls.
@@ -431,10 +431,16 @@
     function updateFooterSkin() {
         ["LotteryGW2FooterSkin","LotteryGW2FooterRule"].forEach(function(id){style(p(id),{visibility:mode==="details"?"collapse":"visible"});});
     }
+    function inputEnabled(node,enabled){
+        if(!valid(node))return;
+        if(node.hittest!==enabled)node.hittest=enabled;
+        if(node.hittestchildren!==enabled)node.hittestchildren=enabled;
+    }
     function apply() {
         if(!ensure())return;
         var window=p("LotteryWindow");if(!valid(window))return;
         var results=window.BHasClass("LotteryResultsShown"),drawVisible=!mode&&!results;
+        inputEnabled(view.root,opened);
         style(window,{width:"100%",height:"100%",position:"0px 0px 0px",horizontalAlign:"left",verticalAlign:"top",margin:"0px",padding:"0px",backgroundImage:"none",backgroundColor:"#080908b8",border:"0px",borderRadius:"0px",boxShadow:"none",flowChildren:"none",transform:"none"});
         ["LotteryCelestialHeader","LotteryPoolTabs","LotteryReadingMask"].forEach(hidden);
         style(view.content,{visibility:mode?"collapse":"visible"});
@@ -465,7 +471,8 @@
         ["LHDetails","LHHistory","LotteryAnnouncement"].forEach(function(id){walk(p(id),function(node){if(node.paneltype==="Label"&&id==="LotteryAnnouncement")node.text="活动公告";if(id==="LotteryAnnouncement"&&node.BHasClass("LotteryGW2FooterIcon"))style(node,{visibility:"collapse"});});});
         style(view.back,{visibility:mode?"visible":"collapse"});style(p("LotteryGW2HeaderDivider"),{visibility:mode?"visible":"collapse"});style(view.headerSubtitle,{visibility:mode?"collapse":"visible"});
         place(view.title,mode?129:27,0,560,74);style(view.title,{height:"fit-children",verticalAlign:"center",fontSize:"32px"});
-        view.fullscreen.visible=results&&!mode;
+        var resultOpen=opened&&results&&!mode;
+        view.fullscreen.visible=resultOpen;inputEnabled(view.fullscreen,resultOpen);
         style(view.fullscreen,{backgroundImage:'url("'+poolBackground(selected)+'")'});
         place(p("LotteryResultStage"),0,0,1672,941);style(p("LotteryResultStage"),{backgroundImage:"none",backgroundColor:"transparent",zIndex:"6",flowChildren:"none",border:"0px"});
         place(p("LotteryResultHeading"),75,55,1200,58);style(p("LotteryResultHeading"),{fontFamily:'"Source Han Sans SC"',fontSize:"33px",fontWeight:"normal",color:"#efdbb2",textShadow:"#000000 0px 0px 2px 2.0"});
@@ -671,7 +678,7 @@
         Pools:function(rows,id){if(!alive())return;pools=rows||[];selected=String(id||"map");hideTicketHelp();sidebar();},
         Snapshot:function(data){if(!alive())return;snapshot=data;previews();apply();},
         Open:function(){if(!alive())return;opened=true;mode="";apply();if(view&&valid(view.root))view.root.visible=true;},
-        Close:function(){if(!alive())return;hideTicketHelp();opened=false;mode="";hideTooltip();if(view&&valid(view.root))view.root.visible=false;},
+        Close:function(){if(!alive())return;hideTicketHelp();opened=false;mode="";hideTooltip();if(view){inputEnabled(view.root,false);inputEnabled(view.fullscreen,false);if(valid(view.root))view.root.visible=false;if(valid(view.fullscreen))view.fullscreen.visible=false;}},
         CloseInfo:function(){if(!alive())return;mode="";hideTooltip();apply();},
         Content:function(){return ensure()?(view.fullscreen.visible?view.resultCanvas:view.content):null;},Fit:fit,Tooltip:tooltip,HideTooltip:hideTooltip,RequestTooltipHide:requestTooltipHide,
         Dispose:function(){

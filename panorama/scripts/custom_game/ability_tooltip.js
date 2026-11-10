@@ -675,7 +675,7 @@
         return (number<0 ? "-" : "")+scaled.toFixed(1)+unit;
     }
 
-    function tooltipNumericPart(value) {
+    function tooltipNumericPart(value, wholeNumber) {
         var match = /^\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)([%％秒sx倍w万亿兆京垓秭穰沟涧正载]?)\s*$/i.exec(String(value));
         if (!match) return null;
         var number=Number(match[1]);
@@ -684,7 +684,7 @@
             "垓":1e20,"秭":1e24,"穰":1e28,"沟":1e32,"涧":1e36,"正":1e40,"载":1e44}[unit];
         var semanticUnit = multiplier ? "" : unit.replace("％","%");
         var amount = number*(multiplier || 1);
-        var text = semanticUnit ? String(number)+unit : tooltipNumber(amount);
+        var text = semanticUnit ? String(number)+unit : tooltipNumber(wholeNumber ? Math.round(amount) : amount);
         if (match[1].charAt(0)==="+" && number>=0) text="+"+text;
         return {amount:amount, unit:semanticUnit, text:text};
     }
@@ -692,15 +692,15 @@
     function presentRuntimeField(field, upgradeMode) {
         var label=String(field.label || ""), value=field.value;
         if (value===undefined || value===null || value==="") return null;
-        var text=String(value), pieces=text.split(/\s*→\s*/);
+        var text=String(value), pieces=text.split(/\s*→\s*/), wholeNumber=label==="每秒金币";
         // Levels, route identities and state labels remain useful even when
         // their numeric content is zero. Only actual numeric stats compare.
         var metadata=/等级|升级目标|模型状态/.test(label) || /^LV[0-9]+/.test(label);
         if (!metadata && pieces.length===2) {
             var ending=/^(.*?)(?:\s*[（(]\s*([^（）()]+)\s*[）)])?\s*$/.exec(pieces[1]);
-            var before=tooltipNumericPart(pieces[0]);
-            var after=ending && tooltipNumericPart(ending[1]);
-            var delta=ending && ending[2]!==undefined ? tooltipNumericPart(ending[2]) : null;
+            var before=tooltipNumericPart(pieces[0],wholeNumber);
+            var after=ending && tooltipNumericPart(ending[1],wholeNumber);
+            var delta=ending && ending[2]!==undefined ? tooltipNumericPart(ending[2],wholeNumber) : null;
             if (before && after && before.unit===after.unit && (!ending[2] || delta)) {
                 // Compare the endpoints rather than the rounded (+0) copy:
                 // 1 → 1.001 (+0) still represents a real improvement.
@@ -712,7 +712,7 @@
             var population=/^\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))(?:\s*[（(]当前占有[^）)]+[）)])?\s*$/.exec(text);
             if (population && Number(population[1])===0) return null;
         }
-        var part=tooltipNumericPart(text);
+        var part=tooltipNumericPart(text,wholeNumber);
         if (part && !metadata) {
             if (upgradeMode && part.amount===0 && /提升|生命|护甲|攻击|效率|暴击|每秒金币|人口上限/.test(label)) return null;
             return {value:part.text, numeric:true};

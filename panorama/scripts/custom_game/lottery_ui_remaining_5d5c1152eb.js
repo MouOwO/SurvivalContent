@@ -463,6 +463,7 @@
 
     function hideUnreadyWindow(){
         var root=panel("LotteryWindow"),canvas=panel("LotteryMainCanvas"),info=panel("LotteryInfoOverlay");
+        windowInput(false);
         if(root){root.visible=false;root.SetHasClass("LotteryOpen",false);root.SetHasClass("LotteryClosed",true);}
         if(canvas)canvas.style.opacity="0";
         if(info){info.visible=false;info.AddClass("LotteryInfoHidden");}
@@ -470,8 +471,14 @@
         var layers=cfg.SurvivalUILayers;if(layers){layers.Close("lottery_info");layers.Close("lottery");}
     }
 
+    function windowInput(enabled){
+        var root=panel("LotteryWindow");if(!root)return;
+        if(root.hittest!==enabled)root.hittest=enabled;
+        if(root.hittestchildren!==enabled)root.hittestchildren=enabled;
+    }
     function showPresentation(presenter,deferSnapshot){
         activePresenter=presenter;
+        windowInput(true);
         LH.Prepare();
         LH.Background(selectedPoolId);
         presenter.Open();
@@ -507,16 +514,19 @@
         cinematicPreview=null;
         openRequested=false;activePresenter=null;openIntentSerial++;
         opened = false;
-        if(!localPreview&&cache&&cache.Compact&&cache.Close)cache.Close();
-        feedbackRequest = null; clearRewardFeedback();
-        var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery");
-        finishReveal(); closeInfo();
-        hideTooltip();
-        var root = panel("LotteryWindow");
-        if (!root) return;
-        root.SetHasClass("LotteryOpen", false);
-        root.SetHasClass("LotteryClosed", true);root.visible=false; LH.Close();
+        // Release the viewport before cache callbacks or result cleanup. A
+        // pending repeat draw still owns its server nonce, never HUD input.
+        windowInput(false);
+        var root=panel("LotteryWindow");
+        if(root){root.SetHasClass("LotteryOpen",false);root.SetHasClass("LotteryClosed",true);root.visible=false;}
         var presenter=currentPresentation();if(presenter&&presenter.Close)presenter.Close();
+        feedbackRequest = null;
+        var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery");
+        finishReveal();
+        if(!localPreview&&cache&&cache.Compact&&cache.Close)cache.Close();
+        clearRewardFeedback(); closeInfo();
+        hideTooltip();
+        LH.Close();
     }
 
     function toggle() {
