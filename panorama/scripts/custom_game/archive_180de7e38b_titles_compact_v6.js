@@ -334,9 +334,15 @@
             // Cached rows still need current visual policy when artwork stays unchanged.
             if(cached&&cached.fingerprint===fingerprint)return;
             paletteDirty = true;
-            var retainedV10=cfg.SurvivalArchiveV10&&card.__v10&&valid(card.__v10.host)?card.__v10:null;
-            if(retainedV10)retainedV10.host.SetParent(root);
-            if(cached)card.RemoveAndDeleteChildren();
+            // A same-result title reply can hit V10's display cache. Keep its
+            // visual under the owning card even when no later paint is needed.
+            var sourceArtKey=JSON.stringify([current,item.id,item.icon,item.icon_type,item.icon_style]);
+            var retainedV10=cfg.SurvivalArchiveV10&&card.__v10&&valid(card.__v10.host)
+                &&card.__v10.sourceArtKey===sourceArtKey?card.__v10:null;
+            if(cached){
+                if(retainedV10)card.Children().forEach(function(child){if(child!==retainedV10.host)child.DeleteAsync(0);});
+                else card.RemoveAndDeleteChildren();
+            }
             rowCards[key]={panel:card,fingerprint:fingerprint};
             card.hittestchildren = false;
             if (current === "titles") {
@@ -443,6 +449,11 @@
                 card.AddClass("ArchiveFragmentCard");
             }
             cardFrame(card);
+            // Rebound legacy callbacks need fresh labels, but V10 owns the
+            // visible row, including when its unchanged-data paint is skipped.
+            if(retainedV10)card.Children().forEach(function(child){
+                if(child!==retainedV10.host&&!child.BHasClass("ArchivePromote"))child.visible=false;
+            });
             if (Number(item.count) > 0) ownedTypes += 1;
             if (Number(item.completed) === 1) done += 1;
         });
