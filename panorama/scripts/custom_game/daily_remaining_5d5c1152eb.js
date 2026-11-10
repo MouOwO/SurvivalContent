@@ -209,7 +209,9 @@ function ensureCompact(){
   },
   onHint:function(flag){
    if(!active||!flag||Number(flag.known)!==1)return;var can=Number(flag.claimable)===1,receipt=data&&(data.claim_result||data.benefit_claim_result),unconfirmed=receipt&&(!(receipt.ok===true||Number(receipt.ok)===1)||receipt.pending===true||Number(receipt.pending)===1);
-   if(!can&&(waiting||benefitWaiting||Number(data&&data.pending)===1||unconfirmed))return;
+   // Closed hints are sent only after server saves settle. The closed page
+   // receives no ACKs, so its stale pending/failed intent cannot veto the hint.
+   if(shell.IsOpen()&&!can&&(waiting||benefitWaiting||Number(data&&data.pending)===1||unconfirmed))return;
    entryKnown=true;entryClaimable=can;entryProbeScheduled=false;paintEntry();
   },
   onError:function(code){if(!active)return;fetching=false;errorText=cfg.SurvivalCompactRuntime.ErrorText?cfg.SurvivalCompactRuntime.ErrorText(code):"奖励同步未完成，请重新打开";if(shell.IsOpen())render({summary:true,calendar:[],specials:[],tracks:[],benefitRows:[]});}
