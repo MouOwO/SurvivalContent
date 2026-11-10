@@ -16,6 +16,7 @@ var cardSignature="",specialSignature="",statusText="",scale=1;
 var tooltipSources=[],tooltipOwner={},hoverAnchor=null;
 var rewardFX=null,activePage="login",benefitWaiting=null,benefitSignature="",benefitErrorText="",loginNodes=[];
 var entryKnown=false,entryClaimable=false,entryAdmitted=false,entryProbeAttempts=0,entryProbeScheduled=false,entryProbeSerial=0,loadingSubscription=null;
+var tabNodes=Object.create(null),tabPaint=Object.create(null),tabClaimable={login:false,daily:false,weekly:false};
 // One indexed compact model per HUD generation. The shared runtime exclusively
 // owns cw subscriptions, trusted bindings, native budgets and failure resyncs.
 var compactView=null,compactModel=null,compactMode=false,nodeCache=Object.create(null),calendarNodes=[],specialNodes=[],benefitNodes=Object.create(null),benefitHeaders=Object.create(null);
@@ -116,6 +117,7 @@ function build(){
  ["login","daily","weekly"].forEach(function(id,index){
   var tab=make("Button",canvas,"DailyGW2Tab_"+id,"DailyGW2Tab");rect(tab,36+index*278,30,266,65);tab.hittestchildren=false;
   var heading=label(tab,["登录奖励","每日福利","每周福利"][index],0,10,266,42,30,"#b4a787",id==="login"?"DailyGW2Title":"DailyGW2TabText_"+id);style(heading,{textAlign:"center",fontWeight:"medium"});
+  heading.AddClass("DailyGW2TabLabel");if(heading.ClearPropertyFromCode)heading.ClearPropertyFromCode("color");tabNodes[id]=tab;
   U.State.Bind(tab,function(){selectPage(id);});
  });
  var closeButton=make("Button",canvas,"DailyGW2Close","DailyGW2CloseButton");rect(closeButton,1310,18,30,30);style(closeButton,{backgroundColor:"gradient(linear,0% 0%,0% 100%,from(#737373),to(#444444))",border:"1px solid #8c8c8c"});
@@ -204,15 +206,15 @@ function ensureCompact(){
   onCommit:function(tx,changedIds,read){
    if(!active)return;var projection;
    try{projection=compactModel.Apply(tx,changedIds,read);}catch(error){errorText="奖励数据校验失败，请重新打开";fetching=false;if(shell.IsOpen())render({summary:true,calendar:[],specials:[],tracks:[],benefitRows:[]});return false;}
-   compactMode=true;if(!projection.known){fetching=false;if(shell.IsOpen()){errorText="正在读取档案";render({summary:true,calendar:[],specials:[],tracks:[],benefitRows:[]});}return;}
-   acceptSnapshot(projection.snapshot,projection.changes,true,projection.claimable);
+   compactMode=true;if(!projection.known){fetching=false;setTabClaimable(null);if(shell.IsOpen()){errorText="正在读取档案";render({summary:true,calendar:[],specials:[],tracks:[],benefitRows:[]});}return;}
+   acceptSnapshot(projection.snapshot,projection.changes,true,projection.claimable,projection.claimablePages);
   },
   onHint:function(flag){
    if(!active||!flag||Number(flag.known)!==1)return;var can=Number(flag.claimable)===1,receipt=data&&(data.claim_result||data.benefit_claim_result),unconfirmed=receipt&&(!(receipt.ok===true||Number(receipt.ok)===1)||receipt.pending===true||Number(receipt.pending)===1);
    // Closed hints are sent only after server saves settle. The closed page
    // receives no ACKs, so its stale pending/failed intent cannot veto the hint.
    if(shell.IsOpen()&&!can&&(waiting||benefitWaiting||Number(data&&data.pending)===1||unconfirmed))return;
-   entryKnown=true;entryClaimable=can;entryProbeScheduled=false;paintEntry();
+   entryKnown=true;entryClaimable=can;entryProbeScheduled=false;if(!can)setTabClaimable(null);paintEntry();
   },
   onError:function(code){if(!active)return;fetching=false;errorText=cfg.SurvivalCompactRuntime.ErrorText?cfg.SurvivalCompactRuntime.ErrorText(code):"奖励同步未完成，请重新打开";if(shell.IsOpen())render({summary:true,calendar:[],specials:[],tracks:[],benefitRows:[]});}
  });
@@ -239,7 +241,7 @@ function syncEntryAdmission(){
  entryAdmitted=!!state&&(state.admission_complete===undefined
   ?state.all_ready===true||Number(state.all_ready)===1
   :state.admission_complete===true||Number(state.admission_complete)===1);
- if(!entryAdmitted){entryKnown=false;entryClaimable=false;entryProbeAttempts=0;entryProbeScheduled=false;entryProbeSerial++;}
+ if(!entryAdmitted){entryKnown=false;entryClaimable=false;entryProbeAttempts=0;entryProbeScheduled=false;entryProbeSerial++;setTabClaimable(null);if(shell.IsOpen())paintTabClaimable();}
  else probeEntry();
 }
 function hasClaimable(){return active&&entryAdmitted&&entryKnown&&entryClaimable;}
@@ -329,6 +331,16 @@ function benefitDisplayRows(track){
  return array(rows).map(function(row){var preview={};Object.keys(row).forEach(function(key){preview[key]=row[key];});preview.status="syncing";preview.can_claim=0;preview.claimed=0;preview.__preview=true;return preview;});
 }
 function benefitsClaimable(){return ["daily_time","daily_wins","weekly_time"].some(function(track){return array(benefitData(track)&&benefitData(track).rows).some(function(row){return benefitState(row)==="claimable"&&!benefitAutomatic(row);});});}
+function setTabClaimable(pages){tabClaimable.login=!!pages&&pages.login===true;tabClaimable.daily=!!pages&&pages.daily===true;tabClaimable.weekly=!!pages&&pages.weekly===true;}
+function paintTabClaimable(){
+ ["login","daily","weekly"].forEach(function(id){var tab=tabNodes[id],can=entryAdmitted&&tabClaimable[id];if(valid(tab)&&tabPaint[id]!==can){tab.SetHasClass("DailyGW2TabReady",can);tabPaint[id]=can;}});
+}
+function legacyTabClaimable(){
+ // Only the legacy full snapshot scans rows once. Compact updates supply
+ // three cached flags maintained alongside the existing changed-row index.
+ function ready(track){return array(benefitData(track)&&benefitData(track).rows).some(function(row){return benefitState(row)==="claimable"&&!benefitAutomatic(row)&&(!benefitMonthlyOnly(row)||Number(data.has_pass)===1);});}
+ return {login:availability().enabled,daily:ready("daily_time")||ready("daily_wins"),weekly:ready("weekly_time")};
+}
 function selectPage(id){
  if(!active||!viewValid()||["login","daily","weekly"].indexOf(id)<0)return;
  activePage=id;hideTooltip();var rules=p("DailyRulesText");rules.AddClass("ArchiveHidden");rules.visible=false;render();
@@ -447,7 +459,7 @@ function paintEntry(){
 }
 function render(impact){
  if(stopIfInvalid())return;RH=cfg.RemainingHandoff;var ready=availability(),busy=!!waiting||!!benefitWaiting||!!data&&Number(data.pending)===1;
- paintEntry();if(!shell.IsOpen())return;
+ paintEntry();if(!shell.IsOpen())return;paintTabClaimable();
  if(impact&&!impact.full&&!impact.summary){renderDeltaRegions(impact);return;}
  p("DailyGW2PassInfo").SetHasClass("DailyGW2PassFocus",buying);p("PassPurchase").SetHasClass("DailyGW2PassFocus",buying);p("DailyCards").visible=true;p("DailySpecials").visible=true;p("PassPurchase").visible=cashReady();p("DailyRules").visible=true;p("DailyClaim").visible=true;
  if(!data){
@@ -496,7 +508,7 @@ function showClaim(intent){
  rewardFX.Play({key:intent.period+":"+intent.target+":"+intent.count+":"+intent.ordinary+":"+intent.premium,
   anchor:anchor,surface:surface,title:"领取成功",text:intent.text||"奖励已领取",tone:"gold"});
 }
-function acceptSnapshot(next,impact,compact,claimable){
+function acceptSnapshot(next,impact,compact,claimable,claimablePages){
  if(!active)return;fetching=false;fetchSerial++;if(compact)viewLife.Cancel();if(!(next.ok===true||Number(next.ok)===1)){errorText=next.error||"正在读取档案";if(shell.IsOpen())render(impact);return;}
  if(!compact&&Number(next.sequence)>0&&Number(next.sequence)<=sequence)return;if(data&&Number(next.today)<Number(data.today))return;sequence=Number(next.sequence)||sequence;
  var beforeWaiting=!!waiting,beforeBenefitWaiting=!!benefitWaiting;
@@ -508,6 +520,7 @@ function acceptSnapshot(next,impact,compact,claimable){
  function unconfirmed(receipt){return !!receipt&&(!(receipt.ok===true||Number(receipt.ok)===1)||receipt.pending===true||Number(receipt.pending)===1);}
  if(Number(next.pending)!==1&&!unconfirmed(result)&&!unconfirmed(benefitResult)){
   entryKnown=true;entryClaimable=compact?claimable:availability().enabled||benefitsClaimable();entryProbeScheduled=false;entryProbeSerial++;
+  setTabClaimable(compact?claimablePages:legacyTabClaimable());
  }
  if(impact&&(beforeWaiting!==!!waiting||beforeBenefitWaiting!==!!benefitWaiting)){impact.summary=true;impact.actions=true;}
  if(shell.IsOpen())render(impact);else paintEntry();

@@ -29,7 +29,7 @@ function create(catalogue){
  ["welfare_zongzi","lottery_ember_of_legacy"].forEach(function(id){var rec=record("archive:points:"+id);stackByRecord[rec]=id;dependency[id]={benefits:[]};kind[rec]="owned";});
  ["claim","benefit"].forEach(function(name){var id=record("daily:ack:"+name);ackByRecord[id]=name;kind[id]="ack";});kind[stateId]="state";
  var allBenefits=[];TRACKS.forEach(function(track){trackRows[track].forEach(function(tier){kind[tier.record]="benefit";allBenefits.push(tier);});});
- var snapshot=null,stateCache=Object.create(null),intents=Object.create(null),intentRing=[],claimableCount=0,initialized=false,disposed=false,generation=1,metrics={registry_scans:1,updates:0,record_visits:0,calendar_updates:0,benefit_updates:0};
+ var snapshot=null,stateCache=Object.create(null),intents=Object.create(null),intentRing=[],claimableCount=0,trackClaimable={daily_time:0,daily_wins:0,weekly_time:0},initialized=false,disposed=false,generation=1,metrics={registry_scans:1,updates:0,record_visits:0,calendar_updates:0,benefit_updates:0};
  function itemDefinition(id){
   var source=D["daily:item:"+id]||D["archive:points:"+id]||D["lottery:item:"+id]||D["lottery:currency:"+id];need(source,"daily_reward_definition_missing:"+id);
   var d=source.stackable_definition||source.definition;need(d,"daily_reward_definition_missing:"+id);return d;
@@ -44,7 +44,7 @@ function create(catalogue){
   for(n=1;n<=7;n++){var schedule=definition("daily:cycle:"+n),cy={day:n,rewards:rewardList(schedule.item_ids,schedule.item_counts),status:"unknown",is_today:0};snapshot.cycle.push(cy);cy.rewards.forEach(function(item){dependency[item.id].cycle.push(cy);});}
   for(n=1;n<=28;n++){var cd=definition("daily:calendar:"+n),sched=definition("daily:cycle:"+cd.schedule_day),ca={day:n,rewards:rewardList(sched.item_ids,sched.item_counts),status:"unknown",is_today:0};snapshot.calendar28.push(ca);ca.rewards.forEach(function(item){dependency[item.id].calendar.push(ca);});}
   (rules.pass_item_ids||[]).forEach(function(id,index){var v=reward(id,1);v.day=Number(rules.pass_milestones[index]);v.owned=undefined;snapshot.specials.push(v);dependency[id].special.push(index);});
-  TRACKS.forEach(function(track){var group={period_id:"",progress:undefined,rows:[]};snapshot.benefits[track]=group;trackRows[track].forEach(function(tier){var d=tier.definition,v={id:tier.id,required:d.required,base_rewards:rewardList(d.base_item_ids,d.base_counts),monthly_rewards:rewardList(d.pass_item_ids,d.pass_counts),monthly_only:d.monthly_only?1:0,auto_claim:d.auto_claim?1:0,status:"unknown",can_claim:0,claimed:undefined};tier.row=v;tier.ready=false;group.rows.push(v);v.base_rewards.concat(v.monthly_rewards).forEach(function(item){if(dependency[item.id]&&dependency[item.id].benefits.indexOf(tier)<0)dependency[item.id].benefits.push(tier);});});});
+  TRACKS.forEach(function(track){trackClaimable[track]=0;var group={period_id:"",progress:undefined,rows:[]};snapshot.benefits[track]=group;trackRows[track].forEach(function(tier){var d=tier.definition,v={id:tier.id,required:d.required,base_rewards:rewardList(d.base_item_ids,d.base_counts),monthly_rewards:rewardList(d.pass_item_ids,d.pass_counts),monthly_only:d.monthly_only?1:0,auto_claim:d.auto_claim?1:0,status:"unknown",can_claim:0,claimed:undefined};tier.row=v;tier.ready=false;tier.tabReady=false;group.rows.push(v);v.base_rewards.concat(v.monthly_rewards).forEach(function(item){if(dependency[item.id]&&dependency[item.id].benefits.indexOf(tier)<0)dependency[item.id].benefits.push(tier);});});});
   claimableCount=0;initialized=true;
  }
  function apply(tx,changed,read){
@@ -85,6 +85,8 @@ function create(catalogue){
   ownedChanged.forEach(function(rec){dependency[stackByRecord[rec]].benefits.forEach(markTier);});
   impact.benefitRows.forEach(function(tier){metrics.benefit_updates++;var row=tier.row,known=value(tier.record,"known")===1,status=value(tier.record,"status"),claimed=value(tier.record,"completed"),can=value(tier.record,"can_claim");row.status=!known?"unknown":status===3?"claimed":status===2?"claimable":"locked";row.claimed=claimed;row.can_claim=known&&can===1?1:0;
    var ready=row.can_claim===1&&!row.auto_claim;if(ready!==tier.ready){claimableCount+=ready?1:-1;tier.ready=ready;}
+   var tabReady=ready&&row.status==="claimable"&&claimed!==1&&(!row.monthly_only||snapshot.has_pass===1);
+   if(tabReady!==tier.tabReady){trackClaimable[tier.track]+=tabReady?1:-1;tier.tabReady=tabReady;}
    var reserved=Object.create(null);row.base_rewards.concat(row.monthly_rewards).forEach(function(item){var rec=byKey["archive:points:"+item.id];if(!rec||!stackByRecord[rec]){item.actual_count=item.count;item.overflow_count=0;item.at_max_owned=0;return;}var knownOwned=value(rec,"known")===1,owned=big(rec,"owned_count");item.owned_count=knownOwned?owned:undefined;if(!knownOwned||owned===undefined){item.actual_count=undefined;item.overflow_count=undefined;item.at_max_owned=undefined;return;}var max=Number(item.max_owned)||0,accepted=max>0?Math.min(item.count,Math.max(0,max-owned-(reserved[item.id]||0))):item.count;if(max>0)reserved[item.id]=(reserved[item.id]||0)+accepted;item.actual_count=accepted;item.overflow_count=item.count-accepted;item.at_max_owned=max>0&&owned>=max?1:0;});
   });
   acks.forEach(function(rec){var name=ackByRecord[rec],token=value(rec,"request_token"),intent=intents[token];if(value(rec,"known")!==1||!intent||intent.kind!==name)return;var target=value(rec,"target_record"),day=value(rec,"day"),period=value(rec,"period");if(name==="claim"&&(day!==intent.target_day||period!==intent.period)||name==="benefit"&&(target!==intent.tier_record||period!==intent.period))return;
@@ -93,10 +95,11 @@ function create(catalogue){
    impact.acks.push(ack);if(terminal)delete intents[token];
   });
   metrics.calendar_updates+=impact.calendar.length;
-  return {known:true,snapshot:snapshot,changes:impact,claimable:snapshot.ordinary_status==="claimable"||claimableCount>0};
+  return {known:true,snapshot:snapshot,changes:impact,claimable:snapshot.ordinary_status==="claimable"||claimableCount>0,
+   claimablePages:{login:snapshot.ordinary_status==="claimable"||snapshot.premium.status==="claimable",daily:trackClaimable.daily_time+trackClaimable.daily_wins>0,weekly:trackClaimable.weekly_time>0}};
  }
  function bindIntent(kind,token,detail){need(!disposed&&Number.isInteger(token)&&token>=1&&token<=16383,"daily_intent_invalid");need(kind==="claim"||kind==="benefit","daily_intent_kind_invalid");need(!intents[token],"daily_intent_token_reused");var intent=copy(detail);intent.kind=kind;intents[token]=intent;intentRing.push(token);if(intentRing.length>32)delete intents[intentRing.shift()];return true;}
- function reset(){snapshot=null;stateCache=Object.create(null);intents=Object.create(null);intentRing=[];initialized=false;claimableCount=0;generation++;}
+ function reset(){snapshot=null;stateCache=Object.create(null);intents=Object.create(null);intentRing=[];initialized=false;claimableCount=0;trackClaimable.daily_time=0;trackClaimable.daily_wins=0;trackClaimable.weekly_time=0;generation++;}
  function dispose(){reset();disposed=true;}
  function inspect(){return {known:!!snapshot,generation:generation,disposed:disposed,metrics:copy(metrics)};}
  return {Apply:apply,BindIntent:bindIntent,Reset:reset,Dispose:dispose,Inspect:inspect,Record:record,Field:function(name){return F[name];},BenefitRecord:function(id){return benefitById[id]&&benefitById[id].record;},Snapshot:function(){return snapshot;}};
