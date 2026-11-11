@@ -103,7 +103,7 @@
             var caption=p("LotteryDrawPityCaption"),rarity=p("LHTenQuality");
             if(valid(caption)){
                 caption.html=true;
-                caption.text="十连保底"+(rule?' <font color="'+rarity.style.color+'">'+rarity.text+'</font>':"");
+                caption.text="十连保底"+(rule?'<font color="'+rarity.style.color+'">'+rarity.text+'</font>':"");
                 // quality() sets visible=true on every refresh; hide the retired label at runtime.
                 rarity.visible=false;
                 rarity.style.visibility="collapse";
