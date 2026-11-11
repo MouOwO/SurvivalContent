@@ -57,19 +57,19 @@
     }
     function ruleText(pool) {
         if (!pool || pool.pity === undefined || pool.pity === null) return "保底规则待同步";
-        var labels = [], ten = false;
+        var labels = [], ten = false, batch = false;
         rows(pool.pity).forEach(function (rule) {
             if (!rule || (rule.trigger_mode !== "batch_only" && rule.trigger_mode !== "consecutive_misses")) return;
             var size = integer(rule.batch_size,true), id = quality(rule.quality);
             if (size === null || id === "unknown") return;
-            ten = ten || size === 10;
+            if (rule.trigger_mode === "batch_only") { batch = true; ten = ten || size === 10; }
             var label = rule.trigger_mode === "consecutive_misses"
                 ? "最多" + size + "抽保底 " + id.toUpperCase() + "（本奖池单抽/十连累计，抽到后重置）"
                 : (size === 10 ? "十连" : size + "连") + "保底 " + id.toUpperCase();
             if (labels.indexOf(label) < 0) labels.push(label);
         });
         if (!labels.length) return "当前奖池无已公布的批量保底";
-        return labels.join("；") + (ten ? "；仅直接十连触发，连续十次单抽不触发。" : "；仅一次对应连抽触发，连续单抽不触发。");
+        return labels.join("；") + (batch ? (ten ? "；十连批量保底仅直接十连触发，连续十次单抽不触发。" : "；批量保底仅一次对应连抽触发，连续单抽不触发。") : "");
     }
     data.preview = {Groups:groups,Quantity:quantity,RuleText:ruleText};
 }());
