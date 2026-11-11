@@ -456,7 +456,7 @@
         place(p("LotteryGuaranteeRow"),6,263,650,24);style(p("LotteryGuaranteeRow"),{flowChildren:"none",backgroundColor:"transparent",visibility:"visible"});
         move("LotteryGuaranteeValue",p("LotteryGuaranteeRow"));p("LotteryGuaranteeRow").Children().forEach(function(n){n.visible=n===p("LotteryGuaranteeValue");});
         place(p("LotteryGuaranteeValue"),0,0,650,24);style(p("LotteryGuaranteeValue"),{fontSize:"11px",lineHeight:"24px",fontFamily:'"Source Han Sans SC"',color:"#adb9b7",textOverflow:"clip",whiteSpace:"nowrap",transform:"none",textShadow:"#000000 0px 1px 2px 1.0"});
-        if(pool){var pityCaption=String(p("LotteryDrawPityCaption").text||"");p("LotteryGuaranteeValue").text=(pityCaption||"奖池保底以详情为准")+"  /  奖励永久保留";}
+        if(pool){var pityCaption=String(p("LotteryDrawPityCaption").text||"");var poolRule=String(pool.description||"").replace(/^(普通|金色|红色|特殊)抽奖券\s*·\s*/,"");p("LotteryGuaranteeValue").text=(poolRule||pityCaption||"奖池保底以详情为准")+"  /  奖励永久保留";}
         place(p("LotteryUnlockNotice"),60,354,650,42);style(p("LotteryUnlockNotice"),{fontSize:"16px",color:"#cfbfa0",whiteSpace:"normal",textShadow:"none",zIndex:"3",visibility:drawVisible?"visible":"collapse"});
         place(p("LotteryCelestialFooter"),334,123,1309,746);style(p("LotteryCelestialFooter"),{backgroundImage:"none",backgroundColor:"transparent",border:"0px",flowChildren:"none",zIndex:"4",visibility:drawVisible?"visible":"collapse",overflow:"noclip"});p("LotteryCelestialFooter").hittest=false;
         place(p("LotterySingleButton"),757,560,244,84);place(p("LotteryTenButton"),1021,560,244,84);

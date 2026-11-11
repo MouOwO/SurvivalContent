@@ -59,11 +59,13 @@
         if (!pool || pool.pity === undefined || pool.pity === null) return "保底规则待同步";
         var labels = [], ten = false;
         rows(pool.pity).forEach(function (rule) {
-            if (!rule || rule.trigger_mode !== "batch_only") return;
+            if (!rule || (rule.trigger_mode !== "batch_only" && rule.trigger_mode !== "consecutive_misses")) return;
             var size = integer(rule.batch_size,true), id = quality(rule.quality);
             if (size === null || id === "unknown") return;
             ten = ten || size === 10;
-            var label = (size === 10 ? "十连" : size + "连") + "保底 " + id.toUpperCase();
+            var label = rule.trigger_mode === "consecutive_misses"
+                ? "最多" + size + "抽保底 " + id.toUpperCase() + "（本奖池单抽/十连累计，抽到后重置）"
+                : (size === 10 ? "十连" : size + "连") + "保底 " + id.toUpperCase();
             if (labels.indexOf(label) < 0) labels.push(label);
         });
         if (!labels.length) return "当前奖池无已公布的批量保底";
