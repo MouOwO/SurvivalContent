@@ -27,6 +27,7 @@
         <include src="file://{resources}/scripts/custom_game/common/compact_daily_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_hud_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_hud_source.js" />
+        <include src="file://{resources}/scripts/custom_game/background_music.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_lottery_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_grid_model.js" />
         <include src="file://{resources}/scripts/custom_game/common/compact_selected_model.js" />

@@ -1,0 +1,171 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+    Survival.Music.Default.Economy.1 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.42
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 161.802444
+        vsnd_files = "sounds/music/valve_dota_001/music/laning_01_layer_01.vsnd"
+        vsnd_duration = 161.802444
+    }
+    Survival.Music.Default.Economy.2 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.42
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 87.428413
+        vsnd_files = "sounds/music/valve_dota_001/music/laning_02_layer_01.vsnd"
+        vsnd_duration = 87.428413
+    }
+    Survival.Music.Default.Economy.3 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.42
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 100.414696
+        vsnd_files = "sounds/music/valve_dota_001/music/laning_03_layer_01.vsnd"
+        vsnd_duration = 100.414696
+    }
+    Survival.Music.TI10.Battle.1 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 48.0
+        vsnd_files = "sounds/music/valve_ti10/music/battle_01.vsnd"
+        vsnd_duration = 51.441689
+    }
+    Survival.Music.TI10.Battle.2 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 52.632
+        vsnd_files = "sounds/music/valve_ti10/music/battle_02.vsnd"
+        vsnd_duration = 57.894791
+    }
+    Survival.Music.TI10.Battle.3 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 56.571999
+        vsnd_files = "sounds/music/valve_ti10/music/battle_03.vsnd"
+        vsnd_duration = 60.857147
+    }
+    Survival.Music.TI10.Boss.1 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 49.636395
+        vsnd_files = "sounds/music/valve_ti10/music/roshan.vsnd"
+        vsnd_duration = 49.636395
+    }
+    Survival.Music.North.Economy.1 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.42
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 184.0849
+        vsnd_files = "sounds/music/jboberg_01/music/laning_01_layer_01.vsnd"
+        vsnd_duration = 184.0849
+    }
+    Survival.Music.North.Economy.2 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.42
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 128.052246
+        vsnd_files = "sounds/music/jboberg_01/music/laning_02_layer_01.vsnd"
+        vsnd_duration = 128.052246
+    }
+    Survival.Music.North.Economy.3 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.42
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 146.076736
+        vsnd_files = "sounds/music/jboberg_01/music/laning_03_layer_01.vsnd"
+        vsnd_duration = 146.076736
+    }
+    Survival.Music.North.Battle.1 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 43.200001
+        vsnd_files = "sounds/music/jboberg_01/music/battle_01.vsnd"
+        vsnd_duration = 44.852245
+    }
+    Survival.Music.North.Battle.2 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 41.273998
+        vsnd_files = "sounds/music/jboberg_01/music/battle_02.vsnd"
+        vsnd_duration = 43.650612
+    }
+    Survival.Music.North.Battle.3 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 39.764
+        vsnd_files = "sounds/music/jboberg_01/music/battle_03.vsnd"
+        vsnd_duration = 44.094692
+    }
+    Survival.Music.North.Boss.1 =
+    {
+        type = "dota_update_music_stereo"
+        mixgroup = "Music"
+        volume = 0.55
+        convar_min = 0.0
+        fade_in = 1.25
+        fade_out = 1.25
+        restart_time = 68.075104
+        vsnd_files = "sounds/music/jboberg_01/music/roshan.vsnd"
+        vsnd_duration = 68.075104
+    }
+}
