@@ -5,6 +5,7 @@
     var PREFIX = "unit_";
     var panels = {};
     var states = {};
+    var activeKeys = [], activeIndexes = {}, overlaysBlocked = false;
     var seenEntities = {}, aliveSnapshotCount = 0;
     var container = $("#SurvivalHeroWorldHealthBars");
     var config = GameUI.CustomUIConfig(), context = $.GetContextPanel();
@@ -152,6 +153,22 @@
         delete panels[key];
     }
 
+    function retireState(key) {
+        var index = activeIndexes[key];
+        if (index !== undefined) {
+            var last = activeKeys.pop();
+            if (index < activeKeys.length) {
+                activeKeys[index] = last;
+                activeIndexes[last] = index;
+            }
+            delete activeIndexes[key];
+            aliveSnapshotCount -= 1;
+        }
+        delete states[key];
+        delete seenEntities[key];
+        removePanel(key);
+    }
+
     function stop() {
         if (stopped) return;
         stopped = true;
@@ -161,6 +178,8 @@
         Object.keys(panels).forEach(removePanel);
         states = {};
         seenEntities = {};
+        activeKeys = [];
+        activeIndexes = {};
         aliveSnapshotCount = 0;
     }
 
@@ -220,15 +239,15 @@
     }
 
     function applyState(key, value) {
-        var previousAlive = states[key] && Number(states[key].alive) === 1 ? 1 : 0;
-        if (!value || Number(value.removed) === 1) {
-            aliveSnapshotCount -= previousAlive;
-            delete states[key];
-            delete seenEntities[key];
-            removePanel(key);
+        if (!value || Number(value.removed) === 1 || Number(value.alive) !== 1) {
+            retireState(key);
             return;
         }
-        aliveSnapshotCount += (Number(value.alive) === 1 ? 1 : 0) - previousAlive;
+        if (activeIndexes[key] === undefined) {
+            activeIndexes[key] = activeKeys.length;
+            activeKeys.push(key);
+            aliveSnapshotCount += 1;
+        }
         states[key] = value;
         var bar = ensurePanel(key);
         if (!bar) return;
@@ -281,17 +300,26 @@
         if (occlusion && occlusion.blocked) {
             // Skip invisible native projections while a full-screen window is open.
             if (metrics) metrics.modalBlockedFrames += 1;
-            Object.keys(panels).forEach(function (key) { hide(key, metrics); });
+            if (!overlaysBlocked) {
+                for (var hiddenIndex = 0; hiddenIndex < activeKeys.length; hiddenIndex++) {
+                    hide(activeKeys[hiddenIndex], metrics);
+                }
+            }
+            overlaysBlocked = true;
             return;
         }
+        overlaysBlocked = false;
         var helper = config.SurvivalWorldHealthBarAnchor;
         var geometry = helper && helper.Capture ? helper.Capture(container) : null;
-        var stateKeys = Object.keys(states), hasAliveEntity = false;
+        var stateKeys = activeKeys, hasAliveEntity = false;
         if (metrics) {
             metrics.statesVisited += stateKeys.length;
             metrics.peakStates = Math.max(metrics.peakStates, stateKeys.length);
         }
-        stateKeys.forEach(function (key) {
+        for (var stateIndex = stateKeys.length - 1; stateIndex >= 0; stateIndex--) {
+            updateEntry(stateKeys[stateIndex]);
+        }
+        function updateEntry(key) {
             try {
             var state = states[key];
             // Dead snapshots can outlive their corpse. They need no native
@@ -308,9 +336,7 @@
                 // Prune only handles that were actually seen and disappeared;
                 // pending first spawns must retain their stable full-HP packet.
                 if (seenEntities[key] !== undefined || !isFinite(entindex) || entindex < 0) {
-                    aliveSnapshotCount -= 1;
-                    delete states[key];
-                    delete seenEntities[key];
+                    retireState(key);
                 }
                 removePanel(key);
                 return;
@@ -392,7 +418,7 @@
                 if (metrics) metrics.errors += 1;
                 hide(key, metrics);
             }
-        });
+        }
         if (!hasAliveEntity) schedule("idle");
         // Run once per Panorama frame while an alive entity can render. The previous fixed 30 Hz layout update
         // visibly lagged behind the engine's native overhead bars while units
