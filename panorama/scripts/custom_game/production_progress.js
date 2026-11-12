@@ -900,6 +900,15 @@
         if(bindingNames[key]!==row.ability_name){bindingNames[key]=row.ability_name;presentationRevision++;}
     });
     cfg.SurvivalProductionHUD = {
+        WindowBounds: function () {
+            if (!active() || !valid(panel) || panel.visible === false) return null;
+            var position = String(panel.style.position || "").split(/\s+/);
+            var scaleX = Number(ctx.actualuiscale_x) || 1, scaleY = Number(ctx.actualuiscale_y) || 1;
+            var left = parseFloat(position[0]) * scaleX, top = parseFloat(position[1]) * scaleY;
+            var width = Number(panel.__survivalWindowWidth), height = Number(panel.__survivalWindowHeight);
+            return isFinite(left) && isFinite(top) && width > 0 && height > 0
+                ? {x:left, y:top, width:width, height:height} : null;
+        },
         Refresh: refresh, QueueResearch: queueResearch, CancelResearch: cancelResearch, ToggleResearch: toggleResearch, GetResearchRuntime: getResearchRuntime,
         CacheInspect: function () {
             var counters = {}; Object.keys(presentationWrites).forEach(function (key) { counters[key] = presentationWrites[key]; });

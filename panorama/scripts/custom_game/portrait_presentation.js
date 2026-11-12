@@ -3,7 +3,55 @@
 (function () {
     "use strict";
     var cfg = GameUI.CustomUIConfig();
+    if (cfg.SurvivalPortraitPresentation && cfg.SurvivalPortraitPresentation.Dispose) cfg.SurvivalPortraitPresentation.Dispose();
+    var heroSnapshotPlayer = -1, heroSnapshot = {}, heroSubscription = null, presentationDisposed = false;
+    function applyHeroSnapshot(snapshot) {
+        heroSnapshot = {hero_ready:snapshot && snapshot.hero_ready,
+            hero_id:snapshot && snapshot.hero_id, unit_entindex:snapshot && snapshot.unit_entindex};
+    }
+    if (typeof CustomNetTables !== "undefined" && CustomNetTables.SubscribeNetTableListener) {
+        heroSubscription = CustomNetTables.SubscribeNetTableListener("survival_hero_skills", function (table, key, snapshot) {
+            if (!presentationDisposed && key === "player_" + heroSnapshotPlayer) applyHeroSnapshot(snapshot);
+        });
+    }
     var portraitIdentity = null, backdropCache = {};
+    var lookupOwner = {}, lookupEpoch = 0, lookupSelection = null, lookupHudGeneration = null, lookupGroup = null;
+    function updateLookupEpoch(group) {
+        var selection = selectedEntity(), generation = cfg.HandoffGeneration;
+        if (lookupSelection !== selection || lookupHudGeneration !== generation || group && lookupGroup !== group) {
+            lookupEpoch++;
+            lookupSelection = selection;
+            lookupHudGeneration = generation;
+            if (group) lookupGroup = group;
+        }
+    }
+    function rememberPanel(parent, identifier, panel) {
+        var cache = parent.__survivalPortraitLookups;
+        if (!cache || cache.owner !== lookupOwner) cache = parent.__survivalPortraitLookups = {owner:lookupOwner, entries:{}};
+        var path = [], current = panel;
+        for (var depth = 0; valid(current) && current !== parent && depth < 32; depth++) {
+            var ancestor = current.GetParent && current.GetParent();
+            path.push({panel:current, parent:ancestor});
+            current = ancestor;
+        }
+        if (panel && current !== parent) panel = null;
+        cache.entries[identifier] = {panel:panel, path:path, epoch:lookupEpoch};
+        return panel;
+    }
+    function findPanel(parent, identifier) {
+        if (!valid(parent)) return null;
+        var cache = parent.__survivalPortraitLookups;
+        var entry = cache && cache.owner === lookupOwner && cache.entries[identifier];
+        if (entry && valid(entry.panel)) {
+            var attached = true;
+            for (var index = 0; index < entry.path.length; index++) {
+                var link = entry.path[index];
+                if (!valid(link.panel) || link.panel.GetParent() !== link.parent) { attached = false; break; }
+            }
+            if (attached) return entry.panel;
+        } else if (entry && !entry.panel && entry.epoch === lookupEpoch) return null;
+        return rememberPanel(parent, identifier, parent.FindChildTraverse(identifier));
+    }
     // Exact pixels from Valve's portraitbackground_coolinterior texture, which
     // the native Io portrait uses. Keep this behind the model; tinting the
     // whole portrait parent would also darken Io and its ambient particles.
@@ -52,10 +100,11 @@
     }
     function updateOfficialBackground(container, foreground, backdrop) {
         if (!valid(container) || !container.FindChildTraverse) return;
-        var image = container.FindChildTraverse("SurvivalOfficialPortraitBackground");
+        var image = findPanel(container, "SurvivalOfficialPortraitBackground");
         if (!backdrop.officialTexture) { hide(image); return; }
         if (!valid(image)) {
             image = $.CreatePanel("Image", container, "SurvivalOfficialPortraitBackground");
+            rememberPanel(container, "SurvivalOfficialPortraitBackground", image);
             image.hittest = false; image.hittestchildren = false;
             if (valid(foreground) && container.MoveChildBefore) container.MoveChildBefore(image, foreground);
         }
@@ -74,11 +123,12 @@
     }
     function updateBackdropMotes(parent, foreground, backdrop, enabled) {
         if (!valid(parent) || typeof $ === "undefined" || !$.CreatePanel) return;
-        var layer=parent.FindChildTraverse("SurvivalPortraitMotes");
+        var layer=findPanel(parent,"SurvivalPortraitMotes");
         if (valid(layer) && layer.GetParent() !== parent) layer=null;
         if (!enabled) {if(valid(layer)) style(layer,{visibility:"collapse"});return;}
         if (!valid(layer)) {
             layer=$.CreatePanel("Panel",parent,"SurvivalPortraitMotes");
+            rememberPanel(parent,"SurvivalPortraitMotes",layer);
             layer.hittest=false;layer.hittestchildren=false;layer.__motes=[];
             style(layer,{width:"100%",height:"100%",overflow:"clip",zIndex:"-1"});
             if (valid(foreground) && parent.MoveChildBefore) parent.MoveChildBefore(layer,foreground);
@@ -127,31 +177,32 @@
     }
     function updateStatusFaces(group) {
         ["SilenceIcon", "MutedIcon"].forEach(function (id) {
-            var icon = group.FindChildTraverse(id);
+            var icon = findPanel(group, id);
             hide(icon);
             style(icon, {width:"0px", height:"0px", maxWidth:"0px", maxHeight:"0px", overflow:"clip"});
         });
     }
     function refresh(group) {
-        if (!valid(group) || !group.FindChildTraverse) return;
+        if (presentationDisposed || !valid(group) || !group.FindChildTraverse) return;
+        updateLookupEpoch(group);
         var hudRoot=group;
         while(hudRoot.GetParent && hudRoot.GetParent()) hudRoot=hudRoot.GetParent();
         if (hudRoot.AddClass) hudRoot.AddClass("SurvivalPortraitNoStatusFaces");
         refreshLocalHeroPortrait(hudRoot);
-        hiddenIds.forEach(function (id) { hide(group.FindChildTraverse(id)); });
+        hiddenIds.forEach(function (id) { hide(findPanel(group, id)); });
         updateStatusFaces(group);
         // Equipped Dota HUD skins otherwise draw an additional old-size frame.
         var block = group.GetParent && group.GetParent();
         if (valid(block) && block.FindChildTraverse) {
-            hide(block.FindChildTraverse("HUDSkinPortrait"));
-            hide(block.FindChildTraverse("HUDSkinXPBackground"));
+            hide(findPanel(block, "HUDSkinPortrait"));
+            hide(findPanel(block, "HUDSkinXPBackground"));
             // Verified in the running game: the stock XP/badge frame crosses
             // the resized portrait. Our gold level plate already owns this UI.
-            hide(block.FindChildTraverse("xp"));
-            hide(block.FindChildTraverse("unitbadge"));
+            hide(findPanel(block, "xp"));
+            hide(findPanel(block, "unitbadge"));
         }
         var backdrop = currentBackdrop();
-        var container = group.FindChildTraverse("PortraitContainer");
+        var container = findPanel(group, "PortraitContainer");
         // Clear the prior fill so the original portrait texture is visible.
         // A colour setter requires a valid transparent colour, not an empty
         // string; repeated invalid writes flood the native script log.
@@ -161,17 +212,17 @@
             backgroundPosition:"50% 50%",
             backgroundRepeat:"no-repeat",
             border:"0px", boxShadow:"none"});
-        var nativePortrait = group.FindChildTraverse("portraitHUD");
+        var nativePortrait = findPanel(group, "portraitHUD");
         updateOfficialBackground(container, nativePortrait, backdrop);
         // Keep gameplay states intact while removing the oversized portrait
         // blur and status faces from the custom gold frame.
         style(nativePortrait, {blur:"gaussian(0)", animationName:"none", transitionProperty:"none"});
         if (valid(nativePortrait) && nativePortrait.FindChildTraverse) {
             ["LowerOverlay", "InspectButton", "ReportUserButton", "HeroViewButton"].forEach(function (id) {
-                hide(nativePortrait.FindChildTraverse(id));
+                hide(findPanel(nativePortrait, id));
             });
         }
-        var custom = group.FindChildTraverse("SurvivalTowerPortraitOverlay");
+        var custom = findPanel(group, "SurvivalTowerPortraitOverlay");
         style(custom, {backgroundColor:backdrop.officialTexture ? "transparent" : backdrop.fill,
             backgroundImage:backdrop.officialTexture ? "none" : backdrop.image,
             backgroundSize:"100% 100%", backgroundPosition:"50% 50%", backgroundRepeat:"no-repeat"});
@@ -179,7 +230,7 @@
         var effectsEnabled=backdrop.entity>=0 && !backdrop.officialTexture && !(multi && multi.IsActive && multi.IsActive());
         var customActive=valid(custom) && String(custom.style.visibility)==="visible";
         updateBackdropMotes(container,nativePortrait,backdrop,effectsEnabled && !customActive);
-        updateBackdropMotes(custom,valid(custom)&&custom.FindChildTraverse("SurvivalTowerPortraitScene"),backdrop,effectsEnabled && customActive);
+        updateBackdropMotes(custom,findPanel(custom,"SurvivalTowerPortraitScene"),backdrop,effectsEnabled && customActive);
     }
     // This is the screen-corner portrait, not the native team scoreboard.
     // Bind to the local player's summoned hero, never the selected unit.
@@ -202,13 +253,14 @@
         return true;
     }
     function bindLocalHeroScene(button, nativeScene, key, unitName) {
-        var isolated=button.FindChildTraverse(button.id+"DoomScene"), scene=nativeScene;
+        var isolated=findPanel(button,button.id+"DoomScene"), scene=nativeScene;
         // The native square face camera clips Doom's horns. A separate empty
         // background map owns this wider camera; the normal HUD stays intact.
         if(unitName==="npc_dota_hero_doom_bringer" && typeof $.CreatePanel==="function") {
             if(!valid(isolated)) {
                 isolated=$.CreatePanel("DOTAScenePanel",button,button.id+"DoomScene",{
                     map:"portraits/doom_soft_a",camera:"shortcut_camera",particleonly:"false"});
+                rememberPanel(button,button.id+"DoomScene",isolated);
                 isolated.AddClass("ShortcutHeroPortraitScene");
                 isolated.hittest=false;isolated.hittestchildren=false;
                 isolated.__survivalSceneLoads=1;
@@ -229,12 +281,13 @@
         return scene;
     }
     function refreshLocalHeroPortrait(root) {
-        if (!valid(root)) return;
+        if (presentationDisposed || !valid(root)) return;
+        updateLookupEpoch();
         // Valve's inspected-unit portrait is a separate tree. Updating the
         // main PortraitGroup alone leaves this background unchanged.
-        var query = root.FindChildTraverse("QueryVertical");
-        var queryContainer = valid(query) && query.FindChildTraverse("PortraitContainer");
-        var queryPortrait = valid(queryContainer) && queryContainer.FindChildTraverse("QueryUnitHeroPortrait");
+        var query = findPanel(root, "QueryVertical");
+        var queryContainer = findPanel(query, "PortraitContainer");
+        var queryPortrait = findPanel(queryContainer, "QueryUnitHeroPortrait");
         if (valid(queryContainer) && valid(queryPortrait)) {
             var queryBackdrop = currentBackdrop();
             if (queryBackdrop.officialTexture) {
@@ -243,9 +296,9 @@
             }
             updateOfficialBackground(queryContainer, queryPortrait, queryBackdrop);
         }
-        var image=root.FindChildTraverse("SurvivalLocalHeroPortrait");
+        var image=findPanel(root,"SurvivalLocalHeroPortrait");
         if (!valid(image)) return;
-        var portrait=image.FindChildTraverse("SurvivalLocalHeroPortraitImage");
+        var portrait=findPanel(image,"SurvivalLocalHeroPortraitImage");
         if (!valid(portrait)) return;
         if (image.__survivalHeroButtonBound !== "single_jump_v1") {
             image.__survivalHeroButtonBound="single_jump_v1";
@@ -258,7 +311,11 @@
         if (typeof Game !== "undefined" && Game.GetLocalPlayerID
             && typeof CustomNetTables !== "undefined" && typeof Entities !== "undefined") {
             var player=Number(Game.GetLocalPlayerID());
-            var snapshot=player>=0 ? CustomNetTables.GetTableValue("survival_hero_skills","player_"+player) || {} : {};
+            if (heroSnapshotPlayer !== player) {
+                heroSnapshotPlayer = player;
+                applyHeroSnapshot(player >= 0 ? CustomNetTables.GetTableValue("survival_hero_skills", "player_" + player) : null);
+            }
+            var snapshot = heroSnapshot;
             hero=snapshot.unit_entindex===undefined || snapshot.unit_entindex===null ? -1 : Number(snapshot.unit_entindex);
             var assigned=typeof Players!=="undefined" && Players.GetPlayerHeroEntityIndex
                 ? Number(Players.GetPlayerHeroEntityIndex(player)) : -1;
@@ -353,5 +410,10 @@
         },"Activate local hero corner button in Tools",0);
     }
     var presentation={Refresh:refresh, SetSnapshot:setSnapshot, InspectBackdrop:currentBackdrop, RefreshLocalHeroPortrait:refreshLocalHeroPortrait, BindShortcutScene:bindShortcutScene, BindLocalHeroScene:bindLocalHeroScene};
+    presentation.Dispose=function(){
+        presentationDisposed = true;
+        if (heroSubscription !== null && CustomNetTables.UnsubscribeNetTableListener) CustomNetTables.UnsubscribeNetTableListener(heroSubscription);
+        heroSubscription = null;
+    };
     cfg.SurvivalPortraitPresentation=presentation;
 })();

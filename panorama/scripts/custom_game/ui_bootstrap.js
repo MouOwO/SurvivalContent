@@ -22,6 +22,7 @@
         inventory: false
     };
     var inputConfig = GameUI.CustomUIConfig();
+    if (inputConfig.SurvivalShortcutGuard && inputConfig.SurvivalShortcutGuard.Dispose) inputConfig.SurvivalShortcutGuard.Dispose();
     var inputGeneration = Number(inputConfig.SurvivalInputLifecycleGeneration || 0) + 1;
     var inputContextId = String(Date.now()) + "_" + String(inputGeneration);
     var keyHandlers = {};
@@ -204,30 +205,57 @@
         return focusedText(root);
     }
 
+    var guardPlayer = -1, guardLoadingBlocked = false, guardDefeated = false, guardSubscriptions = [], guardDisposed = false;
+    var guardHeroIdentity = {};
+    function guardHeroState(snapshot) {
+        guardHeroIdentity = {hero_ready:snapshot && snapshot.hero_ready,
+            hero_id:snapshot && snapshot.hero_id, unit_entindex:snapshot && snapshot.unit_entindex};
+    }
+    function guardLoadingState(snapshot) {
+        var ready = snapshot ? snapshot.admission_complete : undefined;
+        if (ready === undefined && snapshot) ready = snapshot.all_ready;
+        guardLoadingBlocked = ready !== undefined && ready !== true && Number(ready) !== 1;
+    }
+    function guardPlayerState(snapshot) {
+        var defeated = snapshot && snapshot.wave && snapshot.wave.player_defeated;
+        guardDefeated = defeated === true || Number(defeated) === 1;
+    }
+    guardLoadingState(CustomNetTables.GetTableValue("survival_loading", "state"));
+    if (CustomNetTables.SubscribeNetTableListener) {
+        guardSubscriptions.push(CustomNetTables.SubscribeNetTableListener("survival_loading", function (table, key, snapshot) {
+            if (!guardDisposed && Number(inputConfig.SurvivalInputLifecycleGeneration) === inputGeneration && key === "state") guardLoadingState(snapshot);
+        }));
+        guardSubscriptions.push(CustomNetTables.SubscribeNetTableListener("survival_ui_state", function (table, key, snapshot) {
+            if (!guardDisposed && Number(inputConfig.SurvivalInputLifecycleGeneration) === inputGeneration && key === "player_" + guardPlayer) guardPlayerState(snapshot);
+        }));
+        guardSubscriptions.push(CustomNetTables.SubscribeNetTableListener("survival_hero_skills", function (table, key, snapshot) {
+            if (!guardDisposed && Number(inputConfig.SurvivalInputLifecycleGeneration) === inputGeneration && key === "player_" + guardPlayer) guardHeroState(snapshot);
+        }));
+    }
     function shortcutsBlocked() {
-        if (Number(inputConfig.SurvivalInputLifecycleGeneration) !== inputGeneration) return true;
+        if (guardDisposed || Number(inputConfig.SurvivalInputLifecycleGeneration) !== inputGeneration) return true;
         if (textInputActive()) return true;
         var layers = inputConfig.SurvivalUILayers;
         if (layers && layers.Top && layers.Top()) return true;
-        // Legacy destroy confirmation has no UILayers lease yet.
-        var context = $.GetContextPanel();
-        var destroy = context && context.FindChildTraverse("ArrowTowerDestroyConfirm");
-        if (destroy && (!destroy.IsValid || destroy.IsValid()) && destroy.visible !== false
-            && destroy.BHasClass && !destroy.BHasClass("Hidden")) return true;
-        var loading = CustomNetTables.GetTableValue("survival_loading", "state");
-        if (loading) {
-            var ready = loading.admission_complete;
-            if (ready === undefined) ready = loading.all_ready;
-            if (ready !== undefined && ready !== true && Number(ready) !== 1) return true;
-        }
+        var buildingTools = inputConfig.SurvivalArrowTowerTools;
+        if (buildingTools && buildingTools.IsDestroyConfirmationOpen && buildingTools.IsDestroyConfirmationOpen()) return true;
+        if (guardLoadingBlocked) return true;
         var playerId = Game.GetLocalPlayerID();
         if (playerId < 0) return true;
-        var snapshot = CustomNetTables.GetTableValue("survival_ui_state", "player_" + String(playerId));
-        var defeated = snapshot && snapshot.wave && snapshot.wave.player_defeated;
-        return defeated === true || Number(defeated) === 1;
+        if (guardPlayer !== playerId) {
+            guardPlayer = playerId;
+            guardPlayerState(CustomNetTables.GetTableValue("survival_ui_state", "player_" + String(playerId)));
+            guardHeroState(CustomNetTables.GetTableValue("survival_hero_skills", "player_" + String(playerId)));
+        }
+        return guardDefeated;
     }
 
     inputConfig.SurvivalShortcutGuard = {
+        Dispose:function(){
+            guardDisposed = true;
+            if (CustomNetTables.UnsubscribeNetTableListener) guardSubscriptions.forEach(function (subscription) { CustomNetTables.UnsubscribeNetTableListener(subscription); });
+            guardSubscriptions = [];
+        },
         IsBlocked: shortcutsBlocked,
         IsTextInputActive: textInputActive
     };
@@ -281,7 +309,7 @@
         if (!validUnit(hero) || Entities.GetPlayerOwnerID(hero) !== playerId) return false;
         // A failed engine replacement can retain a real hero name while hidden
         // as the placeholder. Accept only the server's successful summon identity.
-        var identity = CustomNetTables.GetTableValue("survival_hero_skills", "player_" + String(playerId));
+        var identity = guardHeroIdentity;
         if (!identity || Number(identity.hero_ready) !== 1
             || Number(identity.unit_entindex) !== hero || !identity.hero_id) return false;
         var name = Entities.GetUnitName(hero);

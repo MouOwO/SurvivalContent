@@ -172,6 +172,7 @@
         $.Msg("[ArrowTowerDestroy] server rejected " + String(data.error || "unknown"));
     });
     GameUI.CustomUIConfig().SurvivalArrowTowerTools = {
+        IsDestroyConfirmationOpen: function () { return confirmEnt >= 0; },
         RejectMoveCooldown: rejectMoveCooldown,
         TriggerAbility: function (abilityName, unit) {
             if (abilityName === MOVE_ABILITY || abilityName === WALL_MOVE_ABILITY) return beginMove(unit, abilityName);

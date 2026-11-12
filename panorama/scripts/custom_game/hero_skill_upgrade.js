@@ -13,6 +13,8 @@
     var lastButton = null;
     var sequence = 0;
     var playerKey = "player_" + Game.GetLocalPlayerID();
+    var cachedState = CustomNetTables.GetTableValue("survival_hero_skills", playerKey) || {};
+    var stateSubscription = null;
 
     function valid(panel) { return panel && (!panel.IsValid || panel.IsValid()); }
     function active() { return !stopped && valid(context); }
@@ -20,7 +22,7 @@
         if (!value) return [];
         return Object.keys(value).map(function (key) { return value[key]; });
     }
-    function state() { return CustomNetTables.GetTableValue("survival_hero_skills", playerKey) || {}; }
+    function state() { return cachedState; }
     function skillFor(data, name) {
         return rows(data.skills).filter(function (item) { return item.ability_name === name; })[0];
     }
@@ -148,12 +150,16 @@
         Shutdown: function () {
             hide();
             stopped = true;
+            if (stateSubscription !== null && CustomNetTables.UnsubscribeNetTableListener) CustomNetTables.UnsubscribeNetTableListener(stateSubscription);
+            stateSubscription = null;
             buttons.forEach(function (button) { if (valid(button)) button.DeleteAsync(0); });
             buttons = [];
         }
     };
-    CustomNetTables.SubscribeNetTableListener("survival_hero_skills", function (_, key) {
-        if (key === playerKey) render();
+    stateSubscription = CustomNetTables.SubscribeNetTableListener("survival_hero_skills", function (_, key, snapshot) {
+        if (!active() || key !== playerKey) return;
+        cachedState = snapshot || {};
+        render();
     });
     GameEvents.Subscribe("ui_hero_skill_upgrade_result", function (result) {
         if (!active() || !pending || !result || result.request_id !== pending.request_id) return;

@@ -72,13 +72,12 @@
         action.button = button;
     });
     function productionBounds() {
-        var production = ctx.FindChildTraverse("SurvivalProductionPanel");
-        if (!valid(production) || production.visible === false) return [];
-        var xy = String(production.style.position || "").split(/\s+/);
-        var x = parseFloat(xy[0]), y = parseFloat(xy[1]);
-        var width = Number(production.__survivalWindowWidth) / (Number(ctx.actualuiscale_x) || 1);
-        var height = Number(production.__survivalWindowHeight) / (Number(ctx.actualuiscale_y) || 1);
-        return isFinite(x) && isFinite(y) && width > 0 && height > 0 ? [{x: x, y: y, width: width, height: height}] : [];
+        var controller = cfg.SurvivalProductionHUD;
+        var bounds = controller && controller.WindowBounds ? controller.WindowBounds() : null;
+        if (!bounds) return [];
+        var scaleX = Number(ctx.actualuiscale_x) || 1, scaleY = Number(ctx.actualuiscale_y) || 1;
+        return [{x:bounds.x / scaleX, y:bounds.y / scaleY,
+            width:bounds.width / scaleX, height:bounds.height / scaleY}];
     }
     function refresh(geometry, isReady) {
         if (!valid(panel)) return;
