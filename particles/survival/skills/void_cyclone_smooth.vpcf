@@ -1,0 +1,14 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:vpcf45:version{73c3d623-a141-4df2-b548-41dd786e6300} -->
+{ _class = "CParticleSystemDefinition"
+ m_nBehaviorVersion = 12
+ m_nMaxParticles = 1
+ m_flConstantLifespan = 999999.0
+ m_flNoDrawTimeToGoToSleep = 1000.0
+ m_Emitters = [{ _class = "C_OP_InstantaneousEmitter" m_nParticlesToEmit = { m_nType = "PF_TYPE_LITERAL" m_flLiteralValue = 1.0 } }]
+ m_PreEmissionOperators = [
+  { _class = "C_OP_SetControlPointToVectorExpression" m_nExpression = "VECTOR_EXPRESSION_MUL" m_nOutputCP = 22 m_vInput1 = { m_nType = "PVEC_TYPE_CP_VALUE" m_nControlPoint = 21 } m_vInput2 = { m_nType = "PVEC_TYPE_FLOAT_COMPONENTS" m_FloatComponentX = { m_nType = "PF_TYPE_CONTROL_POINT_CHANGE_AGE" m_nControlPoint = 20 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 0.12 m_flOutput0 = 0.0 m_flOutput1 = 0.12 } m_FloatComponentY = { m_nType = "PF_TYPE_CONTROL_POINT_CHANGE_AGE" m_nControlPoint = 20 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 0.12 m_flOutput0 = 0.0 m_flOutput1 = 0.12 } m_FloatComponentZ = { m_nType = "PF_TYPE_CONTROL_POINT_CHANGE_AGE" m_nControlPoint = 20 m_nMapType = "PF_MAP_TYPE_REMAP" m_flInput0 = 0.0 m_flInput1 = 0.12 m_flOutput0 = 0.0 m_flOutput1 = 0.12 } } },
+  { _class = "C_OP_SetControlPointToVectorExpression" m_nExpression = "VECTOR_EXPRESSION_ADD" m_nOutputCP = 0 m_vInput1 = { m_nType = "PVEC_TYPE_CP_VALUE" m_nControlPoint = 20 } m_vInput2 = { m_nType = "PVEC_TYPE_CP_VALUE" m_nControlPoint = 22 } },
+  { _class = "C_OP_SetControlPointToVectorExpression" m_nExpression = "VECTOR_EXPRESSION_INPUT_1" m_nOutputCP = 3 m_vInput1 = { m_nType = "PVEC_TYPE_CP_VALUE" m_nControlPoint = 0 } }
+ ]
+ m_Children = [{ m_ChildRef = resource:"particles/items_fx/cyclone.vpcf" }]
+}
