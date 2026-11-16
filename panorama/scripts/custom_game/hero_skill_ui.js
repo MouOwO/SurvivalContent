@@ -28,7 +28,8 @@
     function show() {
         var backdrop = panel("HeroSkillChoiceBackdrop");
         if (valid(backdrop)) {
-            backdrop.SetHasClass("Hidden", !opened); backdrop.visible = opened;
+            if (config.SurvivalUI) config.SurvivalUI.Motion.SetVisible(backdrop, opened);
+            else backdrop.visible = opened;
             backdrop.hittest = opened; backdrop.hittestchildren = opened;
         }
         if (valid(resume)) resume.visible = pending() && dismissed;
@@ -109,7 +110,7 @@
         if (changedKey === key) renderChoice(data);
     });
     config.SurvivalHeroSkillChoice = { Open: open, Close: close, IsOpen: function () { return !disposed && opened; }, Dispose: function () {
-        disposed = true; opened = false; show(); if (valid(resume)) resume.DeleteAsync(0);
+        disposed = true; opened = false; show(); if(config.SurvivalUI)config.SurvivalUI.Motion.HideNow(panel("HeroSkillChoiceBackdrop")); if (valid(resume)) resume.DeleteAsync(0);
         subscriptions.forEach(function (id) { if (GameEvents.Unsubscribe) GameEvents.Unsubscribe(id); });
         if (CustomNetTables.UnsubscribeNetTableListener) CustomNetTables.UnsubscribeNetTableListener(tableSubscription);
         if (config.SurvivalUILayers) config.SurvivalUILayers.Close("hero_skill_choice");

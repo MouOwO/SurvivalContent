@@ -29,7 +29,7 @@
     var infoOptions={id:"lottery_info",panel:$("#LotteryInfoDialog"),root:$.GetContextPanel(),scrim:$("#LotteryInfoOverlay"),header:$("#LotteryInfoHeader"),titlePanel:$("#LotteryInfoTitle"),closeButton:$("#LotteryInfoClose"),width:840,height:610,fit:{reference:[1672,941]},onClose:closeInfo};
     // Details are a right-content view inside the one lottery shell. Keep the
     // business anchors but never create another scaled window above it.
-    var infoShell={Open:function(){if(!currentPresentation())return;var n=panel("LotteryInfoOverlay"),layers=cfg.SurvivalUILayers;if(n){n.visible=true;n.RemoveClass("LotteryInfoHidden");}if(n&&layers)layers.Open("lottery_info",n,closeInfo);},Close:function(){var n=panel("LotteryInfoOverlay"),layers=cfg.SurvivalUILayers;if(layers)layers.Close("lottery_info");if(n){n.visible=false;n.AddClass("LotteryInfoHidden");}},Dispose:function(){if(cfg.SurvivalUILayers)cfg.SurvivalUILayers.Close("lottery_info");}};
+    var infoShell={Open:function(){if(!currentPresentation())return;var n=panel("LotteryInfoOverlay"),layers=cfg.SurvivalUILayers;if(n){n.RemoveClass("LotteryInfoHidden");U.Motion.SetVisible(n,true);}if(n&&layers)layers.Open("lottery_info",n,closeInfo);},Close:function(){var n=panel("LotteryInfoOverlay"),layers=cfg.SurvivalUILayers;if(layers)layers.Close("lottery_info");if(n){U.Motion.SetVisible(n,false);n.AddClass("LotteryInfoHidden");}},Dispose:function(){if(cfg.SurvivalUILayers)cfg.SurvivalUILayers.Close("lottery_info");}};
     // Scene fills the viewport; LotteryHandoff owns responsive control placement.
     $("#LotteryWindow").RemoveClass("UIFullscreen");
     ["LotterySingleButton","LotteryTenButton","LotteryAgain","LotteryConfirm","LotteryInfoConfirm"].forEach(function(id){U.ActionButton.Adopt($("#"+id),{variant:id==="LotteryTenButton"||id==="LotteryAgain"?"gold":"ivory"});});
@@ -485,7 +485,7 @@
         if(presenter.Pools)presenter.Pools(rows(knownPools),selectedPoolId);
         if(!deferSnapshot&&state&&presenter.Snapshot)presenter.Snapshot(state);
         if(presenter.Compact)presenter.Compact(panel("LotteryItemList"));
-        var root=panel("LotteryWindow");root.visible=true;
+        var root=panel("LotteryWindow");U.Motion.SetVisible(root,true);
         var layers = GameUI.CustomUIConfig().SurvivalUILayers;
         if (layers) layers.Open("lottery", root, close);
         root.SetHasClass("LotteryOpen", true);
@@ -518,7 +518,7 @@
         // pending repeat draw still owns its server nonce, never HUD input.
         windowInput(false);
         var root=panel("LotteryWindow");
-        if(root){root.SetHasClass("LotteryOpen",false);root.SetHasClass("LotteryClosed",true);root.visible=false;}
+        if(root){root.SetHasClass("LotteryOpen",false);root.SetHasClass("LotteryClosed",true);U.Motion.SetVisible(root,false);}
         var presenter=currentPresentation();if(presenter&&presenter.Close)presenter.Close();
         feedbackRequest = null;
         var layers = GameUI.CustomUIConfig().SurvivalUILayers; if (layers) layers.Close("lottery");

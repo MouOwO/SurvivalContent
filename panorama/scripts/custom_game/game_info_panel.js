@@ -42,6 +42,7 @@
         if (open && config.SurvivalGameInfoGeneration === generation) {
             GameEvents.SendCustomGameEventToServer("ui_game_info_request", {open: 0});
         }
+        config.SurvivalUI.Motion.HideNow(panel("GameInfoPanel"));
         disposed = true;
         open = false;
         life.Dispose();
@@ -189,6 +190,7 @@
         open = nextOpen;
         root.SetHasClass("GameInfoOpen", open);
         root.SetHasClass("GameInfoClosed", !open);
+        config.SurvivalUI.Motion.SetVisible(root,open);
         root.hittest = open;
         root.hittestchildren = open;
         if (config.SurvivalUILayers) {

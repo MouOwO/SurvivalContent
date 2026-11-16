@@ -269,7 +269,7 @@
         return localize(
             "DOTA_Tooltip_ability_" + abilityName + "_Description",
             ""
-        );
+        ).replace(/<br\s*\/?>/gi, "\n");
     }
 
     function nativeTooltipOwners(sourcePanel) {
@@ -804,7 +804,6 @@
                 ? "该技能由项目服务器管理，具体效果和消耗以当前实时数据为准。"
                 : "该技能由生存模式管理。";
         }
-        setText("CustomAbilityDescription", description, archiveChallengeMode);
 
         var goldCost = runtime.cost_gold !== undefined
             ? runtime.cost_gold : Number(tooltipDefinition.needgold || 0);
@@ -859,6 +858,8 @@
                     ? { current: Number(levelMatch[1]) === Number(displayedLevel) } : null, presentation.numeric);
             });
         }
+        if(hasHeroLevelRows)description="全属性＝力量＋敏捷＋智力。各级效果按下方说明累积生效。";
+        setText("CustomAbilityDescription", description, archiveChallengeMode);
         var unavailable = (projectMode || archiveChallengeMode) && (runtime.prerequisite_met !== undefined
             ? Number(runtime.prerequisite_met) === 0 : runtime.available === 0)
             || (researchMode && Number(runtime.available) === 0);

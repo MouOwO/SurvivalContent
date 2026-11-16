@@ -3,11 +3,11 @@
     var cfg=GameUI.CustomUIConfig(),registry=cfg.SurvivalUIRegistry;
     if(!registry)throw new Error("Shared UI registry must load before components");
     // Native roots can survive a layout reload; their child marker cannot.
-    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.5"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
+    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.6"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
     // Recreating the first including HUD must not forget another live HUD's
     // modal controller. The shared registry retains handles, never its timers.
     var retainedModals=cfg.SurvivalUIModals;
-    var U={version:"1.0.5",Tokens:registry.tokens},serial=0,
+    var U={version:"1.0.6",Tokens:registry.tokens},serial=0,
         modals=retainedModals&&typeof retainedModals==="object"?retainedModals:{};
     Object.keys(modals).forEach(function(id){if(!modals[id]||!valid(modals[id].panel))delete modals[id];});
     cfg.SurvivalUIModals=modals;
@@ -15,6 +15,41 @@
     var lifetimeMarker=$.CreatePanel("Panel",$.GetContextPanel(),"");
     lifetimeMarker.hittest=false;lifetimeMarker.hittestchildren=false;lifetimeMarker.visible=false;
     U.IsAlive=function(){return valid(lifetimeMarker);};
+    // Native CSS drives all intermediate frames. One completion ticket per
+    // changing panel; stable snapshots never schedule work or traverse a tree.
+    U.Motion={duration:.2,IsOpen:function(panel){return valid(panel)&&(panel.__survivalMotion?panel.__survivalMotion.open:panel.visible);},SetVisible:function(panel,visible,options){
+        if(!valid(panel))return;options=options||{};
+        var state=panel.__survivalMotion;
+        if(state&&state.open===visible)return;
+        if(!state&&!visible){U.Motion.HideNow(panel);if(options.onHidden)options.onHidden();return;}
+        if(!state)state=panel.__survivalMotion={open:false,generation:0,ticket:null};
+        state.generation++;var generation=state.generation;
+        if(state.ticket!==null){$.CancelScheduled(state.ticket);state.ticket=null;}
+        if(state.restore){state.restore();state.restore=null;}
+        state.open=visible;
+        panel.RemoveClass("UIPopupEnter");panel.RemoveClass("UIFadeEnter");
+        if(!visible&&!panel.visible){if(options.onHidden)options.onHidden();return;}
+        panel.visible=true;panel.style.visibility="visible";
+        if(visible){panel.AddClass(options.fade?"UIFadeEnter":"UIPopupEnter");}
+        else{
+            var style=panel.style,transform=style.transform||"none",opacity=style.opacity,
+                properties=style.transitionProperty,duration=style.transitionDuration,timing=style.transitionTimingFunction;
+            style.transitionProperty="transform, opacity";style.transitionDuration="0.2s";style.transitionTimingFunction="ease-out";
+            style.transform=(transform==="none"?"":transform+" ")+(options.fade?"translateY(0px)":"translateY(-18px)");style.opacity="0";
+            state.restore=function(){style.transitionDuration="0s";style.transform=transform;style.opacity=opacity||"1";style.transitionProperty=properties||"none";style.transitionTimingFunction=timing||"ease";style.transitionDuration=duration||"0s";};
+        }
+        state.ticket=$.Schedule(.2,function(){
+            if(!valid(panel)||state.generation!==generation)return;state.ticket=null;
+            if(!state.open){panel.visible=false;panel.style.visibility="collapse";}
+            if(state.restore){state.restore();state.restore=null;}
+            panel.RemoveClass("UIPopupEnter");panel.RemoveClass("UIFadeEnter");
+            if(!state.open&&options.onHidden)options.onHidden();
+        });
+    },HideNow:function(panel){
+        if(!valid(panel))return;var state=panel.__survivalMotion;
+        if(state){state.generation++;state.open=false;if(state.ticket!==null)$.CancelScheduled(state.ticket);state.ticket=null;if(state.restore){state.restore();state.restore=null;}}
+        panel.RemoveClass("UIPopupEnter");panel.RemoveClass("UIFadeEnter");panel.visible=false;panel.style.visibility="collapse";
+    }};
     function apply(p,s){if(valid(p))Object.keys(s).forEach(function(k){p.style[k]=s[k];});}
     function create(type,parent,id,cls){var p=$.CreatePanel(type,parent,id||"");if(cls)p.AddClass(cls);return p;}
     function displayText(value){var shared=cfg.SurvivalCommerceComponents;return shared&&shared.RewardNameText?shared.RewardNameText(value):String(value===undefined||value===null?"":value).replace(/U币/g,"G币");}
@@ -79,7 +114,7 @@
         click.SetPanelEvent("onactivate",function(){if(open&&props.closePolicy!=="explicit")requestClose();return true;});
         U.CloseButton(props.closeButton,requestClose);
         function fit(){if(!open)return;if(!valid(panel)){open=false;life.Cancel();return;}if(props.width&&props.height){var fitScale=U.Fit(panel,props.root||$.GetContextPanel(),props.width,props.height,props.fit);if(props.onFit)props.onFit(fitScale);}life.Later(.25,fit);}
-        var api={panel:panel,frameId:"frame.window",frameStatus:"pending_clean_asset_programmatic_fallback",Open:function(){if(disposed||!valid(panel))return;if(!open){life.Cancel();open=true;fit();}inputEnabled(true);panel.visible=true;scrim.visible=true;panel.RemoveClass("UIClosed");if(cfg.SurvivalUILayers)cfg.SurvivalUILayers.Open(props.id,panel,requestClose,{scrim:scrim,click:click});else{apply(panel,{zIndex:"100000"});apply(scrim,{zIndex:"99999"});}},Close:function(){if(disposed)return;open=false;life.Cancel();if(valid(panel)){panel.hittest=false;panel.hittestchildren=false;panel.visible=false;panel.AddClass("UIClosed");}if(valid(scrim)){scrim.hittest=false;scrim.hittestchildren=false;scrim.visible=false;}if(valid(click))click.hittest=false;if(cfg.SurvivalUILayers)cfg.SurvivalUILayers.Close(props.id);},RequestClose:requestClose,Dispose:function(){if(disposed)return;api.Close();disposed=true;life.Dispose();},IsOpen:function(){return !disposed&&open;}};U.ModalManager.Register(props.id,api);return api;
+        var api={panel:panel,frameId:"frame.window",frameStatus:"pending_clean_asset_programmatic_fallback",Open:function(){if(disposed||!valid(panel))return;if(!open){life.Cancel();open=true;fit();}inputEnabled(true);panel.RemoveClass("UIClosed");U.Motion.SetVisible(panel,true);U.Motion.SetVisible(scrim,true,{fade:true});if(cfg.SurvivalUILayers)cfg.SurvivalUILayers.Open(props.id,panel,requestClose,{scrim:scrim,click:click});else{apply(panel,{zIndex:"100000"});apply(scrim,{zIndex:"99999"});}},Close:function(){if(disposed)return;open=false;life.Cancel();if(valid(panel)){panel.hittest=false;panel.hittestchildren=false;U.Motion.SetVisible(panel,false,{onHidden:function(){panel.AddClass("UIClosed");if(props.onHidden)props.onHidden();}});}if(valid(scrim)){scrim.hittest=false;scrim.hittestchildren=false;U.Motion.SetVisible(scrim,false,{fade:true});}if(valid(click))click.hittest=false;if(cfg.SurvivalUILayers)cfg.SurvivalUILayers.Close(props.id);},RequestClose:requestClose,Dispose:function(){if(disposed)return;api.Close();U.Motion.HideNow(panel);U.Motion.HideNow(scrim);disposed=true;life.Dispose();},IsOpen:function(){return !disposed&&open;}};U.ModalManager.Register(props.id,api);return api;
     }};
     U.FullscreenShell={Adopt:function(props){var panel=props.panel;panel.AddClass("UIFullscreen");if(props.sceneId){apply(panel,{backgroundImage:"none",backgroundColor:"transparent"});var scene=create("Panel",panel,"","UISceneLayer");scene.hittest=false;scene.hittestchildren=false;apply(scene,{backgroundImage:'url("'+U.Asset(props.sceneId)+'")',backgroundSize:"cover",backgroundPosition:"center",width:"100%",height:"100%",zIndex:"-2"});if(props.themeArtId)U.Image(panel,props.themeArtId,"UIThemeArtLayer");var gradient=create("Panel",panel,"","UIReadingGradient");gradient.hittest=false;gradient.hittestchildren=false;}else if(props.liveGame)apply(panel,{backgroundColor:"#0000008c"});return panel;}};
     U.HUDShell={Adopt:function(panel){panel.AddClass("UIHUDShell");return panel;}};

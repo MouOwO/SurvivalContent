@@ -14,7 +14,7 @@
     var clock = 0, disposed = false, tableSubscription = null;
     var diagnostics = {};
     var releasedSession = "", releasedPlayer = -1;
-    var lastReportedVisible = false;
+    var lastReportedVisible = false, motionVisible = null;
     var artworkRetired = false;
     var lastHiddenRepair = -100;
 
@@ -48,16 +48,24 @@
         "StartupLoadingRetry", null, "重试");
 
     function setVisible(visible) {
+        var shared=typeof GameUI!=="undefined"&&GameUI.CustomUIConfig?GameUI.CustomUIConfig().SurvivalUI:null;
+        var motion=shared&&shared.Motion, state=root.__survivalMotion;
+        if(!motion){
+            [root,layoutRoot,surface].forEach(function(panel){if(!panel||!panel.IsValid())return;panel.visible=visible;panel.style.visibility=visible?"visible":"collapse";panel.style.opacity=visible?"1":"0";panel.hittest=visible;panel.hittestchildren=visible;panel.style.zIndex="200000";panel.SetHasClass("StartupLoadingHidden",!visible);});
+        }else{
+        if(motionVisible===visible&&state&&(state.ticket!==null||root.visible===visible))return;
+        motionVisible=visible;
         [root, layoutRoot, surface].forEach(function (panel) {
             if (!panel || !panel.IsValid()) return;
-            panel.visible = visible;
-            panel.style.visibility = visible ? "visible" : "collapse";
-            panel.style.opacity = visible ? "1" : "0";
-            panel.hittest = visible;
-            panel.hittestchildren = visible;
+            panel.hittest = visible; panel.hittestchildren = visible;
             panel.style.zIndex = "200000";
-            panel.SetHasClass("StartupLoadingHidden", !visible);
+            if(visible){panel.RemoveClass("StartupLoadingHidden");panel.visible=true;panel.style.visibility="visible";panel.style.opacity="1";}
         });
+        motion.SetVisible(root,visible,{fade:true,onHidden:function(){
+            [root,layoutRoot,surface].forEach(function(panel){if(panel&&panel.IsValid()){panel.visible=false;panel.style.visibility="collapse";panel.SetHasClass("StartupLoadingHidden",true);}});
+            if(artworkRetired&&background&&background.IsValid()){background.style.opacity="0";background.SetImage("");}
+        }});
+        }
         if (visible !== lastReportedVisible) {
             lastReportedVisible = visible;
             if ($.Msg) $.Msg("[STARTUP_VISIBILITY] " + JSON.stringify({visible: visible,
@@ -180,8 +188,7 @@
         // Engine phase wrappers can be composited again after their child was
         // hidden. Retire the actual image as well as the owned paint surface.
         // Late image callbacks must never repopulate that retired render layer.
-        background.style.opacity = "0";
-        background.SetImage("");
+        if(!root.__survivalMotion||!root.__survivalMotion.open){background.style.opacity="0";background.SetImage("");}
     }
     function render() {
         if (!valid()) return;
@@ -243,7 +250,7 @@
         root.SetHasClass("StartupLoadingImageReady", imageReady && !hidden && !artworkRetired);
         // ContextPanel can be an engine wrapper rather than the authored root.
         // Apply image visibility directly as well as through the theme class.
-        background.style.opacity = !hidden && !artworkRetired && imageReady && !imageError ? "1" : "0";
+        if(!hidden)background.style.opacity = !artworkRetired && imageReady && !imageError ? "1" : "0";
         // Neither timers nor image events assert authenticated / server-ready.
         stageCaption.text = nativeTeamSetup ? "正在准备队伍…" : "";
         stageCaption.visible = nativeTeamSetup && !hidden;

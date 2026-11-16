@@ -802,8 +802,7 @@
     function close() {
         compactClose();
         opened = false; fitGeneration++;
-        if(voidView)voidView.Leave();
-        if(A.HideCardText)A.HideCardText();
+        // Visual teardown belongs to the shell completion, after 0.2s.
         if(active()){
             panel("ArchiveScrim").AddClass("ArchiveHidden");
             if(archiveShell)archiveShell.Close();
@@ -844,7 +843,7 @@
     }
     // Re-evaluating only this controller must not retain the previous row tree.
     panel("ArchiveGrid").RemoveAndDeleteChildren();
-    var archiveShell=U.ModalShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),root:$.GetContextPanel(),scrim:panel("ArchiveScrim"),header:panel("ArchiveHeader"),titlePanel:panel("ArchiveTitle"),closeButton:panel("ArchiveClose"),width:1672,height:941,fit:archiveFit,onClose:close});
+    var archiveShell=U.ModalShell.Adopt({id:"archive",panel:panel("ArchiveWindow"),root:$.GetContextPanel(),scrim:panel("ArchiveScrim"),header:panel("ArchiveHeader"),titlePanel:panel("ArchiveTitle"),closeButton:panel("ArchiveClose"),width:1672,height:941,fit:archiveFit,onClose:close,onHidden:function(){if(!opened){if(voidView)voidView.Leave();if(A.HideCardText)A.HideCardText();}}});
     U.ActionButton.Adopt(panel("ArchiveDraw"),{variant:"gold"}); U.Tooltip.Adopt(panel("ArchiveTooltip"));
     A.Init();
     var purpleShell=null;

@@ -9,7 +9,7 @@
         "DOTA_Tooltip_ability_item_survival_rogue_nuclear_bomb_Description" "Kill all currently living non-Boss enemy wave and challenge monsters. Consumed after use."
         "DOTA_Tooltip_ability_item_survival_rogue_building_upgrade" "Construction Order"
         "DOTA_Tooltip_ability_item_survival_rogue_building_upgrade_Description" "Upgrade one of your eligible buildings by one level for free. Requires normal upgrade prerequisites. Consumed only after the upgrade starts."
-        "addon_game_name" "Dawnward Citadel"
+        "addon_game_name" "我在dota2苟发育"
         "building_challenge" "Challenge Building"
         "DOTA_Tooltip_ability_ability_build_challenge" "Build Challenge Building"
         "DOTA_Tooltip_ability_ability_build_challenge_Description" "Spend 100 wood to construct a Challenge Building. Requires a completed Research Lab. Limit one."

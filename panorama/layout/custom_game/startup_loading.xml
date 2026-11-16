@@ -1,9 +1,9 @@
 <root>
-    <styles>
+    <styles><include src="file://{resources}/styles/custom_game/common/ui_components.css" />
         <include src="file://{resources}/styles/custom_game/startup_loading.css" />
         <include src="file://{resources}/styles/custom_game/player_web_auth.css" />
     </styles>
-    <scripts>
+    <scripts><include src="file://{resources}/scripts/custom_game/common/ui_registry.js" /><include src="file://{resources}/scripts/custom_game/common/ui_components.js" />
         <include src="file://{resources}/scripts/custom_game/startup_loading.js" />
         <include src="file://{resources}/scripts/custom_game/player_web_auth.js" />
     </scripts>
@@ -13,7 +13,7 @@
             <Image class="StartupLoadingHidden" src="file://{images}/custom_game/loading/dawnward_citadel_background.png" hittest="false" />
             <Panel class="StartupLoadingShade" hittest="false" />
             <Panel class="StartupLoadingHeading" hittest="false">
-                <Label id="StartupLoadingTitle" class="StartupLoadingTitle" text="孤城逐晓" />
+                <Label id="StartupLoadingTitle" class="StartupLoadingTitle" text="我在dota2苟发育" />
             </Panel>
             <Panel id="StartupLoadingFooter" class="StartupLoadingFooter" hittest="false" hittestchildren="true">
                 <Panel id="StartupLoadingProgressTrack" class="StartupLoadingProgressTrack" hittest="false">

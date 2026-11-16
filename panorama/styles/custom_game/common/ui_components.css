@@ -1,5 +1,17 @@
 /* Shared candidate theme. frame.window is a programmatic fallback pending clean approved art. */
 .UIClosed {visibility:collapse;}
+/* Pre-transform scale composes with each window's responsive transform. */
+.UIPopupEnter {animation-name:UIPopupEnter;animation-duration:0.2s;animation-timing-function:ease-out;animation-iteration-count:1;}
+.UIFadeEnter {animation-name:UIFadeEnter;animation-duration:0.2s;animation-timing-function:ease-out;animation-iteration-count:1;}
+@keyframes 'UIPopupEnter' {
+    0% {pre-transform-scale2d:0.88;opacity:0;}
+    70% {pre-transform-scale2d:1.035;opacity:1;}
+    100% {pre-transform-scale2d:1;opacity:1;}
+}
+@keyframes 'UIFadeEnter' {
+    0% {opacity:0;}
+    100% {opacity:1;}
+}
 .UIModal {background-color:#EFEADF;border:1px solid #C7B88F;}
 .UIModalHeader {background-color:#173743;}
 .UIModalScrim {width:100%;height:100%;background-color:#0000008c;}

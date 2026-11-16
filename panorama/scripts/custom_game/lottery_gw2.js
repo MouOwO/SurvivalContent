@@ -472,7 +472,7 @@
         style(view.back,{visibility:mode?"visible":"collapse"});style(p("LotteryGW2HeaderDivider"),{visibility:mode?"visible":"collapse"});style(view.headerSubtitle,{visibility:mode?"collapse":"visible"});
         place(view.title,mode?129:27,0,560,74);style(view.title,{height:"fit-children",verticalAlign:"center",fontSize:"32px"});
         var resultOpen=opened&&results&&!mode;
-        view.fullscreen.visible=resultOpen;inputEnabled(view.fullscreen,resultOpen);
+        U.Motion.SetVisible(view.fullscreen,resultOpen);inputEnabled(view.fullscreen,resultOpen);
         style(view.fullscreen,{backgroundImage:'url("'+poolBackground(selected)+'")'});
         place(p("LotteryResultStage"),0,0,1672,941);style(p("LotteryResultStage"),{backgroundImage:"none",backgroundColor:"transparent",zIndex:"6",flowChildren:"none",border:"0px"});
         place(p("LotteryResultHeading"),75,55,1200,58);style(p("LotteryResultHeading"),{fontFamily:'"Source Han Sans SC"',fontSize:"33px",fontWeight:"normal",color:"#efdbb2",textShadow:"#000000 0px 0px 2px 2.0"});
@@ -542,7 +542,7 @@
     }
     function info(name,options,data) {
         if(!ensure())return;hideTooltip();mode=name;updateFooterSkin();
-        view.fullscreen.visible=false;
+        U.Motion.SetVisible(view.fullscreen,false);
         p("LotteryInfoList").SetHasClass("LotteryGW2PrizeGroup",name==="details");var win=options.panel;win.RemoveClass("LotteryInfoPurple");win.AddClass("LotteryInfoGW2");
         var bounds=layout.info,width=bounds[2],height=bounds[3],footerHeight=name==="details"?0:88,footerTop=height-footerHeight;
         place(p("LotteryInfoOverlay"),bounds[0],bounds[1],width,height);style(p("LotteryInfoOverlay"),{backgroundImage:"none",backgroundColor:name==="details"?"#10231bf0":"#101f19f8",border:"0px",zIndex:"12",flowChildren:"none"});
@@ -678,7 +678,7 @@
         Pools:function(rows,id){if(!alive())return;pools=rows||[];selected=String(id||"map");hideTicketHelp();sidebar();},
         Snapshot:function(data){if(!alive())return;snapshot=data;previews();apply();},
         Open:function(){if(!alive())return;opened=true;mode="";apply();if(view&&valid(view.root))view.root.visible=true;},
-        Close:function(){if(!alive())return;hideTicketHelp();opened=false;mode="";hideTooltip();if(view){inputEnabled(view.root,false);inputEnabled(view.fullscreen,false);if(valid(view.root))view.root.visible=false;if(valid(view.fullscreen))view.fullscreen.visible=false;}},
+        Close:function(){if(!alive())return;hideTicketHelp();opened=false;mode="";hideTooltip();if(view){inputEnabled(view.root,false);inputEnabled(view.fullscreen,false);if(valid(view.fullscreen))U.Motion.SetVisible(view.fullscreen,false);}},
         CloseInfo:function(){if(!alive())return;mode="";hideTooltip();apply();},
         Content:function(){return ensure()?(view.fullscreen.visible?view.resultCanvas:view.content):null;},Fit:fit,Tooltip:tooltip,HideTooltip:hideTooltip,RequestTooltipHide:requestTooltipHide,
         Dispose:function(){
@@ -690,6 +690,7 @@
             if(R&&R.LotteryDialog===dialogWrapper)R.LotteryDialog=originalDialog;if(R&&R.RewardCard===rewardWrapper)R.RewardCard=originalReward;
             if(presentation&&presentation.CreateIcon===iconWrapper)presentation.CreateIcon=originalIcon;
             // Restore original business nodes before deleting any presentation hosts.
+            if(view){U.Motion.HideNow(view.fullscreen);U.Motion.HideNow(p("LotteryWindow"));}
             moved.forEach(function(e){if(valid(e.node)&&valid(e.parent)){e.node.SetParent(e.parent);if(valid(e.next)&&e.next.GetParent()===e.parent&&e.parent.MoveChildBefore)e.parent.MoveChildBefore(e.node,e.next);}});moved=[];
             owned.slice().reverse().forEach(function(n){if(valid(n))n.DeleteAsync(0);});owned=[];
             if(valid(p("LotteryMainCanvas"))){p("LotteryMainCanvas").RemoveClass("LotteryGW2");p("LotteryMainCanvas").RemoveClass("LotteryGW2Reborn");}if(valid(p("LotteryWindow"))){p("LotteryWindow").RemoveClass("LotteryGW2Root");p("LotteryWindow").RemoveClass("LotteryGW2ForestTheme");}view=null;disposed=true;if(valid(life))life.DeleteAsync(0);

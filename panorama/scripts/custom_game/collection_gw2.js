@@ -157,8 +157,8 @@ tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"Col
  position:function(info){var x=info.anchor.x+slotSize+8;if(x+info.width>info.bounds.width-8)x=info.anchor.x-info.width-8;return {x:Math.max(8,Math.min(info.bounds.width-info.width-8,x)),y:Math.max(48,Math.min(info.bounds.height-info.height-8,info.anchor.y))};}
 });
 tipPanel=tooltip.panel;tipPanel.AddClass("CollectionGW2Tooltip");
-function hideFilterMenu(){filterOpen=false;if(valid(filterMenu))filterMenu.visible=false;if(valid(filterDismiss))filterDismiss.visible=false;if(valid(filter))filter.RemoveClass("CollectionGW2FilterExpanded");if(valid(nodes.CollectionGW2FilterArrow))nodes.CollectionGW2FilterArrow.text="▾";}
-function showFilterMenu(){hideTooltip();$.DispatchEvent("DOTAHideTextTooltip");filterOpen=true;filterMenu.visible=true;filterDismiss.visible=true;filter.AddClass("CollectionGW2FilterExpanded");nodes.CollectionGW2FilterArrow.text="▴";}
+function hideFilterMenu(){filterOpen=false;if(valid(filterMenu)){filterMenu.hittest=false;filterMenu.hittestchildren=false;U.Motion.SetVisible(filterMenu,false);}if(valid(filterDismiss))filterDismiss.visible=false;if(valid(filter))filter.RemoveClass("CollectionGW2FilterExpanded");if(valid(nodes.CollectionGW2FilterArrow))nodes.CollectionGW2FilterArrow.text="▾";}
+function showFilterMenu(){hideTooltip();$.DispatchEvent("DOTAHideTextTooltip");filterOpen=true;filterMenu.hittest=true;filterMenu.hittestchildren=true;U.Motion.SetVisible(filterMenu,true);filterDismiss.visible=true;filter.AddClass("CollectionGW2FilterExpanded");nodes.CollectionGW2FilterArrow.text="▴";}
 function hideTooltip(){compactHover=null;if(tooltip)tooltip.Hide();}
 function leaveTooltip(card){if(tooltip)tooltip.QueueHide(card);}
 function showTooltip(card,item){if(alive()&&opened&&valid(card)){compactHover=card;tooltip.Show(item,current,card,false);}}

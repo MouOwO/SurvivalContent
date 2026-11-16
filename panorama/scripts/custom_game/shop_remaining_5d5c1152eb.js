@@ -308,13 +308,11 @@
             windowPanel.SetHasClass("ShopOpen", opened);
             windowPanel.SetHasClass("Closed", !opened);
             windowPanel.RemoveClass("Hidden");
-            windowPanel.visible = opened || exiting;
+            if(!shopShell)U.Motion.SetVisible(windowPanel,opened);
             windowPanel.hittest = opened;
             windowPanel.hittestchildren = opened;
             applyShopLayout();
-            if (!opened && exiting) $.Schedule(0.29, function () {
-                if (serial === drawerGeneration && !drawerOpened && windowPanel.IsValid()) windowPanel.visible = false;
-            });
+
         }
     }
 

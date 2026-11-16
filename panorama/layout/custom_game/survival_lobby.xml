@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <styles>
+  <styles><include src="file://{resources}/styles/custom_game/common/ui_components.css" />
     <include src="file://{resources}/styles/custom_game/survival_lobby.css" />
   </styles>
-  <scripts>
+  <scripts><include src="file://{resources}/scripts/custom_game/common/ui_registry.js" /><include src="file://{resources}/scripts/custom_game/common/ui_components.js" />
     <include src="file://{resources}/scripts/custom_game/survival_lobby.js" />
   </scripts>
   <Panel class="SurvivalLobbyContext" hittest="false" hittestchildren="false">
@@ -11,7 +11,7 @@
     <Panel id="LobbyCard">
       <Panel class="LobbyHeader">
         <Panel class="LobbyHeading">
-          <Label class="LobbyEyebrow" text="孤城逐晓 · 联机试验" />
+          <Label class="LobbyEyebrow" text="我在dota2苟发育 · 联机试验" />
           <Label class="LobbyTitle" text="并肩守城" />
           <Label class="LobbySubtitle" text="创建或加入房间，所有人准备后进入同一局。" />
         </Panel>

@@ -168,12 +168,12 @@ function build(){
  loginNodes=["DailyGW2CalendarHeader","DailyCount","DailyGW2ProgressTrack","DailyGW2PassPanel","DailyGW2MonthHeader","DailyGW2MonthSubtitle","DailyCards","DailySpecials","PassPurchase","DailyRules","DailyMakeup","DailyClaim"];
  for(var weekday=0;weekday<7;weekday++)loginNodes.push("DailyGW2Weekday_"+weekday);
  ["daily","weekly"].forEach(function(id){var page=make("Panel",canvas,"DailyGW2Benefits_"+id,"DailyGW2BenefitsPage");rect(page,36,122,1288,647);page.visible=false;});
- view=cfg.SurvivalDailyGW2={canvas:canvas,shell:shell,Open:function(){shell.Open();canvas.visible=true;fitWindow(U.Fit(win,dailyRoot,size[0],size[1],fitOptions));},Close:function(){shell.Close();if(valid(canvas))canvas.visible=false;},IsOpen:function(){return shell.IsOpen();},Dispose:function(){dailyTooltip.Dispose();shell.Dispose();moved.forEach(function(e){if(valid(e.node)&&valid(e.parent))e.node.SetParent(e.parent);});moved=[];if(valid(canvas))canvas.DeleteAsync(0);if(valid(win))win.RemoveClass("DailyGW2Page");}};
+ view=cfg.SurvivalDailyGW2={canvas:canvas,shell:shell,Open:function(){shell.Open();canvas.visible=true;fitWindow(U.Fit(win,dailyRoot,size[0],size[1],fitOptions));},Close:function(){shell.Close();},IsOpen:function(){return shell.IsOpen();},Dispose:function(){dailyTooltip.Dispose();shell.Dispose();moved.forEach(function(e){if(valid(e.node)&&valid(e.parent))e.node.SetParent(e.parent);});moved=[];if(valid(canvas))canvas.DeleteAsync(0);if(valid(win))win.RemoveClass("DailyGW2Page");}};
 }
 build();
 if(U.RewardFX)rewardFX=U.RewardFX.Create(canvas,{channel:"daily",getScale:function(){return scale;}});
 p("DailyClose").SetPanelEvent("onactivate",function(){if(active)close();});
-U.State.Bind(p("DailyRules"),function(){if(!active||!viewValid())return;hideTooltip();var rules=p("DailyRulesText");rules.ToggleClass("ArchiveHidden");rules.visible=!rules.BHasClass("ArchiveHidden");});
+U.State.Bind(p("DailyRules"),function(){if(!active||!viewValid())return;hideTooltip();var rules=p("DailyRulesText");rules.ToggleClass("ArchiveHidden");var show=!rules.BHasClass("ArchiveHidden");rules.hittest=show;rules.hittestchildren=show;U.Motion.SetVisible(rules,show);});
 U.State.Bind(p("DailyPassStatus"),function(){if(!active||!viewValid())return;buying=true;p("DailyGW2PassInfo").AddClass("DailyGW2PassFocus");});
 U.ActionButton.Adopt(p("DailyClaim"),{action:function(){if(!active)return;if(!data){request();return;}claim(data.today);}});
 U.ActionButton.Adopt(p("DailyMakeup"),{action:function(){if(active)claim(array(data&&data.missed)[0]);}});

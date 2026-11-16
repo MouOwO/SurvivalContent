@@ -77,8 +77,7 @@
         root.hittestchildren = show;
         var content = panel("SurvivalLobbyOverlay");
         if (!content) return;
-        content.style.visibility = show ? "visible" : "collapse";
-        content.visible = show;
+        GameUI.CustomUIConfig().SurvivalUI.Motion.SetVisible(content,show);
         content.hittest = show;
         content.hittestchildren = show;
     }

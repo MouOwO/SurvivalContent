@@ -98,10 +98,10 @@
             match_session_missing:"请先完成对局登录。",commerce_busy:"操作处理中，请稍后重试。"};
         function redeemMessage(message){GameEvents.SendEventClientSide("dota_hud_error_message",{reason:80,message:message});}
         function redeemIdle(){redeemBusy=false;if(redeemTimer!==null&&$.CancelScheduled)$.CancelScheduled(redeemTimer);redeemTimer=null;if(valid(redeemInput))redeemInput.enabled=true;if(valid(redeemSubmit))redeemSubmit.enabled=true;}
-        function closeRedeem(){if(valid(redeemHost))redeemHost.visible=false;}
+        function closeRedeem(){if(valid(redeemHost)){redeemHost.hittest=false;redeemHost.hittestchildren=false;U.Motion.SetVisible(redeemHost,false);}}
         function openRedeem(){
             if(!redeemLoaded||!valid(redeemInput)){redeemMessage("兑换窗口暂不可用，请重新进入游戏。");return;}
-            redeemHost.visible=true;if(redeemPending)redeemInput.text=redeemPending.code;
+            redeemHost.hittest=false;redeemHost.hittestchildren=true;U.Motion.SetVisible(redeemHost,true);if(redeemPending)redeemInput.text=redeemPending.code;
             if(redeemInput.SetFocus)redeemInput.SetFocus();
         }
         function submitRedeem(){

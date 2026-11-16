@@ -268,8 +268,8 @@
         // Open the official dashboard; never disconnect/quit or replace its exit flow.
         if(id==="return"){$.DispatchEvent("DOTAHUDShowDashboard");return;}
         if(id==="settings"){$.DispatchEvent("DOTAShowSettingsPopup");return;}
-        if(id==="social"){nodes.HandoffSocial.visible=!nodes.HandoffSocial.visible;return;}
-        var a=actions[id];if(available(id)){nodes.HandoffSocial.visible=false;cfg[a[0]][a[1]]();}else notice("该入口尚未接入");
+        if(id==="social"){var socialOpen=!cfg.SurvivalUI.Motion.IsOpen(nodes.HandoffSocial);nodes.HandoffSocial.hittest=socialOpen;nodes.HandoffSocial.hittestchildren=socialOpen;cfg.SurvivalUI.Motion.SetVisible(nodes.HandoffSocial,socialOpen);return;}
+        var a=actions[id];if(available(id)){nodes.HandoffSocial.hittest=false;nodes.HandoffSocial.hittestchildren=false;cfg.SurvivalUI.Motion.SetVisible(nodes.HandoffSocial,false);cfg[a[0]][a[1]]();}else notice("该入口尚未接入");
     }
     // Screen-width decoration, separate from the corner-anchored navigation canvas.
     // A script reload can retain the HUD host and its old navigation. Retire
@@ -390,7 +390,7 @@
     GameEvents.Subscribe("ui_combat_effects_state",function(payload){if(cfg.HandoffGeneration!==generation)return;fxReduced=Number(payload.reduced)===1;cfg.SurvivalReducedCombatEffects=fxReduced;showEffectsSetting();});
     showEffectsSetting();$.Schedule(1,sendEffectsSetting);
     var social=create("Panel",top,"HandoffSocial",true);social.AddClass("HandoffSocial");place(social,474,94,192,130);social.visible=false;
-    [["SharedUnitsButton","共享单位"],["SharedContentButton","共享内容"],["CombatLogButton","战斗日志"]].forEach(function(a){var b=create("Button",social,"",true);label(b,"","").text=a[1];b.SetPanelEvent("onactivate",function(){if(!blocked()){if(!forward(a[0]))notice(a[1]+"当前不可用");social.visible=false;}});});
+    [["SharedUnitsButton","共享单位"],["SharedContentButton","共享内容"],["CombatLogButton","战斗日志"]].forEach(function(a){var b=create("Button",social,"",true);label(b,"","").text=a[1];b.SetPanelEvent("onactivate",function(){if(!blocked()){if(!forward(a[0]))notice(a[1]+"当前不可用");social.hittest=false;social.hittestchildren=false;cfg.SurvivalUI.Motion.SetVisible(social,false);}});});
     place(label(top,"HandoffNotice"),18,112,480,55);nodes.HandoffNotice.visible=false;
     var enemyCounter=create("Panel",host,"HandoffEnemyCounter",false);enemyCounter.AddClass("HandoffEnemyCounter");enemyCounter.visible=false;
     var enemyTitle=label(enemyCounter,"HandoffEnemyTitle");enemyTitle.text="进攻怪物";
