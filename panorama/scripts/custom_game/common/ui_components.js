@@ -21,7 +21,7 @@
         if(!valid(panel))return;options=options||{};
         var state=panel.__survivalMotion;
         if(state&&state.open===visible)return;
-        if(!state&&!visible){U.Motion.HideNow(panel);if(options.onHidden)options.onHidden();return;}
+        if(!state&&!visible){panel.__survivalMotion={open:false,generation:0,ticket:null};U.Motion.HideNow(panel);if(options.onHidden)options.onHidden();return;}
         if(!state)state=panel.__survivalMotion={open:false,generation:0,ticket:null};
         state.generation++;var generation=state.generation;
         if(state.ticket!==null){$.CancelScheduled(state.ticket);state.ticket=null;}
