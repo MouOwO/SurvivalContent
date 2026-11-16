@@ -3,6 +3,7 @@
     var cfg=GameUI.CustomUIConfig(), root=$.GetContextPanel(), disposed=false;
     if(cfg.SurvivalCommerceWallet&&cfg.SurvivalCommerceWallet.Dispose){try{cfg.SurvivalCommerceWallet.Dispose();}catch(error){if(!/Underlying panel is deleted|deleted Panel/i.test(String(error)))throw error;$.Msg("[CommerceResult] Previous result panel was already deleted.");}}
     var catalog={products:[],categories:[],balances:{}}, inflight=null, draft=null, serial=0, selected=null, pending=cfg.SurvivalCommercePending||null;
+    var productsBySku=Object.create(null);
     var epoch=String(Date.now())+"_"+String(Math.random()).slice(2), shell=null, dialog=null, scrim=null, status=null, copy=null, retry=null, resultTitle=null, resultKind="idle", resultMessage="", resultItem=null, opened=false;
     var labels={u_coin:"G币",shop_points:"商城积分",shop_gold:"商城金币"};
     var invalidationVersion=0,syncedVersion=0,invalidationAttempts=0,invalidationTask=null,stalePrice=false;
@@ -127,8 +128,10 @@
                 if(draft.products.filter(function(p){return !!p;}).length!==draft.count)return;
                 var version=inflight.walletVersion;
                 if(version<invalidationVersion){draft=null;inflight=null;queueInvalidation();return;}
-                catalog=draft;draft=null;inflight=null;syncedVersion=version;invalidationAttempts=0;publish();
-                if(selected){var fresh=catalog.products.filter(function(p){return p.sku===selected.sku;})[0];if(fresh){selected=fresh;stalePrice=false;}}render();
+                catalog=draft;productsBySku=Object.create(null);
+                catalog.products.forEach(function(p){productsBySku[p.sku]=p;});
+                draft=null;inflight=null;syncedVersion=version;invalidationAttempts=0;publish();
+                if(selected){var fresh=productsBySku[selected.sku];if(fresh){selected=fresh;stalePrice=false;}}render();
             }
             return;
         }
@@ -137,7 +140,19 @@
             resultItem=(pending&&pending.item)||selected;
             if(resultItem&&typeof result.price==="number"&&isFinite(result.price)&&result.price>=0&&Object.prototype.hasOwnProperty.call(labels,result.currency)){var receipt={};Object.keys(resultItem).forEach(function(key){receipt[key]=resultItem[key];});receipt.price=result.price;receipt.currency=result.currency;resultItem=receipt;}
             if(ok || result.terminal===true || result.terminal===1)pending=cfg.SurvivalCommercePending=null;
-            if(ok){if(completedVersion===invalidationVersion&&Object.prototype.hasOwnProperty.call(labels,result.currency)&&typeof result.balance==="number"&&isFinite(result.balance)&&result.balance>=0)catalog.balances[result.currency]=result.balance;showResult("success","兑换成功，商品效果已保存。",false);
+            if(ok){if(completedVersion===invalidationVersion&&Object.prototype.hasOwnProperty.call(labels,result.currency)&&typeof result.balance==="number"&&isFinite(result.balance)&&result.balance>=0)catalog.balances[result.currency]=result.balance;
+                var state=result.product_state,owned=state&&state.owned,limit=state&&state.purchase_limit;
+                if(state&&resultItem&&state.sku===resultItem.sku&&state.sku===result.sku
+                    &&typeof owned==="number"&&isFinite(owned)&&owned>=0&&owned<=9007199254740991
+                    &&typeof limit==="number"&&isFinite(limit)&&limit>=0
+                    &&(state.completed===0||state.completed===1)){
+                    var item=productsBySku[state.sku];
+                    if(item){item.owned=owned;if(state.completed===1){item.enabled=false;item.disabled_reason="already_owned";}}
+                    var view=cfg.SurvivalCommerceView;
+                    if(!view||!view.ApplyWalletReceipt||view.ApplyWalletReceipt(state,catalog.balances)===false)publish();
+                    else if(cfg.SurvivalMenuV10&&cfg.SurvivalMenuV10.Refresh)cfg.SurvivalMenuV10.Refresh();
+                }else publish();
+                showResult("success","兑换成功，商品效果已保存。",false);
                 $.Schedule(1.1,function(){if(!disposed)refresh();});}
             else if(result.error==="commerce_price_changed"&&(result.terminal===true||result.terminal===1)){
                 // A changed quote is terminal. Refresh its authoritative replacement;
@@ -159,7 +174,7 @@
             if(disposed||!valid(root))return false;
             if(pending)sku=pending.sku;
             resultItem=null;
-            selected=catalog.products.filter(function(p){return p.sku===sku;})[0]||(pending&&pending.item)||null;
+            selected=productsBySku[sku]||(pending&&pending.item)||null;
             if(inflight){if(inflight.action==="purchase"&&pending)return showResult("pending","正在兑换，请稍候。",true);showResult("failure","商城目录正在同步，请稍后再试。",true);return false;}
             if(!selected){showResult("failure","商品暂不可兑换，请刷新商城后重试。",true);return false;}
             if(stalePrice){showResult("failure","商品价格正在刷新，请稍后返回商城核对。",true);refresh();return false;}

@@ -162,6 +162,7 @@
         icon.style.position="0px 0px 0px";icon.style.width="100%";icon.style.height="100%";icon.style.margin="0px";icon.style.padding="0px";
         var column=priceColumn(),n=layer(t.prefix+"_name"),nameWidth=column.x-(n.x-r.x)-20,names=centeredStack(row,n.x-r.x,nameWidth,r.height,"BLMarketNameColumn"),name=flowText(names,displayName(item,item.title||item.sku||"").replace(/\s*[·•]\s*永久\s*$/,""),"BLMarketName");
         var owned=flowText(names,props.readOnly?"持有 —":Number(item.owned)>0?"已拥有 "+item.owned:"","BLMarketOwned");owned.visible=props.readOnly||Number(item.owned)>0;owned.style.marginTop="2px";
+        row.__commerceOwnedLabel=owned;
         var primary="价格待同步",cost=item.price;
         var isU=item.currency==="u_coin"||item.u_coin_price!==undefined||item.u_coin_per_yuan!==undefined;
         if(item.purchase_method==="wallet"&&typeof cost==="number"&&isFinite(cost)&&cost>=0)primary=cost+" "+(item.currency_name||"");

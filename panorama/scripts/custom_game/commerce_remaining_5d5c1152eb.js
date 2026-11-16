@@ -15,6 +15,10 @@
     if (!U || !R || !J) { delete cfg.SurvivalCommerceView; return; }
     var disposed=false, category="home", page=0, catalog={products:[],categories:[]}, revision="", opened=false, ticketRequest=false,detailsDisposed=false,purchaseType="all";
     var batchSize=20, listItems=[], loadedCount=0, loadTimer=null, loadEpoch=0;
+    var productsBySku={}, productShapes={}, productStates={}, rowCardsBySku={}, listPositions={};
+    var listCount=0, emptyRow=null, categoriesSignature="", sidebarDirty=false;
+    var sidebarGroups=[], sidebarMemberships={}, sidebarListed={};
+    var costs={full_builds:0,input_rows:0,removed_rows:0,updated_rows:0,receipt_updates:0};
     var paidCatalog={products:[],categories:[]}, walletCatalog={products:[],categories:[],balances:{}};
     // Public build quotes have their own presentation state. They never replace
     // authenticated balances, ownership, eligibility or payment catalogues.
@@ -32,7 +36,10 @@
         detailsDisposed=true;
     }
     function rebuildDetails(){if(valid(grid))grid.Children().forEach(function(p){if(valid(p)&&p.__purpleRebuildDetail)p.__purpleRebuildDetail();});detailsDisposed=false;}
-    function hideCheckoutDetails(){if(valid(grid))grid.Children().forEach(function(p){if(valid(p)&&p.__purpleHide)p.__purpleHide();});}
+    function hideCheckoutDetails(item){
+        if(item){var card=rowCardsBySku[item.sku];if(valid(card)&&card.__purpleHide)card.__purpleHide();return;}
+        if(valid(grid))grid.Children().forEach(function(p){if(valid(p)&&p.__purpleHide)p.__purpleHide();});
+    }
     function stopLoading() { loadEpoch++;if(loadTimer!==null&&$.CancelScheduled)$.CancelScheduled(loadTimer);loadTimer=null; }
     function close() {
         opened=false;ticketRequest=false;stopLoading();hideDetails();if(store&&store.menu)store.menu.Close();
@@ -47,18 +54,21 @@
     var notice=text(store.canvas,"正在加载商品…","RCNotice"),pager=panel("Panel",store.actions,"CJPager");
     if(M){notice.AddClass("BLMarketNotice");pager.visible=false;}
     function appendProduct(item,i,bundles) {
-        var props={rewards:rows(item.reward_lines),effect:item.description||rewardText(item),purchaseLabel:purchaseLabel(item),action:function(){checkout(item);},detailLayer:store.detailLayer,menu:store.menu};
+        var props={rewards:rows(item.reward_lines),effect:item.description||rewardText(item),purchaseLabel:purchaseLabel(item),action:function(){checkout(productsBySku[item.sku]||item);},detailLayer:store.detailLayer,menu:store.menu};
         props.index=i;props.catalog=catalog;props.readOnly=!!readonlyCatalog;
         if(props.readOnly)props.effect=readonlyDetail(item);
         var card=M?M.Row(grid,item,props):bundles?J.Bundle(grid,item,props):J.Product(grid,item,props);
         if(props.readOnly)card.__readonlyOffer=item.offer_id;
+        rowCardsBySku[item.sku]=card;
+        card.__commerceItem=item;
+        card.__commerceProps=props;
         store.menu.DecorateCell(card,{index:i,keep:true,item:item,iconPanel:card.__menuCell.iconPanel,
             namePanel:card.__menuCell.namePanel,countPanel:card.__menuCell.countPanel});
     }
     function appendBatch() {
         if(!live()||!M)return;
         var end=Math.min(loadedCount+batchSize,listItems.length);
-        for(;loadedCount<end;loadedCount++)appendProduct(listItems[loadedCount],loadedCount,false);
+        for(;loadedCount<end;loadedCount++)if(listItems[loadedCount])appendProduct(listItems[loadedCount],loadedCount,false);
     }
     function watchLoading() {
         if(!M||!opened||!live()||loadedCount>=listItems.length||loadTimer!==null)return;
@@ -85,11 +95,11 @@
             return false;
         }
         if(item && item.purchase_method==="wallet"){
-            if(cfg.SurvivalCommerceWallet && cfg.SurvivalCommerceWallet.Checkout(item.sku)){hideCheckoutDetails();return true;}
+            if(cfg.SurvivalCommerceWallet && cfg.SurvivalCommerceWallet.Checkout(item.sku)){hideCheckoutDetails(item);return true;}
             return false;
         }
         if(disposed || !item || !cfg.SurvivalPayments || !cfg.SurvivalPayments.Checkout)return false;
-        if(cfg.SurvivalPayments.Checkout(item.sku)){hideCheckoutDetails();return true;}
+        if(cfg.SurvivalPayments.Checkout(item.sku)){hideCheckoutDetails(item);return true;}
         return false;
     }
     function enabled(value){return value===true || value===1;}
@@ -133,11 +143,23 @@
     }
     function render() {
         if(!live())return;
-        stopLoading();listItems=[];loadedCount=0;
+        stopLoading();listItems=[];loadedCount=0;listCount=0;emptyRow=null;
+        rowCardsBySku={};listPositions={};sidebarDirty=false;costs.full_builds++;
         hideDetails();
         tabs.RemoveAndDeleteChildren();grid.RemoveAndDeleteChildren();pager.RemoveAndDeleteChildren();
         detailsDisposed=false;
         var categories=groups(), products=rows(catalog.products).filter(function(item){return !!readonlyCatalog||!M||K.IsListed(item);});
+        sidebarGroups=categories.map(function(group){return {id:group.id,label:group.label,count:group.count};});
+        sidebarMemberships={};sidebarListed={};
+        if(M&&!readonlyCatalog){
+            var home={};rows(K.HomeProducts(catalog.products)).forEach(function(item){home[item.sku]=true;});
+            products.forEach(function(item){
+                sidebarListed[item.sku]=true;
+                sidebarMemberships[item.sku]=sidebarGroups.map(function(group,index){
+                    return (group.id==="home"?home[item.sku]:K.InGroup(item,group.id))?index:-1;
+                }).filter(function(index){return index>=0;});
+            });
+        }
         if(!categories.some(function(c){return c.id===category;})) category=(categories[0]||{}).id||"home";
         store.menu.SetSidebar(categories.map(function(c){return {id:c.id,label:c.label,count:c.count};}),category,function(id){category=id;page=0;render();});
         refreshResources();
@@ -148,8 +170,8 @@
         var bundles=items.length>0 && items.every(function(p){return p.product_type==="bundle";});grid.SetHasClass("RCBundles",bundles);
         notice.text=noticeText();
         if(M&&store.content.ScrollToTop)store.content.ScrollToTop();
-        if(categories.length && !items.length) { text(grid,purchaseType==="all"?"本分类暂无上架商品":"本分类暂无"+({shop_points:"积分",u_coin:"G币"}[purchaseType]||"")+"商品","CJEmpty");return; }
-        if(M){page=0;listItems=items;appendBatch();watchLoading();return;}
+        if(categories.length && !items.length) { emptyRow=text(grid,purchaseType==="all"?"本分类暂无上架商品":"本分类暂无"+({shop_points:"积分",u_coin:"G币"}[purchaseType]||"")+"商品","CJEmpty");return; }
+        if(M){page=0;listItems=items;listCount=items.length;items.forEach(function(item,i){listPositions[item.sku]=i;});appendBatch();watchLoading();return;}
         var perPage=24,totalPages=Math.max(1,Math.ceil(items.length/perPage));page=Math.max(0,Math.min(page,totalPages-1));
         items.slice(page*perPage,(page+1)*perPage).forEach(function(item,i){
             appendProduct(item,i,bundles);
@@ -159,12 +181,78 @@
             turn("上一页",-1,page>0);text(pager,(page+1)+" / "+totalPages+" · "+items.length+"件","CJPageLabel");turn("下一页",1,page<totalPages-1);
         }
     }
+    function productShape(p) {
+        return JSON.stringify([p.sku,p.purchase_limit,p.required_vip_level,p.original_price,p.original_u_coin_price,
+            p.price_policy,p.amount_fen,p.price,p.currency,p.u_coin_price,p.u_coin_per_yuan,p.purchase_method,
+            p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines,p.currency_name,
+            p.source_id,p.sort_order,p.preview_only,p.home_unavailable,p.read_only,p.offer_id]);
+    }
+    function productState(p) { return JSON.stringify([p.enabled,p.owned,p.max_quantity,p.disabled_message,p.disabled_reason]); }
+    function removeSidebarProduct(sku){
+        if(!sidebarListed[sku])return;
+        sidebarListed[sku]=false;
+        (sidebarMemberships[sku]||[]).forEach(function(index){sidebarGroups[index].count=Math.max(0,Number(sidebarGroups[index].count||0)-1);});
+        sidebarDirty=true;
+    }
+    function refreshCachedSidebar(){
+        if(!sidebarDirty)return;
+        store.menu.SetSidebar(sidebarGroups,category,function(id){category=id;page=0;render();});sidebarDirty=false;
+    }
+    function removeProductRow(sku) {
+        removeSidebarProduct(sku);
+        var position=listPositions[sku];
+        if(position!==undefined){listItems[position]=null;delete listPositions[sku];listCount--;}
+        var card=rowCardsBySku[sku];
+        if(valid(card)){
+            if(card.__purpleDispose)card.__purpleDispose();
+            card.visible=false;card.hittest=false;card.hittestchildren=false;card.DeleteAsync(0);
+            costs.removed_rows++;
+        }
+        delete rowCardsBySku[sku];
+        if(M&&listCount===0&&!emptyRow){emptyRow=text(grid,"本分类暂无上架商品","CJEmpty");}
+    }
+    function updateProductRow(item) {
+        var position=listPositions[item.sku],card=rowCardsBySku[item.sku];
+        if(position!==undefined)listItems[position]=item;
+        if(!valid(card))return;
+        // Keep all unrelated rows, scroll position and hover bindings intact.
+        var displayed=card.__commerceItem;
+        ["enabled","owned","max_quantity","disabled_message","disabled_reason"].forEach(function(key){displayed[key]=item[key];});
+        card.__commerceProps.purchaseLabel=purchaseLabel(item);
+        if(card.__commerceOwnedLabel){var label=card.__commerceOwnedLabel;label.text=Number(item.owned)>0?"已拥有 "+item.owned:"";label.visible=Number(item.owned)>0;}
+        if(card.__purpleRebuildDetail)card.__purpleRebuildDetail();
+        costs.updated_rows++;
+    }
+    function applyWalletReceipt(state,balances) {
+        if(!live()||readonlyCatalog)return false;
+        var item=state&&productsBySku[state.sku];if(!item)return false;
+        costs.receipt_updates++;walletCatalog.balances=balances;
+        item.owned=state.owned;
+        if(state.completed===1){item.enabled=false;item.disabled_reason="already_owned";}
+        productStates[item.sku]=productState(item);
+        if(M&&!K.IsListed(item))removeProductRow(item.sku);else updateProductRow(item);
+        productStates[item.sku]=productState(item);refreshCachedSidebar();
+        refreshResources();costs.receipt_updates++;return true;
+    }
     function update(data) {
         if(!live())return;
         catalog=data||{products:[],categories:[]};
-        // Keep hovered cards stable when only numeric previews have changed.
-        var next=JSON.stringify({categories:catalog.categories,hash:catalog.catalog_hash,products:rows(catalog.products).map(function(p){return [p.sku,p.enabled,p.owned,p.purchase_limit,p.max_quantity,p.required_vip_level,p.disabled_message,p.original_price,p.original_u_coin_price,p.price_policy,p.amount_fen,p.price,p.currency,p.u_coin_price,p.u_coin_per_yuan,p.purchase_method,p.disabled_reason,p.title,p.description,p.category_id,p.product_type,p.icon,p.reward_lines];})});
-        if(next!==revision){revision=next;render();}
+        var categoryKey=JSON.stringify(catalog.categories),rebuild=!revision||!M||!!readonlyCatalog||categoryKey!==categoriesSignature;
+        var next={},shapes={},states={},changed=[],removed=[];
+        rows(catalog.products).forEach(function(item){
+            costs.input_rows++;var id=item.sku,shape=productShape(item),state=productState(item),previous=productsBySku[id];
+            if(!previous||productShapes[id]!==shape)rebuild=true;
+            else if(productStates[id]!==state){changed.push(item);if(!K.IsListed(previous)&&K.IsListed(item))rebuild=true;}
+            next[id]=item;shapes[id]=shape;states[id]=state;
+        });
+        Object.keys(productsBySku).forEach(function(id){if(!next[id])removed.push(id);});
+        productsBySku=next;productShapes=shapes;productStates=states;categoriesSignature=categoryKey;revision="indexed";
+        if(rebuild)render();
+        else{
+            removed.forEach(removeProductRow);
+            changed.forEach(function(item){if(!K.IsListed(item))removeProductRow(item.sku);else updateProductRow(item);});
+            refreshCachedSidebar();
+        }
         // Updating a connection notice must not destroy hovered cards or clear products.
         notice.text=noticeText();refreshResources();
         if(ticketRequest){
@@ -283,7 +371,8 @@
         SelectCategory:function(id){if(!live())return false;var choices=groups();if(!choices.some(function(c){return c.id===id;}))return false;category=id;page=0;render();return true;},
         RefreshPaymentCapability:function(){if(!live())return;if(store.menu.SetReadonly)store.menu.SetReadonly(!!readonlyCatalog);mergeCatalogs();},
         SelectPurchaseType:selectPurchaseType,
-        Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},IsOpen:function(){return opened;},
+        InspectPerformance:function(){return JSON.parse(JSON.stringify(costs));},
+        Close:close,UpdateCatalog:updatePaid,UpdateWalletCatalog:function(data){walletCatalog=data;mergeCatalogs();},ApplyWalletReceipt:applyWalletReceipt,IsOpen:function(){return opened;},
         OpenRecharge:function(){
             var payments=cfg.SurvivalPayments;
             if(!live()||readonlyCatalog||arcadeReadonly()||!realMoneyEnabled()||!payments||!payments.Checkout)return false;
@@ -308,7 +397,7 @@
         },
         Inspect:function(){var path=[],p=store&&store.panel,hasPanel=valid(p);while(valid(p) && path.length<10){path.push({id:p.id,classes:p.GetClasses?p.GetClasses():[],visible:p.visible,width:p.actuallayoutwidth,height:p.actuallayoutheight,visibility:p.style.visibility,opacity:p.style.opacity,z:p.style.zIndex,clip:p.style.clip});p=p.GetParent();}
             return {category:category,purchaseType:purchaseType,page:page,opened:opened,readOnly:!!readonlyCatalog,valid:hasPanel,visible:hasPanel?store.panel.visible:false,
-            batchSize:M?batchSize:24,loadedProductCount:loadedCount,filteredProductCount:listItems.length,hasMoreProducts:loadedCount<listItems.length,
+            batchSize:M?batchSize:24,loadedProductCount:loadedCount,filteredProductCount:listCount,hasMoreProducts:loadedCount<listItems.length,
             scroll:valid(store.content)?{height:store.content.actuallayoutheight,contentHeight:store.content.contentheight,offset:store.content.scrolloffset_y}:null,
             layout:M?"black_lion_list":"archive_v10",skinVersion:store.menu.skinVersion||0,referenceWidth:store.menu.width,referenceHeight:store.menu.height,groups:groups(),width:hasPanel?store.panel.actuallayoutwidth:0,height:hasPanel?store.panel.actuallayoutheight:0,
             productCount:rows(catalog.products).filter(function(item){return !!readonlyCatalog||!M||K.IsListed(item);}).length,catalogProductCount:rows(catalog.products).length,

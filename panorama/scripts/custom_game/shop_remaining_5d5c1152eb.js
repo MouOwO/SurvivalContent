@@ -17,6 +17,8 @@
     var entryCardsById = {};
     var autoBookButtons = {};
     var renderedStructureSignature = "";
+    var renderedListContext = "", visibleCardCount = 0, emptyLabel = null;
+    var purchasedRemovals = {}, pendingShopPurchases = {};
     var cooldownAnimationSerial = 0;
     var pendingTechnologyPurchases = {};
     var snapshotRequest = null;
@@ -47,6 +49,7 @@
     });
     try { $.RegisterEventHandler("PanelDeleted",$.GetContextPanel(),function(){
         drawerOpened=false;cooldownAnimationSerial++;
+        pendingShopPurchases={};purchasedRemovals={};
         if(walletLane)walletLane.Close();
     }); } catch(ignored) {}
 
@@ -456,6 +459,10 @@
     }
 
     function entryCompleted(entry) {
+        if (entry && entry.content_type !== "technology" && entry.content_type !== "challenge" && entry.content_type !== "rebirth") {
+            return purchasedRemovals[entry.entry_id] === true || (Number(entry.purchase_limit) > 0
+                && Number(entry.owned_count) >= Number(entry.purchase_limit));
+        }
         return usesTechnologyPrerequisites(entry)
             && (Number(entry.completed) === 1 || Number(entry.removed) === 1);
     }
@@ -488,8 +495,10 @@
         setStatus(entry.content_type === "technology"
             ? ("正在开始研究 " + displayName(entry,entry.name) + "……")
             : ("正在购买 " + displayName(entry,entry.name) + "……"), false);
+        var purchaseId = requestId("shop_buy");
+        if (currentMode === "shop") pendingShopPurchases[purchaseId] = entry.entry_id;
         GameEvents.SendCustomGameEventToServer("ui_shop_purchase_request", {
-            request_id: requestId("shop_buy"),
+            request_id: purchaseId,
             entry_id: entry.purchase_entry_id || entry.entry_id,
             mode: currentMode,
             source_entindex: researchSourceEntindex
@@ -672,14 +681,16 @@
             earlyCooldownCards[entry.entry_id]=true;
     }
 
+    function entryOnShelf(entry) {
+        if (!entry || entry.visible !== 1 || entryCompleted(entry)) return false;
+        if (currentMode !== "shop") return true;
+        var other = (entry.shop_id || entry.category_id) === "item" || entry.content_id === "service_early_final_boss";
+        return shopCategory === "other" ? other : !other;
+    }
+
     function visibleEntries() {
         var entries = asArray(snapshot && snapshot.entries).filter(function (entry) {
-            if (!entry || entry.visible !== 1 || entryCompleted(entry)) return false;
-            if (currentMode !== "shop") return true;
-            // Use the real category when supplied. Older snapshots keep their
-            // equipment/items in the first tab rather than hiding unknown rows.
-            var other = (entry.shop_id || entry.category_id) === "item" || entry.content_id === "service_early_final_boss";
-            return shopCategory === "other" ? other : !other;
+            return entryOnShelf(entry);
         });
         entries.sort(function (a, b) {
             var sectionOrder = function (entry) {
@@ -721,17 +732,44 @@
     if (typeof CustomNetTables !== "undefined") CustomNetTables.SubscribeNetTableListener("survival_shop_config", function(table, key) {
         if (key === "auto_purchase_" + Game.GetLocalPlayerID()) updateAutoBookButtons();
     });
+    function removeEntryCard(id) {
+        var card = entryCardsById[id];
+        if (!card) return;
+        var tooltip = GameUI.CustomUIConfig().SurvivalShopTooltip;
+        if (tooltip && tooltip.Inspect && tooltip.Inspect().entry === id) tooltip.Hide();
+        setProperty(card, "visible", false); setProperty(card, "hittest", false);
+        if (card.DeleteAsync) card.DeleteAsync(0);
+        delete entryCardsById[id]; delete autoBookButtons[id]; delete technologyCards[id];
+        delete earlyCooldownCards[id]; delete previousCooldownCards[id];
+        var group = String(card.__survivalTechnologyGroup || "");
+        if (cooldownGroups[group]) delete cooldownGroups[group][id];
+        visibleCardCount--; costs.removed_cards = (costs.removed_cards || 0) + 1;
+    }
+
+    function showEmptyShelf(list) {
+        if (visibleCardCount || emptyLabel) return;
+        emptyLabel = $.CreatePanel("Label", list, ""); emptyLabel.AddClass("ShopEmptyLabel");
+        emptyLabel.text = "该分类当前没有可显示内容";
+    }
+
     function renderItems() {
         if (currentMode === "shop" || currentMode === "challenge") lastShopMode = currentMode;
         var list = byId("ShopItemList");
         if (!list || !snapshot || !drawerOpened) return;
         var nextSignature = currentMode+"|"+shopCategory+"|"+structureRevision;
-        if (nextSignature === renderedStructureSignature) {
-            // A category refresh can leave the layout unchanged after a purchase.
-            // Still apply availability/stock updates to the existing cards.
-            Object.keys(dirtyEntries).forEach(function(id) {
-                updateEntryCard(entryCardsById[id], entriesById[id]);
-            });
+        var context = currentMode + "|" + shopCategory;
+        // Availability/removals only visit dirty IDs. A real mode/category,
+        // addition or art/order change still rebuilds the configured shelf.
+        var rebuild = context !== renderedListContext;
+        if (!rebuild) rebuild = Object.keys(dirtyEntries).some(function(id) {
+            var entry = entriesById[id], card = entryCardsById[id];
+            if (!entryOnShelf(entry)) { removeEntryCard(id); return false; }
+            if (!card || card.__survivalEntryShape !== entryShapes[id]) return true;
+            updateEntryCard(card, entry); return false;
+        });
+        if (!rebuild) {
+            renderedStructureSignature = nextSignature;
+            showEmptyShelf(list);
             updateAllCooldownOverlays();
             return;
         }
@@ -740,6 +778,7 @@
         updateShopLayout(entries);
         autoBookButtons = {};
         renderedStructureSignature = nextSignature;
+        renderedListContext = context; visibleCardCount = entries.length; emptyLabel = null;
         entryCardsById = {};
         cooldownGroups={}; technologyCards={}; earlyCooldownCards={}; previousCooldownCards={};
         cooldownLocksActive=false;
@@ -780,6 +819,8 @@
             card.SetHasClass("AutoResearchActive", entry.auto_research_enabled === 1);
             card.SetAttributeString("entry_id", entry.entry_id || "");
             entryCardsById[entry.entry_id] = card;
+            card.__survivalEntryShape = entryShapes[entry.entry_id];
+            card.__survivalTechnologyGroup = entry.technology_group;
             if(entry.content_type==="technology"){
                 technologyCards[entry.entry_id]=true;
                 var group=String(entry.technology_group||"");
@@ -876,11 +917,7 @@
         });
         updateAutoBookButtons();
 
-        if (entries.length === 0) {
-            var empty = $.CreatePanel("Label", list, "");
-            empty.AddClass("ShopEmptyLabel");
-            empty.text = "该分类当前没有可显示内容";
-        }
+        showEmptyShelf(list);
         updateAllCooldownOverlays();
     }
 
@@ -1056,6 +1093,13 @@
             return;
         }
         if (payload.operation !== "shop_purchase") return;
+        var confirmed = !!payload.request_id && pendingShopPurchases[payload.request_id] === payload.entry_id;
+        if (confirmed) delete pendingShopPurchases[payload.request_id];
+        if (confirmed && payload.success === 1 && payload.remove_from_shop === 1) {
+            purchasedRemovals[payload.entry_id] = true;
+            dirtyEntries[payload.entry_id] = true; contentRevision++;
+            if (currentMode === "shop") renderSnapshot(false);
+        }
         pendingTechnologyPurchases = {};
         if (payload.success !== 1) {
             // The UI request router owns exactly one failure notification.
@@ -1103,7 +1147,7 @@
     GameEvents.Subscribe("ui_shop_force_open", onForceOpen);
     GameEvents.Subscribe("ui_operation_result", onResult);
     GameUI.CustomUIConfig().SurvivalShop = {
-        DisposeWallet:function(){drawerOpened=false;cooldownAnimationSerial++;if(walletLane)walletLane.Close();},
+        DisposeWallet:function(){drawerOpened=false;cooldownAnimationSerial++;pendingShopPurchases={};purchasedRemovals={};if(walletLane)walletLane.Close();},
         Open: open,
         SelectShop: selectShop,
         SelectOther: selectOther,
