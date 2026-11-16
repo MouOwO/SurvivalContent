@@ -269,7 +269,7 @@
                 </Panel>
                 <Panel id="ShopTitleBlock">
                     <Label id="ShopTitle" text="生存商店" />
-                    <Label id="ShopSubtitle" text="右键购买 · 每次打开均从服务器同步" />
+                    <Label id="ShopSubtitle" text="武器装备 · 道具材料 · 提前终战" />
                 </Panel>
                 <Button id="ShopCloseButton" onactivate="GameUI.CustomUIConfig().SurvivalShop.Close()">
                     <Label text="×" />
@@ -277,9 +277,7 @@
             </Panel>
             <Panel id="ShopBody">
                 <Panel id="ShopShelfArea">
-                    <Panel id="ShopLoading">
-                        <Label text="正在向服务器请求商店数据……" />
-                    </Panel>
+                    <Panel id="ShopLoading" />
                     <Panel id="ShopItemList" />
                 </Panel>
             </Panel>

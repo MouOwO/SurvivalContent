@@ -222,12 +222,8 @@
         // Keep existing cards alive during an in-place refresh. Hiding the list
         // dismisses Panorama hover state even when the server changes only gold.
         setLoading(!snapshotMatchesContext(snapshot));
-        setStatus(
-            currentMode === "research" ? "正在同步科技……"
-                : (currentMode === "challenge" ? "正在同步挑战……"
-                    : "正在同步服务器商店……"),
-            false
-        );
+        setStatus(currentMode === "research" ? "正在同步科技……"
+            : (currentMode === "challenge" ? "正在同步挑战……" : ""), false);
         GameEvents.SendCustomGameEventToServer("ui_shop_open_request", {
             request_id: snapshotRequest.id,
             known_sequence: latestSequence,
@@ -235,6 +231,18 @@
             source_entindex: researchSourceEntindex,
             hud_wallet: walletLane ? walletLane.RequestFlag() : 0
         });
+    }
+
+    function showLocalShop() {
+        if (currentMode !== "shop" || snapshotMatchesContext(snapshot)) return;
+        var catalog = GameUI.CustomUIConfig().SurvivalUICatalog;
+        var seed = catalog && catalog.Data.auxiliary.shop_preview;
+        if (!seed) return;
+        // Copy only on a real shelf-context change. The shared catalogue stays
+        // frozen; this display seed never advances the transport sequence.
+        snapshot = {ui_mode:"shop",local_preview:1,entries:JSON.parse(JSON.stringify(seed.entries)),resources:{}};
+        rememberRoot(snapshot, true);
+        indexEntries(snapshot.entries);
     }
 
     function updateModeText() {
@@ -329,6 +337,7 @@
         hideValveShopWindow();
         if (!byId("CustomShopWindow")) return;
         if (!drawerOpened) setOpenState(true);
+        showLocalShop();
         updateModeText();
         renderSnapshot(true);
         requestSnapshot();
@@ -458,6 +467,7 @@
 
     function purchase(entry) {
         if (!drawerOpened || !snapshotMatchesContext(snapshot)) return;
+        if (snapshot.local_preview === 1) return;
         if (earlyFinalCooldownRemaining(entry) > 0) return;
         if (entryUnavailable(entry) || entryCompleted(entry)) {
             showPurchaseFailure(entry && entry.disabled_reason);
@@ -855,6 +865,7 @@
                 var bookEntryId = entry.entry_id;
                 autoBookButtons[bookEntryId] = autoButton;
                 autoButton.SetPanelEvent("onactivate", function() {
+                    if (!drawerOpened || !snapshotMatchesContext(snapshot) || snapshot.local_preview === 1) return true;
                     GameEvents.SendCustomGameEventToServer("ui_shop_auto_purchase_toggle_request", {entry_id:bookEntryId});
                     return true;
                 });
@@ -874,6 +885,7 @@
     }
 
     function renderResources() {
+        if (snapshot && snapshot.local_preview === 1) { setText("ShopResourceSummary", ""); return; }
         var resources = snapshot && snapshot.resources || {};
         setText(
             "ShopResourceSummary",
@@ -883,7 +895,7 @@
     }
 
     function mergePatch(payload) {
-        if (!snapshot || Number(payload.base_sequence || 0) !== latestSequence) {
+        if (!snapshot || snapshot.local_preview === 1 || Number(payload.base_sequence || 0) !== latestSequence) {
             if (drawerOpened && rejectedPatchSequence !== Number(payload.sequence || 0)) {
                 rejectedPatchSequence = Number(payload.sequence || 0);
                 if (snapshotRequest && snapshotRequest.resync && Date.now() - snapshotRequest.started < 10000) return null;
@@ -956,7 +968,7 @@
         setStatus(
             currentMode === "research"
                 ? "科技已同步"
-                : (currentMode === "challenge" ? "挑战已同步" : "商店数据已同步"),
+                : (currentMode === "challenge" ? "挑战已同步" : ""),
             false
         );
     }
@@ -1058,7 +1070,7 @@
         }
         setStatus(currentMode === "research"
             ? "已开始研究，请等待进度完成……"
-            : "购买成功，正在刷新商店状态……", false);
+            : "购买成功", false);
     }
 
     function bindNativeShopOpen() {
@@ -1104,6 +1116,7 @@
         SetUnlocks: setUnlocks,
         PurchaseEntry: function (id) { var entry = entryById(id); if (entry) purchase(entry); },
         ToggleAutoPurchaseEntry: function (id) {
+            if (!drawerOpened || !snapshotMatchesContext(snapshot) || snapshot.local_preview === 1) return;
             if (id !== "shop_item_knowledge_book" && id !== "shop_item_super_knowledge_book") return;
             GameEvents.SendCustomGameEventToServer("ui_shop_auto_purchase_toggle_request", {entry_id:id});
         },
