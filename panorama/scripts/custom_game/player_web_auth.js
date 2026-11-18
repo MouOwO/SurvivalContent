@@ -73,7 +73,12 @@
             || value.diagnostic_status < 0 || value.diagnostic_status > 599
             || value.diagnostic_status !== Math.floor(value.diagnostic_status)) return null;
         return {diagnostic_revision: diagnosticRevision, diagnostic_phase: value.diagnostic_phase,
-            diagnostic_stage: value.diagnostic_stage, diagnostic_status: value.diagnostic_status};
+            diagnostic_stage: value.diagnostic_stage, diagnostic_status: value.diagnostic_status,
+            diagnostic_factory: typeof value.diagnostic_factory === "string"
+                && value.diagnostic_factory.length === 2 && /^[mnotis]{2}$/.test(value.diagnostic_factory)
+                ? value.diagnostic_factory : "",
+            diagnostic_host: value.diagnostic_host === "d" || value.diagnostic_host === "l"
+                || value.diagnostic_host === "u" ? value.diagnostic_host : ""};
     }
     function request() {
         if (!valid() || !gated()) return;
@@ -90,7 +95,9 @@
         statusLabel.text = visible ? messages[personal.status] || messages.failed : "";
         if (visible && personal.diagnostic_revision === diagnosticRevision) {
             statusLabel.text += "\n(" + diagnosticRevision + " / " + personal.diagnostic_phase
-                + " / " + personal.diagnostic_stage + " / " + personal.diagnostic_status + ")";
+                + " / " + personal.diagnostic_stage + " / " + personal.diagnostic_status
+                + (personal.diagnostic_factory ? " / F:" + personal.diagnostic_factory : "")
+                + (personal.diagnostic_host ? " / H:" + personal.diagnostic_host : "") + ")";
         }
         openButton.enabled = !!uri;
         retryButton.enabled = !!visible;
@@ -120,6 +127,8 @@
             personal.diagnostic_phase = diagnostic.diagnostic_phase;
             personal.diagnostic_stage = diagnostic.diagnostic_stage;
             personal.diagnostic_status = diagnostic.diagnostic_status;
+            personal.diagnostic_factory = diagnostic.diagnostic_factory;
+            personal.diagnostic_host = diagnostic.diagnostic_host;
         }
         render();
     }
