@@ -85,7 +85,7 @@
     function queuePaint(data){
         if(!active()||!opened||!data||data.category_id!==current)return;
         var previous=paintPages[current],keepViewport=previous&&visiblePaintPage===previous&&previous.mode===filterMode
-            &&(previous.cards.length>=pageCapacity(current)||paintJob&&paintJob.page===previous&&paintJob.keepViewport);
+            &&(previous.ready&&previous.cards.length>0||previous.cards.length>=pageCapacity(current)||paintJob&&paintJob.page===previous&&paintJob.keepViewport);
         var page=paintPage(data),category=current;
         if(paintJob&&paintJob.page===page&&paintJob.source===data&&paintJob.mode===filterMode&&paintJob.foreground)return;
         stopPaint();activatePaintPage(page);
@@ -141,6 +141,7 @@
         var columns=job.category==="points"||job.category==="commerce_goods"?7:1,pitch=columns===7?116:82;
         // Grow only this host, allowing the prepared viewport to respond while more rows stream.
         var height=(Math.ceil(page.cards.length/columns)*pitch)+"px";
+        if(job.keepViewport&&page.cursor<job.target)height=Math.max(parseFloat(page.height)||0,parseFloat(height))+"px";
         if(page.height!==height){page.host.style.height=height;page.height=height;}
         if(job.foreground&&voidView.SetLoading)voidView.SetLoading(page.cursor<rows.length,page.cursor,rows.length,!job.keepViewport&&page.cards.length<pageCapacity(job.category)&&page.cursor<rows.length);
         if(page.cursor<job.target){paintTimer=later(job.foreground?.017:.05,function(){paintTimer=null;paintSlice(job);});return;}
