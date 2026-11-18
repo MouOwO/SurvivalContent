@@ -17,6 +17,7 @@
     var active=false,disposed=false,current="",rows=[],categoryRows=[],filters={},balances=[],moved=[],subscriptions=[],sidebarKey="",hover=null,displayKey="";
     var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="",panelCache={};
     var incrementalSlots={},incrementalPositions={},incrementalMode="",incrementalOwned=0,incrementalKnown=0;
+    var loadingPanel=null,loadingText=null;
     var order=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","commerce_goods","shop","endless","fishing","building","starjoy_points","titles"];
     var names={clear:"通关存档",shadow:"破碎之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"动漫挑战",ex:"二次元挑战",wife:"二次元挑战2",concubine:"我的侍妾",beast:"祥瑞挑战",starjoy_points:"曙光积分",titles:"称号"};
     var layers=D.layers;layers.forEach(function(layer){if(layer.kind==="text")textSpecs[layer.id]=layer;});
@@ -89,6 +90,10 @@
         filterMenu=make("Panel",canvas,"ArchiveV10FilterMenu","ArchiveParchmentFilterMenu");pos(filterMenu,48,226,narrow(290),111);cfg.SurvivalUI.Motion.SetVisible(filterMenu,false);filterMenu.hittest=false;filterMenu.hittestchildren=false;
         ["all","unlocked","locked"].forEach(function(mode,i){var button=make("Button",filterMenu,"ArchiveV10Filter_"+mode,"ArchiveV10Button ArchiveParchmentFilterOption");pos(button,1,1+i*36,narrow(288),36);var text=label(button,["全部存档","已解锁 / 已拥有","未解锁 / 未拥有"][i],10,5,narrow(260),29,20,"#f5ecd5");button.SetPanelEvent("onactivate",function(){if(!alive()||!valid(button))return;cfg.SurvivalUI.Motion.SetVisible(filterMenu,false);filterMenu.hittest=false;filterMenu.hittestchildren=false;hideTooltip();p("ArchiveGrid").ScrollToTop();cfg.SurvivalArchive.Filter(mode);});filters[mode]={panel:button,text:text};});
         buildTooltip();
+        loadingPanel=make("Panel",canvas,"ArchiveV10Loading","ArchiveV10Loading");pos(loadingPanel,contentX(385),235,767,577);
+        loadingPanel.hittest=false;loadingPanel.hittestchildren=false;loadingPanel.visible=false;
+        var spinner=make("Panel",loadingPanel,"ArchiveV10LoadingSpinner","ArchiveV10LoadingSpinner");
+        loadingText=label(loadingPanel,"正在准备存档…",203,300,360,30,21,"#e8d4a6","center","ArchiveV10LoadingText");
     }
     function enter(options){var opening=!active;fitOptions=options||fitOptions;if(fitOptions)fitOptions.reference=size.slice();if(!valid(canvas))build();active=true;canvas.visible=true;var win=p("ArchiveWindow");if(opening)win.__v10Style={};win.AddClass("ArchiveV10Page");win.AddClass("ArchiveParchmentPage");style(win,{width:size[0]+"px",height:size[1]+"px",padding:"0px",margin:"0px",flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderTop:"0px",borderBottom:"0px",borderRadius:"0px",boxShadow:"none",overflow:"noclip"});fit();}
     function categoryName(id){var row=categoryRows.filter(function(x){return x.id===id;})[0];return names[id]||row&&row.name||id;}
@@ -204,7 +209,7 @@
         if(note&&base.indexOf(note)<0)status.text=base?base+"　·　"+note:note;
         if(current==="titles"&&!(data&&Number(data.pending)===1))status.text="";
     }
-    function render(data,category,mode,categories,options){
+    function render(data,category,mode,categories,options,prepared){
         if(!alive())return false;var changed=current!==category;if(changed)hideTooltip();current=category;categoryRows=list(categories);
         var signature=JSON.stringify([category,mode,data&&data.rows,data&&data.pending,data&&data.upgrade_pending,data&&data.social,data&&data.online,data&&data.buildings,data&&data.fishing,data&&data.starjoy,data&&data.daily_limits,data&&data.has_pass,data&&data.last_draw,data&&data.unavailable,categories,cfg.SurvivalArchiveColors]);
         if(active&&signature===displayKey){updateMonthlyFooter(data);return true;}displayKey=signature;enter(options);renderSidebar(categories);
@@ -226,10 +231,13 @@
         p("ArchiveV10FilterText").text=mode==="unlocked"?filters.unlocked.text.text:mode==="locked"?filters.locked.text.text:"全部存档";
         Object.keys(filters).forEach(function(key){filters[key].panel.SetHasClass("ArchiveV10Selected",key===(mode||"all"));});
         rows=data?list(data.rows):S.Normalize(null,current);var slot=0;incrementalSlots={};incrementalPositions={};incrementalMode=mode||"all";
-        rows.forEach(function(item,index){incrementalPositions[item.id]=index;});
-        p("ArchiveGrid").Children().forEach(function(card){if(card.BHasClass("ArchiveCard")&&card.visible&&card.__archiveCategory===current){incrementalSlots[card.__archiveItem.id]=slot;decorate(card,card.__archiveItem,slot++);}});
-        if(!data){p("ArchiveGrid").Children().forEach(function(card){card.visible=false;});slot=0;}
-        var known=rows.filter(function(item){return S.State(item,current)!==null;}).length,owned=rows.filter(function(item){return S.State(item,current)===true;}).length;incrementalKnown=known;incrementalOwned=owned;
+        if(prepared){incrementalPositions=prepared.positions||{};incrementalSlots=prepared.slots||{};slot=prepared.cards.length;}
+        else{
+            rows.forEach(function(item,index){incrementalPositions[item.id]=index;});
+            p("ArchiveGrid").Children().forEach(function(card){if(card.BHasClass("ArchiveCard")&&card.visible&&card.__archiveCategory===current){incrementalSlots[card.__archiveItem.id]=slot;decorate(card,card.__archiveItem,slot++);}});
+        }
+        if(!data&&!prepared){p("ArchiveGrid").Children().forEach(function(card){card.visible=false;});slot=0;}
+        var known=prepared&&prepared.summary?prepared.summary.known:rows.filter(function(item){return S.State(item,current)!==null;}).length,owned=prepared&&prepared.summary?prepared.summary.done:rows.filter(function(item){return S.State(item,current)===true;}).length;incrementalKnown=known;incrementalOwned=owned;
         p("ArchiveV10Overview").text=!data?"正在读取…":Number(data.unavailable)===1?"分类尚未启用":(ownership?"已拥有 ":"已解锁 ")+owned+" / "+rows.length+" 项"+(known<rows.length?" · 同步中":"");
         var draw=["friend","ex","wife","concubine","beast"].indexOf(current)>=0,context=p("ArchiveV10Context"),details="";
         if(current==="map_level"&&data&&data.online)details="当前地图等级 "+data.online.level;
@@ -266,12 +274,14 @@
         if(p("ArchiveV10Overview").text!==overview)p("ArchiveV10Overview").text=overview;
         var details=current==="map_level"&&data.online?"当前地图等级 "+data.online.level:current==="work"&&data.online?"软妹币："+data.online.coins:current==="building"&&data.buildings?"信仰值："+data.buildings.faith:current==="starjoy_points"&&data.starjoy?"累计曙光积分 "+data.starjoy.earned+" · 仅累计，不可兑换":current==="commerce_goods"?"购买或兑换后自动点亮 · 悬停查看效果与解锁条件":current==="points"?"唯一道具重复转为商城积分 · 可叠加道具按各自规则累计":"";
         if(p("ArchiveV10Context").text!==details)p("ArchiveV10Context").text=details;
+        updateMonthlyFooter(data);
         if(valid(hover)&&hover.visible&&hover.__archiveItem&&(changes||[]).some(function(entry){return entry.card===hover;}))showTooltip(hover.__archiveItem,current,hover);
         return true;
     }
+    function visibleCards(){var controller=cfg.SurvivalArchive;return controller&&controller.VisibleCards?controller.VisibleCards():p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;});}
     function buildTooltip(){
         tooltip=cfg.SurvivalArchiveTooltip.Create({parent:canvas,root:root,idPrefix:"ArchiveV10Tooltip",isAlive:alive,isActive:function(){return active;},getScale:function(){return viewScale;},getBounds:function(){return size.slice();},maxHeight:778,categoryName:categoryName,currencySourceText:function(){var source=p("ArchiveCurrencySource");return source&&source.__archivePlainText||"";},onHide:function(){hover=null;},
-            getHoverSources:function(){return p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__archiveCategory===current&&card.__archiveItem;});},
+            getHoverSources:function(){var controller=cfg.SurvivalArchive;return controller&&controller.VisibleCards?controller.VisibleCards():p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__archiveCategory===current&&card.__archiveItem;});},
             getHoverBounds:function(){return p("ArchiveGrid");},onHoverSource:function(card){showTooltip(card.__archiveItem,current,card);}});
         tip=tooltip.panel;
     }
@@ -287,13 +297,22 @@
     A.ShowEffectOnly=function(item,card){if(active)return showTooltip(item,current,card,true);return originalEffect(item,card);};
     A.Hide=function(){hideTooltip();return originalHide();};
     var api=cfg.SurvivalArchiveV10={
+        PrepareCard:function(category,card,item,slot){if(!alive())return;var saved=current;current=category;try{decorate(card,item,slot);}finally{current=saved;}},
+        SetLoading:function(show,done,total,blocking){
+            if(!alive())return;if(!valid(canvas))build();show=!!show;
+            if(loadingPanel.visible!==show)loadingPanel.visible=show;
+            if(!show)return;
+            var full=blocking!==false;loadingPanel.SetHasClass("ArchiveV10LoadingCompact",!full);
+            var message=total===undefined?"正在读取存档…":full?"正在准备存档…":"正在准备更多条目 "+done+" / "+total;
+            if(loadingText.text!==message)loadingText.text=message;
+        },
         Render:render,Update:update,Fit:fit,IsAlive:alive,RequestTooltipHide:queueTooltipHide,Leave:function(){hideTooltip();active=false;displayKey="";if(cfg.SurvivalEndlessLeaderboard)cfg.SurvivalEndlessLeaderboard.Hide();if(valid(filterMenu)){cfg.SurvivalUI.Motion.SetVisible(filterMenu,false);filterMenu.hittest=false;filterMenu.hittestchildren=false;}},
-        RegisterToolsProbe:function(){if(api.__consistencyProbe||!Game.IsInToolsMode||!Game.IsInToolsMode()||!Game.AddCommand)return;api.__consistencyProbe="archive_consistency_"+Date.now();Game.AddCommand(api.__consistencyProbe,function(){if(!alive())return;var data=api.Inspect(),legacy=p("ArchiveV10CategoryIcon"),glyph=legacy&&legacy.__archiveBlackGoldSymbol;$.Msg("ARCHIVE_CONSISTENCY "+JSON.stringify({build:data.build,category:current,layout:data.layout,rows:rows.length,owned:rows.filter(function(item){return S.State(item,current)===true;}).length,tooltip:tooltip?tooltip.Inspect():null,dismiss:cfg.SurvivalTooltipDismiss?cfg.SurvivalTooltipDismiss.Inspect():null,hoverTargets:p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;}).slice(0,40).map(function(card){var at=card.GetPositionWithinWindow();return {id:card.__archiveItem&&card.__archiveItem.id,x:at.x,y:at.y,width:card.actuallayoutwidth*viewScale,height:card.actuallayoutheight*viewScale};}),firstCards:p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;}).slice(0,2).map(function(card){return {position:card.style.position,width:card.style.width,height:card.style.height};}),headerGlyph:valid(glyph)?glyph.style.position:null,legacyHeader:valid(legacy)?legacy.style.position:null,headerRings:valid(canvas)?canvas.Children().filter(function(node){return node.BHasClass("ArchiveParchmentIconRing")&&node.visible;}).length:0}));},"",0);$.Msg("ARCHIVE_CONSISTENCY_COMMAND "+api.__consistencyProbe);},
+        RegisterToolsProbe:function(){if(api.__consistencyProbe||!Game.IsInToolsMode||!Game.IsInToolsMode()||!Game.AddCommand)return;api.__consistencyProbe="archive_consistency_"+Date.now();Game.AddCommand(api.__consistencyProbe,function(){if(!alive())return;var data=api.Inspect(),legacy=p("ArchiveV10CategoryIcon"),glyph=legacy&&legacy.__archiveBlackGoldSymbol;$.Msg("ARCHIVE_CONSISTENCY "+JSON.stringify({build:data.build,category:current,layout:data.layout,rows:rows.length,owned:rows.filter(function(item){return S.State(item,current)===true;}).length,tooltip:tooltip?tooltip.Inspect():null,dismiss:cfg.SurvivalTooltipDismiss?cfg.SurvivalTooltipDismiss.Inspect():null,hoverTargets:visibleCards().slice(0,40).map(function(card){var at=card.GetPositionWithinWindow();return {id:card.__archiveItem&&card.__archiveItem.id,x:at.x,y:at.y,width:card.actuallayoutwidth*viewScale,height:card.actuallayoutheight*viewScale};}),firstCards:visibleCards().slice(0,2).map(function(card){return {position:card.style.position,width:card.style.width,height:card.style.height};}),headerGlyph:valid(glyph)?glyph.style.position:null,legacyHeader:valid(legacy)?legacy.style.position:null,headerRings:valid(canvas)?canvas.Children().filter(function(node){return node.BHasClass("ArchiveParchmentIconRing")&&node.visible;}).length:0}));},"",0);$.Msg("ARCHIVE_CONSISTENCY_COMMAND "+api.__consistencyProbe);},
         // Native labels remain readable while textures stream. Do not replace
         // them with hidden text and per-glyph atlas panels on first open.
         ApplyTypography:function(){return alive();},
-        Prepare:function(){if(!alive())return false;if(!valid(canvas))build();if(!active)canvas.visible=false;return true;},
-        Inspect:function(){var win=p("ArchiveWindow"),cp=valid(canvas)?canvas.GetPositionWithinWindow():null,cards=valid(p("ArchiveGrid"))?p("ArchiveGrid").Children().filter(function(card){return card.visible&&card.__v10;}):[];return {build:"archive-consistency-20261020-v1",active:active,category:current,categories:order.slice(),shellIdentity:canvas&&canvas.id,layout:current==="commerce_goods"?"commerce_goods_grid":current==="points"?"points_grid":"parchment_rows",rows:rows.map(function(item){return {id:item.id,count:item.count,quantity:S.Quantity(item,current),unlocked:S.State(item,current),name:item.name};}),geometry:{canvas:cp,window:valid(win)?win.GetPositionWithinWindow():null,width:valid(win)?win.actuallayoutwidth:0,height:valid(win)?win.actuallayoutheight:0,firstCount:cards.length?{position:cards[0].__v10.count.GetPositionWithinWindow(),width:cards[0].__v10.count.actuallayoutwidth,textAlign:cards[0].__v10.count.style.textAlign,font:cards[0].__v10.count.style.fontFamily,weight:cards[0].__v10.count.style.fontWeight}:null},tooltipVisible:valid(tip)&&tip.visible,missingIcons:Object.keys(missingIcons)};},
+        Prepare:function(categories,category){if(!alive())return false;if(!valid(canvas))build();if(category)current=category;var projection=cfg.SurvivalUICatalog&&cfg.SurvivalUICatalog.Data.auxiliary.archive_projection;if(categories||projection){categoryRows=list(categories||projection.categories);renderSidebar(categoryRows);}if(!active)canvas.visible=false;return true;},
+        Inspect:function(){var win=p("ArchiveWindow"),cp=valid(canvas)?canvas.GetPositionWithinWindow():null,cards=valid(p("ArchiveGrid"))?visibleCards():[];return {build:"archive-consistency-20261020-v1",active:active,category:current,categories:order.slice(),shellIdentity:canvas&&canvas.id,layout:current==="commerce_goods"?"commerce_goods_grid":current==="points"?"points_grid":"parchment_rows",rows:rows.map(function(item){return {id:item.id,count:item.count,quantity:S.Quantity(item,current),unlocked:S.State(item,current),name:item.name};}),geometry:{canvas:cp,window:valid(win)?win.GetPositionWithinWindow():null,width:valid(win)?win.actuallayoutwidth:0,height:valid(win)?win.actuallayoutheight:0,firstCount:cards.length?{position:cards[0].__v10.count.GetPositionWithinWindow(),width:cards[0].__v10.count.actuallayoutwidth,textAlign:cards[0].__v10.count.style.textAlign,font:cards[0].__v10.count.style.fontFamily,weight:cards[0].__v10.count.style.fontWeight}:null},tooltipVisible:valid(tip)&&tip.visible,missingIcons:Object.keys(missingIcons)};},
         Dispose:function(){if(disposed)return;hideTooltip();if(tooltip)tooltip.Dispose();tooltip=null;active=false;disposed=true;subscriptions.forEach(function(id){if(GameEvents.Unsubscribe)GameEvents.Unsubscribe(id);});subscriptions=[];moved.forEach(function(entry){if(valid(entry.node)&&valid(entry.parent))entry.node.SetParent(entry.parent);});moved=[];if(valid(canvas))canvas.DeleteAsync(0);if(valid(marker))marker.DeleteAsync(0);canvas=null;balances=[];filters={};sidebarKey="";var win=p("ArchiveWindow");if(valid(win)){win.RemoveClass("ArchiveV10Page");win.RemoveClass("ArchiveParchmentPage");}}
     };
     return api;

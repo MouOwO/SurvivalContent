@@ -99,7 +99,14 @@
         if(!corners){corners=[];["TopLeft","TopRight","BottomLeft","BottomRight"].forEach(function(side){var p=$.CreatePanel("Panel",background,"");p.AddClass("ArchiveBlackGoldCorner");p.AddClass("ArchiveBlackGoldCorner"+side);p.hittest=false;p.hittestchildren=false;corners.push(p);});background.__archiveBlackGoldCorners=corners;}
         corners.forEach(function(p){p.visible=stage>=5;});
     }
-    function apply(){
+    function prepareCard(card){
+        if(!valid(card)||!card.__v10)return;var cell=card.__v10,unowned=is(card,"ArchiveCommerceUnowned"),unknown=is(card,"ArchiveCommerceUnknown");paint(cell.name,{color:unowned?"#7e887c":unknown?"#a0a997":"#e0e3d2"});
+            walk(card,function(node){if(is(node,"ArchiveParchmentRowBacking"))rowBacking(card,node);if(is(node,"ArchiveV10HoverFrame"))paint(node,{backgroundImage:"none",backgroundColor:"#d9c17a0b",border:"1px solid #c5b57b55"});if(is(node,"ArchiveCommerceIconBacking"))paint(node,{backgroundImage:"none",backgroundColor:"#080e0bee",border:unowned?"1px solid #777f6166":"1px solid #b1a26b99",boxShadow:stage>=5&&!unowned?"#c2b77b12 0px 0px 6px 1px":"inset #00000099 0px 0px 3px 1px"});});
+            if(valid(cell.track))paint(cell.track,{backgroundImage:"none",backgroundColor:"#080d09cc",border:"1px solid #6b745455"});
+            if(valid(cell.fill))paint(cell.fill,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#70673e),color-stop(.7,#b9aa64),to(#e2d69b))"});
+
+    }
+    function apply(cards){
         if(disposed)return;var canvas=find("ArchiveV10Canvas"),windowPanel=find("ArchiveWindow");if(!valid(canvas)||!valid(windowPanel))return;
         windowPanel.AddClass("ArchiveBlackGoldPage");
         for(var i=1;i<=5;i++)windowPanel.SetHasClass("ArchiveBlackGoldRound"+i,stage===i);
@@ -126,16 +133,21 @@
         ["all","unlocked","locked"].forEach(function(id){var p=find("ArchiveV10Filter_"+id);if(!valid(p))return;paint(p,{backgroundColor:is(p,"ArchiveV10Selected")?"#ad985333":"transparent"});walk(p,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:"#d8ddcd"});});});
         paint(find("ArchiveV10Close"),{backgroundImage:"none",backgroundColor:stage>=4?"gradient(linear,0% 0%,0% 100%,from(#373d36),to(#20251f))":"#24291f",border:"1px solid #96956d66"});
         var close=find("ArchiveV10Close");if(valid(close)){if(!valid(close.__archiveBlackGoldGlyph)){var glyph=$.CreatePanel("Image",close,"");glyph.hittest=false;glyph.hittestchildren=false;glyph.SetImage("file://{images}/control_icons/24px/x_close.svg");glyph.SetScaling("stretch-to-fit-preserve-aspect");paint(glyph,{position:"6px 6px 0px",width:"17px",height:"17px"});close.__archiveBlackGoldGlyph=glyph;}walk(close,function(child){if(is(child,"ArchiveV10Text"))paint(child,{color:"#dddac5"});});}
-        var grid=find("ArchiveGrid");if(valid(grid))grid.Children().forEach(function(card){if(!card.visible||!card.__v10)return;var cell=card.__v10,unowned=is(card,"ArchiveCommerceUnowned"),unknown=is(card,"ArchiveCommerceUnknown");paint(cell.name,{color:unowned?"#7e887c":unknown?"#a0a997":"#e0e3d2"});
-            walk(card,function(node){if(is(node,"ArchiveParchmentRowBacking"))rowBacking(card,node);if(is(node,"ArchiveV10HoverFrame"))paint(node,{backgroundImage:"none",backgroundColor:"#d9c17a0b",border:"1px solid #c5b57b55"});if(is(node,"ArchiveCommerceIconBacking"))paint(node,{backgroundImage:"none",backgroundColor:"#080e0bee",border:unowned?"1px solid #777f6166":"1px solid #b1a26b99",boxShadow:stage>=5&&!unowned?"#c2b77b12 0px 0px 6px 1px":"inset #00000099 0px 0px 3px 1px"});});
-            if(valid(cell.track))paint(cell.track,{backgroundImage:"none",backgroundColor:"#080d09cc",border:"1px solid #6b745455"});
-            if(valid(cell.fill))paint(cell.fill,{backgroundImage:"none",backgroundColor:"gradient(linear,0% 0%,100% 0%,from(#70673e),color-stop(.7,#b9aa64),to(#e2d69b))"});
-        });
+        if(cards)(cards||[]).forEach(prepareCard);
+        else if(cards!==false){var controller=cfg.SurvivalArchive,grid=find("ArchiveGrid");if(controller&&controller.VisibleCards)controller.VisibleCards().forEach(prepareCard);else if(valid(grid))grid.Children().forEach(prepareCard);}
         frame(find("ArchiveV10Shell_Background"));
     }
-    function wrap(view){if(!view||views.some(function(entry){return entry.view===view;}))return view;var render=view.Render;var wrapped=function(){var result=render.apply(this,arguments);apply();if(view.ApplyTypography)view.ApplyTypography();return result;};view.Render=wrapped;views.push({view:view,render:render,wrapped:wrapped});apply();return view;}
+    function wrap(view){
+        if(!view||views.some(function(entry){return entry.view===view;}))return view;
+        var render=view.Render,prepare=view.Prepare,update=view.Update;
+        var wrapped=function(){var result=render.apply(this,arguments);apply(arguments[5]?false:undefined);if(view.ApplyTypography)view.ApplyTypography();return result;};
+        var prepared=function(){var result=prepare.apply(this,arguments);apply(false);return result;};
+        var updated=function(data,category,changes){var result=update.apply(this,arguments);(changes||[]).forEach(function(entry){prepareCard(entry.card);});return result;};
+        view.Render=wrapped;if(prepare)view.Prepare=prepared;if(update)view.Update=updated;
+        views.push({view:view,render:render,wrapped:wrapped,prepare:prepare,prepared:prepared,update:update,updated:updated});apply(false);return view;
+    }
     var factory=function(){return wrap(originalFactory.apply(this,arguments));};
     if(originalFactory)cfg.SurvivalArchiveV10Factory=factory;
     wrap(cfg.SurvivalArchiveV10);
-    cfg.SurvivalArchiveBlackGold={Apply:apply,SetStage:function(value){stage=Math.max(1,Math.min(5,Number(value)||5));cfg.ArchiveBlackGoldStage=stage;apply();return stage;},Stage:function(){return stage;},Dispose:function(){if(disposed)return;disposed=true;if(cfg.SurvivalArchiveV10Factory===factory)cfg.SurvivalArchiveV10Factory=originalFactory;views.forEach(function(entry){if(entry.view.Render===entry.wrapped)entry.view.Render=entry.render;});views=[];}};
+    cfg.SurvivalArchiveBlackGold={Apply:apply,PrepareCard:prepareCard,SetStage:function(value){stage=Math.max(1,Math.min(5,Number(value)||5));cfg.ArchiveBlackGoldStage=stage;apply();return stage;},Stage:function(){return stage;},Dispose:function(){if(disposed)return;disposed=true;if(cfg.SurvivalArchiveV10Factory===factory)cfg.SurvivalArchiveV10Factory=originalFactory;views.forEach(function(entry){if(entry.view.Render===entry.wrapped)entry.view.Render=entry.render;if(entry.view.Prepare===entry.prepared)entry.view.Prepare=entry.prepare;if(entry.view.Update===entry.updated)entry.view.Update=entry.update;});views=[];}};
 })();
