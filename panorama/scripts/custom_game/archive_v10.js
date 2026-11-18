@@ -17,7 +17,7 @@
     var active=false,disposed=false,current="",rows=[],categoryRows=[],filters={},balances=[],moved=[],subscriptions=[],sidebarKey="",hover=null,displayKey="";
     var textSpecs={},sidebarButtons={},missingIcons={},fitOptions=null,lastReportedCategory="",panelCache={};
     var incrementalSlots={},incrementalPositions={},incrementalMode="",incrementalOwned=0,incrementalKnown=0;
-    var loadingPanel=null,loadingText=null;
+    var loadingPanel=null;
     var order=["clear","shadow","map_level","work","gift","fragment","pet","boss","points","commerce_goods","shop","endless","fishing","building","starjoy_points","titles"];
     var names={clear:"通关存档",shadow:"破碎之影",map_level:"地图等级",work:"上班福利",gift:"福利礼包",fragment:"神兵碎片",pet:"秘法牢笼",boss:"BOSS存档",points:"积分道具",commerce_goods:"商城道具",shop:"排行榜",endless:"无尽存档",fishing:"钓鱼存档",building:"存档神器",friend:"动漫挑战",ex:"二次元挑战",wife:"二次元挑战2",concubine:"我的侍妾",beast:"祥瑞挑战",starjoy_points:"曙光积分",titles:"称号"};
     var layers=D.layers;layers.forEach(function(layer){if(layer.kind==="text")textSpecs[layer.id]=layer;});
@@ -74,7 +74,7 @@
         if(!asset("close"))label(close,"×",0,-3,31,35,30,"#17150f","center");
         close.SetPanelEvent("onactivate",function(){if(alive())cfg.SurvivalArchive.Close();});
         serif(label(canvas,"存档总览",52,100,narrow(285),36,28,"#fff5df","left","ArchiveV10OverviewTitle"));
-        label(canvas,"正在读取…",52,143,narrow(292),38,21,"#eda42c","left","ArchiveV10Overview");
+        label(canvas,"",52,143,narrow(292),38,21,"#eda42c","left","ArchiveV10Overview");
         var filter=make("Button",canvas,"ArchiveV10FilterToggle","ArchiveV10Button ArchiveParchmentInput");pos(filter,48,191,narrow(290),34);
         label(filter,"全部存档",10,3,narrow(240),29,21,"#f4edda","left","ArchiveV10FilterText");label(filter,"▾",narrow(258),2,22,28,20,"#ddcfb0","center");
         filter.SetPanelEvent("onactivate",function(){if(alive()){hideTooltip();var show=!cfg.SurvivalUI.Motion.IsOpen(filterMenu);filterMenu.hittest=show;filterMenu.hittestchildren=show;cfg.SurvivalUI.Motion.SetVisible(filterMenu,show);}});
@@ -93,7 +93,6 @@
         loadingPanel=make("Panel",canvas,"ArchiveV10Loading","ArchiveV10Loading");pos(loadingPanel,contentX(385),235,767,577);
         loadingPanel.hittest=false;loadingPanel.hittestchildren=false;loadingPanel.visible=false;
         var spinner=make("Panel",loadingPanel,"ArchiveV10LoadingSpinner","ArchiveV10LoadingSpinner");
-        loadingText=label(loadingPanel,"正在准备存档…",203,300,360,30,21,"#e8d4a6","center","ArchiveV10LoadingText");
     }
     function enter(options){var opening=!active;fitOptions=options||fitOptions;if(fitOptions)fitOptions.reference=size.slice();if(!valid(canvas))build();active=true;canvas.visible=true;var win=p("ArchiveWindow");if(opening)win.__v10Style={};win.AddClass("ArchiveV10Page");win.AddClass("ArchiveParchmentPage");style(win,{width:size[0]+"px",height:size[1]+"px",padding:"0px",margin:"0px",flowChildren:"none",backgroundImage:"none",backgroundColor:"transparent",border:"0px",borderTop:"0px",borderBottom:"0px",borderRadius:"0px",boxShadow:"none",overflow:"noclip"});fit();}
     function categoryName(id){var row=categoryRows.filter(function(x){return x.id===id;})[0];return names[id]||row&&row.name||id;}
@@ -238,7 +237,7 @@
         }
         if(!data&&!prepared){p("ArchiveGrid").Children().forEach(function(card){card.visible=false;});slot=0;}
         var known=prepared&&prepared.summary?prepared.summary.known:rows.filter(function(item){return S.State(item,current)!==null;}).length,owned=prepared&&prepared.summary?prepared.summary.done:rows.filter(function(item){return S.State(item,current)===true;}).length;incrementalKnown=known;incrementalOwned=owned;
-        p("ArchiveV10Overview").text=!data?"正在读取…":Number(data.unavailable)===1?"分类尚未启用":(ownership?"已拥有 ":"已解锁 ")+owned+" / "+rows.length+" 项"+(known<rows.length?" · 同步中":"");
+        p("ArchiveV10Overview").text=!data?"":Number(data.unavailable)===1?"分类尚未启用":(ownership?"已拥有 ":"已解锁 ")+owned+" / "+rows.length+" 项"+(known<rows.length?" · 同步中":"");
         var draw=["friend","ex","wife","concubine","beast"].indexOf(current)>=0,context=p("ArchiveV10Context"),details="";
         if(current==="map_level"&&data&&data.online)details="当前地图等级 "+data.online.level;
         if(current==="work"&&data&&data.online)details="软妹币："+data.online.coins;
@@ -250,7 +249,7 @@
         if(current==="points")details="唯一道具重复转为商城积分 · 可叠加道具按各自规则累计";
         if(current==="points")p("ArchiveStatus").text="抽取、签到或兑换后自动生效 · 悬停查看数量与持有规则";
         context.text=details;context.visible=!!details;
-        var empty=p("ArchiveEmpty");pos(empty,contentX(399),280,731,50);style(empty,{fontSize:"21px",color:"#d0c4aa",textAlign:"center"});empty.SetHasClass("ArchiveHidden",slot>0);empty.text=data&&Number(data.unavailable)===1?"该分类尚未启用，暂无已获得条目":!data?"正在读取存档…":slot===0?(mode!=="all"?"当前筛选下暂无存档":"当前分类暂无存档"):"";
+        var empty=p("ArchiveEmpty");pos(empty,contentX(399),280,731,50);style(empty,{fontSize:"21px",color:"#d0c4aa",textAlign:"center"});empty.SetHasClass("ArchiveHidden",slot>0);empty.text=data&&Number(data.unavailable)===1?"该分类尚未启用，暂无已获得条目":!data?"":slot===0?(mode!=="all"?"当前筛选下暂无存档":"当前分类暂无存档"):"";
         var grid=p("ArchiveGrid");pos(grid,0,0,767,draw?511:577);style(grid,{flowChildren:"none"});pos(gridHost,contentX(385),235,767,draw?511:577);
         var drawBar=p("ArchiveDrawBar");pos(drawBar,contentX(397),755,735,52);drawBar.SetHasClass("ArchiveHidden",!draw||!data||!data.social);drawBar.style.visibility=draw&&data&&data.social?"visible":"collapse";
         pos(p("ArchiveTickets"),0,0,515,23);pos(p("ArchiveDrawResult"),0,26,515,23);pos(p("ArchiveDraw"),537,4,190,42);
@@ -299,12 +298,8 @@
     var api=cfg.SurvivalArchiveV10={
         PrepareCard:function(category,card,item,slot){if(!alive())return;var saved=current;current=category;try{decorate(card,item,slot);}finally{current=saved;}},
         SetLoading:function(show,done,total,blocking){
-            if(!alive())return;if(!valid(canvas))build();show=!!show;
+            if(!alive())return;if(!valid(canvas))build();show=!!show&&blocking!==false;
             if(loadingPanel.visible!==show)loadingPanel.visible=show;
-            if(!show)return;
-            var full=blocking!==false;loadingPanel.SetHasClass("ArchiveV10LoadingCompact",!full);
-            var message=total===undefined?"正在读取存档…":full?"正在准备存档…":"正在准备更多条目 "+done+" / "+total;
-            if(loadingText.text!==message)loadingText.text=message;
         },
         Render:render,Update:update,Fit:fit,IsAlive:alive,RequestTooltipHide:queueTooltipHide,Leave:function(){hideTooltip();active=false;displayKey="";if(cfg.SurvivalEndlessLeaderboard)cfg.SurvivalEndlessLeaderboard.Hide();if(valid(filterMenu)){cfg.SurvivalUI.Motion.SetVisible(filterMenu,false);filterMenu.hittest=false;filterMenu.hittestchildren=false;}},
         RegisterToolsProbe:function(){if(api.__consistencyProbe||!Game.IsInToolsMode||!Game.IsInToolsMode()||!Game.AddCommand)return;api.__consistencyProbe="archive_consistency_"+Date.now();Game.AddCommand(api.__consistencyProbe,function(){if(!alive())return;var data=api.Inspect(),legacy=p("ArchiveV10CategoryIcon"),glyph=legacy&&legacy.__archiveBlackGoldSymbol;$.Msg("ARCHIVE_CONSISTENCY "+JSON.stringify({build:data.build,category:current,layout:data.layout,rows:rows.length,owned:rows.filter(function(item){return S.State(item,current)===true;}).length,tooltip:tooltip?tooltip.Inspect():null,dismiss:cfg.SurvivalTooltipDismiss?cfg.SurvivalTooltipDismiss.Inspect():null,hoverTargets:visibleCards().slice(0,40).map(function(card){var at=card.GetPositionWithinWindow();return {id:card.__archiveItem&&card.__archiveItem.id,x:at.x,y:at.y,width:card.actuallayoutwidth*viewScale,height:card.actuallayoutheight*viewScale};}),firstCards:visibleCards().slice(0,2).map(function(card){return {position:card.style.position,width:card.style.width,height:card.style.height};}),headerGlyph:valid(glyph)?glyph.style.position:null,legacyHeader:valid(legacy)?legacy.style.position:null,headerRings:valid(canvas)?canvas.Children().filter(function(node){return node.BHasClass("ArchiveParchmentIconRing")&&node.visible;}).length:0}));},"",0);$.Msg("ARCHIVE_CONSISTENCY_COMMAND "+api.__consistencyProbe);},

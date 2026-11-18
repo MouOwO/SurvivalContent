@@ -140,7 +140,7 @@
                     <Panel id="ArchivePageHeader"><Label id="ArchivePageTitle" text="通关存档" /><Label id="ArchiveSummary" text="" /></Panel>
                     <Label id="ArchiveHint" text="" />
                     <Panel id="ArchiveFilters"><RadioButton id="ArchiveFilter_all" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('all')"><Label id="ArchiveFilterAllLabel" text="全部" /></RadioButton><RadioButton id="ArchiveFilter_unlocked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('unlocked')"><Label text="已解锁" /></RadioButton><RadioButton id="ArchiveFilter_locked" group="ArchiveFilters" onactivate="GameUI.CustomUIConfig().SurvivalArchive.Filter('locked')"><Label text="未解锁" /></RadioButton></Panel><Label id="ArchiveContext" text="" /><Label id="ArchiveCurrencySource" text="" visible="false" hittest="false" /><Panel id="ArchiveGrid" />
-                    <Label id="ArchiveEmpty" text="正在读取存档…" />
+                    <Label id="ArchiveEmpty" text="" />
                     <Panel id="ArchiveDrawBar" class="ArchiveHidden">
                         <Label id="ArchiveDrawResult" text="" />
                         <Label id="ArchiveTickets" text="正在读取抽奖券…" />

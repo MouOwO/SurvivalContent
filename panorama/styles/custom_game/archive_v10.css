@@ -6,11 +6,8 @@
 .ArchiveV10Page #ArchiveFrame, .ArchiveV10Page #ArchiveAtmosphere { visibility:collapse; }
 #ArchiveV10Canvas { flow-children:none; overflow:noclip; }
 .ArchiveV10Loading { z-index:30; background-color:#151a17ed; }
-.ArchiveV10LoadingSpinner { width:38px; height:38px; position:364px 244px 0px; border:3px solid #706b4f; border-top:3px solid #efdca1; border-radius:50%; animation-name:ArchiveLoadingSpin; animation-duration:0.9s; animation-timing-function:linear; animation-iteration-count:infinite; }
+.ArchiveV10LoadingSpinner { width:38px; height:38px; position:364px 270px 0px; border:3px solid #706b4f; border-top:3px solid #efdca1; border-radius:50%; animation-name:ArchiveLoadingSpin; animation-duration:0.9s; animation-timing-function:linear; animation-iteration-count:infinite; }
 @keyframes 'ArchiveLoadingSpin' { 0% { transform:rotateZ(0deg); } 100% { transform:rotateZ(360deg); } }
-.ArchiveV10LoadingCompact { background-color:transparent; }
-.ArchiveV10LoadingCompact #ArchiveV10LoadingSpinner { visibility:collapse; }
-.ArchiveV10LoadingCompact #ArchiveV10LoadingText { position:203px 541px 0px; font-size:16px; background-color:#151a17ed; }
 .ArchiveV10Image { margin:0px; padding:0px; }
 #ArchiveV10SectionStrip { overflow:clip; opacity-mask:url("s2r://panorama/images/masks/softedge_right_png.vtex"); }
 .ArchiveV10Crop { overflow:clip; }

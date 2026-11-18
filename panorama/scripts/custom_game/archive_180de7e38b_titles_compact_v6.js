@@ -28,7 +28,7 @@
     // A page host makes switching/reopening O(1) native visibility operations.
     var paintPages={},visiblePaintPage=null,paintJob=null,paintTimer=null,paintEpoch=0;
     var paintQueue=[],paintQueued={},paintHead=0;
-    var paintStats={batches:0,rows_built:0,rows_reused:0,max_batch_ms:0,max_batch_rows:0,foreground_commits:0};
+    var paintStats={batches:0,rows_built:0,rows_reused:0,max_batch_ms:0,max_batch_rows:0,max_batch_visits:0,foreground_commits:0};
     function incrementalPaint(){return !!(cfg.SurvivalArchiveV10&&voidView&&voidView.PrepareCard);}
     function pageCapacity(category){return category==="points"||category==="commerce_goods"?28:8;}
     function stopPaint(){
@@ -48,9 +48,11 @@
             page=paintPages[category]={host:host,source:null,data:null,cursor:0,cards:[],slots:{},positions:{},index:null,ready:false,mode:"all"};
         }
         if(page.source!==data){
-            var normalized=cfg.ArchiveV10Semantics.Normalize(data,category),oldLength=page.data?page.data.rows.length:0,newLength=normalized.length;
-            // Only actual membership shrinkage retires the removed tail.
-            for(var tail=newLength;tail<oldLength;tail++){var retired=rowCards[category+":"+tail];if(retired){retired.panel.DeleteAsync(0);delete rowCards[category+":"+tail];}}
+            var normalized=cfg.ArchiveV10Semantics.Normalize(data,category),mode=opened&&category===current?filterMode:page.mode,visibleIDs={},allIDs={};
+            normalized.forEach(function(item){allIDs[item.id]=true;var state=A.Unlocked(item,category);if(mode==="all"||state!==null&&state===(mode==="unlocked"))visibleIDs[item.id]=true;});
+            page.cards.forEach(function(card){if(!visibleIDs[card.__archiveItem.id]&&card.__archivePaintVisible!==false){card.visible=false;card.__archivePaintVisible=false;}});
+            // Dynamic inventories retain every surviving native card by ID.
+            if(page.data)page.data.rows.forEach(function(item,index){if(!allIDs[item.id]){var key=rowKey(category,item,index),retired=rowCards[key];if(retired){retired.panel.DeleteAsync(0);delete rowCards[key];}}});
             page.source=data;page.data=Object.assign({},data,{rows:normalized});
             page.cursor=0;page.ready=false;page.cards=[];page.slots={};page.positions={};page.index=null;
             page.data.rows.forEach(function(item,index){page.positions[item.id]=index;});
@@ -82,6 +84,8 @@
     }
     function queuePaint(data){
         if(!active()||!opened||!data||data.category_id!==current)return;
+        var previous=paintPages[current],keepViewport=previous&&visiblePaintPage===previous&&previous.mode===filterMode
+            &&(previous.cards.length>=pageCapacity(current)||paintJob&&paintJob.page===previous&&paintJob.keepViewport);
         var page=paintPage(data),category=current;
         if(paintJob&&paintJob.page===page&&paintJob.source===data&&paintJob.mode===filterMode&&paintJob.foreground)return;
         stopPaint();activatePaintPage(page);
@@ -92,14 +96,14 @@
         }
         if(page.mode!==filterMode){
             // A real filter change visits this page once, never every refresh.
-            page.cards.forEach(function(card){card.visible=false;});page.cards=[];page.slots={};page.cursor=0;page.ready=false;page.index=null;page.mode=filterMode;
+            page.cards.forEach(function(card){if(card.__archivePaintVisible!==false){card.visible=false;card.__archivePaintVisible=false;}});page.cards=[];page.slots={};page.cursor=0;page.ready=false;page.index=null;page.mode=filterMode;
         }
-        renderVoid(null,{cards:[],host:page.host});
-        if(voidView.SetLoading)voidView.SetLoading(true,page.cursor,page.data.rows.length,page.cursor<pageCapacity(category));
-        startPaint(page,category,filterMode,true,page.data.rows.length);
+        if(!keepViewport)renderVoid(null,{cards:[],host:page.host});
+        if(voidView.SetLoading)voidView.SetLoading(true,page.cursor,page.data.rows.length,!keepViewport&&page.cursor<pageCapacity(category));
+        startPaint(page,category,filterMode,true,page.data.rows.length,keepViewport);
     }
-    function startPaint(page,category,mode,foreground,target){
-        var job=paintJob={page:page,source:page.source,category:category,mode:mode,foreground:foreground,target:target,epoch:paintEpoch,scope:cacheScope};
+    function startPaint(page,category,mode,foreground,target,keepViewport){
+        var job=paintJob={page:page,source:page.source,category:category,mode:mode,foreground:foreground,target:target,epoch:paintEpoch,scope:cacheScope,keepViewport:!!keepViewport};
         // Yield a frame before the first native creation so the shell and spinner paint.
         paintTimer=later(foreground?.034:.05,function(){paintTimer=null;paintSlice(job);});
     }
@@ -111,14 +115,17 @@
             var top=cfg.SurvivalUILayers&&cfg.SurvivalUILayers.Top&&cfg.SurvivalUILayers.Top();
             if(foregroundOpen()||top||GameUI.GetMouseButtons&&GameUI.GetMouseButtons()){stopPaint();resumePaint();return;}
         }
-        var page=job.page,rows=page.data.rows,start=preloadClock(),visited=0;
-        while(page.cursor<job.target&&visited<2){
-            var index=page.cursor++,item=rows[index],state=A.Unlocked(item,job.category);visited++;
-            if(job.mode!=="all"&&(state===null||state!==(job.mode==="unlocked")))continue;
+        var page=job.page,rows=page.data.rows,start=preloadClock(),visited=0,scanned=0;
+        while(page.cursor<job.target&&visited<2&&scanned<32){
+            var index=page.cursor++,item=rows[index],state=A.Unlocked(item,job.category);scanned++;
+            if(job.mode!=="all"&&(state===null||state!==(job.mode==="unlocked"))){if(preloadClock()-start>=3)break;continue;}
             var slot=page.slots[item.id];if(slot===undefined){slot=page.cards.length;page.slots[item.id]=slot;}
-            var key=job.category+":"+index,before=rowCards[key],fingerprint=JSON.stringify([item,page.data.pending,page.data.upgrade_pending]);
+            var key=rowKey(job.category,item,index),before=rowCards[key],fingerprint=rowFingerprint(item,page.data,job.category);
             var reused=before&&before.fingerprint===fingerprint&&before.panel.__archivePaintSlot===slot;
-            var card=buildRow(item,index,page.data,job.category,page.host);
+            var card;
+            if(reused){card=before.panel;card.__archiveItem=item;card.__archiveUnlocked=state;if(card.__archivePaintVisible===false){card.visible=true;visited++;}}
+            else {card=buildRow(item,index,page.data,job.category,page.host);visited++;}
+            card.__archivePaintVisible=true;
             page.cards[slot]=card;
             if(!reused){
                 voidView.PrepareCard(job.category,card,item,slot);card.__archivePaintSlot=slot;
@@ -129,11 +136,13 @@
             if(preloadClock()-start>=3)break;
         }
         paintStats.batches++;paintStats.max_batch_rows=Math.max(paintStats.max_batch_rows,visited);
+        paintStats.max_batch_visits=Math.max(paintStats.max_batch_visits,scanned);
         paintStats.max_batch_ms=Math.max(paintStats.max_batch_ms,Math.max(0,preloadClock()-start));
         var columns=job.category==="points"||job.category==="commerce_goods"?7:1,pitch=columns===7?116:82;
         // Grow only this host, allowing the prepared viewport to respond while more rows stream.
-        page.host.style.height=(Math.ceil(page.cards.length/columns)*pitch)+"px";
-        if(job.foreground&&voidView.SetLoading)voidView.SetLoading(page.cursor<rows.length,page.cursor,rows.length,page.cards.length<pageCapacity(job.category)&&page.cursor<rows.length);
+        var height=(Math.ceil(page.cards.length/columns)*pitch)+"px";
+        if(page.height!==height){page.host.style.height=height;page.height=height;}
+        if(job.foreground&&voidView.SetLoading)voidView.SetLoading(page.cursor<rows.length,page.cursor,rows.length,!job.keepViewport&&page.cards.length<pageCapacity(job.category)&&page.cursor<rows.length);
         if(page.cursor<job.target){paintTimer=later(job.foreground?.017:.05,function(){paintTimer=null;paintSlice(job);});return;}
         page.ready=page.cursor>=rows.length;paintJob=null;
         if(job.foreground){paintStats.foreground_commits++;render(page.data,{cards:page.cards,host:page.host,page:page,slots:page.slots,positions:page.positions});if(voidView.SetLoading)voidView.SetLoading(false);}
@@ -408,13 +417,13 @@
                 if(incrementalPaint()){stopPaint();if(visiblePaintPage)visiblePaintPage.host.visible=false;visiblePaintPage=null;}
                 else Object.keys(rowCards).forEach(function(key){rowCards[key].panel.visible=false;});
                 panel("ArchiveEmpty").RemoveClass("ArchiveHidden");
-                panel("ArchiveEmpty").text = "正在读取存档…";
+                panel("ArchiveEmpty").text = "";
                 panel("ArchivePageTitle").text = category.name;
                 panel("ArchiveSummary").text = "";
                 panel("ArchiveFilterAllLabel").text = "全部";
                 panel("ArchiveContext").text = "";
                 panel("ArchiveHint").text = "";
-                panel("ArchiveStatus").text = "正在同步档案…";
+                panel("ArchiveStatus").text = "";
                 showDrawBar();
                 panel("ArchiveDraw").enabled = false;
                 panel("ArchiveTickets").text = "正在读取抽奖券…";
@@ -433,11 +442,14 @@
     function icon(parent, item) { A.Icon(parent,item,current,buildingIcons); }
     function cardFrame(card) { A.Card(card); }
     function rowActive(card,category){return active()&&opened&&valid(card)&&current===category;}
+    function rowKey(category,item,index){return category+":"+(incrementalPaint()?item.id:index);}
+    function rowFingerprint(item,data,category){return JSON.stringify([item,category==="titles"||category==="building"&&data.upgrade_pending===undefined?data.pending:undefined,category==="work"||category==="building"?data.upgrade_pending:undefined]);}
     function buildRow(item,index,data,category,parent){
         var current=category;
             var unlocked = A.Unlocked(item,current);
-            var key=current+":"+index, fingerprint=JSON.stringify([item,data.pending,data.upgrade_pending]);
+            var key=rowKey(current,item,index), fingerprint=rowFingerprint(item,data,current);
             var cached=rowCards[key];
+            if(incrementalPaint()&&cached&&cached.fingerprint===fingerprint){var retained=cached.panel;retained.__archiveItem=item;retained.__archiveUnlocked=unlocked;if(retained.__archivePaintVisible===false)retained.visible=true;return retained;}
             var actionable = current === "work" || current === "building" || current === "titles";
             var card = cached?cached.panel:$.CreatePanel(actionable ? "Button" : "Panel", parent, "");
             if(card.visible!==true)card.visible=true;
@@ -734,7 +746,7 @@
     function buildCompactIndex(data){
         if(!compactEnabled())return;
         var entries={},stats={category:current,total:0,done:0,owned:0,known:0,entries:entries,rows:array(data.rows)},slot=0;
-        stats.rows.forEach(function(item,index){var state=A.Unlocked(item,current),visible=filterMode==="all"||state!==null&&state===(filterMode==="unlocked"),cached=rowCards[current+":"+index];
+        stats.rows.forEach(function(item,index){var state=A.Unlocked(item,current),visible=filterMode==="all"||state!==null&&state===(filterMode==="unlocked"),cached=rowCards[rowKey(current,item,index)];
             entries[item.id]={item:item,index:index,slot:visible?slot++:-1,card:cached&&cached.panel,state:state,owned:Number(item.count)>0};
             stats.total++;if(state===true)stats.done++;if(state!==null)stats.known++;if(Number(item.count)>0)stats.owned++;
         });compactIndex=stats;
@@ -748,7 +760,7 @@
     }
     function renderCompactDelta(data,impact,model){
         if(!active()||!opened||current!==data.category_id)return;
-        var stats=compactIndex,changed=compactRows(data,impact.rows,model),entries=[],reflow=false;
+        var stats=compactIndex,changed=compactRows(data,impact.rows,model),entries=[],reflow=current!=="shadow"&&array(data.rows).length!==stats.total;
         changed.forEach(function(item){var entry=stats.entries[item.id],state=A.Unlocked(item,current),visible=filterMode==="all"||state!==null&&state===(filterMode==="unlocked");
             if(!entry||visible!==(entry.slot>=0)){reflow=true;return;}
             stats.done+=(state===true?1:0)-(entry.state===true?1:0);stats.known+=(state!==null?1:0)-(entry.state!==null?1:0);stats.owned+=(Number(item.count)>0?1:0)-(entry.owned?1:0);
@@ -757,7 +769,7 @@
         });
         // Real filter/membership changes rebuild this current container once.
         // A numeric refresh retaining its membership keeps every other card.
-        if(reflow){render(data);return;}
+        if(reflow){var page=paintPages[current];if(page)page.source=null;render(data);return;}
         lastData=Object.assign({},data,{rows:stats.rows});A.Observe(lastData);if(Number(data.pending)!==1)titleSubmitting=false;
         var preparedPage=paintPages[current];if(preparedPage){preparedPage.data=lastData;preparedPage.source=data;}
         compactText("ArchiveFilterAllLabel","全部（"+stats.done+"/"+stats.total+"）");
@@ -779,7 +791,7 @@
         var category = data.category_id;
         if(sequence <= (pageVersions[category]||0))return;
         if (!(data.ok === true || Number(data.ok) === 1)) {
-            if (opened) panel("ArchiveStatus").text = "存档尚未就绪，正在等待玩家档案";
+            if (opened) panel("ArchiveStatus").text = "";
             if (opened) later(2, function () { if (opened) request(); });
             return;
         }
