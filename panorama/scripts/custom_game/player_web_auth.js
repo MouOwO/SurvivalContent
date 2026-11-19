@@ -22,7 +22,7 @@
     var retry = create("Button", actions, "PlayerWebAuthRetry", "PlayerWebAuthButton");
     retry.AddClass("PlayerWebAuthSecondary");
     create("Label", retry, "", "", "刷新授权状态");
-    create("Label", panel, "", "PlayerWebAuthHint", "独立测试存档。请使用当前游玩的同一 Steam 账号，游戏内无需输入 Steam 密码。");
+    create("Label", panel, "", "PlayerWebAuthHint", "云存档。请使用当前游玩的同一 Steam 账号，游戏内无需输入 Steam 密码。");
     var codeLabel = root.FindChildTraverse("PlayerWebAuthCode");
     var statusLabel = root.FindChildTraverse("PlayerWebAuthStatus");
     var openButton = root.FindChildTraverse("PlayerWebAuthOpen");
