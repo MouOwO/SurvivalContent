@@ -132,6 +132,11 @@
             <Label id="PendingValue" text="待生成 0" />
         </Panel>
 
+        <Panel id="MatchWaitingCover" hittest="true" hittestchildren="false">
+            <Image class="MatchWaitingArtwork" src="file://{images}/custom_game/loading/dawnward_citadel_background.png"
+                scaling="stretch-to-fit-preserve-aspect" hittest="false" />
+            <Label id="MatchWaitingStatus" text="" hittest="false" />
+        </Panel>
         <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden" hittest="true">
             <Panel id="DifficultySelectionDialog" class="UIModal" hittest="true" hittestchildren="true">
                 <Panel id="DifficultySelectionArt" hittest="false" hittestchildren="false" />

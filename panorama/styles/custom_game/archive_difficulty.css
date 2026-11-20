@@ -115,6 +115,7 @@
 .DifficultySelectionResume
 {
     width: 200px; height: 44px; horizontal-align: right; vertical-align: center; margin-right: 28px; margin-top: 120px;
+    z-index: 5001;
 }
 .DifficultySelectionResume Label { horizontal-align: center; vertical-align: center; color: #f2d59b; font-size: 20px; }
 
@@ -204,7 +205,7 @@
     background-image:none; border-image-source:url("s2r://panorama/images/gray_button_on_png.vtex"); brightness:1.1;
 }
 #DifficultySelectionDialog .UIActionButton Label { color:#dce5e9; text-shadow:none; }
-.MatchProfileRetryNotice { width:320px; height:48px; horizontal-align:center; vertical-align:top; margin-top:118px; z-index:100; }
+.MatchProfileRetryNotice { width:320px; height:48px; horizontal-align:center; vertical-align:top; margin-top:118px; z-index:5001; }
 .DifficultySelectionResume Label, .MatchProfileRetryNotice Label
 {
     width:fit-children; height:fit-children; horizontal-align:center; vertical-align:center;

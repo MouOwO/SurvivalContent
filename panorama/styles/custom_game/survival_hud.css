@@ -588,6 +588,35 @@
 }
 .Notification.error .NotificationMark { color: #ffaaa0; }
 
+#MatchWaitingCover {
+    width: 100%;
+    height: 100%;
+    background-color: #070d12;
+    z-index: 4999;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+
+#MatchWaitingCover.MatchWaitingClosing {
+    opacity: 0;
+}
+
+.MatchWaitingArtwork {
+    width: 100%;
+    height: 100%;
+    align: center center;
+}
+
+#MatchWaitingStatus {
+    horizontal-align: center;
+    vertical-align: bottom;
+    margin-bottom: 10%;
+    padding: 12px 24px;
+    background-color: #101923ee;
+    color: #f5e2b9;
+    font-size: 22px;
+}
+
 #DifficultySelectionOverlay {
     width: 100%;
     height: 100%;

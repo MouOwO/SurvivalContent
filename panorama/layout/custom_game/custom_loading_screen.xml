@@ -5,8 +5,8 @@
     <scripts><include src="file://{resources}/scripts/custom_game/common/ui_registry.js" /><include src="file://{resources}/scripts/custom_game/common/ui_components.js" />
         <include src="file://{resources}/scripts/custom_game/startup_loading.js" />
     </scripts>
-    <Panel class="SurvivalStartupLoading StartupNativeLoadingContext StartupLoadingHidden" visible="false" hittest="true" hittestchildren="true">
-        <Panel id="StartupLoadingSurface" class="StartupLoadingSurface" visible="false" hittest="false" hittestchildren="false">
+    <Panel class="SurvivalStartupLoading StartupNativeLoadingContext" visible="true" hittest="true" hittestchildren="true">
+        <Panel id="StartupLoadingSurface" class="StartupLoadingSurface" visible="true" hittest="false" hittestchildren="false">
             <Image id="StartupLoadingBackground" class="StartupLoadingBackground" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
             <Image class="StartupLoadingHidden" src="file://{images}/custom_game/loading/dawnward_citadel_background.png" hittest="false" />
             <Panel class="StartupLoadingShade" hittest="false" />

@@ -49,11 +49,11 @@
 
     function setVisible(visible) {
         var shared=typeof GameUI!=="undefined"&&GameUI.CustomUIConfig?GameUI.CustomUIConfig().SurvivalUI:null;
-        var motion=shared&&shared.Motion, state=root.__survivalMotion;
+        var motion=shared&&shared.Motion, motionState=root.__survivalMotion;
         if(!motion){
             [root,layoutRoot,surface].forEach(function(panel){if(!panel||!panel.IsValid())return;panel.visible=visible;panel.style.visibility=visible?"visible":"collapse";panel.style.opacity=visible?"1":"0";panel.hittest=visible;panel.hittestchildren=visible;panel.style.zIndex="200000";panel.SetHasClass("StartupLoadingHidden",!visible);});
         }else{
-        if(motionVisible===visible&&state&&(state.ticket!==null||root.visible===visible))return;
+        if(motionVisible===visible&&motionState&&(motionState.ticket!==null||root.visible===visible))return;
         motionVisible=visible;
         [root, layoutRoot, surface].forEach(function (panel) {
             if (!panel || !panel.IsValid()) return;

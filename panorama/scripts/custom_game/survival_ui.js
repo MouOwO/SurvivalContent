@@ -108,6 +108,7 @@
     var difficultyModal = null, difficultyRequestSerial = 0;
     var difficultyDismissed = false, difficultyPhase = "", difficultyResume = null;
     var startupState = null, setupSession = "", modeChoice = "", modeAcknowledged = "";
+    var waitingCoverVisible = true, waitingCoverClose = null;
     var modePending = false, modeError = "", modeRequestSerial = 0, modeSignature = "", modeRows = {};
     var modeOrder = ["standard", "rich", "cold", "scourge", "ruins", "celestial", "fishing", "pure"];
     var profileRetry = null, profileRetryPending = false, profileRetrySerial = 0, profileErrorShown = false, profileRetryNotice = null;
@@ -407,7 +408,7 @@
             var caption = $.CreatePanel("Label", profileRetryNotice, "");caption.text = "档案准备失败 · 点击重试";
             profileRetryNotice.SetPanelEvent("onactivate", retryProfiles);
         }
-        profileRetryNotice.visible = retryable && isDifficultySelected(difficultyWave);
+        profileRetryNotice.visible = retryable && (isDifficultySelected(difficultyWave) || confirmedMode() === "fishing");
         ui.State.Set(profileRetryNotice, {enabled: retryable && !profileRetryPending, busy: profileRetryPending});
     }
     function selectedDifficulty() {
@@ -463,13 +464,41 @@
         renderDifficultySelection(difficultyWave);
     }
 
+    function updateWaitingCover(choosingMode, choosingDifficulty) {
+        var cover = panel("MatchWaitingCover"), status = panel("MatchWaitingStatus");
+        if (!cover || !status) return;
+        // The authored panel initially covers the HUD, including the interval
+        // before a valid snapshot reaches this context.
+        var ready = !!startupState && admissionComplete() && profilesReady()
+            && !choosingMode && !choosingDifficulty;
+        var visible = !ready;
+        if (visible !== waitingCoverVisible) {
+            waitingCoverVisible = visible;
+            cancelHUDJob(waitingCoverClose);
+            waitingCoverClose = null;
+            cover.SetHasClass("MatchWaitingClosing", !visible);
+            if (visible) cover.visible = true;
+            else waitingCoverClose = scheduleHUD(0.2, function () {
+                waitingCoverClose = null;
+                if (cover.IsValid()) cover.visible = false;
+            });
+        }
+        var text = visible && admissionComplete() && !choosingMode && !choosingDifficulty
+            ? (setup() && setup().error === "player_disconnected" ? "正在等待玩家重新连接…" : "正在读取玩家档案…")
+            : "";
+        if (status.text !== text) status.text = text;
+        if (status.visible !== !!text) status.visible = !!text;
+    }
+
     function renderDifficultySelection(wave) {
         if (!syncActive()) return;
         var overlay = panel("DifficultySelectionOverlay");
         var container = panel("DifficultySelectionButtons");
         if (!overlay || !container) return;
         difficultyWave = wave;
-        var choosingMode = needsMode(), shouldShow = admissionComplete() && (choosingMode || difficultyAvailable());
+        var choosingMode = needsMode(), choosingDifficulty = difficultyAvailable();
+        var shouldShow = admissionComplete() && (choosingMode || choosingDifficulty);
+        updateWaitingCover(choosingMode, choosingDifficulty);
         var phase = setupSession + ":" + (choosingMode ? "mode" : "difficulty");
         if (phase !== difficultyPhase) { difficultyPhase = phase; difficultyDismissed = false; }
         overlay.SetHasClass("DifficultySelectionHidden", !shouldShow || difficultyDismissed);
