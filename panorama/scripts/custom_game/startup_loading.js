@@ -87,6 +87,14 @@
     // Hiding first would expose the HUD while its startup snapshot arrives.
 
     function parentOf(panel) { return panel && panel.GetParent ? panel.GetParent() : null; }
+    function disableNativePregame() {
+        if (!nativeTeamSetupContext || typeof DotaDefaultUIElement_t === "undefined"
+            || typeof GameUI === "undefined" || !GameUI.SetDefaultUIEnabled) return;
+        ["DOTA_DEFAULT_UI_PREGAME_HERO_SELECTION", "DOTA_DEFAULT_UI_PREGAME_STRATEGYUI"].forEach(function (name) {
+            var element = DotaDefaultUIElement_t[name];
+            if (element !== undefined) GameUI.SetDefaultUIEnabled(element, false);
+        });
+    }
     function attachTeamSetupCover() {
         if (!nativeTeamSetupContext || root !== layoutRoot || !root.SetParent) return;
         var container = parentOf(root), setupHost = parentOf(container), customRoot = parentOf(setupHost);
@@ -415,7 +423,7 @@
             });
         }
     } catch (ignored) {}
-    attachTeamSetupCover();
+    disableNativePregame(); attachTeamSetupCover();
     waitForState(); readState(); if (!artworkRetired) loadImage(); render(); $.Schedule(0.5, poll);
     $.Schedule(1, function () { diagnostic("layout_ready"); });
 })();
