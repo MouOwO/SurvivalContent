@@ -514,6 +514,15 @@
                 waitingCoverClose = null;
                 if (cover.IsValid()) cover.visible = false;
                 lifecycleConfig.SurvivalGameplayVisible = true;
+                lifecycleConfig.SurvivalStartupProgressFinishedSession = setupSession;
+                var progress = lifecycleConfig.SurvivalStartupViewportProgress;
+                if (progress && (!progress.session_id || progress.session_id === setupSession)) {
+                    if (progress.panel.IsValid()) {
+                        progress.panel.visible = false;
+                        progress.panel.DeleteAsync(0);
+                    }
+                    lifecycleConfig.SurvivalStartupViewportProgress = null;
+                }
                 if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(true, lifecycleContext);
             });
         }

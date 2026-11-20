@@ -15,6 +15,9 @@
     var attachedTeamSetupCover = false;
     var nativeMenuOwner = root;
     var viewportBackdrop = null;
+    var progressHud = null, progressLayoutUnavailable = false;
+    var localProgress = {panel: $("#StartupLoadingProgressTrack"), fill: $("#StartupLoadingProgressFill"),
+        percent: $("#StartupLoadingPercent"), value: null};
     var nativeMenuReady = false;
     var imagePath = "file://{images}/custom_game/loading/dawnward_citadel_background.png";
     var state = null, session = "", imageReady = false, imageError = false, stateTimeout = false;
@@ -41,7 +44,7 @@
     }
     var stageCaption = $("#StartupLoadingStage");
     if (!stageCaption || !stageCaption.IsValid()) {
-        stageCaption = $.CreatePanel("Label", $("#StartupLoadingFooter") || surface, "StartupLoadingStage");
+        stageCaption = $.CreatePanel("Label", $("#StartupLoadingMessages") || $("#StartupLoadingFooter") || surface, "StartupLoadingStage");
         stageCaption.AddClass("StartupLoadingStage"); stageCaption.hittest = false;
     }
     function preparingTeams() {
@@ -88,6 +91,55 @@
     // Hiding first would expose the HUD while its startup snapshot arrives.
 
     function parentOf(panel) { return panel && panel.GetParent ? panel.GetParent() : null; }
+    function writeProgress(bar, value) {
+        if (bar.value === value) return;
+        bar.value = value;
+        bar.fill.style.width = value.toFixed(1) + "%";
+        bar.percent.text = Math.floor(value) + "%";
+    }
+    function mountProgress(config) {
+        var panel = $.CreatePanel("Panel", progressHud, "SurvivalStartupViewportProgress");
+        panel.hittest = false;
+        panel.hittestchildren = false;
+        panel.style.width = "100%";
+        panel.style.height = "100%";
+        panel.style.zIndex = "200001";
+        var loaded = panel.BLoadLayout && panel.BLoadLayout("file://{resources}/layout/custom_game/startup_progress.xml", false, false);
+        var fill = loaded && panel.FindChildTraverse("StartupLoadingProgressFill");
+        var percentLabel = loaded && panel.FindChildTraverse("StartupLoadingPercent");
+        if (!fill || !percentLabel) {
+            panel.DeleteAsync(0);
+            progressLayoutUnavailable = true;
+            return null;
+        }
+        var bar = {panel: panel, fill: fill, percent: percentLabel, hud: progressHud, session_id: "", value: null};
+        config.SurvivalStartupViewportProgress = bar;
+        return bar;
+    }
+    function updateProgress(value, hidden, needsWaitingCover) {
+        var config = progressHud && phaseConfig();
+        var bar = config && config.SurvivalStartupViewportProgress;
+        var currentBar = !!(bar && bar.hud === progressHud && bar.panel.IsValid());
+        var finished = config && config.SurvivalGameplayVisible
+            && (!session || config.SurvivalStartupProgressFinishedSession === session);
+        if (config && !finished && (!hidden || needsWaitingCover)) {
+            if (!currentBar && !progressLayoutUnavailable) bar = mountProgress(config);
+            if (bar && bar.hud === progressHud && bar.panel.IsValid()) {
+                if (session || !bar.session_id) {
+                    if (session) bar.session_id = session;
+                    writeProgress(bar, value);
+                }
+                if (localProgress.panel.visible) localProgress.panel.visible = false;
+                return;
+            }
+        } else if (currentBar && hidden && !needsWaitingCover && bar.session_id === session) {
+            bar.panel.visible = false;
+            bar.panel.DeleteAsync(0);
+            config.SurvivalStartupViewportProgress = null;
+        }
+        if (!localProgress.panel.visible) localProgress.panel.visible = true;
+        writeProgress(localProgress, value);
+    }
     function removeViewportBackdrop(record) {
         if (!record || !record.panel) return;
         var config = phaseConfig();
@@ -317,6 +369,7 @@
         // opaque loading surface through setup and every later admission gate.
         var nativeTeamSetup = preparingTeams();
         var hidden = released() && (!needsWaitingCover || waitingReady) || awaitingSnapshot;
+        updateProgress(nativeTeamSetup ? 0 : personalProgress(local), hidden, needsWaitingCover);
         if (hidden && waitingReady) {
             var backdropConfig = phaseConfig();
             var backdrop = backdropConfig && backdropConfig.SurvivalStartupViewportBackdrop;
@@ -341,9 +394,6 @@
         stageCaption.text = nativeTeamSetup ? "正在准备队伍…" : "";
         stageCaption.visible = nativeTeamSetup && !hidden;
         stageCaption.SetHasClass("StartupLoadingHidden", !nativeTeamSetup || hidden);
-        var progress = nativeTeamSetup ? 0 : personalProgress(local);
-        $("#StartupLoadingProgressFill").style.width = progress.toFixed(1) + "%";
-        $("#StartupLoadingPercent").text = Math.floor(progress) + "%";
         var showError = late || reload || imageError || failed || stateTimeout && !nativeTeamSetup;
         $("#StartupLoadingErrorBox").SetHasClass("StartupLoadingHidden", !showError);
         root.SetHasClass("StartupLoadingHasError", showError);
@@ -457,6 +507,10 @@
             });
         }
     } catch (ignored) {}
+    if (!nativeLoadingContext) {
+        progressHud = root;
+        while (progressHud && progressHud.id !== "Hud") progressHud = parentOf(progressHud);
+    }
     attachTeamSetupCover();
     waitForState(); readState(); if (!artworkRetired) loadImage(); render(); $.Schedule(0.5, poll);
     $.Schedule(1, function () { diagnostic("layout_ready"); });

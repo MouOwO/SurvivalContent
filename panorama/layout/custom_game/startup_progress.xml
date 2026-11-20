@@ -1,0 +1,20 @@
+<root>
+    <styles>
+        <include src="file://{resources}/styles/custom_game/startup_loading.css" />
+    </styles>
+    <Panel class="StartupLoadingFooter" hittest="false" hittestchildren="false">
+        <Panel id="StartupLoadingProgressTrack" class="StartupLoadingProgressTrack" hittest="false">
+            <Panel class="StartupLoadingProgressWell" hittest="false">
+                <Panel class="StartupLoadingProgressEmpty" hittest="false">
+                    <Panel id="StartupLoadingProgressFill" class="StartupLoadingProgressFill" hittest="false" />
+                </Panel>
+            </Panel>
+            <Panel class="StartupLoadingProgressFrame" hittest="false">
+                <Image class="StartupLoadingProgressCap" src="file://{images}/custom_game/loading/warcraft_loading_frame_left.png" scaling="stretch-to-fit" hittest="false" />
+                <Image class="StartupLoadingProgressCenter" src="file://{images}/custom_game/loading/warcraft_loading_frame_center.png" scaling="stretch-to-fit" hittest="false" />
+                <Image class="StartupLoadingProgressCap" src="file://{images}/custom_game/loading/warcraft_loading_frame_right.png" scaling="stretch-to-fit" hittest="false" />
+            </Panel>
+            <Label id="StartupLoadingPercent" class="StartupLoadingPercent" text="0%" />
+        </Panel>
+    </Panel>
+</root>

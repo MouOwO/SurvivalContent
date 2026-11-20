@@ -14,7 +14,6 @@
                 <Label id="StartupLoadingTitle" class="StartupLoadingTitle" text="我在dota2苟发育" />
             </Panel>
             <Panel id="StartupLoadingFooter" class="StartupLoadingFooter" hittest="false" hittestchildren="true">
-                <Label id="StartupLoadingStage" class="StartupLoadingStage" text="正在准备队伍…" hittest="false" />
                 <Panel id="StartupLoadingProgressTrack" class="StartupLoadingProgressTrack" hittest="false">
                     <Panel class="StartupLoadingProgressWell" hittest="false">
                         <Panel class="StartupLoadingProgressEmpty" hittest="false">
@@ -28,9 +27,12 @@
                     </Panel>
                     <Label id="StartupLoadingPercent" class="StartupLoadingPercent" text="0%" />
                 </Panel>
-                <Panel id="StartupLoadingErrorBox" class="StartupLoadingErrorBox StartupLoadingHidden" hittest="false" hittestchildren="true">
-                    <Label id="StartupLoadingError" class="StartupLoadingError" text="准备尚未完成，请重试。" />
-                    <Button id="StartupLoadingRetry" class="StartupLoadingRetry"><Label text="重试" /></Button>
+                <Panel id="StartupLoadingMessages" class="StartupLoadingMessages" hittest="false" hittestchildren="true">
+                    <Label id="StartupLoadingStage" class="StartupLoadingStage" text="正在准备队伍…" hittest="false" />
+                    <Panel id="StartupLoadingErrorBox" class="StartupLoadingErrorBox StartupLoadingHidden" hittest="false" hittestchildren="true">
+                        <Label id="StartupLoadingError" class="StartupLoadingError" text="准备尚未完成，请重试。" />
+                        <Button id="StartupLoadingRetry" class="StartupLoadingRetry"><Label text="重试" /></Button>
+                    </Panel>
                 </Panel>
             </Panel>
         </Panel>

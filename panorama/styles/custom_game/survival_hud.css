@@ -610,7 +610,8 @@
 #MatchWaitingStatus {
     horizontal-align: center;
     vertical-align: bottom;
-    margin-bottom: 10%;
+    margin-bottom: 7.5%;
+    transform: translateY(-60px);
     padding: 12px 24px;
     background-color: #101923ee;
     color: #f5e2b9;

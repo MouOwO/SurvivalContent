@@ -1,16 +1,16 @@
 (function () {
     "use strict";
-    var root = $.GetContextPanel(), footer = root.FindChildTraverse("StartupLoadingFooter");
-    if (!footer) return;
+    var root = $.GetContextPanel(), messagesHost = root.FindChildTraverse("StartupLoadingMessages");
+    if (!messagesHost) messagesHost = root.FindChildTraverse("StartupLoadingFooter");
+    if (!messagesHost) return;
     function create(type, parent, id, css, text) {
         var result = $.CreatePanel(type, parent, id);
         if (css) result.AddClass(css);
         if (text) result.text = text;
         return result;
     }
-    // Keep the frozen loading layout intact; this optional component owns only
-    // its new subtree and appears after a private authorization event arrives.
-    var panel = create("Panel", footer, "PlayerWebAuth", "PlayerWebAuth");
+    // Authorization changes only the stack above the anchored progress bar.
+    var panel = create("Panel", messagesHost, "PlayerWebAuth", "PlayerWebAuth");
     panel.AddClass("PlayerWebAuthHidden");
     create("Label", panel, "", "PlayerWebAuthTitle", "授权当前 Steam 账号");
     create("Label", panel, "", "PlayerWebAuthDescription", "打开网页登录并确认下方短码，完成后返回游戏。");
