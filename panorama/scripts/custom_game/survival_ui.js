@@ -109,6 +109,7 @@
     var difficultyDismissed = false, difficultyPhase = "", difficultyResume = null;
     var startupState = null, setupSession = "", modeChoice = "", modeAcknowledged = "";
     var waitingCoverVisible = true, waitingCoverClose = null;
+    var waitingArtworkReady = false;
     var modePending = false, modeError = "", modeRequestSerial = 0, modeSignature = "", modeRows = {};
     var modeOrder = ["standard", "rich", "cold", "scourge", "ruins", "celestial", "fishing", "pure"];
     var profileRetry = null, profileRetryPending = false, profileRetrySerial = 0, profileErrorShown = false, profileRetryNotice = null;
@@ -464,7 +465,37 @@
         renderDifficultySelection(difficultyWave);
     }
 
-    function updateWaitingCover(choosingMode, choosingDifficulty) {
+    function publishWaitingCover(cover) {
+        if (!waitingArtworkReady || !setupSession || !startupState || !admissionComplete()) return;
+        var prior = lifecycleConfig.SurvivalMatchWaitingCover;
+        if (prior && prior.cover === cover && prior.session_id === setupSession) return;
+        var player = Game.GetLocalPlayerID();
+        lifecycleConfig.SurvivalMatchWaitingCover = {session_id: setupSession, player_id: player, cover: cover};
+    }
+
+    function initWaitingCover() {
+        var artwork = panel("MatchWaitingArtwork"), cover = panel("MatchWaitingCover");
+        var returnButton = panel("MatchWaitingReturn");
+        if (!artwork || !cover || !returnButton) return;
+        function ready() {
+            if (!syncActive() || waitingArtworkReady) return;
+            waitingArtworkReady = true;
+            publishWaitingCover(cover);
+        }
+        $.RegisterEventHandler("ImageLoaded", artwork, ready);
+        $.RegisterEventHandler("ImageFailedLoad", artwork, ready);
+        artwork.SetImage("file://{images}/custom_game/loading/dawnward_citadel_background.png");
+        // If the engine drops the image event, the authored opaque cover
+        // remains sufficient. This fallback cannot expose 3D or block setup.
+        scheduleHUD(3, ready);
+        returnButton.SetPanelEvent("onactivate", function () {
+            $.DispatchEvent("DOTAHUDShowDashboard");
+        });
+        lifecycleConfig.SurvivalGameplayVisible = false;
+        if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(false);
+    }
+
+    function updateWaitingCover(choosingMode, choosingDifficulty, overlay) {
         var cover = panel("MatchWaitingCover"), status = panel("MatchWaitingStatus");
         if (!cover || !status) return;
         // The authored panel initially covers the HUD, including the interval
@@ -477,17 +508,28 @@
             cancelHUDJob(waitingCoverClose);
             waitingCoverClose = null;
             cover.SetHasClass("MatchWaitingClosing", !visible);
-            if (visible) cover.visible = true;
+            overlay.SetHasClass("MatchSetupOnWaitingCover", visible);
+            if (visible) {
+                cover.visible = true;
+                lifecycleConfig.SurvivalGameplayVisible = false;
+                if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(false);
+            }
             else waitingCoverClose = scheduleHUD(0.2, function () {
                 waitingCoverClose = null;
                 if (cover.IsValid()) cover.visible = false;
+                lifecycleConfig.SurvivalGameplayVisible = true;
+                if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(true);
             });
         }
+        var returnButton = panel("MatchWaitingReturn");
+        var canReturn = visible && !!startupState && admissionComplete();
+        if (returnButton && returnButton.visible !== canReturn) returnButton.visible = canReturn;
         var text = visible && admissionComplete() && !choosingMode && !choosingDifficulty
             ? (setup() && setup().error === "player_disconnected" ? "正在等待玩家重新连接…" : "正在读取玩家档案…")
             : "";
         if (status.text !== text) status.text = text;
         if (status.visible !== !!text) status.visible = !!text;
+        publishWaitingCover(cover);
     }
 
     function renderDifficultySelection(wave) {
@@ -498,7 +540,7 @@
         difficultyWave = wave;
         var choosingMode = needsMode(), choosingDifficulty = difficultyAvailable();
         var shouldShow = admissionComplete() && (choosingMode || choosingDifficulty);
-        updateWaitingCover(choosingMode, choosingDifficulty);
+        updateWaitingCover(choosingMode, choosingDifficulty, overlay);
         var phase = setupSession + ":" + (choosingMode ? "mode" : "difficulty");
         if (phase !== difficultyPhase) { difficultyPhase = phase; difficultyDismissed = false; }
         overlay.SetHasClass("DifficultySelectionHidden", !shouldShow || difficultyDismissed);
@@ -1076,6 +1118,7 @@
     });
 
     $.Msg("[SurvivalUI] realtime HUD listener ready.");
+    initWaitingCover();
     readStartup();
     scheduleInitialBuilderSelection("hud_ready");
     scheduleHUD(0.10, function () {

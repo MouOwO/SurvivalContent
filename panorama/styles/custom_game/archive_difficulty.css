@@ -121,6 +121,7 @@
 
 /* Reborn: exact Valve textures, quiet iron panels, and natural text height. */
 #DifficultySelectionOverlay { background-color:#050a10a8; }
+#DifficultySelectionOverlay.MatchSetupOnWaitingCover { background-color: transparent; }
 #DifficultySelectionDialog.UIModal
 {
     width:275px; height:670px; background-color:#111b22; border:1px solid #657780;

@@ -46,12 +46,26 @@
     }
     var retryControl = ensureButton("StartupLoadingRetry", $("#StartupLoadingErrorBox"),
         "StartupLoadingRetry", null, "重试");
+    var returnControl = ensureButton("StartupLoadingReturn", surface,
+        "StartupReturnButton", null, "返回");
+    var returnVisible = null;
+    returnControl.button.hittestchildren = false;
+    returnControl.button.SetPanelEvent("onactivate", function () {
+        $.DispatchEvent("DOTAHUDShowDashboard");
+    });
 
-    function setVisible(visible) {
+    function clearArtwork() {
+        background.style.opacity = "0";
+        background.SetImage("");
+    }
+
+    function setVisible(visible, transferCover) {
         var shared=typeof GameUI!=="undefined"&&GameUI.CustomUIConfig?GameUI.CustomUIConfig().SurvivalUI:null;
         var motion=shared&&shared.Motion, motionState=root.__survivalMotion;
-        if(!motion){
+        if (!motion || transferCover) {
+            if (motion && !visible) motion.HideNow(root);
             [root,layoutRoot,surface].forEach(function(panel){if(!panel||!panel.IsValid())return;panel.visible=visible;panel.style.visibility=visible?"visible":"collapse";panel.style.opacity=visible?"1":"0";panel.hittest=visible;panel.hittestchildren=visible;panel.style.zIndex="200000";panel.SetHasClass("StartupLoadingHidden",!visible);});
+            if (!visible && artworkRetired) clearArtwork();
         }else{
         if(motionVisible===visible&&motionState&&(motionState.ticket!==null||root.visible===visible))return;
         motionVisible=visible;
@@ -63,7 +77,7 @@
         });
         motion.SetVisible(root,visible,{fade:true,onHidden:function(){
             [root,layoutRoot,surface].forEach(function(panel){if(panel&&panel.IsValid()){panel.visible=false;panel.style.visibility="collapse";panel.SetHasClass("StartupLoadingHidden",true);}});
-            if(artworkRetired&&background&&background.IsValid()){background.style.opacity="0";background.SetImage("");}
+            if (artworkRetired && background && background.IsValid()) clearArtwork();
         }});
         }
         if (visible !== lastReportedVisible) {
@@ -176,6 +190,11 @@
             releasedSession = session; releasedPlayer = memo.player_id;
         }
     }
+    function waitingCoverReady(sessionId, id) {
+        var config = phaseConfig(), handoff = config && config.SurvivalMatchWaitingCover;
+        return !!(handoff && handoff.session_id === sessionId && (id < 0 || handoff.player_id < 0 || handoff.player_id === id)
+            && handoff.cover && handoff.cover.IsValid());
+    }
     function maybeHandshake(local) {
         if (released() || !imageReady || imageError || !state || reloadRequired() || !validSession(session) || !local || yes(local.client_ready)) return;
         // A dropped message or reconnect can require another real handshake.
@@ -188,7 +207,6 @@
         // Engine phase wrappers can be composited again after their child was
         // hidden. Retire the actual image as well as the owned paint surface.
         // Late image callbacks must never repopulate that retired render layer.
-        if(!root.__survivalMotion||!root.__survivalMotion.open){background.style.opacity="0";background.SetImage("");}
     }
     function render() {
         if (!valid()) return;
@@ -219,6 +237,7 @@
         // Admission is separate from mode-specific profile loading. Once admitted,
         // profile retries and setup changes must never reopen the loading screen.
         var admissionKnown = !!state && state.admission_complete !== undefined;
+        var needsWaitingCover = admissionKnown && !!state.setup && state.profiles_ready !== undefined;
         var allReady = admissionKnown ? yes(state.admission_complete) && (localId < 0 || !!local)
             : mineReady && !failed && yes(state.all_ready) && roster.length > 0 && count === roster.length;
         // Server release is one-way for this session. A fresh phase can trust
@@ -228,13 +247,16 @@
         if (allReady) {
             releasedSession = session; releasedPlayer = localId;
             var config = phaseConfig();
-            if (config && localId >= 0) config.SurvivalStartupCompletion = {session_id: session, player_id: localId, admission_complete: admissionKnown};
+            if (config && localId >= 0) config.SurvivalStartupCompletion = {session_id: session, player_id: localId,
+                admission_complete: admissionKnown, waiting_cover_required: needsWaitingCover};
         }
         // Preserve authoritative admission through missing phase snapshots.
         // Legacy all_ready-only completion has a bounded one-second grace.
         // A valid new session immediately overrides either presentation memo.
         var memo = completionMemo(localId);
-        var awaitingSnapshot = !state && !validSession(session) && !!memo && (memo.admission_complete || clock < 1);
+        var waitingReady = needsWaitingCover && released() && waitingCoverReady(session, localId);
+        var awaitingSnapshot = !state && !validSession(session) && !!memo && (memo.admission_complete || clock < 1)
+            && (!memo.waiting_cover_required || waitingCoverReady(memo.session_id, localId));
         // Native GameRules state queries are unsafe while a remote map creates
         // or tears down its client rules object. A JS catch cannot intercept a
         // native access violation. The authoritative snapshot and completion
@@ -242,11 +264,16 @@
         // The server assigns the team and owns native auto-launch. Keep our
         // opaque loading surface through setup and every later admission gate.
         var nativeTeamSetup = preparingTeams();
-        var hidden = released() || awaitingSnapshot;
+        var hidden = released() && (!needsWaitingCover || waitingReady) || awaitingSnapshot;
         if (hidden && released()) lastHiddenRepair = clock;
         if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
-        setVisible(!hidden);
+        setVisible(!hidden, hidden && needsWaitingCover && waitingReady);
+        var showReturn = !hidden && validSession(session);
+        if (returnVisible !== showReturn) {
+            returnVisible = showReturn;
+            returnControl.button.SetHasClass("StartupLoadingHidden", !showReturn);
+        }
         root.SetHasClass("StartupLoadingImageReady", imageReady && !hidden && !artworkRetired);
         // ContextPanel can be an engine wrapper rather than the authored root.
         // Apply image visibility directly as well as through the theme class.

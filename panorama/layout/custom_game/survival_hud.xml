@@ -1,6 +1,7 @@
 <root>
     <styles>
         <include src="file://{resources}/styles/custom_game/survival_hud.css" />
+        <include src="file://{resources}/styles/custom_game/startup_loading.css" />
         <include src="file://{resources}/styles/custom_game/survival_hud_native.css" />
         <include src="file://{resources}/styles/custom_game/hero_world_health_bar.css" />
         <include src="file://{resources}/styles/custom_game/building_construction_progress.css" />
@@ -133,11 +134,14 @@
         </Panel>
 
         <Panel id="MatchWaitingCover" hittest="true" hittestchildren="false">
-            <Image class="MatchWaitingArtwork" src="file://{images}/custom_game/loading/dawnward_citadel_background.png"
-                scaling="stretch-to-fit-preserve-aspect" hittest="false" />
+            <Image id="MatchWaitingArtwork" class="MatchWaitingArtwork" scaling="stretch-to-fit-preserve-aspect" hittest="false" />
+            <Panel class="StartupLoadingShade" hittest="false" />
             <Label id="MatchWaitingStatus" text="" hittest="false" />
         </Panel>
-        <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden" hittest="true">
+        <Button id="MatchWaitingReturn" class="StartupReturnButton" visible="false" hittestchildren="false">
+            <Label text="返回" hittest="false" />
+        </Button>
+        <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden MatchSetupOnWaitingCover" hittest="true">
             <Panel id="DifficultySelectionDialog" class="UIModal" hittest="true" hittestchildren="true">
                 <Panel id="DifficultySelectionArt" hittest="false" hittestchildren="false" />
                 <Panel id="DifficultySelectionHeader" class="UIModalHeader" hittest="false">
