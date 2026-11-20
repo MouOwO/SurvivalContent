@@ -3,11 +3,11 @@
     var cfg=GameUI.CustomUIConfig(),registry=cfg.SurvivalUIRegistry;
     if(!registry)throw new Error("Shared UI registry must load before components");
     // Native roots can survive a layout reload; their child marker cannot.
-    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.7"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
+    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.8"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
     // Recreating the first including HUD must not forget another live HUD's
     // modal controller. The shared registry retains handles, never its timers.
     var retainedModals=cfg.SurvivalUIModals;
-    var U={version:"1.0.7",Tokens:registry.tokens},serial=0,
+    var U={version:"1.0.8",Tokens:registry.tokens},serial=0,
         modals=retainedModals&&typeof retainedModals==="object"?retainedModals:{};
     Object.keys(modals).forEach(function(id){if(!modals[id]||!valid(modals[id].panel))delete modals[id];});
     cfg.SurvivalUIModals=modals;
@@ -24,9 +24,17 @@
             var menu = hud.FindChildTraverse("MenuButtons");
             var arrow = menu && menu.FindChildTraverse("DashboardButton");
             if (!valid(arrow)) return false;
+            var bar = arrow.GetParent();
+            var otherButtons = [];
+            if (valid(bar) && bar.id === "ButtonBar") {
+                otherButtons = bar.Children().filter(function (button) { return button !== arrow; })
+                    .map(function (button) {
+                        return {panel: button, visibility: button.style.visibility || "visible", hittest: button.hittest};
+                    });
+            }
             state = cfg.SurvivalNativeMatchMenuState = {hud: hud, menu: menu, arrow: arrow,
                 parent: menu.GetParent(), zIndex: menu.style.zIndex || "0",
-                arrowVisibility: arrow.style.visibility || "visible", arrowHitTest: arrow.hittest};
+                arrowVisibility: arrow.style.visibility || "visible", arrowHitTest: arrow.hittest, otherButtons: otherButtons};
         }
         var menu = state.menu, arrow = state.arrow;
         // Move the existing Valve panel as a unit so the arrow keeps its
@@ -43,6 +51,14 @@
         var arrowHitTest = hidden ? state.arrowHitTest : true;
         if (arrow.style.visibility !== arrowVisibility) arrow.style.visibility = arrowVisibility;
         if (arrow.hittest !== arrowHitTest) arrow.hittest = arrowHitTest;
+        state.otherButtons.forEach(function (entry) {
+            var button = entry.panel;
+            if (!valid(button)) return;
+            var buttonVisibility = hidden ? entry.visibility : "collapse";
+            var hitTest = hidden ? entry.hittest : false;
+            if (button.style.visibility !== buttonVisibility) button.style.visibility = buttonVisibility;
+            if (button.hittest !== hitTest) button.hittest = hitTest;
+        });
         return true;
     };
     // Native CSS drives all intermediate frames. One completion ticket per
