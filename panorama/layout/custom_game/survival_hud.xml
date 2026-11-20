@@ -138,9 +138,6 @@
             <Panel class="StartupLoadingShade" hittest="false" />
             <Label id="MatchWaitingStatus" text="" hittest="false" />
         </Panel>
-        <Button id="MatchWaitingReturn" class="StartupReturnButton" visible="false" hittestchildren="false">
-            <Label text="返回" hittest="false" />
-        </Button>
         <Panel id="DifficultySelectionOverlay" class="DifficultySelectionHidden MatchSetupOnWaitingCover" hittest="true">
             <Panel id="DifficultySelectionDialog" class="UIModal" hittest="true" hittestchildren="true">
                 <Panel id="DifficultySelectionArt" hittest="false" hittestchildren="false" />

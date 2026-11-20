@@ -587,29 +587,6 @@
         return root && root.FindChildTraverse ? root : null;
     }
 
-    function setNativeMatchMenuHidden(hidden) {
-        var saved = inputConfig.SurvivalHiddenNativeMatchMenu;
-        if (!hidden) {
-            if (saved && saved.panel.IsValid()) {
-                saved.panel.style.visibility = saved.visibility;
-                saved.panel.hittest = saved.hittest;
-                saved.panel.hittestchildren = saved.hittestchildren;
-            }
-            inputConfig.SurvivalHiddenNativeMatchMenu = null;
-            return;
-        }
-        var root = hudRoot(), target = root && root.FindChildTraverse("MenuButtons");
-        if (!target) return;
-        if (!saved || saved.panel !== target) {
-            inputConfig.SurvivalHiddenNativeMatchMenu = {panel: target,
-                visibility: target.style.visibility || "visible", hittest: target.hittest, hittestchildren: target.hittestchildren};
-        }
-        if (target.style.visibility !== "collapse") target.style.visibility = "collapse";
-        if (target.hittest !== false) target.hittest = false;
-        if (target.hittestchildren !== false) target.hittestchildren = false;
-    }
-    inputConfig.SurvivalNativeMatchMenu = setNativeMatchMenuHidden;
-
     function hideOfficialTopLeftPanels() {
         var root = hudRoot();
         if (!root) return;
@@ -620,7 +597,9 @@
             target.hittest = false;
             target.hittestchildren = false;
         });
-        if (inputConfig.SurvivalGameplayVisible) setNativeMatchMenuHidden(true);
+        if (inputConfig.SurvivalNativeMatchMenu) {
+            inputConfig.SurvivalNativeMatchMenu(!!inputConfig.SurvivalGameplayVisible, $.GetContextPanel());
+        }
     }
 
     function applyDefaultUIProfile() {

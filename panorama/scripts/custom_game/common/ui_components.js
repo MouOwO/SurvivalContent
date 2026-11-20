@@ -3,11 +3,11 @@
     var cfg=GameUI.CustomUIConfig(),registry=cfg.SurvivalUIRegistry;
     if(!registry)throw new Error("Shared UI registry must load before components");
     // Native roots can survive a layout reload; their child marker cannot.
-    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.6"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
+    if(cfg.SurvivalUI&&cfg.SurvivalUI.version==="1.0.7"&&cfg.SurvivalUI.IsAlive&&cfg.SurvivalUI.IsAlive())return;
     // Recreating the first including HUD must not forget another live HUD's
     // modal controller. The shared registry retains handles, never its timers.
     var retainedModals=cfg.SurvivalUIModals;
-    var U={version:"1.0.6",Tokens:registry.tokens},serial=0,
+    var U={version:"1.0.7",Tokens:registry.tokens},serial=0,
         modals=retainedModals&&typeof retainedModals==="object"?retainedModals:{};
     Object.keys(modals).forEach(function(id){if(!modals[id]||!valid(modals[id].panel))delete modals[id];});
     cfg.SurvivalUIModals=modals;
@@ -15,6 +15,36 @@
     var lifetimeMarker=$.CreatePanel("Panel",$.GetContextPanel(),"");
     lifetimeMarker.hittest=false;lifetimeMarker.hittestchildren=false;lifetimeMarker.visible=false;
     U.IsAlive=function(){return valid(lifetimeMarker);};
+    if (!cfg.SurvivalNativeMatchMenu) cfg.SurvivalNativeMatchMenu = function (hidden, owner) {
+        var hud = owner;
+        while (valid(hud) && hud.id !== "Hud") hud = hud.GetParent ? hud.GetParent() : null;
+        if (!valid(hud)) return false;
+        var state = cfg.SurvivalNativeMatchMenuState;
+        if (!state || state.hud !== hud || !valid(state.menu) || !valid(state.arrow)) {
+            var menu = hud.FindChildTraverse("MenuButtons");
+            var arrow = menu && menu.FindChildTraverse("DashboardButton");
+            if (!valid(arrow)) return false;
+            state = cfg.SurvivalNativeMatchMenuState = {hud: hud, menu: menu, arrow: arrow,
+                parent: menu.GetParent(), zIndex: menu.style.zIndex || "0",
+                arrowVisibility: arrow.style.visibility || "visible", arrowHitTest: arrow.hittest};
+        }
+        var menu = state.menu, arrow = state.arrow;
+        // Move the existing Valve panel as a unit so the arrow keeps its
+        // native styles, tooltip and action while drawing above the cover.
+        var parent = hidden ? state.parent : hud;
+        if (valid(parent) && menu.GetParent() !== parent) menu.SetParent(parent);
+        var zIndex = hidden ? state.zIndex : "200002";
+        var visibility = hidden ? "collapse" : "visible";
+        if (menu.style.zIndex !== zIndex) menu.style.zIndex = zIndex;
+        if (menu.style.visibility !== visibility) menu.style.visibility = visibility;
+        if (menu.hittest !== false) menu.hittest = false;
+        if (menu.hittestchildren !== !hidden) menu.hittestchildren = !hidden;
+        var arrowVisibility = hidden ? state.arrowVisibility : "visible";
+        var arrowHitTest = hidden ? state.arrowHitTest : true;
+        if (arrow.style.visibility !== arrowVisibility) arrow.style.visibility = arrowVisibility;
+        if (arrow.hittest !== arrowHitTest) arrow.hittest = arrowHitTest;
+        return true;
+    };
     // Native CSS drives all intermediate frames. One completion ticket per
     // changing panel; stable snapshots never schedule work or traverse a tree.
     U.Motion={duration:.2,IsOpen:function(panel){return valid(panel)&&(panel.__survivalMotion?panel.__survivalMotion.open:panel.visible);},SetVisible:function(panel,visible,options){

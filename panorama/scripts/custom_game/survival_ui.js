@@ -475,8 +475,7 @@
 
     function initWaitingCover() {
         var artwork = panel("MatchWaitingArtwork"), cover = panel("MatchWaitingCover");
-        var returnButton = panel("MatchWaitingReturn");
-        if (!artwork || !cover || !returnButton) return;
+        if (!artwork || !cover) return;
         function ready() {
             if (!syncActive() || waitingArtworkReady) return;
             waitingArtworkReady = true;
@@ -488,11 +487,8 @@
         // If the engine drops the image event, the authored opaque cover
         // remains sufficient. This fallback cannot expose 3D or block setup.
         scheduleHUD(3, ready);
-        returnButton.SetPanelEvent("onactivate", function () {
-            $.DispatchEvent("DOTAHUDShowDashboard");
-        });
         lifecycleConfig.SurvivalGameplayVisible = false;
-        if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(false);
+        if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(false, lifecycleContext);
     }
 
     function updateWaitingCover(choosingMode, choosingDifficulty, overlay) {
@@ -512,18 +508,15 @@
             if (visible) {
                 cover.visible = true;
                 lifecycleConfig.SurvivalGameplayVisible = false;
-                if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(false);
+                if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(false, lifecycleContext);
             }
             else waitingCoverClose = scheduleHUD(0.2, function () {
                 waitingCoverClose = null;
                 if (cover.IsValid()) cover.visible = false;
                 lifecycleConfig.SurvivalGameplayVisible = true;
-                if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(true);
+                if (lifecycleConfig.SurvivalNativeMatchMenu) lifecycleConfig.SurvivalNativeMatchMenu(true, lifecycleContext);
             });
         }
-        var returnButton = panel("MatchWaitingReturn");
-        var canReturn = visible && !!startupState && admissionComplete();
-        if (returnButton && returnButton.visible !== canReturn) returnButton.visible = canReturn;
         var text = visible && admissionComplete() && !choosingMode && !choosingDifficulty
             ? (setup() && setup().error === "player_disconnected" ? "正在等待玩家重新连接…" : "正在读取玩家档案…")
             : "";

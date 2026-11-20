@@ -8,6 +8,9 @@
     surface = surface || layoutRoot;
     var nativeTeamSetupContext = !!(layoutRoot && layoutRoot.BHasClass
         && layoutRoot.BHasClass("StartupNativeTeamSetupContext"));
+    var nativeLoadingContext = layoutRoot.BHasClass("StartupNativeLoadingContext");
+    var attachedTeamSetupCover = false;
+    var nativeMenuReady = false;
     var imagePath = "file://{images}/custom_game/loading/dawnward_citadel_background.png";
     var state = null, session = "", imageReady = false, imageError = false, stateTimeout = false;
     var imageGeneration = 0, stateGeneration = 0, lastHandshake = -100, lastRetry = -100;
@@ -21,20 +24,15 @@
     // A joining Tools client may recompile an older content layout over its
     // game layout. Do not let a missing optional button abort the entire
     // loading script before nettable subscription and the image handshake.
-    function ensureButton(id, parent, css, textId, text) {
-        var button = $("#" + id), created = false;
+    function ensureRetryButton() {
+        var button = $("#StartupLoadingRetry");
         if (!button || !button.IsValid()) {
-            button = $.CreatePanel("Button", parent || surface, id);
-            button.AddClass(css);
-            created = true;
-            if ($.Msg) $.Msg("[STARTUP_LAYOUT_COMPAT] created=" + id);
+            button = $.CreatePanel("Button", $("#StartupLoadingErrorBox") || surface, "StartupLoadingRetry");
+            button.AddClass("StartupLoadingRetry");
+            $.CreatePanel("Label", button, "").text = "重试";
+            if ($.Msg) $.Msg("[STARTUP_LAYOUT_COMPAT] created=StartupLoadingRetry");
         }
-        var label = textId ? $("#" + textId) : null;
-        if ((textId && (!label || !label.IsValid())) || (!textId && created)) {
-            label = $.CreatePanel("Label", button, textId || "");
-            label.text = text;
-        }
-        return {button: button, label: label};
+        return button;
     }
     var stageCaption = $("#StartupLoadingStage");
     if (!stageCaption || !stageCaption.IsValid()) {
@@ -44,15 +42,7 @@
     function preparingTeams() {
         return nativeTeamSetupContext && !state || !!state && (yes(state.native_team_setup) || state.phase === "team_setup");
     }
-    var retryControl = ensureButton("StartupLoadingRetry", $("#StartupLoadingErrorBox"),
-        "StartupLoadingRetry", null, "重试");
-    var returnControl = ensureButton("StartupLoadingReturn", surface,
-        "StartupReturnButton", null, "返回");
-    var returnVisible = null;
-    returnControl.button.hittestchildren = false;
-    returnControl.button.SetPanelEvent("onactivate", function () {
-        $.DispatchEvent("DOTAHUDShowDashboard");
-    });
+    var retryButton = ensureRetryButton();
 
     function clearArtwork() {
         background.style.opacity = "0";
@@ -62,9 +52,15 @@
     function setVisible(visible, transferCover) {
         var shared=typeof GameUI!=="undefined"&&GameUI.CustomUIConfig?GameUI.CustomUIConfig().SurvivalUI:null;
         var motion=shared&&shared.Motion, motionState=root.__survivalMotion;
-        if (!motion || transferCover) {
+        var zIndex = attachedTeamSetupCover ? "-1" : "200000";
+        if (visible && nativeTeamSetupContext && motionVisible === true
+            && root.visible && layoutRoot.visible && surface.visible) return;
+        if (!motion || transferCover || visible && nativeTeamSetupContext) {
+            // The world is already rendering as GameSetup mounts. Its cover
+            // must paint at full opacity on the first frame.
+            motionVisible = visible;
             if (motion && !visible) motion.HideNow(root);
-            [root,layoutRoot,surface].forEach(function(panel){if(!panel||!panel.IsValid())return;panel.visible=visible;panel.style.visibility=visible?"visible":"collapse";panel.style.opacity=visible?"1":"0";panel.hittest=visible;panel.hittestchildren=visible;panel.style.zIndex="200000";panel.SetHasClass("StartupLoadingHidden",!visible);});
+            [root,layoutRoot,surface].forEach(function(panel){if(!panel||!panel.IsValid())return;panel.visible=visible;panel.style.visibility=visible?"visible":"collapse";panel.style.opacity=visible?"1":"0";panel.hittest=visible;panel.hittestchildren=visible;panel.style.zIndex=panel===root?zIndex:"200000";panel.SetHasClass("StartupLoadingHidden",!visible);});
             if (!visible && artworkRetired) clearArtwork();
         }else{
         if(motionVisible===visible&&motionState&&(motionState.ticket!==null||root.visible===visible))return;
@@ -72,7 +68,7 @@
         [root, layoutRoot, surface].forEach(function (panel) {
             if (!panel || !panel.IsValid()) return;
             panel.hittest = visible; panel.hittestchildren = visible;
-            panel.style.zIndex = "200000";
+            panel.style.zIndex = panel === root ? zIndex : "200000";
             if(visible){panel.RemoveClass("StartupLoadingHidden");panel.visible=true;panel.style.visibility="visible";panel.style.opacity="1";}
         });
         motion.SetVisible(root,visible,{fade:true,onHidden:function(){
@@ -94,6 +90,26 @@
     // Hiding first would expose the HUD while its startup snapshot arrives.
 
     function parentOf(panel) { return panel && panel.GetParent ? panel.GetParent() : null; }
+    function attachTeamSetupCover() {
+        if (!nativeTeamSetupContext || root !== layoutRoot || !root.SetParent) return;
+        var container = parentOf(root), setupHost = parentOf(container), hud = parentOf(setupHost);
+        if (!setupHost || setupHost.id !== "CustomUIContainer_GameSetup" || !hud || hud.id !== "CustomUIRoot") return;
+        // Valve can hide its GameSetup wrapper before the next startup layout
+        // paints. Keep the authored cover in the shared HUD below those layouts.
+        root.SetParent(hud);
+        attachedTeamSetupCover = true;
+        root.style.zIndex = "-1";
+    }
+    function dispose() {
+        disposed = true;
+        try { if (tableSubscription !== null) CustomNetTables.UnsubscribeNetTableListener(tableSubscription); } catch (ignored) {}
+        tableSubscription = null;
+    }
+    function retireTeamSetupCover() {
+        setVisible(false, true);
+        dispose();
+        root.DeleteAsync(0);
+    }
     function diagnostic(stage) {
         if (!valid() || diagnostics[stage] || !$.Msg) return;
         diagnostics[stage] = true;
@@ -255,7 +271,7 @@
         // A valid new session immediately overrides either presentation memo.
         var memo = completionMemo(localId);
         var waitingReady = needsWaitingCover && released() && waitingCoverReady(session, localId);
-        var awaitingSnapshot = !state && !validSession(session) && !!memo && (memo.admission_complete || clock < 1)
+        var awaitingSnapshot = !nativeTeamSetupContext && !state && !validSession(session) && !!memo && (memo.admission_complete || clock < 1)
             && (!memo.waiting_cover_required || waitingCoverReady(memo.session_id, localId));
         // Native GameRules state queries are unsafe while a remote map creates
         // or tears down its client rules object. A JS catch cannot intercept a
@@ -268,11 +284,13 @@
         if (hidden && released()) lastHiddenRepair = clock;
         if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
+        if (hidden && attachedTeamSetupCover) { retireTeamSetupCover(); return; }
         setVisible(!hidden, hidden && needsWaitingCover && waitingReady);
-        var showReturn = !hidden && validSession(session);
-        if (returnVisible !== showReturn) {
-            returnVisible = showReturn;
-            returnControl.button.SetHasClass("StartupLoadingHidden", !showReturn);
+        if (!hidden && !nativeLoadingContext && !nativeMenuReady) {
+            var menuConfig = phaseConfig();
+            if (menuConfig && !menuConfig.SurvivalGameplayVisible && menuConfig.SurvivalNativeMatchMenu) {
+                nativeMenuReady = menuConfig.SurvivalNativeMatchMenu(false, root);
+            }
         }
         root.SetHasClass("StartupLoadingImageReady", imageReady && !hidden && !artworkRetired);
         // ContextPanel can be an engine wrapper rather than the authored root.
@@ -313,8 +331,8 @@
             (reload ? "部分初始资源加载失败，请重新启动测试地图。" :
                 (imageError ? "画面加载失败，请重试。" :
                     (stateTimeout && !failed ? "仍在等待游戏准备，请检查连接后重试。" : preparationError)));
-        retryControl.button.SetHasClass("StartupLoadingHidden", nativeTeamSetup || late || reload);
-        retryControl.button.enabled = !nativeTeamSetup && !late && !reload && clock - lastRetry >= 2;
+        retryButton.SetHasClass("StartupLoadingHidden", nativeTeamSetup || late || reload);
+        retryButton.enabled = !nativeTeamSetup && !late && !reload && clock - lastRetry >= 2;
         maybeHandshake(local);
     }
     function accept(next) {
@@ -325,8 +343,13 @@
             render(); return;
         }
         if (next.session_id !== session) {
+            if (attachedTeamSetupCover && validSession(session)) {
+                retireTeamSetupCover();
+                return;
+            }
             session = next.session_id; lastHandshake = -100; stateTimeout = false; stateGeneration++;
             releasedSession = ""; releasedPlayer = -1;
+            nativeMenuReady = false;
         }
         state = next; render();
     }
@@ -372,8 +395,7 @@
     }
     function poll() {
         if (!valid()) {
-            disposed = true;
-            try { if (tableSubscription !== null) CustomNetTables.UnsubscribeNetTableListener(tableSubscription); } catch (ignored) {}
+            dispose();
             return;
         }
         clock += 0.5;
@@ -383,7 +405,7 @@
         // recovery render only if the table/API read could not be attempted.
         if (!readState()) render(); $.Schedule(0.5, poll);
     }
-    retryControl.button.SetPanelEvent("onactivate", retry);
+    retryButton.SetPanelEvent("onactivate", retry);
     $.RegisterEventHandler("ImageLoaded", background, imageLoaded);
     $.RegisterEventHandler("ImageFailedLoad", background, imageFailed);
     try {
@@ -393,6 +415,7 @@
             });
         }
     } catch (ignored) {}
+    attachTeamSetupCover();
     waitForState(); readState(); if (!artworkRetired) loadImage(); render(); $.Schedule(0.5, poll);
     $.Schedule(1, function () { diagnostic("layout_ready"); });
 })();
