@@ -6,10 +6,14 @@
     // Some phases use an engine-owned ContextPanel around the authored root.
     var layoutRoot = surface && surface.GetParent ? surface.GetParent() : background.GetParent ? background.GetParent() : root;
     surface = surface || layoutRoot;
+    var coverPanels = [root];
+    if (layoutRoot !== root) coverPanels.push(layoutRoot);
+    if (surface !== layoutRoot && surface !== root) coverPanels.push(surface);
     var nativeTeamSetupContext = !!(layoutRoot && layoutRoot.BHasClass
         && layoutRoot.BHasClass("StartupNativeTeamSetupContext"));
     var nativeLoadingContext = layoutRoot.BHasClass("StartupNativeLoadingContext");
     var attachedTeamSetupCover = false;
+    var nativeMenuOwner = root;
     var nativeMenuReady = false;
     var imagePath = "file://{images}/custom_game/loading/dawnward_citadel_background.png";
     var state = null, session = "", imageReady = false, imageError = false, stateTimeout = false;
@@ -17,7 +21,7 @@
     var clock = 0, disposed = false, tableSubscription = null;
     var diagnostics = {};
     var releasedSession = "", releasedPlayer = -1;
-    var lastReportedVisible = false, motionVisible = null;
+    var lastReportedVisible = false, coverVisible = null;
     var artworkRetired = false;
     var lastHiddenRepair = -100;
 
@@ -49,33 +53,26 @@
         background.SetImage("");
     }
 
-    function setVisible(visible, transferCover) {
-        var shared=typeof GameUI!=="undefined"&&GameUI.CustomUIConfig?GameUI.CustomUIConfig().SurvivalUI:null;
-        var motion=shared&&shared.Motion, motionState=root.__survivalMotion;
-        var zIndex = attachedTeamSetupCover ? "-1" : "200000";
-        if (visible && nativeTeamSetupContext && motionVisible === true
-            && root.visible && layoutRoot.visible && surface.visible) return;
-        if (!motion || transferCover || visible && nativeTeamSetupContext) {
-            // The world is already rendering as GameSetup mounts. Its cover
-            // must paint at full opacity on the first frame.
-            motionVisible = visible;
-            if (motion && !visible) motion.HideNow(root);
-            [root,layoutRoot,surface].forEach(function(panel){if(!panel||!panel.IsValid())return;panel.visible=visible;panel.style.visibility=visible?"visible":"collapse";panel.style.opacity=visible?"1":"0";panel.hittest=visible;panel.hittestchildren=visible;panel.style.zIndex=panel===root?zIndex:"200000";panel.SetHasClass("StartupLoadingHidden",!visible);});
-            if (!visible && artworkRetired) clearArtwork();
-        }else{
-        if(motionVisible===visible&&motionState&&(motionState.ticket!==null||root.visible===visible))return;
-        motionVisible=visible;
-        [root, layoutRoot, surface].forEach(function (panel) {
+    function setVisible(visible) {
+        var visibility = visible ? "visible" : "collapse";
+        // Every startup layout must cover the already rendered map on its
+        // first frame. The gameplay HUD owns the final fade after admission.
+        if (coverVisible === visible && coverPanels.every(function (panel) {
+            return !panel.IsValid() || panel.visible === visible && panel.style.visibility === visibility
+                && panel.hittest === visible && panel.hittestchildren === visible;
+        })) return;
+        coverVisible = visible;
+        coverPanels.forEach(function (panel) {
             if (!panel || !panel.IsValid()) return;
-            panel.hittest = visible; panel.hittestchildren = visible;
-            panel.style.zIndex = panel === root ? zIndex : "200000";
-            if(visible){panel.RemoveClass("StartupLoadingHidden");panel.visible=true;panel.style.visibility="visible";panel.style.opacity="1";}
+            panel.visible = visible;
+            panel.style.visibility = visibility;
+            panel.style.opacity = visible ? "1" : "0";
+            panel.hittest = visible;
+            panel.hittestchildren = visible;
+            panel.style.zIndex = panel === root && attachedTeamSetupCover ? "-1" : "200000";
+            panel.SetHasClass("StartupLoadingHidden", !visible);
         });
-        motion.SetVisible(root,visible,{fade:true,onHidden:function(){
-            [root,layoutRoot,surface].forEach(function(panel){if(panel&&panel.IsValid()){panel.visible=false;panel.style.visibility="collapse";panel.SetHasClass("StartupLoadingHidden",true);}});
-            if (artworkRetired && background && background.IsValid()) clearArtwork();
-        }});
-        }
+        if (!visible && artworkRetired) clearArtwork();
         if (visible !== lastReportedVisible) {
             lastReportedVisible = visible;
             if ($.Msg) $.Msg("[STARTUP_VISIBILITY] " + JSON.stringify({visible: visible,
@@ -92,11 +89,14 @@
     function parentOf(panel) { return panel && panel.GetParent ? panel.GetParent() : null; }
     function attachTeamSetupCover() {
         if (!nativeTeamSetupContext || root !== layoutRoot || !root.SetParent) return;
-        var container = parentOf(root), setupHost = parentOf(container), hud = parentOf(setupHost);
-        if (!setupHost || setupHost.id !== "CustomUIContainer_GameSetup" || !hud || hud.id !== "CustomUIRoot") return;
-        // Valve can hide its GameSetup wrapper before the next startup layout
-        // paints. Keep the authored cover in the shared HUD below those layouts.
-        root.SetParent(hud);
+        var container = parentOf(root), setupHost = parentOf(container), customRoot = parentOf(setupHost);
+        var hud = parentOf(customRoot), viewport = parentOf(hud);
+        if (!setupHost || setupHost.id !== "CustomUIContainer_GameSetup" || !customRoot || customRoot.id !== "CustomUIRoot"
+            || !hud || hud.id !== "Hud" || !viewport || viewport.id !== "DotaHud") return;
+        // Both phase HUD branches can stop drawing during the move to the
+        // match. Retain this cover in their common viewport at the back of the UI.
+        nativeMenuOwner = hud;
+        root.SetParent(viewport);
         attachedTeamSetupCover = true;
         root.style.zIndex = "-1";
     }
@@ -106,7 +106,7 @@
         tableSubscription = null;
     }
     function retireTeamSetupCover() {
-        setVisible(false, true);
+        setVisible(false);
         dispose();
         root.DeleteAsync(0);
     }
@@ -233,7 +233,7 @@
         // wrapper reappearing is corrected on this poll, not after a timeout.
         if (artworkRetired && lastReportedVisible === false && validSession(session)
             && releasedSession === session && (localId < 0 || localId === releasedPlayer)) {
-            var needsRepair = [root, layoutRoot, surface].some(function (panel) {
+            var needsRepair = coverPanels.some(function (panel) {
                 return panel && panel.IsValid() && (panel.visible !== false
                     || panel.hittest !== false || panel.hittestchildren !== false);
             });
@@ -285,11 +285,11 @@
         if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
         if (hidden && attachedTeamSetupCover) { retireTeamSetupCover(); return; }
-        setVisible(!hidden, hidden && needsWaitingCover && waitingReady);
+        setVisible(!hidden);
         if (!hidden && !nativeLoadingContext && !nativeMenuReady) {
             var menuConfig = phaseConfig();
             if (menuConfig && !menuConfig.SurvivalGameplayVisible && menuConfig.SurvivalNativeMatchMenu) {
-                nativeMenuReady = menuConfig.SurvivalNativeMatchMenu(false, root);
+                nativeMenuReady = menuConfig.SurvivalNativeMatchMenu(false, nativeMenuOwner);
             }
         }
         root.SetHasClass("StartupLoadingImageReady", imageReady && !hidden && !artworkRetired);
