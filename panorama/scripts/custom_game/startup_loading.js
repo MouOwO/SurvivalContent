@@ -14,6 +14,7 @@
     var nativeLoadingContext = layoutRoot.BHasClass("StartupNativeLoadingContext");
     var attachedTeamSetupCover = false;
     var nativeMenuOwner = root;
+    var viewportBackdrop = null;
     var nativeMenuReady = false;
     var imagePath = "file://{images}/custom_game/loading/dawnward_citadel_background.png";
     var state = null, session = "", imageReady = false, imageError = false, stateTimeout = false;
@@ -87,13 +88,38 @@
     // Hiding first would expose the HUD while its startup snapshot arrives.
 
     function parentOf(panel) { return panel && panel.GetParent ? panel.GetParent() : null; }
-    function disableNativePregame() {
-        if (!nativeTeamSetupContext || typeof DotaDefaultUIElement_t === "undefined"
-            || typeof GameUI === "undefined" || !GameUI.SetDefaultUIEnabled) return;
-        ["DOTA_DEFAULT_UI_PREGAME_HERO_SELECTION", "DOTA_DEFAULT_UI_PREGAME_STRATEGYUI"].forEach(function (name) {
-            var element = DotaDefaultUIElement_t[name];
-            if (element !== undefined) GameUI.SetDefaultUIEnabled(element, false);
-        });
+    function removeViewportBackdrop(record) {
+        if (!record || !record.panel) return;
+        var config = phaseConfig();
+        if (config && config.SurvivalStartupViewportBackdrop === record) config.SurvivalStartupViewportBackdrop = null;
+        var panel = record.panel;
+        record.panel = null;
+        if (panel.IsValid()) {
+            panel.visible = false;
+            panel.DeleteAsync(0);
+        }
+    }
+    function attachViewportBackdrop(hud, customRoot) {
+        var config = phaseConfig();
+        if (!config) return;
+        // A new panel outside the engine's registered phase layouts continues
+        // drawing when those layouts are suspended, even if they were reparented.
+        var prior = config.SurvivalStartupViewportBackdrop;
+        var panel = $.CreatePanel("Panel", hud, "SurvivalStartupViewportBackdrop");
+        panel.hittest = false;
+        panel.hittestchildren = false;
+        panel.style.width = "100%";
+        panel.style.height = "100%";
+        panel.style.zIndex = "-2";
+        panel.style.backgroundColor = "#070d12";
+        panel.style.backgroundImage = 'url("' + imagePath + '")';
+        panel.style.backgroundSize = "contain";
+        panel.style.backgroundPosition = "center";
+        panel.style.backgroundRepeat = "no-repeat";
+        if (hud.MoveChildBefore) hud.MoveChildBefore(panel, customRoot);
+        viewportBackdrop = {panel: panel, session_id: ""};
+        config.SurvivalStartupViewportBackdrop = viewportBackdrop;
+        removeViewportBackdrop(prior);
     }
     function attachTeamSetupCover() {
         if (!nativeTeamSetupContext || root !== layoutRoot || !root.SetParent) return;
@@ -101,10 +127,11 @@
         var hud = parentOf(customRoot), viewport = parentOf(hud);
         if (!setupHost || setupHost.id !== "CustomUIContainer_GameSetup" || !customRoot || customRoot.id !== "CustomUIRoot"
             || !hud || hud.id !== "Hud" || !viewport || viewport.id !== "DotaHud") return;
-        // Both phase HUD branches can stop drawing during the move to the
-        // match. Retain this cover in their common viewport at the back of the UI.
+        attachViewportBackdrop(hud, customRoot);
+        // Fill the native HUD while the background underneath can survive
+        // engine suspension of this registered layout.
         nativeMenuOwner = hud;
-        root.SetParent(viewport);
+        root.SetParent(hud);
         attachedTeamSetupCover = true;
         root.style.zIndex = "-1";
     }
@@ -115,6 +142,7 @@
     }
     function retireTeamSetupCover() {
         setVisible(false);
+        removeViewportBackdrop(viewportBackdrop);
         dispose();
         root.DeleteAsync(0);
     }
@@ -289,6 +317,11 @@
         // opaque loading surface through setup and every later admission gate.
         var nativeTeamSetup = preparingTeams();
         var hidden = released() && (!needsWaitingCover || waitingReady) || awaitingSnapshot;
+        if (hidden && waitingReady) {
+            var backdropConfig = phaseConfig();
+            var backdrop = backdropConfig && backdropConfig.SurvivalStartupViewportBackdrop;
+            if (backdrop && backdrop.session_id === session) removeViewportBackdrop(backdrop);
+        }
         if (hidden && released()) lastHiddenRepair = clock;
         if (hidden && released()) retireArtwork();
         else if (!hidden && artworkRetired) loadImage();
@@ -358,6 +391,7 @@
             session = next.session_id; lastHandshake = -100; stateTimeout = false; stateGeneration++;
             releasedSession = ""; releasedPlayer = -1;
             nativeMenuReady = false;
+            if (viewportBackdrop) viewportBackdrop.session_id = session;
         }
         state = next; render();
     }
@@ -423,7 +457,7 @@
             });
         }
     } catch (ignored) {}
-    disableNativePregame(); attachTeamSetupCover();
+    attachTeamSetupCover();
     waitForState(); readState(); if (!artworkRetired) loadImage(); render(); $.Schedule(0.5, poll);
     $.Schedule(1, function () { diagnostic("layout_ready"); });
 })();
